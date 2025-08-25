@@ -8,7 +8,7 @@ openai.api_key = st.secrets["OPENAI_API_KEY"]
 st.title("Excel → Personalized Lines")
 
 # Stripe Paywall (simple hack)
-st.markdown("### Free: 50 rows. Upgrade for unlimited → [Pay here](hhttps://buy.stripe.com/3cIcN49c7doffmV0J0bwk06)")
+st.markdown("### Free: 50 rows. Upgrade for unlimited → [Pay here](https://buy.stripe.com/3cIcN49c7doffmV0J0bwk06)")
 
 uploaded_file = st.file_uploader("Upload your Excel (XLSX/CSV)", type=["xlsx","csv"])
 
