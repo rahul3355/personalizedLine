@@ -8,9 +8,11 @@ openai.api_key = st.secrets["OPENAI_API_KEY"]
 st.title("Excel → Personalized Lines")
 
 # Stripe Paywall (simple hack)
-st.markdown("### Free: 50 rows. Upgrade for unlimited → [Pay here](https://buy.stripe.com/3cIcN49c7doffmV0J0bwk06)")
+st.markdown(
+    "### Free: 50 rows. Upgrade for unlimited → [Pay here](https://buy.stripe.com/3cIcN49c7doffmV0J0bwk06)"
+)
 
-uploaded_file = st.file_uploader("Upload your Excel (XLSX/CSV)", type=["xlsx","csv"])
+uploaded_file = st.file_uploader("Upload your Excel (XLSX/CSV)", type=["xlsx", "csv"])
 
 if uploaded_file:
     # Load file
@@ -25,22 +27,44 @@ if uploaded_file:
         df = df.head(50)
 
     # Ensure columns exist
-    if not {"title","company","company short description"}.issubset([c.lower() for c in df.columns]):
-        st.error("Your file must have columns: title, company, company short description")
+    if not {"title", "company", "company short description"}.issubset(
+        [c.lower() for c in df.columns]
+    ):
+        st.error(
+            "Your file must have columns: title, company, company short description"
+        )
     else:
         # Process rows
         out_lines = []
         for _, row in df.iterrows():
-            title = row.get("title","")
-            company = row.get("company","")
-            desc = row.get("company short description","")
+            title = row.get("title", "")
+            company = row.get("company", "")
+            desc = row.get("company short description", "")
 
-            prompt = f"As {title} of {company}, LinkedIn can help you {desc} to attract more clients."
+            prompt = f"""
+                Company: {company}
+                Title: {title}
+                Description: {desc}
+
+                Task: Write one personalized cold outreach line.
+                Rules:
+                - Do not include greetings or names.
+                - Must start naturally, not with “Hi” or “I noticed”.
+                - Use the company description to identify what the company does.
+                - Tie that directly to how LinkedIn can help them (getting clients, partnerships, investors, or talent).
+                - One single sentence, under 25 words, natural and specific.
+                """
+
             resp = openai.chat.completions.create(
                 model="gpt-4o-mini",
-                messages=[{"role":"system","content":"Write one personalized cold email line. Short, natural, one sentence, under 30 words."},
-                          {"role":"user","content":prompt}],
-                max_tokens=60
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "Write one personalized cold email line. Short, natural, one sentence, under 30 words.",
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                max_tokens=60,
             )
             out_lines.append(resp.choices[0].message.content.strip())
 
@@ -55,5 +79,5 @@ if uploaded_file:
             "Download processed Excel",
             data=towrite,
             file_name="personalized_output.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
