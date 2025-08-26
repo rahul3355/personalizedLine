@@ -42,18 +42,20 @@ if uploaded_file:
             desc = row.get("company short description", "")
 
             prompt = f"""
-                Company: {company}
-                Title: {title}
-                Description: {desc}
+Write one personalized cold outreach line.
 
-                Task: Write one personalized cold outreach line.
-                Rules:
-                - Do not include greetings or names.
-                - Must start naturally, not with “Hi” or “I noticed”.
-                - Use the company description to identify what the company does.
-                - Tie that directly to how LinkedIn can help them (getting clients, partnerships, investors, or talent).
-                - One single sentence, under 25 words, natural and specific.
-                """
+Inputs:
+- Title: {title}
+- Company: {company}
+- Description: {desc}
+
+Requirements:
+- Use the description to show you understand what the company does.
+- Tie it directly to how LinkedIn can help them (clients, talent, investors, or partnerships).
+- Keep it to one natural sentence, under 25 words.
+- No greetings or names.
+"""
+
 
             resp = openai.chat.completions.create(
                 model="gpt-4o-mini",
