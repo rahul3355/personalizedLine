@@ -4,9 +4,12 @@ import Navbar from "../components/Navbar";
 
 export default function MyApp({ Component, pageProps }: AppProps) {
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen flex bg-gray-50">
+      {/* Left Sidebar */}
       <Navbar />
-      <main className="p-6">
+
+      {/* Main Content */}
+      <main className="flex-1 p-8">
         <Component {...pageProps} />
       </main>
     </div>

@@ -1,5 +1,8 @@
 # Ignore Streamlit secrets
 .streamlit/secrets.toml
+node_modules/
+/node_modules
+
 
 # Ignore virtual environments
 venv/
