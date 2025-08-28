@@ -1,2 +1,17 @@
 # Ignore Streamlit secrets
 .streamlit/secrets.toml
+
+# Ignore virtual environments
+venv/
+.env
+
+# Ignore Python caches
+__pycache__/
+*.pyc
+
+# Ignore Jupyter stuff
+.ipynb_checkpoints/
+
+# Ignore OS/filesystem junk
+.DS_Store
+Thumbs.db
