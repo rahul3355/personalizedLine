@@ -1,6 +1,7 @@
 # queue_utils.py
 import sqlite3, os, json, time, uuid
 from contextlib import contextmanager
+from backend.app import db, jobs, gpt_helpers
 
 DB_PATH = "jobs.db"
 
@@ -55,3 +56,15 @@ def list_jobs(limit=20):
     with db() as con:
         cur = con.execute("SELECT id,status,filename,rows,created_at,finished_at FROM jobs ORDER BY created_at DESC LIMIT ?", (limit,))
         return [dict(zip([d[0] for d in cur.description], r)) for r in cur.fetchall()]
+    
+def worker_loop():
+    while True:
+        # check DB for queued jobs
+        job = jobs.next_queued_job()
+        if job:
+            try:
+                jobs.process_job(job["id"])
+            except Exception as e:
+                db.update_job(job["id"], status="failed", error=str(e))
+        else:
+            time.sleep(2)  # nothing to do, wait
