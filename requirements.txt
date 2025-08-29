@@ -1,9 +1,23 @@
-streamlit==1.38.0
+# Core backend
+fastapi==0.115.0
+uvicorn==0.35.0
+
+# OpenAI SDK (pinned to the stable version we fixed)
 openai==1.40.2
-streamlit-autorefresh==1.0.1
+
+# Frontend (Streamlit app for uploads + UI)
+streamlit==1.37.0
+
+# Data handling
 pandas==2.2.2
-numpy==1.26.4
-openpyxl
-fastapi
-uvicorn
-python-multipart
+openpyxl==3.1.5     # required for writing Excel files
+xlrd==2.0.1         # required for reading older Excel files
+
+# Utilities
+tqdm==4.67.1        # progress bars (already in your logs)
+httpx==0.28.1       # OpenAI transport layer
+pydantic==2.11.7    # required by FastAPI/OpenAI
+typing-extensions==4.15.0
+
+# Concurrency
+anyio==4.10.0
