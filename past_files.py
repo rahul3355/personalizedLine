@@ -1,9 +1,10 @@
 import os, time, streamlit as st
-from db import list_jobs, get_progress, get_job
+from backend.app.db import list_jobs, get_progress, get_job
 
-def render(user):
+
+def render(user_id: str):
     st.header("Your Past Files")
-    jobs = list_jobs(user["id"], limit=50)
+    jobs = list_jobs(user_id, limit=50)
 
     if not jobs:
         st.info("No files yet.")

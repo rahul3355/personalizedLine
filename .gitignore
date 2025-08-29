@@ -3,6 +3,9 @@
 node_modules/
 /node_modules
 
+/.streamlit
+.secrets.toml
+
 
 # Ignore virtual environments
 venv/

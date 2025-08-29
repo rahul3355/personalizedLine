@@ -1,12 +1,12 @@
 import os, pandas as pd, streamlit as st
-from db import enqueue_job
-from jobs import process_job, EXEC
-from gpt_helpers import generate_line
+from backend.app.db import enqueue_job
+from backend.app.jobs import process_job, EXEC
+from backend.app.gpt_helpers import generate_line
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-def render(user):
+def render(user_id: str):
     st.header("Step 1: Upload Your File")
     uploaded = st.file_uploader("Upload file", type=["csv", "xlsx"])
 
@@ -52,6 +52,6 @@ def render(user):
                 "company_col": company_col, "desc_col": desc_col,
                 "file_path": file_path
             }
-            job_id = enqueue_job(uploaded.name, len(df), meta, user["id"])
+            job_id = enqueue_job(uploaded.name, len(df), meta, user_id)
             EXEC.submit(process_job, job_id)
             st.success("✅ File is being processed. Check Past Files.")

@@ -1,14 +1,14 @@
 import streamlit as st
-from auth import require_user, sign_out_button
-from db import init_db
+from backend.app import db
 import create_new, past_files
 
 st.set_page_config(page_title="Personalized Outreach Tool", layout="wide")
 
-# ---------- Init + Auth ----------
+# ---------- Init ----------
 init_db()
-user = require_user()   # ✅ Google enforced
-sign_out_button()
+
+# TEMP: hardcode current user until Next.js login is integrated
+current_user_id = "dev-user-123"
 
 # ---------- Navigation ----------
 PAGES = {
@@ -17,4 +17,4 @@ PAGES = {
 }
 
 choice = st.sidebar.radio("Choose Page", list(PAGES.keys()))
-PAGES[choice].render(user)   # pass user into page
+PAGES[choice].render(current_user_id)   # pass user_id instead of user

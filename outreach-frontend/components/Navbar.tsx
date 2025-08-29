@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Upload, FolderClock } from "lucide-react"; // optional icons
+import { Home, Upload, FolderClock } from "lucide-react";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -39,11 +39,9 @@ export default function Navbar() {
         ))}
       </ul>
 
-      {/* Bottom Button */}
+      {/* User Section */}
       <div className="p-4 border-t border-gray-200">
-        <button className="w-full bg-gradient-to-r from-gray-800 to-gray-900 text-white py-2 px-4 rounded-lg shadow hover:opacity-90">
-          Get Started
-        </button>
+        PREVIOUS LOGIN BUTTON 6
       </div>
     </nav>
   );

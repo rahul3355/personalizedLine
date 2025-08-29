@@ -1,11 +1,23 @@
 import pandas as pd, os, time, json
 from concurrent.futures import ThreadPoolExecutor
-from db import get_job, update_job, log_progress
-from gpt_helpers import generate_line
+from backend.app.db import get_job, update_job, log_progress
+from backend.app.gpt_helpers import generate_line
+from backend.app import db
 
 WORK_DIR = "outputs"
 os.makedirs(WORK_DIR, exist_ok=True)
 EXEC = ThreadPoolExecutor(max_workers=2)
+
+
+
+def next_queued_job():
+    with db.db() as con:
+        cur = con.execute("SELECT * FROM jobs WHERE status='queued' ORDER BY created_at LIMIT 1")
+        row = cur.fetchone()
+        if row:
+            keys = [d[0] for d in cur.description]
+            return dict(zip(keys, row))
+    return None
 
 def process_job(job_id):
     try:
