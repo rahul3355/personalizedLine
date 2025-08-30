@@ -1,6 +1,6 @@
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
-import uuid, shutil, os, tempfile, threading, pandas as pd
-from . import db, jobs 
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request, Depends
+import uuid, shutil, os, tempfile, threading, pandas as pd, base64, json
+from . import db, jobs
 import queue_utils
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -33,9 +33,27 @@ app.add_middleware(
 def health():
     return {"status": "ok"}
 
+# ---- Helper: extract user_id from Supabase JWT ----
+def get_current_user(request: Request):
+    auth = request.headers.get("authorization")
+    if not auth or not auth.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
+    token = auth.split(" ")[1]
+
+    try:
+        # JWT = header.payload.signature, we only decode payload (2nd part)
+        payload_part = token.split(".")[1]
+        # pad base64
+        padded = payload_part + "=" * (-len(payload_part) % 4)
+        decoded = base64.urlsafe_b64decode(padded)
+        payload = json.loads(decoded)
+        return payload.get("sub")
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
+
 # STEP 1 — Parse headers from uploaded file
 @app.post("/parse_headers")
-def parse_headers(file: UploadFile = File(...)):
+def parse_headers(file: UploadFile = File(...), user_id: str = Depends(get_current_user)):
     tmp_dir = tempfile.gettempdir()
     temp_path = os.path.join(tmp_dir, f"{uuid.uuid4()}_{file.filename}")
 
@@ -60,10 +78,9 @@ def create_job(
     offer: str = Form(...),
     persona: str = Form(...),
     channel: str = Form(...),
-    max_words: int = Form(...)
+    max_words: int = Form(...),
+    user_id: str = Depends(get_current_user)
 ):
-    user_id = "test-user"
-
     meta = {
         "file_path": file_path,
         "title_col": title_col,
@@ -79,21 +96,31 @@ def create_job(
     return {"job_id": job_id}
 
 @app.get("/jobs")
-def list_jobs():
-    user_id = "test-user"
-    return db.list_jobs(user_id)
+def list_jobs(user_id: str = Depends(get_current_user)):
+    jobs = db.list_jobs(user_id)
+    enriched = []
+    for job in jobs:
+        percent, message = db.get_progress(job["id"])
+        job["progress"] = percent
+        job["message"] = message
+        enriched.append(job)
+    return enriched
 
 @app.get("/jobs/{job_id}")
-def get_job(job_id: str):
-    user_id = "test-user"
+def get_job(job_id: str, user_id: str = Depends(get_current_user)):
     job = db.get_job(job_id)
     if not job or job["user_id"] != user_id:
         raise HTTPException(status_code=404, detail="Job not found")
+
+    # ✅ Enrich with progress + message
+    percent, message = db.get_progress(job_id)
+    job["progress"] = percent
+    job["message"] = message
+
     return job
 
 @app.get("/jobs/{job_id}/download")
-def download_job(job_id: str):
-    user_id = "test-user"
+def download_job(job_id: str, user_id: str = Depends(get_current_user)):
     job = db.get_job(job_id)
 
     if not job or job["user_id"] != user_id:
@@ -110,8 +137,7 @@ def download_job(job_id: str):
     )
 
 @app.get("/jobs/{job_id}/progress")
-def job_progress(job_id: str):
-    user_id = "test-user"
+def job_progress(job_id: str, user_id: str = Depends(get_current_user)):
     job = db.get_job(job_id)
 
     if not job or job["user_id"] != user_id:

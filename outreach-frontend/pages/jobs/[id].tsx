@@ -3,16 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { API_URL } from "../../lib/api";
-import {
-  FileText,
-  Calendar,
-  Hash,
-  CheckCircle,
-  XCircle,
-  Loader2,
-  ArrowLeft,
-  Download,
-} from "lucide-react";
+import { useAuth } from "../../lib/AuthProvider";
 
 interface Job {
   id: string;
@@ -25,169 +16,141 @@ interface Job {
   result_path: string | null;
 }
 
+interface JobProgress {
+  job_id: string;
+  status: string;
+  percent: number;
+  message: string;
+}
+
 export default function JobDetailPage() {
   const router = useRouter();
   const { id } = router.query;
+  const { session } = useAuth();
 
   const [job, setJob] = useState<Job | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [percent, setPercent] = useState<number>(0);
-  const [progressMsg, setProgressMsg] = useState<string>("");
+  const [progress, setProgress] = useState<JobProgress | null>(null);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id || !session) return;
 
-    async function fetchJob() {
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    async function fetchJobAndProgress() {
       try {
-        const res = await fetch(`${API_URL}/jobs/${id}`);
-        if (!res.ok) throw new Error(`Failed: ${res.status}`);
-        const data = await res.json();
-        setJob(data);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
+        const res = await fetch(`${API_URL}/jobs/${id}`, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        if (!res.ok) throw new Error("Failed to fetch job");
+        const jobData = await res.json();
+        setJob(jobData);
+
+        if (jobData.status === "in_progress") {
+          interval = setInterval(async () => {
+            const progRes = await fetch(`${API_URL}/jobs/${id}/progress`, {
+              headers: { Authorization: `Bearer ${session.access_token}` },
+            });
+            if (progRes.ok) {
+              const progData = await progRes.json();
+              setProgress(progData);
+
+              // stop polling once job has finished
+              if (progData.status === "succeeded" || progData.status === "failed") {
+                clearInterval(interval!);
+                const finalRes = await fetch(`${API_URL}/jobs/${id}`, {
+                  headers: { Authorization: `Bearer ${session.access_token}` },
+                });
+                if (finalRes.ok) {
+                  const finalData = await finalRes.json();
+                  setJob(finalData);
+                  setProgress(null); // cleanup progress after job resolves
+                }
+              }
+            }
+          }, 2000);
+        }
+      } catch (err) {
+        console.error(err);
       }
     }
-    fetchJob();
-  }, [id]);
 
-  useEffect(() => {
-    if (!id || !job) return;
-    if (job.status !== "queued" && job.status !== "running") return;
+    fetchJobAndProgress();
 
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch(`${API_URL}/jobs/${id}/progress`);
-        if (!res.ok) return;
-        const data = await res.json();
-        setPercent(data.percent || 0);
-        setProgressMsg(data.message || "");
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [id, session]);
 
-        const jobRes = await fetch(`${API_URL}/jobs/${id}`);
-        if (jobRes.ok) {
-          const jobData = await jobRes.json();
-          setJob(jobData);
-        }
-      } catch (_) {}
-    }, 3000);
+  async function handleDownload() {
+    if (!job) return;
+    const res = await fetch(`${API_URL}/jobs/${job.id}/download`, {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    if (!res.ok) return alert("Download failed");
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${job.filename || "result"}.xlsx`;
+    a.click();
+  }
 
-    return () => clearInterval(interval);
-  }, [id, job]);
-
-  if (loading) return <p className="p-6 text-gray-600">Loading job details...</p>;
-  if (error) return <p className="p-6 text-red-600">Error: {error}</p>;
-  if (!job) return <p className="p-6 text-gray-600">No job found</p>;
-
-  const statusStyles =
-    job.status === "succeeded"
-      ? "bg-green-100 text-green-700"
-      : job.status === "failed"
-      ? "bg-red-100 text-red-700"
-      : "bg-yellow-100 text-yellow-700";
-
-  const statusIcon =
-    job.status === "succeeded" ? (
-      <CheckCircle className="h-4 w-4" />
-    ) : job.status === "failed" ? (
-      <XCircle className="h-4 w-4" />
-    ) : (
-      <Loader2 className="h-4 w-4 animate-spin" />
-    );
+  if (!job) return <p>Loading job...</p>;
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <div className="bg-white shadow-xl rounded-2xl p-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Job Detail</h1>
-          <span
-            className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${statusStyles}`}
-          >
-            {statusIcon}
-            {job.status}
-          </span>
+    <div className="max-w-3xl mx-auto p-8">
+      <div className="bg-white shadow-xl rounded-2xl p-8 border border-gray-100">
+        <h1 className="text-3xl font-bold mb-6 text-gray-900">Job Detail</h1>
+
+        <div className="space-y-3 text-gray-700">
+          <p><span className="font-semibold">ID:</span> {job.id}</p>
+          <p><span className="font-semibold">Filename:</span> {job.filename}</p>
+          <p><span className="font-semibold">Rows:</span> {job.rows}</p>
+          <p>
+            <span className="font-semibold">Created At:</span>{" "}
+            {new Date(job.created_at * 1000).toLocaleString()}
+          </p>
+          <p>
+            <span className="font-semibold">Finished At:</span>{" "}
+            {job.finished_at
+              ? new Date(job.finished_at * 1000).toLocaleString()
+              : "In progress"}
+          </p>
         </div>
 
-        {/* Filename */}
-        <div className="flex items-center gap-2 text-gray-700 mb-6">
-          <FileText className="h-5 w-5 text-gray-400" />
-          <span className="font-medium">{job.filename}</span>
-        </div>
-
-        {/* Metadata Grid */}
-        <div className="grid grid-cols-2 gap-6 mb-8 text-sm">
-          <div>
-            <p className="text-gray-500 uppercase text-xs">Job ID</p>
-            <p className="font-mono text-gray-900 break-all">{job.id}</p>
-          </div>
-          <div>
-            <p className="text-gray-500 uppercase text-xs">Rows</p>
-            <p className="text-gray-900">{job.rows}</p>
-          </div>
-          <div>
-            <p className="text-gray-500 uppercase text-xs">Created</p>
-            <p className="flex items-center gap-1 text-gray-700">
-              <Calendar className="h-4 w-4 text-gray-400" />
-              {new Date(job.created_at * 1000).toLocaleString()}
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-500 uppercase text-xs">Finished</p>
-            <p className="flex items-center gap-1 text-gray-700">
-              <Calendar className="h-4 w-4 text-gray-400" />
-              {job.finished_at
-                ? new Date(job.finished_at * 1000).toLocaleString()
-                : "-"}
-            </p>
-          </div>
-          <div className="col-span-2">
-            <p className="text-gray-500 uppercase text-xs">Error</p>
-            <p className="text-gray-900">{job.error || "-"}</p>
-          </div>
-        </div>
-
-        {/* Progress */}
-        {(job.status === "queued" || job.status === "running") && (
-          <div className="mb-8">
-            <div className="w-full bg-gray-200 h-2 rounded-full">
+        {/* Progress bar (only visible during in_progress) */}
+        {job.status === "in_progress" && (
+          <div className="mt-6">
+            <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
               <div
-                className="h-2 bg-blue-600 rounded-full"
-                style={{ width: `${percent}%` }}
-              ></div>
+                className="h-3 bg-black transition-all duration-500"
+                style={{ width: `${progress?.percent || 0}%` }}
+              />
             </div>
-            <p className="mt-2 text-sm text-gray-700">
-              {percent}% {progressMsg}
+            <p className="text-sm text-gray-600 mt-2">
+              {progress ? `${progress.percent}% — ${progress.message}` : "Starting..."}
             </p>
           </div>
         )}
 
-        {/* Result */}
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-gray-500 uppercase text-xs mb-1">Result</p>
-            {job.result_path ? (
-              <a
-                href={`${API_URL}/jobs/${job.id}/download`}
-                className="inline-flex items-center gap-2 bg-black text-white px-4 py-2 rounded-full text-sm font-medium shadow hover:opacity-90 transition"
-              >
-                <Download className="h-4 w-4" />
-                Download
-              </a>
-            ) : (
-              <p className="text-gray-400">Not available</p>
-            )}
+        {/* Download button replaces progress once job succeeds */}
+        {job.status === "succeeded" && job.result_path && (
+          <div className="mt-8">
+            <button
+              onClick={handleDownload}
+              className="w-full md:w-auto px-6 py-3 rounded-lg bg-black text-white text-sm font-semibold shadow hover:bg-gray-800 transition"
+            >
+              Download Result
+            </button>
           </div>
+        )}
 
-          <button
-            onClick={() => router.push("/jobs")}
-            className="inline-flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-full text-gray-700 text-sm font-medium hover:bg-gray-200 transition"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Jobs
-          </button>
-        </div>
+        {/* Error display */}
+        {job.status === "failed" && (
+          <div className="mt-6 text-red-600 font-semibold">
+            Job failed: {job.error || "Unknown error"}
+          </div>
+        )}
       </div>
     </div>
   );

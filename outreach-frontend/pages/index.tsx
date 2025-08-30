@@ -1,21 +1,23 @@
 "use client";
-import { useEffect, useState } from "react";
+
+import { useAuth } from "../lib/AuthProvider";
 
 export default function Home() {
-  const [user, setUser] = useState<any>(null);
+  const { session, loading } = useAuth();
 
-  useEffect(() => {
-    const stored = localStorage.getItem("user");
-    if (stored) {
-      setUser(JSON.parse(stored));
-    }
-  }, []);
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
-  if (!user) {
+  if (!session) {
     // Show login only
     return (
       <div className="flex items-center justify-center min-h-screen">
-        
+        <h1 className="text-xl font-semibold">Please log in to continue</h1>
       </div>
     );
   }
@@ -24,7 +26,7 @@ export default function Home() {
   return (
     <div className="space-y-8">
       <h1 className="text-2xl font-bold">Welcome to Mailite</h1>
-      <p className="text-gray-600">Hello, {user.name}</p>
+      <p className="text-gray-600">Hello, {session.user.email}</p>
 
       {/* Your existing features */}
       <section>
