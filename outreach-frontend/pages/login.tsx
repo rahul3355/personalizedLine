@@ -32,7 +32,7 @@ export default function LoginPage() {
           <div className="w-full max-w-md flex flex-col gap-y-6">
             {/* Logo */}
             <span className="text-2xl font-bold text-gray-900 tracking-tight">
-              Mailite
+              AuthorityPoint
             </span>
 
             {/* Headings */}

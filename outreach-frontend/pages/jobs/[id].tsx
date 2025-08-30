@@ -54,8 +54,10 @@ export default function JobDetailPage() {
               const progData = await progRes.json();
               setProgress(progData);
 
-              // stop polling once job has finished
-              if (progData.status === "succeeded" || progData.status === "failed") {
+              if (
+                progData.status === "succeeded" ||
+                progData.status === "failed"
+              ) {
                 clearInterval(interval!);
                 const finalRes = await fetch(`${API_URL}/jobs/${id}`, {
                   headers: { Authorization: `Bearer ${session.access_token}` },
@@ -63,7 +65,7 @@ export default function JobDetailPage() {
                 if (finalRes.ok) {
                   const finalData = await finalRes.json();
                   setJob(finalData);
-                  setProgress(null); // cleanup progress after job resolves
+                  setProgress(null);
                 }
               }
             }
@@ -95,59 +97,118 @@ export default function JobDetailPage() {
     a.click();
   }
 
-  if (!job) return <p>Loading job...</p>;
+  if (!job)
+    return <p className="text-center text-gray-500 mt-20">Loading job...</p>;
 
   return (
-    <div className="max-w-3xl mx-auto p-8">
+    <div className="max-w-3xl mx-auto px-6 py-10">
       <div className="bg-white shadow-xl rounded-2xl p-8 border border-gray-100">
-        <h1 className="text-3xl font-bold mb-6 text-gray-900">Job Detail</h1>
+        {/* Page title */}
+        <h1 className="text-3xl font-semibold mb-6 text-gray-900 tracking-tight">
+          Job Detail
+        </h1>
 
-        <div className="space-y-3 text-gray-700">
-          <p><span className="font-semibold">ID:</span> {job.id}</p>
-          <p><span className="font-semibold">Filename:</span> {job.filename}</p>
-          <p><span className="font-semibold">Rows:</span> {job.rows}</p>
-          <p>
-            <span className="font-semibold">Created At:</span>{" "}
-            {new Date(job.created_at * 1000).toLocaleString()}
-          </p>
-          <p>
-            <span className="font-semibold">Finished At:</span>{" "}
-            {job.finished_at
-              ? new Date(job.finished_at * 1000).toLocaleString()
-              : "In progress"}
-          </p>
+        {/* Job info in two columns */}
+        <div className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm text-gray-700">
+          <div>
+            <p className="text-xs text-gray-500">ID</p>
+            <p className="font-medium text-gray-900 break-all">{job.id}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">Filename</p>
+            <p className="font-medium text-gray-900">{job.filename}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">Rows</p>
+            <p className="font-medium text-gray-900">{job.rows}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">Created At</p>
+            <p className="font-medium text-gray-900">
+              {new Date(job.created_at * 1000).toLocaleString()}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">Finished At</p>
+            <p className="font-medium text-gray-900">
+              {job.finished_at
+                ? new Date(job.finished_at * 1000).toLocaleString()
+                : "In progress"}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">Status</p>
+            <p
+              className={`font-semibold ${
+                job.status === "succeeded"
+                  ? "text-green-600"
+                  : job.status === "failed"
+                  ? "text-red-600"
+                  : "text-yellow-600"
+              }`}
+            >
+              {job.status}
+            </p>
+          </div>
         </div>
 
-        {/* Progress bar (only visible during in_progress) */}
+        {/* Progress bar */}
         {job.status === "in_progress" && (
-          <div className="mt-6">
-            <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+          <div className="mt-8">
+            <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner">
               <div
-                className="h-3 bg-black transition-all duration-500"
+                className="h-3 bg-gradient-to-r from-gray-900 to-gray-700 transition-all duration-500 rounded-full"
                 style={{ width: `${progress?.percent || 0}%` }}
               />
             </div>
-            <p className="text-sm text-gray-600 mt-2">
-              {progress ? `${progress.percent}% — ${progress.message}` : "Starting..."}
+            <p className="text-xs text-gray-600 mt-2">
+              {progress
+                ? `${progress.percent}% — ${progress.message}`
+                : "Starting..."}
             </p>
           </div>
         )}
 
-        {/* Download button replaces progress once job succeeds */}
+        {/* Download button */}
         {job.status === "succeeded" && job.result_path && (
-          <div className="mt-8">
+          <div className="mt-10 flex justify-center">
             <button
               onClick={handleDownload}
-              className="w-full md:w-auto px-6 py-3 rounded-lg bg-black text-white text-sm font-semibold shadow hover:bg-gray-800 transition"
+              className="w-full sm:w-auto flex items-center justify-center py-3 px-6 rounded-xl font-medium text-white text-[15px] tracking-tight shadow-sm transition-all duration-300"
+              style={{
+                background: "linear-gradient(#5a5a5a, #1c1c1c)",
+                fontFamily:
+                  '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = "0 0 8px rgba(0,0,0,0.4)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = "none";
+              }}
             >
+              {/* Icon */}
+              <svg
+                className="w-5 h-5 mr-2"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4"
+                />
+              </svg>
               Download Result
             </button>
           </div>
         )}
 
-        {/* Error display */}
+        {/* Error */}
         {job.status === "failed" && (
-          <div className="mt-6 text-red-600 font-semibold">
+          <div className="mt-8 text-center text-red-600 font-semibold">
             Job failed: {job.error || "Unknown error"}
           </div>
         )}

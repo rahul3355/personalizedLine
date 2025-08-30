@@ -18,7 +18,7 @@ export default function Navbar() {
       {/* Top Section: Logo */}
       <div className="p-6 border-b border-gray-100">
         <span className="text-xl font-bold text-gray-900 tracking-tight">
-          Mailite
+          AuthorityPoint
         </span>
       </div>
 
