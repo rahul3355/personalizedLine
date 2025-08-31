@@ -6,6 +6,7 @@ import { useRouter } from "next/router";
 import { useEffect } from "react";
 import { FcGoogle } from "react-icons/fc";
 import Image from "next/image";
+import logo from "../pages/logo.png";
 
 export default function LoginPage() {
   const { session } = useAuth();
@@ -31,9 +32,15 @@ export default function LoginPage() {
         <div className="flex-1 flex flex-col items-center justify-center px-8 gap-y-6">
           <div className="w-full max-w-md flex flex-col gap-y-6">
             {/* Logo */}
-            <span className="text-2xl font-bold text-gray-900 tracking-tight">
-              AuthorityPoint
-            </span>
+            <Image
+              src={logo}
+              alt="AuthorityPoint Logo"
+              width={180}  // adjust as needed
+              height={40}  // adjust as needed
+              priority
+            />
+
+
 
             {/* Headings */}
             <div>
@@ -80,7 +87,7 @@ export default function LoginPage() {
             <span>Made in United Kingdom</span>
           </div>
           <p className="mt-2 text-xs text-gray-400 text-center">
-            © {new Date().getFullYear()} Mailite. All rights reserved.
+            © {new Date().getFullYear()} AuthorityPoint. All rights reserved.
           </p>
         </div>
       </div>

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { FiHome, FiUpload, FiFileText, FiLogOut } from "react-icons/fi";
 import { supabase } from "../lib/supabaseClient";
+import Image from "next/image";
+import logo from "../pages/logo.png";
 
 export default function Navbar() {
   const router = useRouter();
@@ -17,42 +19,44 @@ export default function Navbar() {
     <nav className="fixed top-0 left-0 h-screen w-60 bg-white border-r border-gray-100 flex flex-col font-sans">
       {/* Top Section: Logo */}
       <div className="p-6 border-b border-gray-100">
-        <span className="text-xl font-bold text-gray-900 tracking-tight">
-          AuthorityPoint
-        </span>
+        <Image
+          src={logo}
+          alt="AuthorityPoint Logo"
+          width={180}  // adjust as needed
+          height={40}  // adjust as needed
+          priority
+          className="transition duration-500 ease-in-out hover:scale-105 hover:brightness-110 hover:drop-shadow-md"
+        />
       </div>
 
       {/* Middle Section: Nav Links */}
       <div className="flex-1 flex flex-col px-4 py-6 gap-y-4">
         <Link
           href="/"
-          className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${
-            router.pathname === "/"
+          className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${router.pathname === "/"
               ? "bg-gray-100 text-gray-900 shadow-sm"
               : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-          }`}
+            }`}
         >
           <FiHome className="mr-3 h-5 w-5" />
           Home
         </Link>
         <Link
           href="/upload"
-          className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${
-            router.pathname === "/upload"
+          className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${router.pathname === "/upload"
               ? "bg-gray-100 text-gray-900 shadow-sm"
               : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-          }`}
+            }`}
         >
           <FiUpload className="mr-3 h-5 w-5" />
           Upload File
         </Link>
         <Link
           href="/jobs"
-          className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${
-            router.pathname === "/jobs"
+          className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${router.pathname === "/jobs"
               ? "bg-gray-100 text-gray-900 shadow-sm"
               : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-          }`}
+            }`}
         >
           <FiFileText className="mr-3 h-5 w-5" />
           Past Files
