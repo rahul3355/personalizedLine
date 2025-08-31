@@ -1,11 +1,23 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request, Depends
-import uuid, shutil, os, tempfile, threading, pandas as pd, base64, json
+import uuid, shutil, os, tempfile, threading, pandas as pd, base64, json, stripe
 from . import db, jobs
 import queue_utils
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+load_dotenv()
 
 app = FastAPI()
+
+# Stripe Setup (Test Mode)
+STRIPE_SECRET = os.getenv("STRIPE_SECRET_KEY", "")
+if STRIPE_SECRET:
+    stripe.api_key = STRIPE_SECRET
+
+# Example product mapping (Stripe Price IDs must exist in your Stripe Dashboard)
+ADDON_PRODUCTS = {
+    "addon_1000": {"price_id": os.getenv("STRIPE_PRICE_1000", ""), "credits": 1000},
+}
 
 # Start background worker when app boots
 def start_worker():
@@ -50,6 +62,66 @@ def get_current_user(request: Request):
         return payload.get("sub")
     except Exception as e:
         raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
+
+# ✅ /me endpoint for user info
+@app.get("/me")
+def get_me(user_id: str = Depends(get_current_user)):
+    user = db.get_user(user_id)
+    if not user:
+        # If user not in DB yet, create minimal record
+        db.ensure_user(user_id, email="unknown@example.com")
+        user = db.get_user(user_id)
+
+    # Attach recent ledger + credits
+    credits = db.get_credits(user_id)
+    ledger = db.get_ledger(user_id, limit=10)
+
+    return {
+        "user": user,
+        "credits_remaining": credits,
+        "ledger": ledger
+    }
+
+# ✅ New: Buy extra credits (create Stripe Checkout session)
+@app.post("/buy-credits")
+def buy_credits(request: Request, addon: str = Form(...), user_id: str = Depends(get_current_user)):
+    if addon not in ADDON_PRODUCTS:
+        raise HTTPException(status_code=400, detail="Invalid add-on selected")
+
+    product = ADDON_PRODUCTS[addon]
+    try:
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            mode="payment",
+            line_items=[{"price": product["price_id"], "quantity": 1}],
+            success_url="http://localhost:3000/success",
+            cancel_url="http://localhost:3000/cancel",
+            metadata={"user_id": user_id, "credits": product["credits"]},
+        )
+        return {"checkout_url": checkout_session.url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Stripe error: {str(e)}")
+
+# ✅ New: Stripe webhook (handle payment success → add credits)
+@app.post("/stripe-webhook")
+async def stripe_webhook(request: Request):
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature")
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, os.getenv("STRIPE_WEBHOOK_SECRET", "")
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Webhook error: {str(e)}")
+
+    if event["type"] == "checkout.session.completed":
+        session = event["data"]["object"]
+        user_id = session["metadata"]["user_id"]
+        credits = int(session["metadata"]["credits"])
+        db.update_credits(user_id, credits, reason="add-on purchase")
+
+    return {"status": "success"}
 
 # STEP 1 — Parse headers from uploaded file
 @app.post("/parse_headers")

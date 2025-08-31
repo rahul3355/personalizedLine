@@ -15,6 +15,7 @@ def db():
 
 def init_db():
     with db() as con:
+        # Existing jobs table
         con.execute("""CREATE TABLE IF NOT EXISTS jobs(
             id TEXT PRIMARY KEY,
             status TEXT,
@@ -29,6 +30,7 @@ def init_db():
             user_id TEXT
         )""")
 
+        # Existing job logs
         con.execute("""CREATE TABLE IF NOT EXISTS job_logs(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             job_id TEXT,
@@ -36,6 +38,25 @@ def init_db():
             step INT DEFAULT 0,
             total INT DEFAULT 0,
             message TEXT
+        )""")
+
+        # ✅ New: Users table
+        con.execute("""CREATE TABLE IF NOT EXISTS users(
+            id TEXT PRIMARY KEY,              -- Supabase user_id
+            email TEXT,
+            plan_type TEXT,                   -- starter, growth, pro
+            subscription_status TEXT,         -- active, canceled
+            renewal_date INT,                 -- timestamp
+            credits_remaining INT DEFAULT 0
+        )""")
+
+        # ✅ New: Ledger table
+        con.execute("""CREATE TABLE IF NOT EXISTS ledger(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT,
+            change INT,                       -- +1000, -20, etc.
+            reason TEXT,                      -- 'subscription reset', 'job deduction', 'add-on purchase'
+            ts INT
         )""")
 
 def enqueue_job(filename, rows, meta: dict, user_id: str) -> str:
@@ -81,3 +102,43 @@ def get_progress(job_id):
             percent = int((step/total)*100) if total else 0
             return percent, message
         return None, None
+
+# ======================================================
+# ✅ New Credit System Helpers
+# ======================================================
+
+def ensure_user(user_id: str, email: str):
+    """Create a user record if it doesn't exist yet."""
+    with db() as con:
+        cur = con.execute("SELECT id FROM users WHERE id=?", (user_id,))
+        if not cur.fetchone():
+            con.execute("INSERT INTO users(id,email,plan_type,subscription_status,renewal_date,credits_remaining) VALUES (?,?,?,?,?,?)",
+                        (user_id, email, None, "inactive", 0, 0))
+
+def get_user(user_id: str):
+    with db() as con:
+        cur = con.execute("SELECT * FROM users WHERE id=?", (user_id,))
+        row = cur.fetchone()
+        if not row: 
+            return None
+        keys = [d[0] for d in cur.description]
+        return dict(zip(keys, row))
+
+def update_credits(user_id: str, change: int, reason: str):
+    """Increment or decrement credits and record the change in ledger."""
+    with db() as con:
+        con.execute("UPDATE users SET credits_remaining = credits_remaining + ? WHERE id=?", (change, user_id))
+        con.execute("INSERT INTO ledger(user_id, change, reason, ts) VALUES (?,?,?,?)",
+                    (user_id, change, reason, int(time.time())))
+
+def get_credits(user_id: str):
+    with db() as con:
+        cur = con.execute("SELECT credits_remaining FROM users WHERE id=?", (user_id,))
+        row = cur.fetchone()
+        return row[0] if row else 0
+
+def get_ledger(user_id: str, limit=20):
+    """Return recent credit changes."""
+    with db() as con:
+        cur = con.execute("SELECT change, reason, ts FROM ledger WHERE user_id=? ORDER BY ts DESC LIMIT ?", (user_id, limit))
+        return [dict(zip([d[0] for d in cur.description], r)) for r in cur.fetchall()]
