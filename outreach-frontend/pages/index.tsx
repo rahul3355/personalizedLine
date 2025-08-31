@@ -120,24 +120,6 @@ export default function Home() {
           </div>
         </section>
       )}
-
-      {/* Upload */}
-      <section className="bg-white rounded-2xl shadow-sm border p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-2">
-          Upload a File
-        </h2>
-        <p className="text-gray-500 text-sm">
-          Go to the Upload page to add your file.
-        </p>
-      </section>
-
-      {/* Past Files */}
-      <section className="bg-white rounded-2xl shadow-sm border p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-2">Past Files</h2>
-        <p className="text-gray-500 text-sm">
-          Check your uploaded files in the Jobs page.
-        </p>
-      </section>
     </div>
   );
 }
