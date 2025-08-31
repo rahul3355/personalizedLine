@@ -23,7 +23,11 @@ function Layout({ Component, pageProps }: LayoutProps) {
   return (
     <div className="min-h-screen flex bg-gray-50">
       {session && <Navbar />}
-      <main className={`flex-1 p-8 ${session ? "ml-60" : ""}`}>
+      <main
+        className={`flex-1 p-8 transition-all duration-200 ${
+          session ? "ml-60 mt-16" : ""
+        }`}
+      >
         <Component {...pageProps} />
       </main>
     </div>

@@ -133,7 +133,8 @@ export default function UploadPage() {
   if (!session) return null;
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4 font-sans">
+    <div className="flex items-start justify-center bg-gray-50 px-4 py-10 font-sans min-h-[calc(80vh-64px)]">
+
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-10 border border-gray-100">
         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
           Upload Outreach File

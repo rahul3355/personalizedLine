@@ -1,11 +1,10 @@
-# backend/app/gpt_helpers.py
-
 """
 Helpers for generating personalized cold outreach lines with OpenAI.
-This version restores the stricter logic from the old root gpt_helpers.py:
-- Hardcoded example outputs
-- guess_problem / guess_urgency heuristics
-- Strict prompt structure enforcing 1-sentence Gmail-style snippets
+Hardened version:
+- Input normalization + safe fallbacks
+- Compact, observation-only prompt with safe examples
+- Offer used only as hidden context (not output)
+- Output filtering: word count, banned terms, offer leakage
 """
 
 import os
@@ -34,118 +33,134 @@ print("DEBUG gpt_helpers: OpenAI client initialized")
 print("DEBUG gpt_helpers: API key present?", bool(os.environ.get("OPENAI_API_KEY")))
 
 
-# ---------------- Heuristic Helpers ----------------
+# ---------------- Input Normalization ----------------
 
-def guess_problem(desc: str) -> str:
-    """Naive keyword-based guess of company pain point."""
+def clean_company(company: str) -> str:
+    """Normalize company name, strip suffixes like Inc/LLC/Ltd."""
+    if not company:
+        return ""
+    c = company.strip()
+    c = re.sub(r"\b(inc|llc|ltd|corp)\b\.?", "", c, flags=re.I)
+    return c.strip()
+
+def clean_title(title: str) -> str:
+    """Canonicalize role title to safe fallback if missing."""
+    if not title:
+        return "decision-maker"
+    return title.strip()
+
+def preprocess_description(desc: str) -> str:
+    """Clean company description text or fallback."""
     if not desc:
-        return "growth bottlenecks"
-    d = desc.lower()
-    if "cloud" in d:
-        return "wasted cloud spend"
-    if "health" in d or "med" in d:
-        return "scaling patient access"
-    if "recruit" in d or "talent" in d:
-        return "engineering bottlenecks"
-    if "finance" in d or "bank" in d:
-        return "compliance and cost pressure"
-    return "growth bottlenecks"
-
-
-def guess_urgency(desc: str) -> str:
-    """Naive keyword-based guess of urgency trigger."""
-    if not desc:
-        return "founders facing growth plateaus"
-    d = desc.lower()
-    if "cfo" in d or "budget" in d:
-        return "CFO budget pressure"
-    if "compliance" in d or "regulation" in d:
-        return "regulatory deadlines"
-    if "talent" in d or "hiring" in d:
-        return "missed product launches"
-    return "growth bottlenecks"
+        return "a company focused on growth"
+    desc = re.sub(r"[^a-zA-Z0-9\s]", "", str(desc))
+    desc = re.sub(r"\s+", " ", desc).strip()
+    return desc or "a company focused on growth"
 
 
 # ---------------- Core GPT Call ----------------
 
-def call_gpt(prompt: str, temperature: float = 0.4, max_tokens: int = 150,
+def call_gpt(messages, temperature: float = 0.25, max_tokens: int = 50,
              model: str = "gpt-4o-mini") -> str:
-    """Send prompt to GPT and return first response string."""
+    """Send messages to GPT and return first response string."""
     try:
-        print(f"[GPT CALL] model={model}, temp={temperature}, max_tokens={max_tokens}")
-        print(f"[GPT PROMPT PREVIEW]\n{prompt[:300]}...\n")
-
         resp = client.chat.completions.create(
             model=model,
             temperature=temperature,
             max_tokens=max_tokens,
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "You are a precise SDR copywriter. "
-                        "One sentence only, 18–22 words. "
-                        "Must explicitly mention the company name. "
-                        "Absolutely avoid generic fluff like 'mission', 'solution', or 'I noticed'."
-                    ),
-                },
-                {"role": "user", "content": prompt},
-            ],
+            messages=messages,
         )
-
         output = resp.choices[0].message.content.strip()
         print(f"[GPT RESPONSE] {output}")
         return output
-
     except Exception as e:
         print(f"[GPT ERROR] {e}")
         return f"[Error: {str(e)}]"
 
 
-# ---------------- Prompt Assembly ----------------
+# ---------------- Safe Examples ----------------
 
-EXAMPLES = """
-Examples:
-1. CloudScale helps SMBs cut wasted cloud spend, and LinkedIn posts naming idle-resource waste spark CFO replies under budget pressure.
-2. TalentBridge speeds up startup hiring, and founders blocked by engineering bottlenecks often engage when proof of faster placements is shared on LinkedIn.
-3. Dutch Digital tackles inefficiencies in insurance data-sharing, and posts pointing out compliance delays trigger quick responses from industry leaders.
+SAFE_EXAMPLES = """
+Examples of correct style:
+1. Acme highlights its focus on workflow automation. Teams scaling this way often struggle with pipeline reliability once demand starts accelerating.
+2. CloudScale positions itself as a SaaS platform. Companies in this space often face rising acquisition costs as markets become saturated.
+3. TalentBridge emphasizes rapid hiring support. Growing firms with this focus frequently encounter bottlenecks when recruiting speed lags behind client demand.
+4. In SaaS, scaling companies often run into outbound fatigue, where early tactics stop producing consistent meetings as they expand.
+5. Fast-growing teams frequently face difficulties building repeatable customer acquisition systems, especially when trying to scale beyond initial traction.
 """
 
-def preprocess_description(desc: str) -> str:
-    """Clean company description text."""
-    if not desc:
-        return ""
-    desc = re.sub(r"[^a-zA-Z0-9\s]", "", str(desc))
-    desc = re.sub(r"\s+", " ", desc).strip()
-    return desc
 
+# ---------------- Output Filtering ----------------
+
+BANNED_WORDS = {"mission", "solution", "innovation", "excited"}
+
+def is_valid_output(line: str, offer: str) -> bool:
+    """Check if line meets constraints."""
+    words = line.split()
+    if len(words) < 15 or len(words) > 25:
+        return False
+    for bad in BANNED_WORDS:
+        if bad in line.lower():
+            return False
+    if offer and offer.lower() in line.lower():
+        return False
+    if line.count(".") > 1:  # more than one sentence
+        return False
+    return True
+
+
+# ---------------- Line Generator ----------------
 
 def generate_line(title: str, company: str, desc: str,
                   offer: str, persona: str, channel: str,
                   max_words: int = 22) -> str:
-    """Build structured prompt for personalized cold outreach line."""
-    desc_clean = preprocess_description(desc)
-    problem = guess_problem(desc_clean)
-    urgency = guess_urgency(desc_clean)
+    """Generate a safe, observation-only personalized line for cold email."""
 
-    prompt = (
-        f"{EXAMPLES}\n\n"
-        f"Write ONE new line in the same style.\n\n"
-        f"- Prospect: {title or 'Unknown'} at {company or 'a company'}\n"
-        f"- Company description: {desc_clean or 'N/A'}\n"
-        f"- Our offer: {offer or 'N/A'}\n"
-        f"- Persona: {persona or 'N/A'}\n"
-        f"- Channel: {channel or 'N/A'}\n"
-        f"- Observed problem: {problem}\n"
-        f"- Urgency trigger: {urgency}\n\n"
-        f"Constraints:\n"
-        f"- One sentence, 18–22 words\n"
-        f"- Explicitly mention {company or 'the company'}\n"
-        f"- Gmail snippet tone\n"
-        f"- Absolutely avoid generic filler\n"
+    # Normalize inputs
+    title_clean = clean_title(title)
+    company_clean = clean_company(company)
+    desc_clean = preprocess_description(desc)
+    offer_clean = (offer or "").strip()
+    persona_clean = (persona or "business leader").strip()
+
+    # Build system + user messages
+    system_msg = (
+        "You are an SDR research assistant. "
+        "Write one natural-sounding observation line (~20 words) about a company or its industry. "
+        "Do not pitch or sell. Do not invent unverifiable facts. "
+        "Style = researched observation, not insider knowledge. One sentence only."
     )
 
-    return call_gpt(prompt, temperature=0.5, max_tokens=150)
+    user_msg = (
+        f"Inputs:\n"
+        f"- Role: {title_clean}\n"
+        f"- Company: {company_clean or '[none]'}\n"
+        f"- Description: {desc_clean}\n"
+        f"- Offer context (guidance only, not in output): {offer_clean or 'N/A'}\n"
+        f"- Persona: {persona_clean}\n\n"
+        f"Rules:\n"
+        f"- If company provided, mention it.\n"
+        f"- If company missing, use role or industry instead.\n"
+        f"- Phrase pains as patterns: 'often face,' 'commonly run into,' 'frequently encounter.'\n"
+        f"- Avoid vague words: mission, solution, innovation, excited.\n"
+        f"- One sentence only (~20 words).\n\n"
+        f"{SAFE_EXAMPLES}\n"
+        f"Write one new line in the same style."
+    )
+
+    # Call GPT
+    messages = [{"role": "system", "content": system_msg},
+                {"role": "user", "content": user_msg}]
+    line = call_gpt(messages)
+
+    # Validate and retry once if needed
+    if not is_valid_output(line, offer_clean):
+        print("[VALIDATION] First attempt invalid, retrying with stricter instruction...")
+        user_msg += "\nEnsure output is exactly one sentence, ~20 words, valid under all rules."
+        messages[1]["content"] = user_msg
+        line = call_gpt(messages)
+
+    return line
 
 
 # ---------------- Test Utility ----------------

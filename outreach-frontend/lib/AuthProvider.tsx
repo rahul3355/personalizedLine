@@ -8,7 +8,7 @@ const AuthContext = createContext<any>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [userInfo, setUserInfo] = useState<any>(null); // ✅ new: store /me data
+  const [userInfo, setUserInfo] = useState<any>(null);
 
   useEffect(() => {
     // Initial session load
@@ -16,7 +16,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(data.session);
       setLoading(false);
       if (data.session) {
-        fetchUserInfo(data.session.access_token);
+        fetchUserInfo(data.session);
       }
     });
 
@@ -25,7 +25,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       (_event, session) => {
         setSession(session);
         if (session) {
-          fetchUserInfo(session.access_token);
+          fetchUserInfo(session);
         } else {
           setUserInfo(null);
         }
@@ -37,18 +37,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // ✅ Fetch backend /me endpoint
-  const fetchUserInfo = async (token: string) => {
+  // Fetch backend /me endpoint + merge with Supabase metadata
+  const fetchUserInfo = async (session: any) => {
     try {
-      const res = await fetch("http://localhost:8000/me", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setUserInfo(data);
+      let backendData: any = {};
+      try {
+        const res = await fetch("http://localhost:8000/me", {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        if (res.ok) {
+          backendData = await res.json();
+        }
+      } catch (err) {
+        console.error("Failed to fetch /me", err);
       }
+
+      // Merge Supabase session metadata (Google profile info)
+      const meta = session?.user?.user_metadata || {};
+      const merged = {
+        ...backendData,
+        full_name: backendData.full_name || meta.full_name || meta.name || "User",
+        avatar_url:
+          backendData.avatar_url || meta.avatar_url || meta.picture || null,
+        email: backendData.email || session?.user?.email || null,
+      };
+
+      setUserInfo(merged);
     } catch (err) {
-      console.error("Failed to fetch /me", err);
+      console.error("Failed to build userInfo", err);
     }
   };
 
