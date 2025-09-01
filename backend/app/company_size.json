@@ -1,0 +1,62 @@
+{
+  "1-10": [
+    "founders juggling multiple roles without enough bandwidth",
+    "difficulty acquiring first enterprise customers without references",
+    "limited budgets forcing trade-offs between product and growth",
+    "building initial team culture while under constant resource pressure",
+    "relying heavily on founder-led sales and delivery",
+    "lack of formal processes leading to inconsistent execution",
+    "navigating high risk of early churn or failure",
+    "competing for attention against larger, more established firms",
+    "balancing building product with chasing revenue at the same time",
+    "struggling to hire specialized roles under financial constraints"
+  ],
+  "11-50": [
+    "scaling team rapidly while maintaining company culture",
+    "introducing structure and processes without killing agility",
+    "building middle management layer for the first time",
+    "standardizing onboarding for new hires to reduce ramp-up time",
+    "raising Series A or B funding to sustain growth",
+    "shifting from founder-led sales to repeatable sales motions",
+    "retaining early employees as roles become more specialized",
+    "handling customer demands that stretch the small team",
+    "deciding which markets or verticals to expand into",
+    "balancing product development with scaling GTM efforts"
+  ],
+  "51-200": [
+    "breaking down silos as departments emerge",
+    "keeping cross-functional alignment as org complexity increases",
+    "implementing performance management and HR systems at scale",
+    "retaining culture during rapid headcount expansion",
+    "balancing technical debt with scaling feature demands",
+    "hiring specialized leadership (VPs, Directors) for functions",
+    "formalizing budgeting and financial controls",
+    "maintaining customer success as customer base grows",
+    "rolling out new internal tools without slowing down productivity",
+    "navigating global expansion and distributed teams"
+  ],
+  "201-1000": [
+    "driving operational efficiency across multiple geographies",
+    "standardizing compliance processes across regions",
+    "balancing innovation with regulatory requirements",
+    "ensuring consistent brand voice across global marketing",
+    "retaining top talent against offers from larger enterprises",
+    "adopting enterprise-grade security and data governance",
+    "rationalizing tech stack to reduce overlapping tools",
+    "handling M&A integrations smoothly",
+    "optimizing supply chain or partner ecosystems at scale",
+    "reducing bureaucratic drag while still enabling control"
+  ],
+  "1000+": [
+    "navigating extremely complex compliance and legal requirements",
+    "achieving digital transformation at enterprise scale",
+    "breaking down silos across thousands of employees",
+    "retaining agility while managing massive global operations",
+    "integrating legacy systems with modern cloud infrastructure",
+    "ensuring consistency across dozens of business units",
+    "competing with more agile startups in innovation speed",
+    "attracting and retaining top-tier global talent",
+    "maintaining shareholder trust through consistent quarterly performance",
+    "coordinating large partner ecosystems effectively"
+  ]
+}

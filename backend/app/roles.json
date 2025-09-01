@@ -1,0 +1,98 @@
+{
+  "cto": [
+    "managing ballooning cloud infrastructure costs while keeping systems scalable",
+    "integrating legacy applications with new SaaS tools without disrupting workflows",
+    "building secure architectures that satisfy ISO, SOC2, GDPR and regional compliance requirements",
+    "dealing with talent shortages in engineering and DevOps teams",
+    "balancing speed of delivery with long-term maintainability of codebases",
+    "navigating vendor lock-in when working with hyperscalers like AWS, Azure, and GCP",
+    "ensuring data security while still enabling cross-team data accessibility",
+    "evaluating and adopting new technologies (AI, containers, edge computing) under budget constraints",
+    "keeping uptime SLAs at 99.99%+ while minimizing operational overhead",
+    "defending against increasingly complex cybersecurity threats and ransomware attacks"
+  ],
+  "vp sales": [
+    "hitting aggressive quarterly quotas under pressure from investors and leadership",
+    "improving pipeline visibility while reps update CRM inconsistently",
+    "shortening long and complex sales cycles that slow growth",
+    "hiring and onboarding SDRs quickly without lowering performance standards",
+    "reducing ramp-up time for new reps to become revenue-producing",
+    "navigating shrinking response rates in cold outbound outreach",
+    "aligning sales and marketing messaging for consistent lead quality",
+    "retaining top-performing reps in an extremely competitive talent market",
+    "forecasting accurately for board meetings with limited data clarity",
+    "building repeatable playbooks that scale across geographies"
+  ],
+  "cmo": [
+    "reducing customer acquisition costs as ad platforms become saturated",
+    "measuring attribution across multiple channels (LinkedIn, Google Ads, content)",
+    "building brand differentiation in a crowded market",
+    "balancing long-term brand campaigns with short-term performance marketing",
+    "retaining customers in a subscription-driven economy with high churn risk",
+    "finding new growth channels outside paid ads as CPAs rise",
+    "aligning marketing metrics with board-level revenue KPIs",
+    "nurturing leads effectively with limited automation resources",
+    "experimenting with new platforms like TikTok or emerging social apps under budget scrutiny",
+    "scaling personalization across campaigns without bloating martech stack"
+  ],
+  "founder": [
+    "securing early traction while resources are severely limited",
+    "raising capital in an investor climate that’s cautious about SaaS",
+    "building a founding team with complementary skills under budget constraints",
+    "keeping burn rate under control while experimenting with GTM strategies",
+    "deciding when to pivot vs. double down on current product direction",
+    "navigating founder burnout while juggling multiple responsibilities",
+    "closing first enterprise customers without established case studies",
+    "balancing product vision with constant inbound feature requests",
+    "managing advisors, investors, and board expectations with minimal bandwidth",
+    "setting up basic systems (finance, legal, ops) while still coding or selling"
+  ],
+  "head of customer experience": [
+    "reducing churn by improving onboarding flows and customer training",
+    "building scalable support systems as ticket volume increases",
+    "aligning customer feedback with product roadmap priorities",
+    "navigating tension between sales promises and product realities",
+    "creating customer advocacy programs without massive budgets",
+    "measuring NPS and CSAT in a way that leadership actually values",
+    "optimizing knowledge base and self-service support to deflect tickets",
+    "ensuring consistent customer experience across regions and time zones",
+    "building trust during outages or service disruptions",
+    "managing a distributed support team while maintaining quality"
+  ],
+  "managing partner": [
+    "expanding firm reputation in competitive consulting landscapes",
+    "winning enterprise clients against bigger, more established players",
+    "balancing billable utilization with internal firm growth",
+    "attracting and retaining top consultants in specialized domains",
+    "diversifying service offerings to hedge against industry downturns",
+    "navigating compliance and liability across multiple jurisdictions",
+    "building repeatable IP that differentiates the firm beyond manpower",
+    "closing deals without underpricing against offshore competitors",
+    "scaling a boutique consultancy without losing its core brand identity",
+    "transitioning from founder-led sales to a predictable pipeline"
+  ],
+  "principal consultant": [
+    "maintaining deep technical expertise while also being client-facing",
+    "balancing delivery quality with the pressure to upsell",
+    "translating complex tech capabilities into simple business outcomes",
+    "managing multiple client accounts simultaneously",
+    "staying certified on constantly changing cloud/tech platforms",
+    "creating frameworks or templates that shorten future projects",
+    "dealing with scope creep while maintaining client satisfaction",
+    "educating non-technical stakeholders without losing their trust",
+    "building credibility in new verticals or geographies",
+    "mentoring junior consultants while still hitting utilization targets"
+  ],
+  "cmo / co-founder": [
+    "wearing multiple hats across marketing, fundraising, and customer success",
+    "building brand trust for a young startup with no history",
+    "figuring out low-cost acquisition channels during early growth",
+    "navigating early PR and press relations with no dedicated team",
+    "building partnerships that extend distribution reach",
+    "gathering customer testimonials when case studies are limited",
+    "balancing storytelling with the demand for hard performance metrics",
+    "allocating marketing spend carefully between awareness and conversions",
+    "driving consistent brand voice across a fragmented small team",
+    "getting early adopters to actively share success stories"
+  ]
+}
