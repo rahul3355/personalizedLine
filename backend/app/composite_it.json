@@ -1,0 +1,176 @@
+{
+  "it_founder_1-10": [
+    "Founder juggles client delivery, sales, and operations with no dedicated team",
+    "Difficulty building trust with enterprise prospects as a small MSP",
+    "Cash flow depends heavily on one or two large clients",
+    "Outbound often deprioritized due to firefighting technical issues"
+  ],
+  "it_founder_11-50": [
+    "Scaling client support teams while maintaining SLA standards",
+    "Difficulty differentiating services in crowded MSP markets",
+    "Revenue concentration makes churn extremely risky",
+    "Inconsistent outbound messaging from newly hired reps"
+  ],
+  "it_founder_51-200": [
+    "Pressure to standardize processes across growing technical teams",
+    "Difficulty in hiring senior engineers fast enough to meet demand",
+    "Service delivery bottlenecks undermine sales growth",
+    "Increased competition from global outsourcing providers"
+  ],
+  "it_founder_1000+": [
+    "Founder vision diluted across multiple divisions",
+    "Global service delivery introduces compliance and data privacy challenges",
+    "Service commoditization drives price pressure from large competitors",
+    "Complex vendor ecosystems strain operational efficiency"
+  ],
+
+  "it_ceo_1-10": [
+    "CEO often still handles sales and key account management directly",
+    "Difficulty attracting enterprise clients due to credibility concerns",
+    "Revenue is volatile with few clients",
+    "Balancing growth with tight budgets is a constant struggle"
+  ],
+  "it_ceo_11-50": [
+    "Difficulty aligning sales, engineering, and support teams during growth",
+    "Strain to show predictable MRR for investors or banks",
+    "High risk of employee churn due to workload pressure",
+    "Maintaining culture while hiring rapidly is challenging"
+  ],
+  "it_ceo_51-200": [
+    "Pressure to expand into new regions while maintaining margins",
+    "Difficulty balancing long-term managed service contracts with growth initiatives",
+    "Challenges in differentiating against low-cost offshore competitors",
+    "Board pressure to achieve aggressive MRR targets"
+  ],
+  "it_ceo_1000+": [
+    "Investor demands for profitability overshadow growth initiatives",
+    "Bureaucracy slows responsiveness to client needs",
+    "Difficulty maintaining brand consistency across geographies",
+    "Global operations amplify compliance and audit risks"
+  ],
+
+  "it_cto_1-10": [
+    "Limited engineering resources make proactive monitoring difficult",
+    "Difficulty implementing robust cybersecurity with tiny budgets",
+    "Founder-CTOs juggle client delivery and infrastructure",
+    "Early tool choices create integration headaches later"
+  ],
+  "it_cto_11-50": [
+    "Pressure to adopt automation without disrupting client delivery",
+    "Growing need for certifications like ISO or SOC2 to win contracts",
+    "Difficulty integrating multiple client infrastructures",
+    "Limited bandwidth for innovation while firefighting support tickets"
+  ],
+  "it_cto_51-200": [
+    "Technical debt slows down onboarding of new clients",
+    "Managing hybrid and multi-cloud environments strains capacity",
+    "Difficulty ensuring consistent SLAs across a larger client base",
+    "Security patch management becomes a full-time effort"
+  ],
+  "it_cto_1000+": [
+    "Legacy systems slow modernization efforts across global clients",
+    "Compliance burdens multiply across jurisdictions",
+    "Innovation slows as risk tolerance drops in enterprise environments",
+    "Large-scale incidents amplify reputational risk"
+  ],
+
+  "it_cfo_1-10": [
+    "Unpredictable project revenue makes cash flow unstable",
+    "Difficulty affording enterprise-grade monitoring or security tools",
+    "High dependence on one or two clients for majority of revenue",
+    "Manual financial processes slow reporting"
+  ],
+  "it_cfo_11-50": [
+    "Difficulty forecasting MRR due to client churn risk",
+    "Balancing investment in tools with thin margins",
+    "Collections and late payments disrupt cash flow",
+    "High cost of compliance eats into profitability"
+  ],
+  "it_cfo_51-200": [
+    "Budgeting is difficult with large swings in client demand",
+    "Profit margins squeezed by payroll and infrastructure costs",
+    "Difficulty consolidating spend across multiple tools and vendors",
+    "Growing need for financial reporting automation"
+  ],
+  "it_cfo_1000+": [
+    "Cross-border tax compliance adds complexity",
+    "Investor pressure to show profitability vs growth",
+    "Large vendor contracts require careful negotiation",
+    "Global reporting cycles delay decision making"
+  ],
+
+  "it_cmo_1-10": [
+    "Outbound marketing struggles due to low brand awareness",
+    "Limited budget reduces visibility at industry events",
+    "Difficulty proving ROI with small sample sizes",
+    "Reliance on referrals limits lead generation scalability"
+  ],
+  "it_cmo_11-50": [
+    "Scaling lead gen while keeping CAC under control",
+    "Difficulty creating differentiated messaging in crowded MSP space",
+    "Attribution across inbound and outbound is poor",
+    "Content creation lags behind client demands"
+  ],
+  "it_cmo_51-200": [
+    "Client demand for omnichannel marketing support grows",
+    "Pressure to deliver more qualified leads to sales",
+    "Competition intensifies from global MSPs with bigger budgets",
+    "Difficulty proving ROI across multi-channel campaigns"
+  ],
+  "it_cmo_1000+": [
+    "Global campaigns require localization across multiple markets",
+    "Regulatory constraints impact email and ad targeting",
+    "Managing multiple agencies/vendors drains resources",
+    "Board pressure to show marketing contribution to pipeline"
+  ],
+
+  "it_coo_1-10": [
+    "COO juggles HR, finance, and service delivery without support",
+    "Difficulty standardizing processes across early hires",
+    "Vendor management consumes bandwidth",
+    "Strain to meet SLAs with limited staff"
+  ],
+  "it_coo_11-50": [
+    "Pressure to build processes without creating bureaucracy",
+    "Employee burnout from firefighting operational issues",
+    "Service delivery bottlenecks affect customer satisfaction",
+    "Hiring operations managers stretches budgets"
+  ],
+  "it_coo_51-200": [
+    "Difficulty maintaining consistent SLAs across clients",
+    "Internal bottlenecks slow down delivery at scale",
+    "Coordination across sales, support, and engineering is difficult",
+    "Compliance management consumes operational bandwidth"
+  ],
+  "it_coo_1000+": [
+    "Global operations create logistical and cultural challenges",
+    "Bureaucracy undermines operational efficiency",
+    "Complex vendor ecosystems increase costs",
+    "Operational alignment slows strategic pivots"
+  ],
+
+  "it_vp_sales_1-10": [
+    "Founder-led sales limits ability to scale outbound",
+    "Credibility objections are common with enterprise buyers",
+    "Small client base creates revenue instability",
+    "Outbound personalization is inconsistent with small teams"
+  ],
+  "it_vp_sales_11-50": [
+    "Hiring SDRs quickly while maintaining messaging consistency",
+    "Forecasting is unreliable with small pipelines",
+    "Competition intensifies in crowded MSP markets",
+    "Handoffs between SDRs and AEs lack structure"
+  ],
+  "it_vp_sales_51-200": [
+    "Scaling sales coaching is resource-intensive",
+    "Territory coverage gaps leave accounts unserved",
+    "Client churn disrupts predictable revenue growth",
+    "Objections around differentiation against larger MSPs increase"
+  ],
+  "it_vp_sales_1000+": [
+    "Global account management requires regional coordination",
+    "CRM data quality undermines forecasting accuracy",
+    "Sales enablement struggles to keep up with service complexity",
+    "Pricing consistency across teams is difficult to enforce"
+  ]
+}

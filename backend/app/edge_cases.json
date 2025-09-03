@@ -1,0 +1,86 @@
+{
+  "crypto": [
+    "Regulatory uncertainty undermines mainstream adoption",
+    "Difficulty opening and maintaining bank accounts",
+    "High volatility damages user trust",
+    "Fraud and scams create reputational risk for legitimate firms",
+    "Difficulty attracting institutional investors due to unclear rules",
+    "Onboarding non-technical users is challenging",
+    "Security breaches and hacks undermine credibility",
+    "High compliance costs reduce margins",
+    "Difficulty differentiating in a crowded market of tokens",
+    "User churn spikes during bear markets"
+  ],
+  "aerospace": [
+    "Navigating complex regulatory approval cycles slows innovation",
+    "Extremely long sales cycles make cash flow management difficult",
+    "High R&D costs strain smaller companies",
+    "Difficulty recruiting specialized engineering talent",
+    "Procurement processes are bureaucratic and time-intensive",
+    "Competition from global aerospace giants is intense",
+    "Compliance with safety standards consumes resources",
+    "Delays in supply chain disrupt production timelines",
+    "Capital requirements limit ability to scale",
+    "Government budget shifts create demand uncertainty"
+  ],
+  "nonprofit": [
+    "Revenue depends heavily on unpredictable grant cycles",
+    "Fundraising competition intensifies every year",
+    "Donor fatigue reduces giving levels",
+    "Difficulty proving impact to attract funding",
+    "High turnover among volunteers disrupts programs",
+    "Administrative overhead eats into program budgets",
+    "Difficulty maintaining transparency for stakeholders",
+    "Technology adoption lags due to limited funding",
+    "Balancing mission with financial sustainability is hard",
+    "Economic downturns cut donor contributions significantly"
+  ],
+  "gaming": [
+    "User acquisition costs rise as competition intensifies",
+    "Game development timelines consistently overrun budgets",
+    "Monetization models face user backlash",
+    "Difficulty retaining players beyond initial download",
+    "App store policies cut into revenue share",
+    "Toxic online behavior damages community health",
+    "Difficulty scaling servers during peak usage",
+    "Piracy undermines monetization in certain markets",
+    "Rapidly shifting player trends make forecasting difficult",
+    "Esports sponsorships are volatile and unpredictable"
+  ],
+  "government": [
+    "Procurement cycles are extremely long and bureaucratic",
+    "High compliance and reporting requirements consume resources",
+    "Difficulty attracting younger technical talent",
+    "Budgets fluctuate with political changes",
+    "Innovation adoption lags behind private sector",
+    "Decision making is slow and consensus-driven",
+    "Difficulty maintaining cybersecurity with outdated systems",
+    "Public scrutiny makes mistakes reputationally damaging",
+    "Legacy infrastructure limits modernization",
+    "Vendor onboarding processes are cumbersome"
+  ],
+  "agriculture": [
+    "Unpredictable weather patterns disrupt output",
+    "Rising costs of inputs like fertilizer and fuel strain margins",
+    "Difficulty accessing modern technology in rural areas",
+    "Supply chain disruptions reduce profitability",
+    "Labor shortages affect harvesting and distribution",
+    "Regulatory requirements vary by region and crop type",
+    "Farmers struggle with limited pricing power",
+    "Adoption of sustainable practices adds upfront costs",
+    "Market volatility makes planning difficult",
+    "Access to capital for growth is limited"
+  ],
+  "defense": [
+    "Sales cycles tied to government budgets are unpredictable",
+    "Extensive compliance requirements slow down deals",
+    "High R&D costs limit experimentation",
+    "Dependence on a few major contracts creates revenue risk",
+    "Procurement processes are heavily politicized",
+    "Difficulty recruiting and retaining security-cleared staff",
+    "Export controls restrict international expansion",
+    "Innovation slowed by layers of approvals",
+    "Security requirements add operational complexity",
+    "Vendor ecosystems are difficult to coordinate"
+  ]
+}

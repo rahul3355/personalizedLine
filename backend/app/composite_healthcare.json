@@ -1,0 +1,176 @@
+{
+  "healthcare_founder_1-10": [
+    "Founder juggles regulatory paperwork, fundraising, and product development simultaneously",
+    "Difficulty gaining trust from hospitals and clinics as a small vendor",
+    "Cash flow volatility with long healthcare sales cycles",
+    "Outbound outreach struggles due to lack of credibility in medical markets"
+  ],
+  "healthcare_founder_11-50": [
+    "Compliance demands slow down ability to scale quickly",
+    "Difficulty maintaining quality while hiring rapidly",
+    "Hospital procurement processes stretch sales cycles further",
+    "Outbound messaging is inconsistent with inexperienced reps"
+  ],
+  "healthcare_founder_51-200": [
+    "Pressure to secure large institutional contracts for predictable revenue",
+    "Strain balancing innovation with regulatory approvals",
+    "Competition from established medtech giants reduces visibility",
+    "Need to expand into new specialties stretches resources thin"
+  ],
+  "healthcare_founder_1000+": [
+    "Founder vision diluted across multiple business units",
+    "Bureaucracy slows innovation in regulated environments",
+    "Difficulty maintaining product differentiation at scale",
+    "Global expansion introduces complex compliance burdens"
+  ],
+
+  "healthcare_ceo_1-10": [
+    "CEO personally manages early hospital relationships",
+    "Difficulty building trust with regulators and investors",
+    "Revenue volatility from long procurement cycles",
+    "Balancing growth and compliance is overwhelming"
+  ],
+  "healthcare_ceo_11-50": [
+    "Difficulty aligning compliance, sales, and product teams",
+    "Pressure to demonstrate predictable revenue for investors",
+    "Maintaining culture in a highly regulated environment",
+    "Difficulty securing senior leadership talent"
+  ],
+  "healthcare_ceo_51-200": [
+    "Board pressure to achieve aggressive market expansion",
+    "Margins shrink as compliance costs escalate",
+    "Competition from global medtech leaders",
+    "Difficulty balancing innovation with patient safety requirements"
+  ],
+  "healthcare_ceo_1000+": [
+    "Investor focus on profitability overshadows patient innovation",
+    "Difficulty aligning strategy across global healthcare markets",
+    "Reputation risk grows with inconsistent patient outcomes",
+    "Bureaucracy slows product approval timelines"
+  ],
+
+  "healthcare_cto_1-10": [
+    "Limited bandwidth to build HIPAA-compliant systems",
+    "Founder-CTO juggles patient data security and product features",
+    "Difficulty implementing interoperability with hospital systems",
+    "Cloud costs grow quickly with sensitive data storage"
+  ],
+  "healthcare_cto_11-50": [
+    "Pressure to achieve certifications (HIPAA, ISO) for contracts",
+    "Difficulty integrating with multiple EHR systems",
+    "Balancing innovation speed with compliance audits",
+    "Limited budget for advanced security infrastructure"
+  ],
+  "healthcare_cto_51-200": [
+    "Technical debt slows integrations with hospital systems",
+    "Need for real-time data interoperability strains engineering",
+    "Compliance consumes more resources than product innovation",
+    "Difficulty hiring engineers with healthcare experience"
+  ],
+  "healthcare_cto_1000+": [
+    "Legacy systems block adoption of modern healthcare IT",
+    "Global compliance regulations consume IT capacity",
+    "Difficulty balancing security with usability for clinicians",
+    "Innovation slows due to risk-averse culture"
+  ],
+
+  "healthcare_cfo_1-10": [
+    "Revenue instability due to long healthcare sales cycles",
+    "Difficulty forecasting cash flow with few client contracts",
+    "Heavy reliance on grants or investors creates financial strain",
+    "Manual reporting slows funding decisions"
+  ],
+  "healthcare_cfo_11-50": [
+    "Compliance costs weigh heavily on thin margins",
+    "Difficulty forecasting due to irregular client billing",
+    "Late payments from hospitals create liquidity issues",
+    "Balancing fundraising with operational expenses"
+  ],
+  "healthcare_cfo_51-200": [
+    "Margins shrink as compliance and payroll expand",
+    "Forecasting complexity grows with multi-region operations",
+    "Difficulty consolidating finances across service lines",
+    "Regulatory audits increase overhead"
+  ],
+  "healthcare_cfo_1000+": [
+    "Global financial compliance adds complexity",
+    "Investor pressure to show profitability over growth",
+    "Vendor costs balloon with enterprise scale",
+    "Delayed reporting cycles slow financial agility"
+  ],
+
+  "healthcare_cmo_1-10": [
+    "Outbound campaigns struggle to gain trust in healthcare markets",
+    "Limited budgets reduce visibility at industry conferences",
+    "Difficulty proving ROI with small case studies",
+    "Reliance on referrals slows scaling"
+  ],
+  "healthcare_cmo_11-50": [
+    "Difficulty differentiating from established medtech companies",
+    "High competition for digital visibility with limited budget",
+    "Attribution across inbound and outbound is poor",
+    "Resource constraints limit content creation"
+  ],
+  "healthcare_cmo_51-200": [
+    "Hospitals demand detailed case studies and outcomes",
+    "Difficulty proving ROI for large healthcare buyers",
+    "Competition from multinational medtech firms intensifies",
+    "Difficulty balancing compliance with marketing creativity"
+  ],
+  "healthcare_cmo_1000+": [
+    "Global campaigns require strict regulatory compliance",
+    "Marketing spend grows across multiple regions",
+    "Difficulty maintaining brand consistency worldwide",
+    "Board pressure to prove ROI in pipeline contribution"
+  ],
+
+  "healthcare_coo_1-10": [
+    "COO manages HR, compliance, and delivery without support staff",
+    "Difficulty maintaining operations while pursuing contracts",
+    "Vendor management consumes limited resources",
+    "Processes are ad hoc and undocumented"
+  ],
+  "healthcare_coo_11-50": [
+    "Need to formalize operations to meet compliance audits",
+    "Operational bottlenecks slow product delivery",
+    "Recruiter and staff burnout from high workload",
+    "Compliance management consumes operational focus"
+  ],
+  "healthcare_coo_51-200": [
+    "Difficulty coordinating across compliance, engineering, and sales",
+    "Operational inefficiencies reduce profitability",
+    "Regulatory requirements slow execution",
+    "Difficulty scaling global delivery operations"
+  ],
+  "healthcare_coo_1000+": [
+    "Bureaucracy reduces operational agility",
+    "Vendor ecosystems grow overly complex at scale",
+    "Difficulty maintaining consistent delivery standards globally",
+    "Cultural friction arises across multinational operations"
+  ],
+
+  "healthcare_vp_sales_1-10": [
+    "Founder-led sales limits scalability",
+    "Credibility objections common in healthcare markets",
+    "Outbound personalization is limited by small team capacity",
+    "Deals take long to close due to complex procurement cycles"
+  ],
+  "healthcare_vp_sales_11-50": [
+    "Hiring SDRs while maintaining compliant messaging is difficult",
+    "Forecasting is unreliable due to long sales cycles",
+    "High competition from medtech incumbents",
+    "Coordination between SDRs and account execs is weak"
+  ],
+  "healthcare_vp_sales_51-200": [
+    "Scaling sales training for complex healthcare sales takes resources",
+    "Territory coverage gaps emerge across hospital systems",
+    "Sales team churn disrupts predictability of pipelines",
+    "Differentiation is difficult against multinational firms"
+  ],
+  "healthcare_vp_sales_1000+": [
+    "Global account management requires strict compliance coordination",
+    "CRM complexity reduces forecasting accuracy",
+    "Sales enablement struggles to keep up with product diversity",
+    "Pricing consistency is hard to maintain across geographies"
+  ]
+}

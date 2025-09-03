@@ -1,0 +1,176 @@
+{
+  "consulting_founder_1-10": [
+    "Founder balances client delivery, sales, and operations personally",
+    "Cash flow volatility from project-based work threatens stability",
+    "Outbound outreach feels generic due to lack of research bandwidth",
+    "Difficulty competing with larger firms for enterprise contracts"
+  ],
+  "consulting_founder_11-50": [
+    "Scaling delivery teams while keeping quality high is difficult",
+    "Difficulty building consistent outbound messaging across junior staff",
+    "Revenue remains dependent on a few anchor clients",
+    "Pressure to diversify service offerings stretches resources"
+  ],
+  "consulting_founder_51-200": [
+    "Repeatable outbound playbooks are still underdeveloped",
+    "Challenges in managing client churn across multiple verticals",
+    "Competition from global consulting firms erodes pricing power",
+    "Balancing thought leadership with client delivery is hard"
+  ],
+  "consulting_founder_1000+": [
+    "Founder vision diluted across multiple service lines",
+    "Bureaucracy slows responsiveness to client needs",
+    "Difficulty maintaining niche differentiation at scale",
+    "Global expansion introduces compliance and cultural challenges"
+  ],
+
+  "consulting_ceo_1-10": [
+    "CEO personally drives business development",
+    "Difficulty building credibility against established consulting brands",
+    "Revenue volatility tied to single client projects",
+    "Balancing growth with hands-on leadership demands"
+  ],
+  "consulting_ceo_11-50": [
+    "Difficulty aligning sales and delivery teams as firm scales",
+    "Pressure to show predictable pipeline for funding or bank loans",
+    "Maintaining company culture during hiring spurts",
+    "Difficulty expanding regionally without senior leadership bandwidth"
+  ],
+  "consulting_ceo_51-200": [
+    "Investor or board pressure to expand into new service areas",
+    "Margins shrink as delivery teams expand rapidly",
+    "Talent retention challenges in competitive consulting markets",
+    "Difficulty differentiating against multinational firms"
+  ],
+  "consulting_ceo_1000+": [
+    "Investor and board focus on profitability overshadows innovation",
+    "Difficulty unifying brand messaging across global practices",
+    "Reputation risk from inconsistent client outcomes",
+    "Large bureaucracies slow strategic pivots"
+  ],
+
+  "consulting_cto_1-10": [
+    "No dedicated technical team for analytics or automation",
+    "Founder-CTO juggles delivery with tech infrastructure",
+    "Difficulty adopting tools that scale with client needs",
+    "Limited resources for cybersecurity and compliance"
+  ],
+  "consulting_cto_11-50": [
+    "Pressure to implement new technologies for client projects",
+    "Difficulty managing integrations across client systems",
+    "Limited bandwidth to evaluate automation tools",
+    "Rising client expectations for advanced analytics"
+  ],
+  "consulting_cto_51-200": [
+    "Managing knowledge systems across growing teams is complex",
+    "Difficulty ensuring consistent tech adoption internally",
+    "Client demand for innovation outpaces internal capabilities",
+    "Compliance requirements increase as client base diversifies"
+  ],
+  "consulting_cto_1000+": [
+    "Legacy tools slow delivery across global engagements",
+    "Security and data privacy compliance consumes resources",
+    "Innovation stalls under bureaucratic IT processes",
+    "M&A integrations create fragmented technology systems"
+  ],
+
+  "consulting_cfo_1-10": [
+    "Revenue volatility creates cash flow unpredictability",
+    "Difficulty negotiating favorable vendor contracts without scale",
+    "Overreliance on a few client accounts increases financial risk",
+    "Manual financial reporting slows decision making"
+  ],
+  "consulting_cfo_11-50": [
+    "Difficulty forecasting revenue with inconsistent client demand",
+    "Margins are thin due to high contractor costs",
+    "Collections from clients are often delayed",
+    "Difficulty balancing hiring plans with available budget"
+  ],
+  "consulting_cfo_51-200": [
+    "Margins shrink as payroll and overhead rise",
+    "Complexity of managing finances across multiple service lines",
+    "Forecasting challenges due to variable project pipelines",
+    "Compliance costs increase with larger contracts"
+  ],
+  "consulting_cfo_1000+": [
+    "Global tax and compliance issues add complexity",
+    "Investor focus on profitability over growth",
+    "Vendor costs balloon at enterprise scale",
+    "Global reporting cycles delay agility"
+  ],
+
+  "consulting_cmo_1-10": [
+    "Outbound marketing struggles due to low brand awareness",
+    "Difficulty producing case studies and thought leadership",
+    "Small budgets limit visibility in target markets",
+    "Reliance on referrals limits scalability"
+  ],
+  "consulting_cmo_11-50": [
+    "Difficulty differentiating messaging from competitors",
+    "High competition for digital visibility",
+    "Attribution across inbound and outbound is poor",
+    "Limited content creation resources"
+  ],
+  "consulting_cmo_51-200": [
+    "Client demand for advanced thought leadership strains resources",
+    "Difficulty proving ROI across multiple campaigns",
+    "Competition from larger firms crowds channels",
+    "Struggles with brand consistency across service lines"
+  ],
+  "consulting_cmo_1000+": [
+    "Managing global brand consistency is complex",
+    "Localization for global campaigns increases costs",
+    "Marketing operations consume significant budgets",
+    "Board pressure to show ROI on marketing initiatives"
+  ],
+
+  "consulting_coo_1-10": [
+    "COO balances HR, finance, and delivery responsibilities",
+    "Difficulty standardizing project delivery processes",
+    "Recruiter and consultant burnout from heavy workloads",
+    "Vendor management consumes bandwidth"
+  ],
+  "consulting_coo_11-50": [
+    "Need to formalize delivery processes without adding bureaucracy",
+    "Difficulty ensuring consistent client experience across projects",
+    "Operational bottlenecks reduce client satisfaction",
+    "Employee turnover strains delivery quality"
+  ],
+  "consulting_coo_51-200": [
+    "Cross-department alignment is difficult with growing teams",
+    "Operational inefficiencies multiply across regions",
+    "Difficulty scaling service delivery without margin loss",
+    "Compliance management consumes operational resources"
+  ],
+  "consulting_coo_1000+": [
+    "Bureaucracy undermines operational agility",
+    "Vendor ecosystems grow overly complex at scale",
+    "Difficulty maintaining consistent client delivery globally",
+    "Operational silos reduce efficiency across practices"
+  ],
+
+  "consulting_vp_sales_1-10": [
+    "Founder-led sales limits scalability of outbound",
+    "Credibility objections common with enterprise prospects",
+    "Outbound personalization is inconsistent with small teams",
+    "Deals take long to close due to limited case studies"
+  ],
+  "consulting_vp_sales_11-50": [
+    "Difficulty hiring SDRs while maintaining outbound quality",
+    "Forecasting revenue is unreliable with small pipelines",
+    "Competition from larger firms clutters inboxes",
+    "Coordination between sales and consultants is weak"
+  ],
+  "consulting_vp_sales_51-200": [
+    "Scaling sales training requires heavy investment",
+    "Territory coverage gaps emerge as firm expands",
+    "Churn among sales staff disrupts pipeline consistency",
+    "Difficulty differentiating in crowded consulting markets"
+  ],
+  "consulting_vp_sales_1000+": [
+    "Global account management requires regional coordination",
+    "CRM complexity reduces data quality",
+    "Sales enablement struggles to support complex service offerings",
+    "Pricing consistency is hard to maintain globally"
+  ]
+}

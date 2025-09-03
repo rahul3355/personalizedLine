@@ -1,0 +1,176 @@
+{
+  "marketing_founder_1-10": [
+    "Juggling client delivery and sales leaves little bandwidth for outbound",
+    "Difficulty proving ROI with limited case studies or references",
+    "Cash flow depends heavily on a handful of small contracts",
+    "Outreach feels generic without time to deeply research prospects"
+  ],
+  "marketing_founder_11-50": [
+    "Scaling new client acquisition while managing delivery strain",
+    "Difficulty maintaining quality as more accounts are taken on",
+    "Inconsistent outbound messaging from junior staff",
+    "Competitive agencies undercut pricing to win deals"
+  ],
+  "marketing_founder_51-200": [
+    "Challenges in building repeatable outbound processes for sales teams",
+    "Difficulty standing out in saturated agency markets",
+    "Pressure to differentiate services when buyers see agencies as interchangeable",
+    "Client churn disrupts predictable growth"
+  ],
+  "marketing_founder_1000+": [
+    "Founder vision diluted as multiple business units operate independently",
+    "Difficulty maintaining creative edge at scale",
+    "Large bureaucracies slow down pitches and execution",
+    "Global expansion requires tailoring campaigns across regions"
+  ],
+
+  "marketing_ceo_1-10": [
+    "CEO often still leads outbound efforts directly",
+    "Pressure from small client base makes revenue volatile",
+    "Difficult to balance visionary leadership with hands-on sales",
+    "Challenging to compete with larger agencies in RFP processes"
+  ],
+  "marketing_ceo_11-50": [
+    "Difficulty aligning sales and creative teams during growth",
+    "Pressure to show predictable client pipeline for investors",
+    "Maintaining culture with rapid hiring is challenging",
+    "Struggles to invest in new service lines without diluting focus"
+  ],
+  "marketing_ceo_51-200": [
+    "Board or investors expect aggressive growth in client accounts",
+    "Difficult to maintain high margins as team structures expand",
+    "Competing against holding companies with deep resources",
+    "Cross-team coordination slows execution of campaigns"
+  ],
+  "marketing_ceo_1000+": [
+    "Focus shifts to M&A and global expansion instead of creativity",
+    "Investor scrutiny on profitability over innovation",
+    "Difficulty unifying messaging across multiple agency brands",
+    "Client relationships become transactional at scale"
+  ],
+
+  "marketing_cto_1-10": [
+    "Agency lacks resources to build proprietary tools",
+    "Difficulty integrating client martech stacks with limited staff",
+    "Founder-CTOs juggle client work and infrastructure",
+    "Experimentation with automation tools consumes scarce time"
+  ],
+  "marketing_cto_11-50": [
+    "Pressure to adopt new tools while managing costs",
+    "Integrations with multiple client platforms strain bandwidth",
+    "Building reporting dashboards drains engineering capacity",
+    "Data privacy compliance grows as more clients onboard"
+  ],
+  "marketing_cto_51-200": [
+    "Client demand for advanced analytics outpaces capabilities",
+    "Maintaining multiple martech tools creates complexity",
+    "Pressure to customize technology for enterprise clients",
+    "Difficulty aligning internal engineering with client-facing deadlines"
+  ],
+  "marketing_cto_1000+": [
+    "Legacy systems prevent adoption of cutting-edge martech",
+    "Data security concerns dominate technology choices",
+    "Pressure to integrate acquired agencies’ systems post-M&A",
+    "Innovation slows under bureaucratic IT processes"
+  ],
+
+  "marketing_cfo_1-10": [
+    "Revenue unpredictability makes cash flow volatile",
+    "Small contracts create risk when one client churns",
+    "Difficulty negotiating favorable vendor rates without scale",
+    "Struggles to forecast expenses during early growth"
+  ],
+  "marketing_cfo_11-50": [
+    "Balancing investment in tools with thin margins",
+    "Difficulty creating predictable financial reporting",
+    "High reliance on freelancers complicates budgeting",
+    "Accounts receivable delays impact cash flow"
+  ],
+  "marketing_cfo_51-200": [
+    "Profit margins squeezed as payroll costs expand",
+    "Difficulty forecasting growth across multiple service lines",
+    "Client payment cycles create working capital strain",
+    "Pressure to standardize financial controls across teams"
+  ],
+  "marketing_cfo_1000+": [
+    "Complex accounting from global operations",
+    "Pressure to show profitability to investors while scaling",
+    "Vendor and software costs balloon at enterprise size",
+    "Cross-border tax compliance consumes resources"
+  ],
+
+  "marketing_cmo_1-10": [
+    "Lack of brand awareness makes outbound less effective",
+    "Founders drive messaging without formal marketing expertise",
+    "Campaign data is too small for statistically significant insights",
+    "Difficulty proving ROI on limited campaigns"
+  ],
+  "marketing_cmo_11-50": [
+    "Scaling lead generation while maintaining ROI",
+    "High competition for ad inventory drives up costs",
+    "Fragmentation of channels makes attribution difficult",
+    "Struggles to align outbound with inbound campaigns"
+  ],
+  "marketing_cmo_51-200": [
+    "Client demand for omnichannel campaigns strains resources",
+    "Proving ROI across multiple campaigns is difficult",
+    "Creative fatigue reduces campaign performance",
+    "Difficulty differentiating agency value proposition"
+  ],
+  "marketing_cmo_1000+": [
+    "Localization needed for global campaigns increases cost",
+    "Pressure to justify spend across multiple regions",
+    "Managing internal and external agency relationships consumes bandwidth",
+    "Complex governance slows down creative execution"
+  ],
+
+  "marketing_coo_1-10": [
+    "No formal processes make client delivery unpredictable",
+    "Founder-COOs manage operations manually without tools",
+    "Difficulty balancing new client acquisition with delivery quality",
+    "Client expectations stretch limited operational capacity"
+  ],
+  "marketing_coo_11-50": [
+    "Pressure to formalize processes without slowing agility",
+    "Hiring delivery managers strains limited budgets",
+    "Client satisfaction dips as team scales",
+    "Vendor and partner management grows more complex"
+  ],
+  "marketing_coo_51-200": [
+    "Difficulty maintaining consistency in client delivery",
+    "Internal bottlenecks reduce campaign turnaround speed",
+    "Cross-functional alignment slows execution",
+    "Maintaining operational efficiency across multiple service lines"
+  ],
+  "marketing_coo_1000+": [
+    "Operational bureaucracy slows client responsiveness",
+    "Complex vendor ecosystems increase overhead",
+    "Global delivery introduces cultural and logistical friction",
+    "Efficiency initiatives clash with client service quality"
+  ],
+
+  "marketing_vp_sales_1-10": [
+    "Founder-led sales limits outbound scalability",
+    "Outbound personalization is low with small teams",
+    "Objections about credibility against larger agencies are common",
+    "Deals take long to close due to lack of case studies"
+  ],
+  "marketing_vp_sales_11-50": [
+    "Hiring SDRs while keeping messaging consistent is difficult",
+    "Forecasting is inaccurate with small deal volume",
+    "High competition reduces outbound reply rates",
+    "Coordination between AEs and SDRs is inconsistent"
+  ],
+  "marketing_vp_sales_51-200": [
+    "Scaling sales training becomes resource-intensive",
+    "Territory coverage gaps leave accounts unserved",
+    "Churn in SDR/AE roles disrupts pipeline generation",
+    "Difficulty differentiating against dozens of competitors"
+  ],
+  "marketing_vp_sales_1000+": [
+    "Global account management requires coordination across regions",
+    "CRM complexity undermines data accuracy",
+    "Sales enablement struggles to keep up with service diversity",
+    "Pricing consistency is difficult across global markets"
+  ]
+}

@@ -18,8 +18,8 @@ openai._base_client.SyncHttpxClientWrapper = CustomWrapper
 # Load OpenAI client
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# Load pain embeddings (new expanded set)
-with open("pain_embeddings_2.json", "r", encoding="utf-8") as f:
+# Load final pain embeddings
+with open("pain_embeddings5.json", "r", encoding="utf-8") as f:
     pain_embeddings = json.load(f)
 
 # Convert embeddings to numpy arrays
@@ -140,7 +140,7 @@ Write ONE opener:
             temperature=0.9,
         )
         draft = resp.choices[0].message.content.strip()
-    except Exception as e:
+    except Exception:
         return None, None
 
     # Validator step

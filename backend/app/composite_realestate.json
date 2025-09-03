@@ -1,0 +1,176 @@
+{
+  "realestate_founder_1-10": [
+    "Founder manages property sourcing, client relationships, and sales personally",
+    "Difficulty gaining credibility with institutional investors as a small firm",
+    "Cash flow instability due to deal-driven revenue",
+    "Outbound outreach struggles without strong market data"
+  ],
+  "realestate_founder_11-50": [
+    "Balancing deal flow growth with limited operational staff",
+    "Difficulty scaling lead generation while handling property management",
+    "Strong competition from established brokerage firms",
+    "Outbound messaging is inconsistent across junior agents"
+  ],
+  "realestate_founder_51-200": [
+    "Challenges in building predictable pipelines for property sales",
+    "Difficulty differentiating from numerous agencies in the market",
+    "Revenue volatility tied to economic cycles",
+    "Pressure to expand into new property sectors stretches resources"
+  ],
+  "realestate_founder_1000+": [
+    "Founder vision diluted across multiple divisions and geographies",
+    "Bureaucracy slows responsiveness to property deals",
+    "Difficulty maintaining consistency in client relationships at scale",
+    "Global expansion introduces regulatory and compliance challenges"
+  ],
+
+  "realestate_ceo_1-10": [
+    "CEO still personally drives high-value property sales",
+    "Difficulty attracting large investors with limited portfolio",
+    "Revenue volatility from deal-based model",
+    "Balancing growth with compliance and licensing requirements"
+  ],
+  "realestate_ceo_11-50": [
+    "Difficulty aligning sales, operations, and property management teams",
+    "Pressure to show predictable revenue growth for investors",
+    "Maintaining company culture while hiring agents quickly",
+    "Challenges in expanding into multiple local markets simultaneously"
+  ],
+  "realestate_ceo_51-200": [
+    "Board pressure to expand property portfolio aggressively",
+    "Margins shrink due to rising compliance and operational costs",
+    "Competition from global property firms reduces share",
+    "Difficulty balancing innovation with regulatory requirements"
+  ],
+  "realestate_ceo_1000+": [
+    "Investor demands for profitability overshadow innovation",
+    "Difficulty unifying strategy across multiple geographies",
+    "Reputation risks grow with inconsistent property outcomes",
+    "Bureaucracy slows approval of deals and projects"
+  ],
+
+  "realestate_cto_1-10": [
+    "Limited budget for adopting advanced property tech solutions",
+    "Founder-CTO juggles IT systems with client-facing work",
+    "Difficulty implementing secure platforms for client data",
+    "Technology choices often lack long-term scalability"
+  ],
+  "realestate_cto_11-50": [
+    "Pressure to integrate CRM and property listing tools",
+    "Difficulty adopting automation for property management",
+    "Limited staff bandwidth for system customization",
+    "Compliance with data privacy adds workload"
+  ],
+  "realestate_cto_51-200": [
+    "Technical debt slows digital adoption across property divisions",
+    "Difficulty unifying property data across multiple systems",
+    "Demand for predictive analytics outpaces tech capabilities",
+    "Security requirements increase as property scale grows"
+  ],
+  "realestate_cto_1000+": [
+    "Legacy IT systems slow modernization of property platforms",
+    "Global data security and compliance requirements multiply",
+    "Integration of tech platforms across acquisitions is complex",
+    "Innovation slows under bureaucratic IT governance"
+  ],
+
+  "realestate_cfo_1-10": [
+    "Cash flow instability due to unpredictable property deals",
+    "Difficulty negotiating financing without scale",
+    "Revenue concentration in few deals increases financial risk",
+    "Manual reporting slows decision making"
+  ],
+  "realestate_cfo_11-50": [
+    "Difficulty forecasting revenue with cyclical property markets",
+    "Margins are thin with rising operational costs",
+    "Collections from clients are often delayed",
+    "Budget constraints limit investment in technology"
+  ],
+  "realestate_cfo_51-200": [
+    "Complexity in managing finances across multiple property portfolios",
+    "Margins shrink due to regulatory and tax costs",
+    "Difficulty consolidating financials across geographies",
+    "Compliance reporting adds overhead"
+  ],
+  "realestate_cfo_1000+": [
+    "Global tax and compliance complexity increases",
+    "Investor pressure to prioritize profitability",
+    "Vendor and financing costs balloon at scale",
+    "Reporting cycles delay responsiveness to market changes"
+  ],
+
+  "realestate_cmo_1-10": [
+    "Outbound campaigns struggle to gain traction with investors",
+    "Difficulty producing case studies for credibility",
+    "Small budgets limit reach in property markets",
+    "Reliance on referrals limits lead generation scalability"
+  ],
+  "realestate_cmo_11-50": [
+    "High competition for visibility in local markets",
+    "Difficulty differentiating brand against larger firms",
+    "Attribution across channels is poor",
+    "Limited resources for creating high-quality property marketing content"
+  ],
+  "realestate_cmo_51-200": [
+    "Investors expect strong property branding and content",
+    "Difficulty proving ROI across multiple campaigns",
+    "Competition from established global property firms",
+    "Difficulty balancing brand building with sales targets"
+  ],
+  "realestate_cmo_1000+": [
+    "Global campaigns require localization and increase costs",
+    "Advertising in regulated property markets is restricted",
+    "Managing multiple agencies/vendors strains budgets",
+    "Board pressure to justify marketing spend with ROI"
+  ],
+
+  "realestate_coo_1-10": [
+    "COO manages HR, compliance, and property operations manually",
+    "Difficulty standardizing processes across early hires",
+    "Client experience suffers from inconsistent property delivery",
+    "Vendor management consumes bandwidth"
+  ],
+  "realestate_coo_11-50": [
+    "Need to formalize operations without slowing agility",
+    "Compliance with property regulations consumes resources",
+    "Operational bottlenecks reduce deal closure speed",
+    "Agent burnout from high workload"
+  ],
+  "realestate_coo_51-200": [
+    "Difficulty coordinating across sales, property management, and operations",
+    "Operational inefficiencies reduce margins",
+    "Compliance requirements delay new property launches",
+    "Difficulty scaling global operations effectively"
+  ],
+  "realestate_coo_1000+": [
+    "Bureaucracy reduces operational efficiency",
+    "Vendor ecosystems grow overly complex across geographies",
+    "Global operations create logistical and cultural challenges",
+    "Difficulty maintaining consistent property standards worldwide"
+  ],
+
+  "realestate_vp_sales_1-10": [
+    "Founder-led sales limits scalability of property acquisitions",
+    "Outbound personalization is inconsistent with small team capacity",
+    "Credibility objections common when competing against larger firms",
+    "Deals take long to close due to lack of case studies"
+  ],
+  "realestate_vp_sales_11-50": [
+    "Hiring SDRs while keeping outbound messaging consistent is hard",
+    "Forecasting is unreliable with small deal volume",
+    "High competition from established agencies",
+    "Coordination between SDRs and property managers is weak"
+  ],
+  "realestate_vp_sales_51-200": [
+    "Scaling training for sales agents consumes resources",
+    "Territory coverage gaps emerge during expansion",
+    "High churn among sales agents disrupts deal pipelines",
+    "Difficulty differentiating brand in crowded markets"
+  ],
+  "realestate_vp_sales_1000+": [
+    "Global account management requires regional alignment",
+    "CRM complexity reduces forecasting accuracy",
+    "Sales enablement struggles to support diverse property offerings",
+    "Pricing consistency is hard to maintain globally"
+  ]
+}

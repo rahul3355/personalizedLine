@@ -1,0 +1,176 @@
+{
+  "saas_founder_1-10": [
+    "Struggling to prove product-market fit while juggling fundraising and sales personally",
+    "Outbound feels robotic because the founding team has no bandwidth for personalization",
+    "Cash flow pressures make every customer acquisition critical",
+    "Limited resources restrict ability to experiment with multiple GTM strategies"
+  ],
+  "saas_founder_11-50": [
+    "Delegating sales is difficult after founder-led selling",
+    "Outbound messaging lacks consistency as new hires experiment with scripts",
+    "Pressure to grow quickly while keeping CAC under control",
+    "Struggles in balancing rapid product development with scaling sales processes"
+  ],
+  "saas_founder_51-200": [
+    "Losing visibility into customer conversations as sales teams expand",
+    "Difficulty in building repeatable playbooks for SDR and AE teams",
+    "Tension between product roadmap priorities and sales-driven feature requests",
+    "Growing competition makes differentiation harder during outbound"
+  ],
+  "saas_founder_1000+": [
+    "Innovation slows under layers of management compared to earlier stages",
+    "Founder vision gets diluted as product and GTM teams operate independently",
+    "Global expansion requires tailoring outbound to multiple geographies",
+    "Balancing profitability with sustained growth pressures investor relations"
+  ],
+
+  "saas_ceo_1-10": [
+    "Balancing vision-setting with daily firefighting in a tiny SaaS team",
+    "Pressure from early investors to show rapid traction",
+    "Difficulty in hiring leadership roles without dilution",
+    "Outbound efforts often overlooked as CEO is forced to lead sales"
+  ],
+  "saas_ceo_11-50": [
+    "Struggling to align sales, marketing, and product teams as company grows",
+    "Pressure to show predictable revenue for the next funding round",
+    "Difficulty in scaling culture as hiring accelerates",
+    "Balancing international expansion with limited leadership bandwidth"
+  ],
+  "saas_ceo_51-200": [
+    "Board pressure to hit aggressive ARR targets",
+    "Difficulty keeping departments aligned on company-wide OKRs",
+    "Global expansion introduces compliance and legal risks",
+    "Talent retention challenges as competition for executives intensifies"
+  ],
+  "saas_ceo_1000+": [
+    "Investor scrutiny on profitability over growth creates trade-offs",
+    "Bureaucracy slows decision making compared to startup days",
+    "Managing global brand reputation across multiple regions",
+    "Balancing shareholder demands with long-term product vision"
+  ],
+
+  "saas_cto_1-10": [
+    "Balancing security and compliance while shipping features fast with a tiny team",
+    "Limited engineering bandwidth makes it hard to evaluate vendor solutions",
+    "Founder-CTOs juggle infrastructure alongside fundraising and product decisions",
+    "Cloud costs spiral quickly when experimenting with growth tools"
+  ],
+  "saas_cto_11-50": [
+    "Technical debt builds up as early choices struggle to scale",
+    "Integrating new tools into the stack distracts engineers from product work",
+    "Hiring specialized technical talent is difficult with limited budget",
+    "Security certifications (SOC2, ISO) become urgent to close bigger deals"
+  ],
+  "saas_cto_51-200": [
+    "Cross-team dependencies delay launches as engineering scales",
+    "Observability gaps grow with more microservices",
+    "Scaling infrastructure while keeping costs predictable is difficult",
+    "Pressure to build integrations with customer ecosystems increases"
+  ],
+  "saas_cto_1000+": [
+    "Legacy systems slow down adoption of modern SaaS tools internally",
+    "Security and compliance overhead consumes entire teams",
+    "Innovation slows as risk tolerance drops at enterprise scale",
+    "Multi-region deployment complexity stretches resources thin"
+  ],
+
+  "saas_cfo_1-10": [
+    "Cash flow volatility makes planning unpredictable",
+    "Limited financial systems make reporting slow and manual",
+    "Pressure from investors to extend runway while still hiring",
+    "Difficulty in negotiating vendor contracts without scale"
+  ],
+  "saas_cfo_11-50": [
+    "Unpredictable revenue streams complicate budgeting",
+    "Balancing burn rate with hiring growth teams",
+    "Difficulty implementing reliable forecasting processes",
+    "Limited visibility into departmental spend across tools"
+  ],
+  "saas_cfo_51-200": [
+    "Pressure to show strong unit economics to investors",
+    "Difficulty in consolidating spend across multiple SaaS tools",
+    "Forecasting accuracy is poor as company expands internationally",
+    "Managing multiple currencies and jurisdictions for billing"
+  ],
+  "saas_cfo_1000+": [
+    "Investor pressure to show profitability while sustaining growth",
+    "Financial compliance requirements multiply globally",
+    "Consolidating reporting across multiple business units is slow",
+    "Vendor and SaaS costs scale into millions annually"
+  ],
+
+  "saas_cmo_1-10": [
+    "Limited marketing budget makes differentiation difficult",
+    "Founders often drive messaging, creating inconsistency",
+    "Outbound campaigns compete with urgent product-market fit validation",
+    "Hard to measure attribution with tiny data sets"
+  ],
+  "saas_cmo_11-50": [
+    "Scaling demand generation while keeping CAC under control",
+    "Outbound struggles with low brand awareness in crowded SaaS markets",
+    "Experimentation with channels spreads resources thin",
+    "Difficulty aligning messaging between SDRs and marketing campaigns"
+  ],
+  "saas_cmo_51-200": [
+    "Attribution challenges across paid, content, and outbound",
+    "Pressure to show pipeline contribution while managing brand building",
+    "Creative fatigue in campaigns targeting the same buyer personas",
+    "Struggles to differentiate from dozens of similar SaaS competitors"
+  ],
+  "saas_cmo_1000+": [
+    "Global campaigns require localization and create inefficiencies",
+    "Regulatory environments complicate personalization in email campaigns",
+    "Managing multiple agencies and internal teams consumes bandwidth",
+    "Board pressure to reduce CAC while increasing brand equity simultaneously"
+  ],
+
+  "saas_coo_1-10": [
+    "Juggling operations, HR, and finance responsibilities without dedicated teams",
+    "Building lightweight processes without stifling agility",
+    "Managing vendor relationships consumes founder/COO bandwidth",
+    "Difficulty in scaling culture while hiring rapidly"
+  ],
+  "saas_coo_11-50": [
+    "Implementing processes that balance speed with control",
+    "Difficulty in scaling operations across new customer segments",
+    "Pressure to reduce inefficiencies as the team grows",
+    "Vendor management grows more complex with more tools in use"
+  ],
+  "saas_coo_51-200": [
+    "Maintaining alignment across departments becomes harder",
+    "Global expansion introduces logistics and compliance challenges",
+    "Scaling operations strains budgets and resources",
+    "Employee morale suffers as bureaucracy increases"
+  ],
+  "saas_coo_1000+": [
+    "Process rigidity slows down innovation",
+    "Compliance burdens escalate across multiple regions",
+    "Cross-department politics undermine operational efficiency",
+    "Balancing cost optimization with service quality globally"
+  ],
+
+  "saas_vp_sales_1-10": [
+    "Founder-led sales makes it hard to establish scalable outbound processes",
+    "No dedicated SDR function creates bottlenecks in pipeline generation",
+    "High variability in deal quality due to lack of process",
+    "Objections around SaaS credibility as a small vendor are common"
+  ],
+  "saas_vp_sales_11-50": [
+    "Hiring and ramping SDRs quickly while keeping messaging consistent",
+    "Forecasting accuracy is poor with small pipelines",
+    "Outbound reply rates suffer due to crowded SaaS buyer inboxes",
+    "Coordination between AEs and SDRs is inconsistent"
+  ],
+  "saas_vp_sales_51-200": [
+    "Scaling sales training and coaching becomes resource-intensive",
+    "Handoffs between SDR and AE teams break down frequently",
+    "Territory coverage gaps emerge as sales org grows",
+    "Competition intensifies as SaaS categories mature"
+  ],
+  "saas_vp_sales_1000+": [
+    "Pricing consistency across global teams becomes difficult",
+    "CRM data quality issues undermine forecasting accuracy",
+    "Sales enablement struggles to keep up with product complexity",
+    "Global account coverage requires coordination across multiple regions"
+  ]
+}

@@ -1,0 +1,176 @@
+{
+  "agencies_founder_1-10": [
+    "Founder handles client acquisition, delivery, and operations personally",
+    "Difficulty proving credibility without big-name clients",
+    "Cash flow instability from project-based revenue",
+    "Outbound feels repetitive with little time for personalization"
+  ],
+  "agencies_founder_11-50": [
+    "Scaling delivery while maintaining quality is difficult",
+    "Outbound messaging inconsistent with inexperienced hires",
+    "Revenue is overly reliant on a few anchor clients",
+    "Competition from low-cost freelancers undercuts pricing"
+  ],
+  "agencies_founder_51-200": [
+    "Building repeatable outbound processes is challenging",
+    "Client churn disrupts financial stability",
+    "Difficulty standing out in saturated design and creative markets",
+    "Pressure to expand service offerings stretches resources"
+  ],
+  "agencies_founder_1000+": [
+    "Founder vision diluted across multiple agency divisions",
+    "Bureaucracy slows creative responsiveness",
+    "Difficulty maintaining innovative edge at scale",
+    "Global expansion introduces cultural and logistical challenges"
+  ],
+
+  "agencies_ceo_1-10": [
+    "CEO often still drives client sales personally",
+    "Hard to compete with larger firms in RFP processes",
+    "Revenue volatility due to reliance on small projects",
+    "Balancing business growth with creative quality is challenging"
+  ],
+  "agencies_ceo_11-50": [
+    "Difficulty aligning creative, sales, and delivery teams",
+    "Pressure to show predictable pipeline for growth",
+    "Maintaining culture during rapid team expansion",
+    "Difficulty entering new regional markets with limited leadership depth"
+  ],
+  "agencies_ceo_51-200": [
+    "Board or investors push for aggressive expansion",
+    "Margins shrink with higher payroll and tool costs",
+    "Competition from global agencies reduces pricing power",
+    "Difficulty balancing client diversity with specialization"
+  ],
+  "agencies_ceo_1000+": [
+    "Investor pressure for profitability overshadows creativity",
+    "Difficulty unifying messaging across global offices",
+    "Reputation risk grows with inconsistent client delivery",
+    "Bureaucracy slows creative decision making"
+  ],
+
+  "agencies_cto_1-10": [
+    "Limited budget for adopting advanced design and automation tools",
+    "Founder-CTO juggles client delivery with IT infrastructure",
+    "Difficulty ensuring secure handling of client data",
+    "Technology decisions often limit scalability"
+  ],
+  "agencies_cto_11-50": [
+    "Pressure to adopt automation while keeping costs low",
+    "Difficulty managing integrations across multiple client systems",
+    "Limited bandwidth to evaluate and adopt new tools",
+    "Compliance requirements increase with client size"
+  ],
+  "agencies_cto_51-200": [
+    "Technical debt slows rollout of new creative tools",
+    "Difficulty scaling workflows across multiple teams",
+    "Client expectations for advanced reporting and analytics grow",
+    "Maintaining security across multiple systems strains IT"
+  ],
+  "agencies_cto_1000+": [
+    "Legacy systems limit modernization across global agencies",
+    "Global security and compliance requirements increase overhead",
+    "Integrating tech platforms across acquired agencies is complex",
+    "Innovation slows under bureaucratic IT processes"
+  ],
+
+  "agencies_cfo_1-10": [
+    "Revenue volatility from inconsistent client projects",
+    "Difficulty forecasting with unpredictable project timelines",
+    "High dependency on a few clients increases financial risk",
+    "Manual reporting slows financial insight"
+  ],
+  "agencies_cfo_11-50": [
+    "Thin margins limit investment in growth initiatives",
+    "Difficulty forecasting revenue with variable client demand",
+    "Collections from clients often delayed",
+    "Budget pressure restricts technology adoption"
+  ],
+  "agencies_cfo_51-200": [
+    "Margins shrink with payroll and compliance costs",
+    "Difficulty managing finances across multiple service lines",
+    "Forecasting challenges due to project variability",
+    "Compliance reporting requirements increase overhead"
+  ],
+  "agencies_cfo_1000+": [
+    "Global operations add tax and compliance complexity",
+    "Investor pressure to show profitability over growth",
+    "Vendor and tool costs balloon at enterprise scale",
+    "Global reporting cycles slow decision making"
+  ],
+
+  "agencies_cmo_1-10": [
+    "Outbound campaigns struggle due to low brand awareness",
+    "Difficulty producing case studies to win trust",
+    "Small budgets limit reach in competitive markets",
+    "Reliance on referrals slows scalability"
+  ],
+  "agencies_cmo_11-50": [
+    "Difficulty differentiating messaging against competitors",
+    "High competition for digital visibility drives up costs",
+    "Attribution across inbound and outbound is poor",
+    "Limited content creation bandwidth"
+  ],
+  "agencies_cmo_51-200": [
+    "Client demand for advanced omnichannel campaigns grows",
+    "Difficulty proving ROI across multiple campaigns",
+    "Creative fatigue reduces effectiveness of campaigns",
+    "Difficulty balancing brand building with lead generation"
+  ],
+  "agencies_cmo_1000+": [
+    "Global campaigns require localization across markets",
+    "Regulatory restrictions affect creative campaigns",
+    "Managing multiple agencies/vendors consumes resources",
+    "Board pressure to show marketing contribution to pipeline"
+  ],
+
+  "agencies_coo_1-10": [
+    "COO manages HR, finance, and client delivery manually",
+    "Difficulty standardizing processes across early hires",
+    "Client delivery suffers from lack of structure",
+    "Vendor management consumes operational bandwidth"
+  ],
+  "agencies_coo_11-50": [
+    "Need to formalize processes without stifling creativity",
+    "Client satisfaction dips with inconsistent delivery",
+    "Employee burnout from high workloads",
+    "Operational bottlenecks slow project execution"
+  ],
+  "agencies_coo_51-200": [
+    "Difficulty coordinating across creative, sales, and delivery teams",
+    "Operational inefficiencies reduce margins",
+    "Compliance demands consume operational focus",
+    "Difficulty scaling delivery globally without losing quality"
+  ],
+  "agencies_coo_1000+": [
+    "Bureaucracy slows creative responsiveness",
+    "Vendor ecosystems grow overly complex at scale",
+    "Global operations introduce logistical and cultural friction",
+    "Difficulty maintaining consistent quality across regions"
+  ],
+
+  "agencies_vp_sales_1-10": [
+    "Founder-led sales limits scalability",
+    "Outbound personalization inconsistent with small team",
+    "Credibility objections common against larger agencies",
+    "Deals take longer to close without case studies"
+  ],
+  "agencies_vp_sales_11-50": [
+    "Difficulty hiring SDRs while keeping outbound messaging consistent",
+    "Forecasting pipelines is unreliable with project variability",
+    "High competition reduces outbound reply rates",
+    "Coordination between SDRs and creative leads is weak"
+  ],
+  "agencies_vp_sales_51-200": [
+    "Scaling training for sales reps consumes resources",
+    "Territory coverage gaps emerge during expansion",
+    "Sales team churn disrupts client acquisition predictability",
+    "Difficulty differentiating against established global agencies"
+  ],
+  "agencies_vp_sales_1000+": [
+    "Global account management requires regional coordination",
+    "CRM data complexity reduces forecasting accuracy",
+    "Sales enablement struggles to keep up with diverse services",
+    "Pricing consistency is hard to maintain globally"
+  ]
+}

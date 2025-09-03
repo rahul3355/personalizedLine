@@ -1,0 +1,176 @@
+{
+  "professional_founder_1-10": [
+    "Founder manages client relationships, compliance, and delivery personally",
+    "Difficulty establishing credibility against larger firms",
+    "Cash flow volatility due to dependency on a few clients",
+    "Outbound struggles to stand out without case studies"
+  ],
+  "professional_founder_11-50": [
+    "Difficulty balancing service delivery with consistent client acquisition",
+    "Scaling quality while hiring rapidly is a challenge",
+    "Competition from established firms drives pricing pressure",
+    "Outbound messaging inconsistent across junior staff"
+  ],
+  "professional_founder_51-200": [
+    "Pressure to build repeatable outbound processes for predictable revenue",
+    "Challenges differentiating in crowded legal and compliance markets",
+    "Client churn disrupts financial stability",
+    "Expansion into new practice areas stretches resources"
+  ],
+  "professional_founder_1000+": [
+    "Founder vision diluted as multiple service lines expand",
+    "Bureaucracy slows responsiveness to client needs",
+    "Difficulty maintaining consistent client experience at scale",
+    "Global expansion introduces regulatory and cultural complexities"
+  ],
+
+  "professional_ceo_1-10": [
+    "CEO often still responsible for business development",
+    "Difficult to attract enterprise clients as a small firm",
+    "Revenue volatility due to deal-driven business model",
+    "Balancing growth with compliance demands is overwhelming"
+  ],
+  "professional_ceo_11-50": [
+    "Difficulty aligning sales, delivery, and compliance teams",
+    "Pressure to show predictable growth to investors or partners",
+    "Maintaining firm culture during rapid hiring is difficult",
+    "Challenges in expanding regionally with limited leadership bandwidth"
+  ],
+  "professional_ceo_51-200": [
+    "Board or partner pressure to expand aggressively",
+    "Margins shrink due to regulatory and compliance costs",
+    "Difficulty retaining top talent against larger firms",
+    "Balancing innovation with risk management in services"
+  ],
+  "professional_ceo_1000+": [
+    "Investor focus on profitability overshadows client intimacy",
+    "Difficulty unifying strategy across global divisions",
+    "Reputation risks grow with inconsistent outcomes",
+    "Bureaucracy slows major client decisions"
+  ],
+
+  "professional_cto_1-10": [
+    "Limited budget for secure document and client systems",
+    "Founder-CTO manages both IT infrastructure and delivery tools",
+    "Difficulty ensuring compliance with client data requirements",
+    "Technology choices often limit scalability"
+  ],
+  "professional_cto_11-50": [
+    "Pressure to adopt secure collaboration tools for clients",
+    "Difficulty integrating multiple client systems with small teams",
+    "Compliance requirements stretch IT bandwidth",
+    "Clients expect digital sophistication beyond available resources"
+  ],
+  "professional_cto_51-200": [
+    "Technical debt slows introduction of new client tools",
+    "Difficulty managing multiple compliance certifications",
+    "Client demand for secure integrations outpaces team capacity",
+    "Balancing security with ease of use is challenging"
+  ],
+  "professional_cto_1000+": [
+    "Legacy IT systems slow modernization in global operations",
+    "Security and compliance dominate technology decisions",
+    "Integration of systems across acquisitions is complex",
+    "Innovation slows under bureaucratic IT governance"
+  ],
+
+  "professional_cfo_1-10": [
+    "Unpredictable client revenue creates cash flow instability",
+    "Difficulty negotiating favorable vendor terms without scale",
+    "High reliance on a few clients increases risk",
+    "Manual financial processes slow decision making"
+  ],
+  "professional_cfo_11-50": [
+    "Compliance costs strain already thin margins",
+    "Difficulty forecasting revenue with unpredictable engagements",
+    "Client payment delays disrupt cash flow",
+    "Balancing investment in growth with financial prudence"
+  ],
+  "professional_cfo_51-200": [
+    "Margins shrink due to rising payroll and compliance expenses",
+    "Complexity managing finances across multiple practices",
+    "Forecasting challenges due to inconsistent client demand",
+    "Global tax and audit requirements add overhead"
+  ],
+  "professional_cfo_1000+": [
+    "Investor pressure to show profitability over growth",
+    "Vendor and compliance costs balloon at enterprise scale",
+    "Global financial reporting cycles slow agility",
+    "Cross-border tax issues complicate planning"
+  ],
+
+  "professional_cmo_1-10": [
+    "Outbound campaigns struggle to gain traction in trust-driven markets",
+    "Difficulty producing case studies for credibility",
+    "Small budgets limit marketing effectiveness",
+    "Reliance on referrals slows scalability"
+  ],
+  "professional_cmo_11-50": [
+    "Difficulty differentiating messaging against established firms",
+    "High competition for visibility in professional services",
+    "Attribution across inbound and outbound is poor",
+    "Limited resources for consistent content creation"
+  ],
+  "professional_cmo_51-200": [
+    "Clients demand strong thought leadership and branding",
+    "Difficulty proving ROI across multi-channel campaigns",
+    "Competition from global firms reduces visibility",
+    "Struggles with brand consistency across service lines"
+  ],
+  "professional_cmo_1000+": [
+    "Global campaigns require localization across jurisdictions",
+    "Regulatory restrictions impact advertising channels",
+    "Managing multiple agencies/vendors consumes bandwidth",
+    "Board pressure to prove ROI from marketing spend"
+  ],
+
+  "professional_coo_1-10": [
+    "COO manages HR, compliance, and client delivery personally",
+    "Difficulty standardizing processes across small teams",
+    "Client experience suffers without operational structure",
+    "Vendor management consumes operational bandwidth"
+  ],
+  "professional_coo_11-50": [
+    "Need to formalize processes without slowing agility",
+    "Compliance requirements consume operational focus",
+    "Operational bottlenecks delay client projects",
+    "Employee burnout from workload pressures"
+  ],
+  "professional_coo_51-200": [
+    "Coordination across practices becomes difficult as firm grows",
+    "Compliance slows down new client engagements",
+    "Operational inefficiencies reduce profitability",
+    "Difficulty scaling client delivery globally"
+  ],
+  "professional_coo_1000+": [
+    "Bureaucracy undermines operational agility",
+    "Vendor ecosystems grow overly complex",
+    "Global operations create cultural and logistical friction",
+    "Maintaining service consistency across geographies is challenging"
+  ],
+
+  "professional_vp_sales_1-10": [
+    "Founder-led sales limits scalability of outbound",
+    "Credibility objections common with enterprise prospects",
+    "Outbound personalization is inconsistent with small teams",
+    "Deals take longer to close without strong case studies"
+  ],
+  "professional_vp_sales_11-50": [
+    "Difficulty hiring SDRs while maintaining outbound quality",
+    "Forecasting revenue is unreliable with small pipelines",
+    "Competition from established firms clutters inboxes",
+    "Coordination between SDRs and senior partners is weak"
+  ],
+  "professional_vp_sales_51-200": [
+    "Scaling sales training consumes resources",
+    "Territory coverage gaps reduce revenue growth",
+    "Sales team churn disrupts predictability",
+    "Difficulty differentiating against global competitors"
+  ],
+  "professional_vp_sales_1000+": [
+    "Global account management requires regional coordination",
+    "CRM complexity reduces data accuracy",
+    "Sales enablement struggles to support complex service offerings",
+    "Pricing consistency is difficult across global practices"
+  ]
+}

@@ -1,0 +1,176 @@
+{
+  "finance_founder_1-10": [
+    "Founder personally handles client acquisition and financial operations",
+    "Difficulty building trust with larger corporate clients",
+    "Cash flow is unstable due to reliance on a few accounts",
+    "Outbound outreach feels generic without research time"
+  ],
+  "finance_founder_11-50": [
+    "Balancing compliance requirements with sales growth",
+    "Difficulty scaling client acquisition while ensuring regulatory adherence",
+    "Team bandwidth strained between service delivery and sales",
+    "Competitive pressure from larger firms undercuts pricing"
+  ],
+  "finance_founder_51-200": [
+    "Need to formalize outbound processes for new business",
+    "Struggles with differentiating services in saturated markets",
+    "Compliance workload grows faster than hiring capacity",
+    "Client churn disrupts predictable revenue growth"
+  ],
+  "finance_founder_1000+": [
+    "Founder vision diluted as multiple business lines expand",
+    "Bureaucracy slows innovation in financial services",
+    "Difficulty maintaining client intimacy at scale",
+    "Global operations create compliance and risk management complexity"
+  ],
+
+  "finance_ceo_1-10": [
+    "CEO often still manages sales directly",
+    "Difficult to compete with established financial institutions",
+    "Revenue volatility creates planning challenges",
+    "Balancing business growth with compliance costs"
+  ],
+  "finance_ceo_11-50": [
+    "Difficulty aligning compliance, sales, and operations",
+    "Pressure to demonstrate predictable revenue growth",
+    "Maintaining team culture while scaling rapidly",
+    "Difficulty hiring senior leaders with financial expertise"
+  ],
+  "finance_ceo_51-200": [
+    "Board pressure to expand into new regions or services",
+    "Margins shrink as compliance and regulatory costs increase",
+    "Competition from fintech startups and traditional institutions",
+    "Balancing innovation with risk management"
+  ],
+  "finance_ceo_1000+": [
+    "Investor focus on profitability overshadows innovation",
+    "Difficulty unifying strategy across global offices",
+    "Reputation risk grows with increased client exposure",
+    "Bureaucracy slows decision making across divisions"
+  ],
+
+  "finance_cto_1-10": [
+    "Limited budget for implementing secure infrastructure",
+    "Founder-CTO juggles client delivery and tech stack decisions",
+    "Difficulty meeting compliance requirements with small team",
+    "Technology choices often limit scalability"
+  ],
+  "finance_cto_11-50": [
+    "Pressure to adopt fintech tools while managing security",
+    "Data integrity and reporting challenges grow with scale",
+    "Limited resources for automation and integrations",
+    "Client expectations for digital experiences increase"
+  ],
+  "finance_cto_51-200": [
+    "Technical debt slows adoption of new fintech platforms",
+    "Difficulty integrating systems across business units",
+    "Compliance and data security dominate technology priorities",
+    "Client demand for advanced digital tools outpaces capacity"
+  ],
+  "finance_cto_1000+": [
+    "Legacy infrastructure hampers digital transformation",
+    "Global security and compliance requirements consume resources",
+    "Integration of acquired systems is complex",
+    "Innovation slows as risk aversion grows"
+  ],
+
+  "finance_cfo_1-10": [
+    "Cash flow instability due to irregular client payments",
+    "Difficulty negotiating vendor contracts without scale",
+    "Revenue concentration in few clients increases financial risk",
+    "Manual financial processes slow decisions"
+  ],
+  "finance_cfo_11-50": [
+    "High compliance costs eat into thin margins",
+    "Difficulty forecasting revenue due to client churn",
+    "Collections from clients are often delayed",
+    "Pressure to reduce burn rate while scaling teams"
+  ],
+  "finance_cfo_51-200": [
+    "Forecasting is complex with multiple revenue streams",
+    "Margins shrink due to compliance and payroll costs",
+    "Difficulty consolidating finances across business units",
+    "Regulatory reporting requirements grow burdensome"
+  ],
+  "finance_cfo_1000+": [
+    "Global tax and compliance complexity increases",
+    "Investor pressure to show profitability over growth",
+    "Vendor costs balloon at enterprise scale",
+    "Reporting cycles delay responsiveness to market changes"
+  ],
+
+  "finance_cmo_1-10": [
+    "Outbound campaigns struggle due to lack of brand trust",
+    "Limited budget restricts visibility in target markets",
+    "Difficulty proving ROI with small campaign samples",
+    "Reliance on referrals limits scalability"
+  ],
+  "finance_cmo_11-50": [
+    "Difficulty differentiating brand in crowded fintech space",
+    "High competition for digital visibility drives up costs",
+    "Attribution across inbound and outbound is poor",
+    "Limited resources for content creation"
+  ],
+  "finance_cmo_51-200": [
+    "Client demand for omnichannel marketing increases",
+    "Difficulty proving ROI across multiple campaigns",
+    "Competition from established financial brands",
+    "Pressure to justify spend to leadership"
+  ],
+  "finance_cmo_1000+": [
+    "Global campaigns require localization, increasing costs",
+    "Regulatory restrictions impact advertising channels",
+    "Managing multiple agencies/vendors consumes bandwidth",
+    "Board pressure to prove marketing pipeline contribution"
+  ],
+
+  "finance_coo_1-10": [
+    "COO balances HR, compliance, and delivery without support",
+    "Difficulty standardizing client processes",
+    "Struggles to maintain quality while scaling",
+    "Vendor management consumes limited resources"
+  ],
+  "finance_coo_11-50": [
+    "Need to formalize processes while staying agile",
+    "Compliance and risk management consume time",
+    "Operational bottlenecks slow delivery",
+    "Recruiter and employee burnout from high workload"
+  ],
+  "finance_coo_51-200": [
+    "Difficulty coordinating operations across business units",
+    "Compliance requirements slow down execution",
+    "Cross-functional inefficiencies reduce margins",
+    "Operational alignment is difficult at scale"
+  ],
+  "finance_coo_1000+": [
+    "Bureaucracy undermines operational agility",
+    "Vendor ecosystems grow overly complex",
+    "Global operations create logistical and cultural challenges",
+    "Difficulty maintaining consistent delivery standards"
+  ],
+
+  "finance_vp_sales_1-10": [
+    "Founder-led sales limits scalability",
+    "Credibility objections common with enterprise clients",
+    "Outbound personalization is inconsistent with small team",
+    "Deals take long to close without case studies"
+  ],
+  "finance_vp_sales_11-50": [
+    "Hiring SDRs while keeping messaging consistent is hard",
+    "Forecasting revenue is unreliable with small pipelines",
+    "High competition clutters prospect inboxes",
+    "Coordination between SDRs and AEs is inconsistent"
+  ],
+  "finance_vp_sales_51-200": [
+    "Scaling sales training requires significant investment",
+    "Territory coverage gaps slow growth",
+    "Churn among sales staff disrupts pipeline generation",
+    "Difficulty differentiating against established financial firms"
+  ],
+  "finance_vp_sales_1000+": [
+    "Global account management requires regional coordination",
+    "CRM complexity reduces data quality",
+    "Sales enablement struggles to keep up with service complexity",
+    "Pricing consistency is difficult across regions"
+  ]
+}
