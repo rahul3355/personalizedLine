@@ -81,7 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider value={{ session, loading, userInfo }}>
-      {children}
+       {loading ? <p className="text-center text-gray-500 mt-20">Loading...</p> : children}
     </AuthContext.Provider>
   );
 }

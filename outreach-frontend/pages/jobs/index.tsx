@@ -117,22 +117,29 @@ export default function JobsPage() {
                 ) : (
                   <div className="flex flex-col gap-2 items-center w-full max-w-sm">
                     <div className="flex items-center gap-3 w-full">
-                      <div className="flex-1 bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner">
-                        <div
-                          className="h-3 rounded-full transition-all duration-500 ease-out"
-                          style={{
-                            width: `${job.progress || 0}%`,
-                            background:
-                              "linear-gradient(to right, #6366f1, #3b82f6, #0ea5e9)",
-                          }}
-                        />
+                      {/* Apple-style progress bar with shimmer fallback */}
+                      <div className="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden relative">
+                        {job.progress && job.progress > 0 ? (
+                          <div
+                            className="h-2 rounded-full transition-all duration-500 ease-out"
+                            style={{
+                              width: `${job.progress}%`,
+                              background:
+                                "linear-gradient(to right, #000, #333, #000)",
+                            }}
+                          />
+                        ) : (
+                          <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-gray-300 via-gray-200 to-gray-300" />
+                        )}
                       </div>
-                      <span className="text-xs text-gray-700 font-medium min-w-[2rem] text-right">
-                        {job.progress}%
+                      <span className="text-xs text-gray-500 font-medium min-w-[3rem] text-right">
+                        {job.progress && job.progress > 0
+                          ? `${job.progress}%`
+                          : "Starting…"}
                       </span>
                     </div>
                     {job.message && (
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-gray-400 font-sans">
                         {job.message}
                       </span>
                     )}

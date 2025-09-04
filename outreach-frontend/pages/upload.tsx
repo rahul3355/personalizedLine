@@ -5,6 +5,56 @@ import { API_URL } from "../lib/api";
 import { Tag, Building2, FileText, Upload, Briefcase, Users } from "lucide-react";
 import { useAuth } from "../lib/AuthProvider";
 import { useRouter } from "next/router";
+import { motion } from "framer-motion";
+import Lottie from "lottie-react";
+import confettiAnim from "../public/confetti.json";
+
+const StepTracker = ({ step, jobCreated }: { step: number; jobCreated: boolean }) => {
+  const steps = ["Upload File", "Confirm Headers", "Confirm Service"];
+
+  return (
+    <div className="flex items-center justify-center space-x-8 mb-10">
+      {steps.map((label, index) => {
+        const current = index;
+        const isCompleted = current < step || (current === 2 && jobCreated);
+        const isActive = current === step && !isCompleted;
+
+        return (
+          <div key={index} className="flex items-center space-x-2">
+            <motion.div
+              className={`w-8 h-8 flex items-center justify-center rounded-full border-2 text-sm font-semibold
+                ${isCompleted ? "border-green-500 bg-green-500 text-white" : ""}
+                ${isActive ? "border-blue-500 bg-blue-100 text-blue-700" : ""}
+                ${!isCompleted && !isActive ? "border-gray-300 bg-white text-gray-400" : ""}
+              `}
+              // ✅ Only pulse Step 0 (Upload File)
+              animate={isActive && current === 0 ? { scale: [1, 1.2, 1] } : {}}
+              transition={{ duration: 0.6, repeat: isActive && current === 0 ? Infinity : 0 }}
+            >
+              {isCompleted ? "✓" : index + 1}
+            </motion.div>
+
+            <span
+              className={`text-sm font-medium ${
+                isCompleted ? "text-green-600" : isActive ? "text-blue-600" : "text-gray-500"
+              }`}
+            >
+              {label}
+            </span>
+
+            {index < steps.length - 1 && (
+              <div
+                className={`w-16 h-1 rounded-full ${
+                  isCompleted ? "bg-green-500" : isActive ? "bg-blue-400" : "bg-gray-200"
+                }`}
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 export default function UploadPage() {
   const { session, loading: authLoading } = useAuth();
@@ -23,7 +73,7 @@ export default function UploadPage() {
   const [service, setService] = useState("");
 
   const [loading, setLoading] = useState(false);
-  const [jobId, setJobId] = useState<string | null>(null);
+  const [jobCreated, setJobCreated] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [dragActive, setDragActive] = useState(false);
@@ -124,8 +174,13 @@ export default function UploadPage() {
 
       if (!res.ok) throw new Error(`Failed: ${res.status}`);
 
-      const data = await res.json();
-      setJobId(data.job_id);
+      await res.json();
+      setJobCreated(true);
+
+      // redirect after confetti
+      setTimeout(() => {
+        router.push("/jobs");
+      }, 1500);
     } catch (err: any) {
       setError(err.message || "Something went wrong");
     } finally {
@@ -161,8 +216,10 @@ export default function UploadPage() {
           Import your CSV/XLSX and configure columns for personalization.
         </p>
 
+        <StepTracker step={step} jobCreated={jobCreated} />
+
         {/* Step 0: Upload File */}
-        {step === 0 && (
+        {step === 0 && !jobCreated && (
           <div className="space-y-6">
             <div
               onDragEnter={handleDrag}
@@ -209,7 +266,7 @@ export default function UploadPage() {
         )}
 
         {/* Step 1: Confirm Headers */}
-        {step === 1 && (
+        {step === 1 && !jobCreated && (
           <div className="space-y-8 mt-6">
             <div className="bg-gray-50 rounded-xl p-6">
               <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-6">
@@ -285,7 +342,7 @@ export default function UploadPage() {
         )}
 
         {/* Step 2: Confirm Service */}
-        {step === 2 && (
+        {step === 2 && !jobCreated && (
           <div className="space-y-8 mt-6">
             <div className="bg-gray-50 rounded-xl p-6">
               <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">
@@ -304,11 +361,6 @@ export default function UploadPage() {
                 {error}
               </div>
             )}
-            {jobId && (
-              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm font-medium">
-                Job created! ID: <span className="font-mono">{jobId}</span>
-              </div>
-            )}
 
             <button
               onClick={handleCreateJob}
@@ -320,6 +372,17 @@ export default function UploadPage() {
             >
               {loading ? "Submitting..." : "Confirm Service"}
             </button>
+          </div>
+        )}
+
+        {/* Confetti Success */}
+        {jobCreated && (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Lottie animationData={confettiAnim} loop={false} style={{ width: 220, height: 220 }} />
+            <p className="mt-4 text-lg font-semibold text-green-600">
+              Job Created Successfully!
+            </p>
+            <p className="text-sm text-gray-500">Redirecting to Your Files...</p>
           </div>
         )}
       </div>
