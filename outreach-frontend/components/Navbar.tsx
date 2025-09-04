@@ -100,7 +100,7 @@ export default function Navbar() {
           }`}
         >
           <FiFileText className="mr-3 h-5 w-5" />
-          Past Files
+          Your Files
         </Link>
         <Link
   href="/billing"

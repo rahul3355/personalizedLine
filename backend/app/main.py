@@ -14,12 +14,10 @@ STRIPE_SECRET = os.getenv("STRIPE_SECRET_KEY", "")
 if STRIPE_SECRET:
     stripe.api_key = STRIPE_SECRET
 
-# Example product mapping (Stripe Price IDs must exist in your Stripe Dashboard)
 ADDON_PRODUCTS = {
     "addon_1000": {"price_id": os.getenv("STRIPE_PRICE_1000", ""), "credits": 1000},
 }
 
-# Start background worker when app boots
 def start_worker():
     t = threading.Thread(target=queue_utils.worker_loop, daemon=True)
     t.start()
@@ -29,7 +27,6 @@ def startup_event():
     db.init_db()
     start_worker()
 
-# Allow frontend to talk to backend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -53,9 +50,7 @@ def get_current_user(request: Request):
     token = auth.split(" ")[1]
 
     try:
-        # JWT = header.payload.signature, we only decode payload (2nd part)
         payload_part = token.split(".")[1]
-        # pad base64
         padded = payload_part + "=" * (-len(payload_part) % 4)
         decoded = base64.urlsafe_b64decode(padded)
         payload = json.loads(decoded)
@@ -63,67 +58,7 @@ def get_current_user(request: Request):
     except Exception as e:
         raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
 
-# ✅ /me endpoint for user info
-@app.get("/me")
-def get_me(user_id: str = Depends(get_current_user)):
-    user = db.get_user(user_id)
-    if not user:
-        # If user not in DB yet, create minimal record
-        db.ensure_user(user_id, email="unknown@example.com")
-        user = db.get_user(user_id)
-
-    # Attach recent ledger + credits
-    credits = db.get_credits(user_id)
-    ledger = db.get_ledger(user_id, limit=10)
-
-    return {
-        "user": user,
-        "credits_remaining": credits,
-        "ledger": ledger
-    }
-
-# ✅ New: Buy extra credits (create Stripe Checkout session)
-@app.post("/buy-credits")
-def buy_credits(request: Request, addon: str = Form(...), user_id: str = Depends(get_current_user)):
-    if addon not in ADDON_PRODUCTS:
-        raise HTTPException(status_code=400, detail="Invalid add-on selected")
-
-    product = ADDON_PRODUCTS[addon]
-    try:
-        checkout_session = stripe.checkout.Session.create(
-            payment_method_types=["card"],
-            mode="payment",
-            line_items=[{"price": product["price_id"], "quantity": 1}],
-            success_url="http://localhost:3000/success",
-            cancel_url="http://localhost:3000/cancel",
-            metadata={"user_id": user_id, "credits": product["credits"]},
-        )
-        return {"checkout_url": checkout_session.url}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Stripe error: {str(e)}")
-
-# ✅ New: Stripe webhook (handle payment success → add credits)
-@app.post("/stripe-webhook")
-async def stripe_webhook(request: Request):
-    payload = await request.body()
-    sig_header = request.headers.get("stripe-signature")
-
-    try:
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, os.getenv("STRIPE_WEBHOOK_SECRET", "")
-        )
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Webhook error: {str(e)}")
-
-    if event["type"] == "checkout.session.completed":
-        session = event["data"]["object"]
-        user_id = session["metadata"]["user_id"]
-        credits = int(session["metadata"]["credits"])
-        db.update_credits(user_id, credits, reason="add-on purchase")
-
-    return {"status": "success"}
-
-# STEP 1 — Parse headers from uploaded file
+# ✅ Step 1 — Parse headers
 @app.post("/parse_headers")
 def parse_headers(file: UploadFile = File(...), user_id: str = Depends(get_current_user)):
     tmp_dir = tempfile.gettempdir()
@@ -140,38 +75,59 @@ def parse_headers(file: UploadFile = File(...), user_id: str = Depends(get_curre
     headers = [str(c) for c in df.columns]
     return {"headers": headers, "temp_path": temp_path}
 
-# STEP 2 — Create job using chosen columns + metadata
+# ✅ Step 2 — Create job with new required fields
 @app.post("/jobs")
 def create_job(
     file_path: str = Form(...),
-    title_col: str = Form(...),
     company_col: str = Form(...),
     desc_col: str = Form(...),
-    offer: str = Form(...),
-    persona: str = Form(...),
-    channel: str = Form(...),
-    max_words: int = Form(...),
+    industry_col: str = Form(...),
+    title_col: str = Form(...),
+    size_col: str = Form(...),
+    service: str = Form(...),
     user_id: str = Depends(get_current_user)
 ):
     meta = {
         "file_path": file_path,
-        "title_col": title_col,
         "company_col": company_col,
         "desc_col": desc_col,
-        "offer": offer,
-        "persona": persona,
-        "channel": channel,
-        "max_words": max_words
+        "industry_col": industry_col,
+        "title_col": title_col,
+        "size_col": size_col,
+        "service": service
     }
-
     job_id = db.enqueue_job("user-upload.xlsx", 0, meta, user_id)
     return {"job_id": job_id}
 
+@app.get("/me")
+def get_me(user_id: str = Depends(get_current_user)):
+    user = db.get_user(user_id)
+    if not user:
+        db.ensure_user(user_id, email="unknown@example.com")
+        user = db.get_user(user_id)
+
+    credits = db.get_credits(user_id)
+    ledger = db.get_ledger(user_id, limit=10)
+
+    # Ensure defaults
+    user = dict(user)  # convert Row/Mapping to mutable dict
+    user.setdefault("plan_type", "free")
+    user.setdefault("subscription_status", "inactive")
+    user.setdefault("renewal_date", None)
+
+    return {
+        "user": user,
+        "credits_remaining": credits,
+        "ledger": ledger
+    }
+
+
+# ✅ Existing job management endpoints unchanged...
 @app.get("/jobs")
 def list_jobs(user_id: str = Depends(get_current_user)):
-    jobs = db.list_jobs(user_id)
+    jobs_list = db.list_jobs(user_id)
     enriched = []
-    for job in jobs:
+    for job in jobs_list:
         percent, message = db.get_progress(job["id"])
         job["progress"] = percent
         job["message"] = message
@@ -183,18 +139,14 @@ def get_job(job_id: str, user_id: str = Depends(get_current_user)):
     job = db.get_job(job_id)
     if not job or job["user_id"] != user_id:
         raise HTTPException(status_code=404, detail="Job not found")
-
-    # ✅ Enrich with progress + message
     percent, message = db.get_progress(job_id)
     job["progress"] = percent
     job["message"] = message
-
     return job
 
 @app.get("/jobs/{job_id}/download")
 def download_job(job_id: str, user_id: str = Depends(get_current_user)):
     job = db.get_job(job_id)
-
     if not job or job["user_id"] != user_id:
         raise HTTPException(status_code=404, detail="Job not found")
 
@@ -211,12 +163,10 @@ def download_job(job_id: str, user_id: str = Depends(get_current_user)):
 @app.get("/jobs/{job_id}/progress")
 def job_progress(job_id: str, user_id: str = Depends(get_current_user)):
     job = db.get_job(job_id)
-
     if not job or job["user_id"] != user_id:
         raise HTTPException(status_code=404, detail="Job not found")
 
     percent, message = db.get_progress(job_id)
-
     return {
         "job_id": job_id,
         "status": job["status"],

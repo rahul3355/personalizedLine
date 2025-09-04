@@ -52,14 +52,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error("Failed to fetch /me", err);
       }
 
-      // Merge Supabase session metadata (Google profile info)
       const meta = session?.user?.user_metadata || {};
+
+      // Build merged object
       const merged = {
+        // keep full backend structure
         ...backendData,
-        full_name: backendData.full_name || meta.full_name || meta.name || "User",
+
+        // convenience fields for UI
+        full_name:
+          backendData?.user?.full_name ||
+          meta.full_name ||
+          meta.name ||
+          "User",
         avatar_url:
-          backendData.avatar_url || meta.avatar_url || meta.picture || null,
-        email: backendData.email || session?.user?.email || null,
+          backendData?.user?.avatar_url ||
+          meta.avatar_url ||
+          meta.picture ||
+          null,
+        email: backendData?.user?.email || session?.user?.email || null,
       };
 
       setUserInfo(merged);

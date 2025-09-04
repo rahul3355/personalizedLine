@@ -58,19 +58,23 @@ export default function Home() {
             <div className="grid grid-cols-2 gap-y-3 text-sm text-gray-700">
               <p>
                 <span className="font-medium">Plan:</span>{" "}
-                {userInfo.user.plan_type || "No plan"}
+                {userInfo?.user && userInfo.user.plan_type
+                  ? userInfo.user.plan_type
+                  : "No plan"}
               </p>
               <p>
                 <span className="font-medium">Status:</span>{" "}
-                {userInfo.user.subscription_status || "inactive"}
+                {userInfo?.user && userInfo.user.subscription_status
+                  ? userInfo.user.subscription_status
+                  : "inactive"}
               </p>
               <p>
                 <span className="font-medium">Credits Remaining:</span>{" "}
-                {userInfo.credits_remaining}
+                {userInfo?.credits_remaining ?? 0}
               </p>
               <p>
                 <span className="font-medium">Renewal Date:</span>{" "}
-                {userInfo.user.renewal_date
+                {userInfo?.user && userInfo.user.renewal_date
                   ? new Date(
                       userInfo.user.renewal_date * 1000
                     ).toLocaleDateString()
@@ -79,7 +83,7 @@ export default function Home() {
             </div>
 
             {/* Buy Credits */}
-            {userInfo.credits_remaining <= 0 && (
+            {(userInfo?.credits_remaining ?? 0) <= 0 && (
               <div className="mt-6">
                 <button
                   onClick={() => handleBuyCredits("addon_1000")}
@@ -98,7 +102,7 @@ export default function Home() {
               Recent Transactions
             </h3>
             <div className="space-y-2">
-              {userInfo.ledger && userInfo.ledger.length > 0 ? (
+              {userInfo?.ledger && userInfo.ledger.length > 0 ? (
                 userInfo.ledger.map((entry: any, idx: number) => (
                   <div
                     key={idx}
@@ -114,7 +118,9 @@ export default function Home() {
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-gray-500">No recent transactions</p>
+                <p className="text-sm text-gray-500">
+                  No recent transactions
+                </p>
               )}
             </div>
           </div>

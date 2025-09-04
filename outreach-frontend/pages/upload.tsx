@@ -2,18 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { API_URL } from "../lib/api";
-import {
-  Tag,
-  Building2,
-  FileText,
-  MessageSquare,
-  User,
-  Share2,
-  Hash,
-  Upload,
-} from "lucide-react";
-import { Listbox } from "@headlessui/react";
-import { Check, ChevronDown } from "lucide-react";
+import { Tag, Building2, FileText, Upload, Briefcase, Users } from "lucide-react";
 import { useAuth } from "../lib/AuthProvider";
 import { useRouter } from "next/router";
 
@@ -25,20 +14,20 @@ export default function UploadPage() {
   const [headers, setHeaders] = useState<string[]>([]);
   const [tempPath, setTempPath] = useState<string | null>(null);
 
-  const [titleCol, setTitleCol] = useState("");
   const [companyCol, setCompanyCol] = useState("");
   const [descCol, setDescCol] = useState("");
+  const [industryCol, setIndustryCol] = useState("");
+  const [titleCol, setTitleCol] = useState("");
+  const [sizeCol, setSizeCol] = useState("");
 
-  const [offer, setOffer] = useState("turning LinkedIn posts into calls");
-  const [persona, setPersona] = useState("Founders");
-  const [channel, setChannel] = useState("LinkedIn");
-  const [maxWords, setMaxWords] = useState(24);
+  const [service, setService] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [dragActive, setDragActive] = useState(false);
+  const [step, setStep] = useState(0); // 0 = upload, 1 = confirm headers, 2 = confirm service
 
   // 🔒 protect route
   useEffect(() => {
@@ -46,6 +35,23 @@ export default function UploadPage() {
       router.replace("/login");
     }
   }, [authLoading, session, router]);
+
+  // --- Auto-map headers after parse ---
+  const autoMapHeaders = (headers: string[]) => {
+    const findMatch = (candidates: string[]) => {
+      return (
+        headers.find((h) =>
+          candidates.some((c) => h.toLowerCase().includes(c))
+        ) || ""
+      );
+    };
+
+    setCompanyCol(findMatch(["cleaned company name", "company name", "organization"]));
+    setDescCol(findMatch(["company short description", "description", "about"]));
+    setIndustryCol(findMatch(["industry", "sector", "field"]));
+    setTitleCol(findMatch(["title", "seniority", "role", "position"]));
+    setSizeCol(findMatch(["employee count", "size", "headcount", "staff"]));
+  };
 
   const handleParseHeaders = async () => {
     if (!file) {
@@ -70,6 +76,11 @@ export default function UploadPage() {
       const data = await res.json();
       setHeaders(data.headers);
       setTempPath(data.temp_path);
+
+      // auto assign defaults
+      autoMapHeaders(data.headers);
+
+      setStep(1);
     } catch (err: any) {
       setError(err.message || "Something went wrong");
     } finally {
@@ -77,9 +88,18 @@ export default function UploadPage() {
     }
   };
 
-  const handleCreateJob = async () => {
-    if (!tempPath || !titleCol || !companyCol || !descCol) {
+  const handleConfirmHeaders = () => {
+    if (!companyCol || !descCol || !industryCol || !titleCol || !sizeCol) {
       setError("Please select all required columns");
+      return;
+    }
+    setError(null);
+    setStep(2);
+  };
+
+  const handleCreateJob = async () => {
+    if (!tempPath || !companyCol || !descCol || !industryCol || !titleCol || !sizeCol || !service) {
+      setError("Please complete all required fields");
       return;
     }
     setLoading(true);
@@ -87,13 +107,12 @@ export default function UploadPage() {
     try {
       const formData = new FormData();
       formData.append("file_path", tempPath);
-      formData.append("title_col", titleCol);
       formData.append("company_col", companyCol);
       formData.append("desc_col", descCol);
-      formData.append("offer", offer);
-      formData.append("persona", persona);
-      formData.append("channel", channel);
-      formData.append("max_words", String(maxWords));
+      formData.append("industry_col", industryCol);
+      formData.append("title_col", titleCol);
+      formData.append("size_col", sizeCol);
+      formData.append("service", service);
 
       const res = await fetch(`${API_URL}/jobs`, {
         method: "POST",
@@ -134,8 +153,7 @@ export default function UploadPage() {
 
   return (
     <div className="flex items-start justify-center bg-gray-50 px-4 py-10 font-sans min-h-[calc(80vh-64px)]">
-
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-10 border border-gray-100">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl p-10 border border-gray-100">
         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
           Upload Outreach File
         </h1>
@@ -143,8 +161,8 @@ export default function UploadPage() {
           Import your CSV/XLSX and configure columns for personalization.
         </p>
 
-        {/* Step 1 */}
-        {!headers.length && (
+        {/* Step 0: Upload File */}
+        {step === 0 && (
           <div className="space-y-6">
             <div
               onDragEnter={handleDrag}
@@ -184,37 +202,21 @@ export default function UploadPage() {
               style={{
                 background: "linear-gradient(#444, #1c1c1c)",
               }}
-              onMouseEnter={(e) => {
-                if (!loading) {
-                  e.currentTarget.style.boxShadow =
-                    "0 0 8px rgba(0,0,0,0.25)";
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = "none";
-              }}
             >
               {loading ? "Parsing..." : "Proceed"}
             </button>
           </div>
         )}
 
-        {/* Step 2 */}
-        {headers.length > 0 && (
+        {/* Step 1: Confirm Headers */}
+        {step === 1 && (
           <div className="space-y-8 mt-6">
-            {/* Choose Columns */}
             <div className="bg-gray-50 rounded-xl p-6">
-              <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">
-                Choose Columns
+              <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-6">
+                Confirm Headers
               </h2>
-              <div className="space-y-5">
+              <div className="grid grid-cols-2 gap-6">
                 {[
-                  {
-                    label: "Title Column",
-                    value: titleCol,
-                    setValue: setTitleCol,
-                    icon: <Tag className="h-4 w-4 text-gray-400" />,
-                  },
                   {
                     label: "Company Column",
                     value: companyCol,
@@ -227,19 +229,36 @@ export default function UploadPage() {
                     setValue: setDescCol,
                     icon: <FileText className="h-4 w-4 text-gray-400" />,
                   },
+                  {
+                    label: "Industry Column",
+                    value: industryCol,
+                    setValue: setIndustryCol,
+                    icon: <Briefcase className="h-4 w-4 text-gray-400" />,
+                  },
+                  {
+                    label: "Title Column",
+                    value: titleCol,
+                    setValue: setTitleCol,
+                    icon: <Tag className="h-4 w-4 text-gray-400" />,
+                  },
+                  {
+                    label: "Size Column",
+                    value: sizeCol,
+                    setValue: setSizeCol,
+                    icon: <Users className="h-4 w-4 text-gray-400" />,
+                  },
                 ].map((field) => (
-                  <div key={field.label}>
-                    <label className="text-xs text-gray-500 mb-1 block">
+                  <div key={field.label} className="space-y-1">
+                    <label className="text-xs text-gray-500 block">
                       {field.label}
                     </label>
                     <div className="flex items-center gap-2">
                       {field.icon}
                       <select
-                        className="flex-1 rounded-lg border border-gray-300 bg-white shadow-sm focus:ring-2 focus:ring-gray-900 focus:border-gray-900 px-4 py-2.5 text-gray-700 text-sm transition-all"
+                        className="flex-1 rounded-lg border border-gray-200 bg-gray-100 shadow-inner focus:ring-2 focus:ring-gray-900 focus:border-gray-900 px-4 py-2.5 text-gray-700 text-sm transition-all"
                         value={field.value}
                         onChange={(e) => field.setValue(e.target.value)}
                       >
-                        <option value="">Select {field.label}</option>
                         {headers.map((h) => (
                           <option key={h} value={h}>
                             {h}
@@ -252,59 +271,34 @@ export default function UploadPage() {
               </div>
             </div>
 
-            {/* Personalization Settings */}
+            <button
+              onClick={handleConfirmHeaders}
+              disabled={loading}
+              className="w-full py-3 rounded-xl font-medium text-white text-[15px] tracking-tight shadow-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{
+                background: "linear-gradient(#444, #1c1c1c)",
+              }}
+            >
+              Confirm Headers
+            </button>
+          </div>
+        )}
+
+        {/* Step 2: Confirm Service */}
+        {step === 2 && (
+          <div className="space-y-8 mt-6">
             <div className="bg-gray-50 rounded-xl p-6">
               <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">
-                Personalization Settings
+                Service Context
               </h2>
-              <div className="space-y-5">
-                {[
-                  {
-                    label: "Offer",
-                    value: offer,
-                    setValue: setOffer,
-                    icon: <MessageSquare className="h-4 w-4 text-gray-400" />,
-                  },
-                  {
-                    label: "Persona",
-                    value: persona,
-                    setValue: setPersona,
-                    icon: <User className="h-4 w-4 text-gray-400" />,
-                  },
-                  {
-                    label: "Channel",
-                    value: channel,
-                    setValue: setChannel,
-                    icon: <Share2 className="h-4 w-4 text-gray-400" />,
-                  },
-                  {
-                    label: "Max Words",
-                    value: maxWords,
-                    setValue: (val: any) => setMaxWords(Number(val)),
-                    icon: <Hash className="h-4 w-4 text-gray-400" />,
-                    type: "number",
-                  },
-                ].map((field) => (
-                  <div key={field.label}>
-                    <label className="text-xs text-gray-500 mb-1 block">
-                      {field.label}
-                    </label>
-                    <div className="flex items-center gap-2">
-                      {field.icon}
-                      <input
-                        type={field.type || "text"}
-                        value={field.value}
-                        onChange={(e) => field.setValue(e.target.value)}
-                        className="flex-1 rounded-lg border border-gray-300 bg-white shadow-sm focus:ring-2 focus:ring-gray-900 focus:border-gray-900 px-4 py-2.5 text-gray-700 text-sm transition-all"
-                        placeholder={field.label}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <textarea
+                value={service}
+                onChange={(e) => setService(e.target.value)}
+                placeholder="e.g. Lead generation services (appointment setting, outbound campaigns)"
+                className="w-full rounded-lg border border-gray-300 bg-white shadow-sm focus:ring-2 focus:ring-gray-900 focus:border-gray-900 px-4 py-3 text-gray-700 text-sm transition-all min-h-[120px]"
+              />
             </div>
 
-            {/* Alerts */}
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm font-medium">
                 {error}
@@ -316,7 +310,6 @@ export default function UploadPage() {
               </div>
             )}
 
-            {/* Submit Button */}
             <button
               onClick={handleCreateJob}
               disabled={loading}
@@ -324,17 +317,8 @@ export default function UploadPage() {
               style={{
                 background: "linear-gradient(#444, #1c1c1c)",
               }}
-              onMouseEnter={(e) => {
-                if (!loading) {
-                  e.currentTarget.style.boxShadow =
-                    "0 0 8px rgba(0,0,0,0.25)";
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = "none";
-              }}
             >
-              {loading ? "Submitting..." : "Start Job"}
+              {loading ? "Submitting..." : "Confirm Service"}
             </button>
           </div>
         )}
