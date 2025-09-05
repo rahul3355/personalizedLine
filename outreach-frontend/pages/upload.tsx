@@ -22,12 +22,11 @@ const StepTracker = ({ step, jobCreated }: { step: number; jobCreated: boolean }
         return (
           <div key={index} className="flex items-center space-x-2">
             <motion.div
-              className={`w-8 h-8 flex items-center justify-center rounded-full border-2 text-sm font-semibold
-                ${isCompleted ? "border-green-500 bg-green-500 text-white" : ""}
-                ${isActive ? "border-blue-500 bg-blue-100 text-blue-700" : ""}
-                ${!isCompleted && !isActive ? "border-gray-300 bg-white text-gray-400" : ""}
-              `}
-              // ✅ Only pulse Step 0 (Upload File)
+              className={`w-8 h-8 flex items-center justify-center rounded-full border-2 text-base font-medium leading-none
+    ${isCompleted ? "border-green-500 bg-green-500 text-white" : ""}
+    ${isActive ? "border-blue-500 bg-blue-100 text-blue-700" : ""}
+    ${!isCompleted && !isActive ? "border-gray-300 bg-white text-gray-400" : ""}
+  `}
               animate={isActive && current === 0 ? { scale: [1, 1.2, 1] } : {}}
               transition={{ duration: 0.6, repeat: isActive && current === 0 ? Infinity : 0 }}
             >
@@ -35,18 +34,16 @@ const StepTracker = ({ step, jobCreated }: { step: number; jobCreated: boolean }
             </motion.div>
 
             <span
-              className={`text-sm font-medium ${
-                isCompleted ? "text-green-600" : isActive ? "text-blue-600" : "text-gray-500"
-              }`}
+              className={`text-sm font-medium ${isCompleted ? "text-green-600" : isActive ? "text-blue-600" : "text-gray-500"
+                }`}
             >
               {label}
             </span>
 
             {index < steps.length - 1 && (
               <div
-                className={`w-16 h-1 rounded-full ${
-                  isCompleted ? "bg-green-500" : isActive ? "bg-blue-400" : "bg-gray-200"
-                }`}
+                className={`w-16 h-1 rounded-full ${isCompleted ? "bg-green-500" : isActive ? "bg-blue-400" : "bg-gray-200"
+                  }`}
               />
             )}
           </div>
@@ -226,11 +223,10 @@ export default function UploadPage() {
               onDragLeave={handleDrag}
               onDragOver={handleDrag}
               onDrop={handleDrop}
-              className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl py-12 transition ${
-                dragActive
+              className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl py-12 transition ${dragActive
                   ? "border-gray-900 bg-gray-50"
                   : "border-gray-200 bg-gray-50/50"
-              }`}
+                }`}
             >
               <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer">
                 <input

@@ -143,7 +143,7 @@ export default function Navbar() {
         <div className="flex-1" />
 
         {/* Middle: Credits capsule */}
-        <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 shadow-sm">
+        <div className="flex items-center gap-3 rounded-xl px-3 py-1.5 ">
           <div className="relative w-32 h-1.5 rounded-full bg-gray-200 overflow-hidden">
             <div
               className="absolute top-0 left-0 h-1.5 rounded-full bg-gradient-to-r from-green-500 to-emerald-400 transition-all duration-500 ease-in-out"
@@ -151,10 +151,10 @@ export default function Navbar() {
             />
           </div>
           <span className="text-xs font-medium text-gray-600 whitespace-nowrap">
-            {credits} / {maxCredits}
+            {credits} lines
           </span>
           <button className="px-2.5 py-1 rounded-lg border border-gray-200 text-xs font-medium text-gray-700 bg-white hover:bg-gray-100 transition">
-            Buy    
+            Buy Lines
           </button>
         </div>
 
