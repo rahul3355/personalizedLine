@@ -1,9 +1,11 @@
 "use client";
 
 import { useAuth } from "../lib/AuthProvider";
+import AddonSection from "./AddonSection";
 
 export default function BillingPage() {
-  const { session } = useAuth();
+  const { session, userInfo } = useAuth();
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
   const plans = [
     {
@@ -36,6 +38,43 @@ export default function BillingPage() {
     },
   ];
 
+  const handleCheckout = async (plan: string) => {
+    if (!session) return;
+    try {
+      const res = await fetch(`${API_URL}/create_checkout_session`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({ plan: plan.toLowerCase() }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert("Failed to create checkout session");
+      }
+    } catch (err) {
+      console.error("Checkout error", err);
+      alert("Something went wrong starting checkout");
+    }
+  };
+
+  // Current plan info from backend
+  const currentPlan =
+    userInfo?.user?.plan_type || userInfo?.plan_type || "free";
+  const credits = userInfo?.credits_remaining ?? 0;
+  const maxCredits = userInfo?.max_credits ?? 5000;
+  const renewalTimestamp = userInfo?.next_renewal;
+  const renewalDate = renewalTimestamp
+    ? new Date(renewalTimestamp * 1000).toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      })
+    : null;
+
   return (
     <div className="px-8 py-12">
       {/* Hero Section */}
@@ -54,7 +93,7 @@ export default function BillingPage() {
         {plans.map((plan) => (
           <div
             key={plan.name}
-            className={`relative rounded-2xl border border-gray-200 bg-white/70 p-8 shadow-sm backdrop-blur-sm transition-all`}
+            className="relative rounded-2xl border border-gray-200 bg-white/70 p-8 shadow-sm backdrop-blur-sm transition-all"
           >
             {plan.popular && (
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 text-xs font-medium rounded-full bg-gray-900 text-white shadow-sm">
@@ -62,9 +101,7 @@ export default function BillingPage() {
               </div>
             )}
 
-            <h3 className="text-lg font-semibold text-gray-900">
-              {plan.name}
-            </h3>
+            <h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
 
             <div className="mt-4 flex items-baseline gap-x-1">
               <span className="text-3xl font-bold text-gray-900">
@@ -81,8 +118,8 @@ export default function BillingPage() {
             <p className="mt-2 text-sm text-gray-600">{plan.description}</p>
             <p className="mt-4 text-xs text-gray-500">{plan.additional}</p>
 
-            {/* Apple-style Dark Gradient Button */}
             <button
+              onClick={() => handleCheckout(plan.name)}
               className="
                 mt-8 w-full px-6 py-3
                 rounded-md
@@ -103,12 +140,20 @@ export default function BillingPage() {
       {/* Current Plan */}
       <div className="mt-16 max-w-3xl mx-auto rounded-2xl border border-gray-200 bg-white/70 p-8 text-center shadow-sm backdrop-blur-sm">
         <h3 className="text-lg font-semibold text-gray-900">
-          You’re on the Free Plan
+          You’re on the{" "}
+          {currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)} Plan
         </h3>
         <p className="mt-2 text-sm text-gray-600">
-          Comes with 300 lines each month. Add more anytime for $10 per 1000.
+          This plan includes {maxCredits.toLocaleString()} lines each month.
         </p>
-        <p className="mt-2 text-xs text-gray-500">970 lines remaining</p>
+        <p className="mt-2 text-xs text-gray-500">
+          {credits.toLocaleString()} lines remaining
+        </p>
+        {renewalDate && (
+          <p className="mt-2 text-xs text-gray-500">
+            Renews on {renewalDate}
+          </p>
+        )}
         <button
           disabled
           className="
@@ -122,6 +167,13 @@ export default function BillingPage() {
           Current Plan
         </button>
       </div>
+
+      {/* Add-on Section with corrected planType */}
+      <AddonSection
+        planType={userInfo?.user?.plan_type || "free"}
+        session={session}
+        apiUrl={API_URL}
+      />
     </div>
   );
 }

@@ -40,23 +40,30 @@ def init_db():
             message TEXT
         )""")
 
-        # ✅ New: Users table
+        # ✅ Users table
         con.execute("""CREATE TABLE IF NOT EXISTS users(
             id TEXT PRIMARY KEY,              -- Supabase user_id
             email TEXT,
-            plan_type TEXT,                   -- starter, growth, pro
-            subscription_status TEXT,         -- active, canceled
+            plan_type TEXT,                   -- starter, growth, pro, free
+            subscription_status TEXT,         -- active, canceled, inactive
             renewal_date INT,                 -- timestamp
             credits_remaining INT DEFAULT 0
         )""")
 
-        # ✅ New: Ledger table
+        # ✅ Ledger table
         con.execute("""CREATE TABLE IF NOT EXISTS ledger(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id TEXT,
             change INT,                       -- +1000, -20, etc.
             reason TEXT,                      -- 'subscription reset', 'job deduction', 'add-on purchase'
             ts INT
+        )""")
+
+        # ✅ Webhook events (for idempotency)
+        con.execute("""CREATE TABLE IF NOT EXISTS webhook_events(
+            id TEXT PRIMARY KEY,              -- Stripe event_id
+            type TEXT,
+            created_at INT
         )""")
 
 def enqueue_job(filename, rows, meta: dict, user_id: str) -> str:
@@ -104,7 +111,7 @@ def get_progress(job_id):
         return None, None
 
 # ======================================================
-# ✅ New Credit System Helpers
+# ✅ Credit System Helpers
 # ======================================================
 
 def ensure_user(user_id: str, email: str):
