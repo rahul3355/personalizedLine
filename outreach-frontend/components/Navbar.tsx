@@ -10,17 +10,22 @@ import {
   FiLogOut,
   FiBell,
   FiHelpCircle,
+  FiMenu,
+  FiX,
 } from "react-icons/fi";
 import { supabase } from "../lib/supabaseClient";
 import Image from "next/image";
 import logo from "../pages/logo.png";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../lib/AuthProvider";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function Navbar() {
   const router = useRouter();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const { userInfo } = useAuth();
 
@@ -47,123 +52,96 @@ export default function Navbar() {
 
   // Pull data from userInfo
   const credits = userInfo?.credits_remaining ?? 0;
-  const maxCredits = userInfo?.max_credits ?? 5000;
-  const percent = Math.min((credits / maxCredits) * 100, 100);
-
   const userName = userInfo?.full_name || "User";
   const avatarUrl = userInfo?.avatar_url || null;
 
   return (
-    <div className="fixed top-0 left-0 h-screen w-60 bg-white border-r border-gray-100 flex flex-col font-sans z-50">
-      {/* Top Section: Logo */}
-      <div className="p-6 border-b border-gray-100">
-        <Image
-          src={logo}
-          alt="AuthorityPoint Logo"
-          width={180}
-          height={40}
-          priority
-          className="transition duration-500 ease-in-out hover:scale-105 hover:brightness-110 hover:drop-shadow-md"
-        />
-      </div>
-
-      {/* Middle Section: Nav Links */}
-      <div className="flex-1 flex flex-col px-4 py-6 gap-y-4">
-        <Link
-          href="/"
-          className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${
-            router.pathname === "/"
-              ? "bg-gray-100 text-gray-900 shadow-sm"
-              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-          }`}
-        >
-          <FiHome className="mr-3 h-5 w-5" />
-          Home
-        </Link>
-        <Link
-          href="/upload"
-          className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${
-            router.pathname === "/upload"
-              ? "bg-gray-100 text-gray-900 shadow-sm"
-              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-          }`}
-        >
-          <FiUpload className="mr-3 h-5 w-5" />
-          Upload File
-        </Link>
-        <Link
-          href="/jobs"
-          className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${
-            router.pathname === "/jobs"
-              ? "bg-gray-100 text-gray-900 shadow-sm"
-              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-          }`}
-        >
-          <FiFileText className="mr-3 h-5 w-5" />
-          Your Files
-        </Link>
-        <Link
-  href="/billing"
-  className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${
-    router.pathname === "/billing"
-      ? "bg-gray-100 text-gray-900 shadow-sm"
-      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-  }`}
->
-  <CreditCard className="mr-3 h-5 w-5" />
-  Plans & Billing
-</Link>
-      </div>
-
-      {/* Bottom Section: Logout */}
-      <div className="p-4 border-t border-gray-100">
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium text-white text-[15px] tracking-tight shadow-sm transition-all duration-300"
-          style={{
-            background: "linear-gradient(#5a5a5a, #1c1c1c)",
-            fontFamily:
-              '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.boxShadow = "0 0 8px rgba(0,0,0,0.4)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.boxShadow = "none";
-          }}
-        >
-          <FiLogOut className="h-5 w-5" />
-          Logout
-        </button>
-      </div>
-
-      {/* Top Strip Overlay */}
-      <div className="fixed top-0 left-60 right-0 h-16 border-b border-gray-100 bg-white flex items-center justify-between px-8 shadow-sm z-40">
-        {/* Left (empty for balance, could later hold breadcrumbs) */}
-        <div className="flex-1" />
-
-        {/* Middle: Credits capsule */}
-        <div className="flex items-center gap-3 rounded-xl px-3 py-1.5 ">
-          <div className="relative w-32 h-1.5 rounded-full bg-gray-200 overflow-hidden">
-            <div
-              className="absolute top-0 left-0 h-1.5 rounded-full bg-gradient-to-r from-green-500 to-emerald-400 transition-all duration-500 ease-in-out"
-              style={{ width: `${percent}%` }}
-            />
-          </div>
-          <span className="text-xs font-medium text-gray-600 whitespace-nowrap">
-            {credits} lines
-          </span>
-          <button className="px-2.5 py-1 rounded-lg border border-gray-200 text-xs font-medium text-gray-700 bg-white hover:bg-gray-100 transition">
-            Buy Lines
-          </button>
+    <>
+      {/* ---------------- Desktop Navbar ---------------- */}
+      <div className="hidden lg:flex fixed top-0 left-0 h-screen w-60 bg-white border-r border-gray-100 flex-col font-sans z-50">
+        {/* Top Section: Logo */}
+        <div className="p-6 border-b border-gray-100">
+          <Image
+            src={logo}
+            alt="AuthorityPoint Logo"
+            width={180}
+            height={40}
+            priority
+            className="transition duration-500 ease-in-out hover:scale-105 hover:brightness-110 hover:drop-shadow-md"
+          />
         </div>
 
-        {/* Right: Icons + User */}
+        {/* Middle Section: Nav Links */}
+        <div className="flex-1 flex flex-col px-4 py-6 gap-y-4">
+          <Link
+            href="/"
+            className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${
+              router.pathname === "/"
+                ? "bg-gray-100 text-gray-900 shadow-sm"
+                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+            }`}
+          >
+            <FiHome className="mr-3 h-5 w-5" />
+            Home
+          </Link>
+          <Link
+            href="/upload"
+            className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${
+              router.pathname === "/upload"
+                ? "bg-gray-100 text-gray-900 shadow-sm"
+                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+            }`}
+          >
+            <FiUpload className="mr-3 h-5 w-5" />
+            Upload File
+          </Link>
+          <Link
+            href="/jobs"
+            className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${
+              router.pathname === "/jobs"
+                ? "bg-gray-100 text-gray-900 shadow-sm"
+                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+            }`}
+          >
+            <FiFileText className="mr-3 h-5 w-5" />
+            Your Files
+          </Link>
+          <Link
+            href="/billing"
+            className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${
+              router.pathname === "/billing"
+                ? "bg-gray-100 text-gray-900 shadow-sm"
+                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+            }`}
+          >
+            <CreditCard className="mr-3 h-5 w-5" />
+            Plans & Billing
+          </Link>
+        </div>
+
+        {/* Bottom Section: Logout */}
+        <div className="p-4 border-t border-gray-100">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium text-white text-[15px] tracking-tight shadow-sm transition-all duration-300"
+            style={{
+              background: "linear-gradient(#5a5a5a, #1c1c1c)",
+              fontFamily:
+                '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
+            }}
+          >
+            <FiLogOut className="h-5 w-5" />
+            Logout
+          </button>
+        </div>
+      </div>
+
+      {/* ---------------- Desktop Top Strip ---------------- */}
+      <div className="hidden lg:flex fixed top-0 left-60 right-0 h-16 border-b border-gray-100 bg-white items-center justify-between px-8 shadow-sm z-40">
+        <div className="flex-1" />
         <div className="flex items-center gap-6 ml-6">
           <FiBell className="w-5 h-5 cursor-pointer text-gray-500 hover:text-gray-900 transition" />
           <FiHelpCircle className="w-5 h-5 cursor-pointer text-gray-500 hover:text-gray-900 transition" />
-
-          {/* User Dropdown with Avatar + Name */}
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -182,7 +160,9 @@ export default function Navbar() {
                   {userName.charAt(0)}
                 </div>
               )}
-              <span className="font-medium text-gray-700 text-sm">{userName}</span>
+              <span className="font-medium text-gray-700 text-sm">
+                {userName}
+              </span>
             </button>
             {dropdownOpen && (
               <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
@@ -200,6 +180,109 @@ export default function Navbar() {
           </div>
         </div>
       </div>
+
+      {/* ---------------- Mobile Navbar ---------------- */}
+      {/* --- Mobile Navbar --- */}
+{/* Navbar container (always visible) */}
+<div className="lg:hidden fixed top-0 left-0 right-0 z-50">
+  <div className="flex items-center justify-between px-4 h-16 bg-white border-b border-gray-200">
+    {/* Hamburger / X */}
+    <button
+      onClick={() => setMenuOpen(!menuOpen)}
+      className="relative w-8 h-8 flex flex-col justify-center items-center"
+    >
+      <motion.span
+        animate={menuOpen ? { rotate: 45, y: 6 } : { rotate: 0, y: 0 }}
+        transition={{ duration: 0.15 }}
+        className="block w-6 h-0.5 bg-gray-800 rounded-sm mb-1"
+      />
+      <motion.span
+        animate={menuOpen ? { opacity: 0 } : { opacity: 1 }}
+        transition={{ duration: 0.1 }}
+        className="block w-6 h-0.5 bg-gray-800 rounded-sm mb-1"
+      />
+      <motion.span
+        animate={menuOpen ? { rotate: -45, y: -6 } : { rotate: 0, y: 0 }}
+        transition={{ duration: 0.15 }}
+        className="block w-6 h-0.5 bg-gray-800 rounded-sm"
+      />
+    </button>
+
+    {/* Logo */}
+    <Image src={logo} alt="AuthorityPoint Logo" width={120} height={28} priority />
+
+    {/* Avatar */}
+    <div className="flex items-center gap-3">
+      {avatarUrl ? (
+        <Image
+          src={avatarUrl}
+          alt={userName}
+          width={32}
+          height={32}
+          className="rounded-full object-cover"
+        />
+      ) : (
+        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center font-medium text-gray-700">
+          {userName.charAt(0)}
+        </div>
+      )}
     </div>
+  </div>
+</div>
+
+{/* Overlay (starts below navbar, doesn’t hide it) */}
+{menuOpen && (
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 0.4 }}
+    exit={{ opacity: 0 }}
+    transition={{ duration: 0.2 }}
+    className="fixed top-16 left-0 right-0 bottom-0 bg-black z-40 pointer-events-auto"
+    onClick={() => setMenuOpen(false)}
+  />
+)}
+
+{/* Dropdown Menu */}
+<motion.div
+  initial={{ scaleY: 0, opacity: 0 }}
+  animate={menuOpen ? { scaleY: 1, opacity: 1 } : { scaleY: 0, opacity: 0 }}
+  transition={{ duration: 0.18, ease: "easeOut" }}
+  className={`absolute top-16 left-0 w-full origin-top bg-white 
+    border-b border-gray-200 shadow-lg z-50 
+    ${menuOpen ? "pointer-events-auto" : "pointer-events-none"}`}
+>
+  <motion.ul
+    initial="hidden"
+    animate={menuOpen ? "show" : "hidden"}
+    variants={{
+      hidden: {},
+      show: { transition: { staggerChildren: 0.03 } },
+    }}
+    className="flex flex-col px-6 py-4"
+  >
+    {[
+      { name: "Home", href: "/" },
+      { name: "Upload File", href: "/upload" },
+      { name: "Your Files", href: "/jobs" },
+      { name: "Plans & Billing", href: "/billing" },
+    ].map((item) => (
+      <motion.li
+        key={item.name}
+        variants={{
+          hidden: { opacity: 0, y: -5 },
+          show: { opacity: 1, y: 0 },
+        }}
+        transition={{ duration: 0.15 }}
+        className="py-3 text-base font-medium text-gray-800 border-b last:border-0 border-gray-100"
+      >
+        <Link href={item.href} onClick={() => setMenuOpen(false)}>
+          {item.name}
+        </Link>
+      </motion.li>
+    ))}
+  </motion.ul>
+</motion.div>
+
+    </>
   );
 }

@@ -29,26 +29,27 @@ export default function LoginPage() {
       {/* Left Section */}
       <div className="w-full lg:w-1/2 flex flex-col border-r border-gray-100">
         {/* Centered Content */}
-        <div className="flex-1 flex flex-col items-center justify-center px-8 gap-y-6">
+        <div className="flex-1 flex flex-col items-center justify-center px-6 sm:px-8 gap-y-6">
           <div className="w-full max-w-md flex flex-col gap-y-6">
             {/* Logo */}
-            <Image
-              src={logo}
-              alt="AuthorityPoint Logo"
-              width={180}  // adjust as needed
-              height={40}  // adjust as needed
-              priority
-            />
-
-
+            <div className="flex justify-center lg:justify-start">
+              <Image
+                src={logo}
+                alt="AuthorityPoint Logo"
+                width={140}
+                height={36}
+                priority
+                className="lg:w-[180px] lg:h-[40px]"
+              />
+            </div>
 
             {/* Headings */}
-            <div>
-              <h1 className="text-[28px] font-semibold text-gray-900 mb-2 leading-tight">
+            <div className="text-center lg:text-left">
+              <h1 className="text-[22px] sm:text-[24px] lg:text-[28px] font-semibold text-gray-900 mb-2 leading-tight">
                 Login to your account
               </h1>
-              <p className="text-gray-500 text-[15px]">
-                Sign in with your Google account to continue.
+              <p className="text-gray-500 text-[14px] sm:text-[15px]">
+                Sign in or sign up with your Google account to continue.
               </p>
             </div>
 
@@ -72,6 +73,21 @@ export default function LoginPage() {
               Sign in with Google
             </button>
           </div>
+
+          {/* Mobile Testimonial */}
+          <div className="flex lg:hidden w-full mt-10">
+            <div className="w-full max-w-sm mx-auto text-center">
+              <blockquote className="text-[16px] font-medium text-gray-900 leading-relaxed">
+                “Mailite has transformed how we manage outreach. It’s fast,
+                intuitive, and incredibly effective — streamlining our workflow
+                into one sleek experience.”
+              </blockquote>
+              <div className="mt-4">
+                <p className="text-gray-900 font-semibold">Alex Carter</p>
+                <p className="text-gray-500 text-sm">Founder, GrowthForge</p>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Footer */}
@@ -92,7 +108,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right Section - Testimonial */}
+      {/* Right Section - Testimonial (desktop only) */}
       <div className="hidden lg:flex w-1/2 items-center justify-center bg-gray-50">
         <div className="max-w-lg px-12">
           <blockquote className="text-[22px] font-medium text-gray-900 leading-snug tracking-tight">
