@@ -22,33 +22,47 @@ export default function JobsPage() {
   const { session } = useAuth();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
     if (!session) return;
-    fetchJobs();
-    const interval = setInterval(fetchJobs, 5000);
-    return () => clearInterval(interval);
+    fetchJobs(0, true); // initial load
   }, [session]);
 
-  async function fetchJobs() {
+  async function fetchJobs(offsetParam: number, reset = false) {
     if (!session) return;
     try {
-      const res = await fetch(`${API_URL}/jobs`, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
+      if (reset) setLoading(true);
+      const res = await fetch(
+        `${API_URL}/jobs?offset=${offsetParam}&limit=5`,
+        {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        }
+      );
       if (!res.ok) throw new Error("Failed to fetch jobs");
-      const data = await res.json();
-      setJobs(data);
+      const data: Job[] = await res.json();
+
+      if (reset) {
+        setJobs(data);
+      } else {
+        setJobs((prev) => [...prev, ...data]);
+      }
+
+      setHasMore(data.length === 5); // if fewer than 5 returned, no more jobs
+      setOffset(offsetParam + data.length);
     } catch (err) {
       console.error("Error fetching jobs:", err);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   }
 
   async function handleDownload(job: Job, e: React.MouseEvent) {
-    e.stopPropagation(); // prevent row navigation
+    e.stopPropagation();
     if (!session) return;
     try {
       const res = await fetch(`${API_URL}/jobs/${job.id}/download`, {
@@ -117,7 +131,6 @@ export default function JobsPage() {
                 ) : (
                   <div className="flex flex-col gap-2 items-center w-full max-w-sm">
                     <div className="flex items-center gap-3 w-full">
-                      {/* Apple-style progress bar with shimmer fallback */}
                       <div className="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden relative">
                         {job.progress && job.progress > 0 ? (
                           <div
@@ -175,6 +188,25 @@ export default function JobsPage() {
               </div>
             </div>
           ))}
+
+          {/* Load More */}
+          {hasMore && (
+            <div className="flex justify-center mt-8">
+              <button
+                onClick={() => {
+                  setLoadingMore(true);
+                  fetchJobs(offset, false);
+                }}
+                disabled={loadingMore}
+                className="px-6 py-3 rounded-xl font-medium text-white text-[15px] tracking-tight shadow-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  background: "linear-gradient(#444, #1c1c1c)",
+                }}
+              >
+                {loadingMore ? "Loading..." : "Load More"}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

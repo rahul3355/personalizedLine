@@ -113,9 +113,7 @@ export default function UploadPage() {
 
     try {
       const userId = session?.user?.id;
-      if (!userId) {
-        throw new Error("User not authenticated");
-      }
+      if (!userId) throw new Error("User not authenticated");
 
       // 1. Upload file directly to Supabase
       const storagePath = `${userId}/${Date.now()}_${file.name}`;
@@ -124,6 +122,7 @@ export default function UploadPage() {
         .upload(storagePath, file, { upsert: true });
 
       if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+      console.log("[Upload] File uploaded:", storagePath);
 
       // 2. Tell backend to parse it
       const res = await fetch(`${API_URL}/parse_headers`, {
@@ -132,15 +131,24 @@ export default function UploadPage() {
         body: JSON.stringify({ file_path: storagePath, user_id: userId }),
       });
 
-      if (!res.ok) throw new Error(`Failed: ${res.status}`);
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Backend failed: ${res.status} - ${errText}`);
+      }
 
       const data = await res.json();
+      if (!data.headers || !Array.isArray(data.headers)) {
+        throw new Error("Invalid headers received from backend");
+      }
+
       setHeaders(data.headers);
       setTempPath(data.file_path);
-
       autoMapHeaders(data.headers);
+
+      console.log("[Upload] Headers parsed:", data.headers);
       setStep(1);
     } catch (err: any) {
+      console.error("[Upload] ParseHeaders error:", err);
       setError(err.message || "Something went wrong");
     } finally {
       setLoading(false);

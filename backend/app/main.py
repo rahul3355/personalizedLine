@@ -15,7 +15,9 @@ from supabase import create_client
 from fastapi import APIRouter, Body
 from io import BytesIO
 from datetime import datetime, timedelta
-
+import requests
+import httpx
+from fastapi import Query
 
 
 
@@ -102,28 +104,36 @@ async def parse_headers(payload: dict = Body(...)):
         if not file_path or not user_id:
             raise HTTPException(status_code=400, detail="file_path and user_id required")
 
-        supabase = get_supabase()
-        res = supabase.storage.from_("inputs").download(file_path)
+        # --- Step 1: Generate signed URL from Supabase ---
+        try:
+            signed = supabase.storage.from_("inputs").create_signed_url(file_path, 60)
+            if not signed or "signedURL" not in signed:
+                raise HTTPException(status_code=500, detail="Failed to get signed URL")
+            signed_url = signed["signedURL"]
+            print(f"[ParseHeaders] Got signed URL for {file_path}")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Signed URL error: {e}")
 
-        # ✅ Always treat response as raw bytes
-        if isinstance(res, (bytes, bytearray)):
-            contents = res
-        else:
-            # newer SDKs sometimes return objects with .content
-            if hasattr(res, "content"):
-                contents = res.content
-            else:
-                raise HTTPException(status_code=500, detail=f"Unexpected download response: {type(res)}")
+        # --- Step 2: Stream file from Supabase ---
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.get(signed_url)
+            if resp.status_code != 200:
+                raise HTTPException(status_code=500, detail=f"Download failed: {resp.status_code}")
+            contents = resp.content
 
-        # Parse dataframe
+        # --- Step 3: Parse only headers (read small sample) ---
         if file_path.endswith(".xlsx"):
-            df = pd.read_excel(BytesIO(contents))
+            df = pd.read_excel(BytesIO(contents), nrows=5)  # only first few rows
         else:
-            df = pd.read_csv(BytesIO(contents))
+            df = pd.read_csv(BytesIO(contents), nrows=5)
 
         headers = df.columns.tolist()
+        print(f"[ParseHeaders] Parsed headers for {file_path}: {headers}")
+
         return {"headers": headers, "file_path": file_path}
+
     except Exception as e:
+        print(f"[ParseHeaders] ERROR: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -139,63 +149,59 @@ class JobRequest(BaseModel):
     industry_col: str
     title_col: str
     size_col: str
-    service: str   # <-- NEW
+    service: str
 
 
-@app.post("/jobs")
-async def create_job(req: JobRequest):
-    """
-    Create a new job in Supabase.
-    Worker will pick it up once status = queued.
-    """
-    try:
-        # Download file from Supabase storage to count rows
-        supabase = get_supabase()
-        res = supabase.storage.from_("inputs").download(req.file_path)
-        if not res:
-            raise HTTPException(status_code=404, detail="File not found in storage")
+@app.get("/jobs")
+def list_jobs(
+    user_id: str = Depends(get_current_user),
+    offset: int = 0,
+    limit: int = 5
+):
+    supabase = get_supabase()
 
-        contents = res  # raw bytes
-        if req.file_path.endswith(".xlsx"):
-            df = pd.read_excel(BytesIO(contents))
+    jobs_res = (
+        supabase.table("jobs")
+        .select("*")
+        .eq("user_id", user_id)
+        .order("created_at", desc=True)
+        .range(offset, offset + limit - 1)  # <-- pagination
+        .execute()
+    )
+    jobs = jobs_res.data or []
+    if not jobs:
+        return []
+
+    job_ids = [job["id"] for job in jobs]
+
+    logs_res = (
+        supabase.table("job_logs")
+        .select("job_id, step, total, message")
+        .in_("job_id", job_ids)
+        .order("step", desc=True)
+        .execute()
+    )
+    logs = logs_res.data or []
+    latest_logs = {}
+    for log in logs:
+        job_id = log["job_id"]
+        if job_id not in latest_logs:  # first (highest step) wins
+            latest_logs[job_id] = log
+
+    for job in jobs:
+        last_log = latest_logs.get(job["id"])
+        if last_log:
+            step = last_log["step"]
+            total = last_log["total"] or 1
+            job["progress"] = int((step / total) * 100)
+            job["message"] = last_log.get("message")
         else:
-            df = pd.read_csv(BytesIO(contents))
+            job["progress"] = 0
+            job["message"] = None
 
-        row_count = len(df)
+    return jobs
 
-        meta = {
-            "file_path": req.file_path,
-            "company_col": req.company_col,
-            "desc_col": req.desc_col,
-            "industry_col": req.industry_col,
-            "title_col": req.title_col,
-            "size_col": req.size_col,
-            "service": req.service,
-        }
 
-        result = (
-            supabase.table("jobs")
-            .insert(
-                {
-                    "user_id": req.user_id,
-                    "status": "queued",
-                    "filename": os.path.basename(req.file_path),
-                    "rows": row_count,
-                    "meta_json": meta,
-                    
-                }
-            )
-            .execute()
-        )
-
-        if not result.data:
-            raise HTTPException(status_code=500, detail="Failed to insert job")
-
-        job = result.data[0]
-        return {"id": job["id"], "status": job["status"], "rows": row_count}
-
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
 # ✅ Other routes unchanged (get_me, list_jobs, get_job, download, progress, checkout, webhook)
 # ... keep all your code from [147†source] after this point

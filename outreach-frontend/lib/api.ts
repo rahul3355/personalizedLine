@@ -20,8 +20,8 @@ export async function fetchUserInfo(token: string) {
 /**
  * Fetch jobs list (/jobs)
  */
-export async function fetchJobs(token: string) {
-  const res = await fetch(`${API_URL}/jobs`, {
+export async function fetchJobs(token: string, offset = 0, limit = 5) {
+  const res = await fetch(`${API_URL}/jobs?offset=${offset}&limit=${limit}`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -31,6 +31,7 @@ export async function fetchJobs(token: string) {
   }
   return res.json();
 }
+
 
 /**
  * Create a new job (/jobs)

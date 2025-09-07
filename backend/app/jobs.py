@@ -6,8 +6,9 @@ import traceback
 import tempfile
 from backend.app.gpt_helpers import generate_opener
 from backend.app.supabase_client import supabase
-from datetime import datetime 
+from datetime import datetime
 from fastapi import HTTPException
+import requests
 
 
 # -----------------------------
@@ -65,22 +66,38 @@ def process_job(job_id: str):
         local_dir = tempfile.mkdtemp()
         local_path = os.path.join(local_dir, f"{job_id}_{os.path.basename(file_path)}")
 
-        # Download file
+        # -----------------------------
+        # Download file via signed URL
+        # -----------------------------
         print(f"[Worker] Downloading {file_path} -> {local_path}")
-        res = supabase.storage.from_("inputs").download(file_path)
 
-        if hasattr(res, "data"):  # new SDK
-            if not res.data or getattr(res, "error", None):
-                raise HTTPException(status_code=404, detail="File not found in storage")
-            contents = res.data
-        elif isinstance(res, (bytes, bytearray)):  # old SDK
-            contents = res
-        else:
-            raise HTTPException(status_code=500, detail=f"Unexpected download response: {type(res)}")  # <-- fix here too
-        
+        signed = supabase.storage.from_("inputs").create_signed_url(file_path, 300)
+        if not signed or "signedURL" not in signed:
+            supabase.table("jobs").update(
+                {
+                    "status": "failed",
+                    "finished_at": datetime.utcnow().isoformat() + "Z",
+                    "error": "Could not create signed URL",
+                }
+            ).eq("id", job_id).execute()
+            return
+
+        url = signed["signedURL"]
+        try:
+            resp = requests.get(url, timeout=60)
+            resp.raise_for_status()
+        except Exception as e:
+            supabase.table("jobs").update(
+                {
+                    "status": "failed",
+                    "finished_at": datetime.utcnow().isoformat() + "Z",
+                    "error": f"Download failed: {str(e)}",
+                }
+            ).eq("id", job_id).execute()
+            return
 
         with open(local_path, "wb") as f:
-            f.write(contents)
+            f.write(resp.content)
         print(f"[Worker] Download complete: {local_path}")
 
         # Load into dataframe
@@ -103,7 +120,11 @@ def process_job(job_id: str):
         print(f"[Worker] User {user_id} credits: {available}, required: {total}")
         if available < total:
             supabase.table("jobs").update(
-                {"status": "failed", "finished_at": datetime.utcnow().isoformat() + "Z", "error": "Not enough credits"}
+                {
+                    "status": "failed",
+                    "finished_at": datetime.utcnow().isoformat() + "Z",
+                    "error": "Not enough credits",
+                }
             ).eq("id", job_id).execute()
             return
 
@@ -135,7 +156,7 @@ def process_job(job_id: str):
                     industry=row.get(meta.get("industry_col", ""), ""),
                     role=row.get(meta.get("title_col", ""), ""),
                     size=row.get(meta.get("size_col", ""), ""),
-                    service=meta.get("service", "")
+                    service=meta.get("service", ""),
                 )
                 print(f"[Worker] Got line: {line}")
             except Exception as e:
@@ -150,7 +171,7 @@ def process_job(job_id: str):
                     "job_id": job_id,
                     "step": i,
                     "total": total,
-                    "message": f"Processed row {i}/{total}"
+                    "message": f"Processed row {i}/{total}",
                 }
             ).execute()
 
@@ -179,7 +200,11 @@ def process_job(job_id: str):
 
         # Mark success
         supabase.table("jobs").update(
-            {"status": "succeeded", "finished_at": datetime.utcnow().isoformat() + "Z", "result_path": storage_path}
+            {
+                "status": "succeeded",
+                "finished_at": datetime.utcnow().isoformat() + "Z",
+                "result_path": storage_path,
+            }
         ).eq("id", job_id).execute()
         print(f"[Worker] === Job {job_id} finished successfully ===")
 
@@ -187,7 +212,11 @@ def process_job(job_id: str):
         print(f"[Worker] FATAL ERROR in job {job_id}: {e}")
         traceback.print_exc()
         supabase.table("jobs").update(
-            {"status": "failed", "finished_at": datetime.utcnow().isoformat() + "Z", "error": str(e)}
+            {
+                "status": "failed",
+                "finished_at": datetime.utcnow().isoformat() + "Z",
+                "error": str(e),
+            }
         ).eq("id", job_id).execute()
 
 
@@ -214,23 +243,26 @@ def worker_loop(poll_interval: int = 5):
             time.sleep(poll_interval)
 
 
-
 def save_output_file(user_id, job_id, out_path, filename="result.xlsx"):
     """Helper to save output to Supabase Storage + record in DB."""
     with open(out_path, "rb") as f:
         storage_path = f"{user_id}/{job_id}/{filename}"
         supabase.storage.from_("outputs").upload(storage_path, f)
 
-    supabase.table("files").insert({
-        "user_id": user_id,
-        "job_id": job_id,
-        "original_name": filename,
-        "storage_path": storage_path,
-        "file_type": "output"
-    }).execute()
+    supabase.table("files").insert(
+        {
+            "user_id": user_id,
+            "job_id": job_id,
+            "original_name": filename,
+            "storage_path": storage_path,
+            "file_type": "output",
+        }
+    ).execute()
 
-    supabase.table("jobs").update({
-        "status": "succeeded",
-        "finished_at": datetime.utcnow().isoformat() + "Z",
-        "result_path": storage_path
-    }).eq("id", job_id).execute()
+    supabase.table("jobs").update(
+        {
+            "status": "succeeded",
+            "finished_at": datetime.utcnow().isoformat() + "Z",
+            "result_path": storage_path,
+        }
+    ).eq("id", job_id).execute()
