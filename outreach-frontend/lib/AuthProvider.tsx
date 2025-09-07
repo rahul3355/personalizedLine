@@ -1,91 +1,132 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { supabase } from "./supabaseClient";
+import { Session, User } from "@supabase/supabase-js";
+import { supabase } from "../lib/supabaseClient";
 
-const AuthContext = createContext<any>(null);
+interface UserInfo {
+  id: string;
+  email: string;
+  credits_remaining: number;
+  max_credits: number;
+  user: {
+    plan_type: string | null;
+    subscription_status: string | null;
+    renewal_date: number | null;
+  };
+  full_name: string;
+  avatar_url: string | null;
+  ledger: any[];
+  [key: string]: any;
+}
+
+interface AuthContextProps {
+  session: Session | null;
+  user: User | null;
+  userInfo: UserInfo | null;
+  loading: boolean;
+  refreshUserInfo: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextProps>({
+  session: null,
+  user: null,
+  userInfo: null,
+  loading: true,
+  refreshUserInfo: async () => {},
+});
+
+export const useAuth = () => useContext(AuthContext);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
-  const [userInfo, setUserInfo] = useState<any>(null);
 
   useEffect(() => {
-    // Initial session load
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
-      setLoading(false);
-      if (data.session) {
+      setUser(data.session?.user ?? null);
+      if (data.session?.user) {
         fetchUserInfo(data.session);
       }
     });
 
-    // Listen for session changes
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      async (_event, session) => {
         setSession(session);
-        if (session) {
-          fetchUserInfo(session);
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          await fetchUserInfo(session);
         } else {
           setUserInfo(null);
         }
       }
     );
 
+    setLoading(false);
     return () => {
       listener.subscription.unsubscribe();
     };
   }, []);
 
-  // Fetch backend /me endpoint + merge with Supabase metadata
-  const fetchUserInfo = async (session: any) => {
+  const fetchUserInfo = async (session: Session | null) => {
+    if (!session?.user) return;
+
     try {
-      let backendData: any = {};
-      try {
-        const res = await fetch("http://localhost:8000/me", {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
-        if (res.ok) {
-          backendData = await res.json();
-        }
-      } catch (err) {
-        console.error("Failed to fetch /me", err);
+      const { data: profile, error } = await supabase
+        .from("profiles")
+        .select("id, plan_type, subscription_status, renewal_date, credits_remaining")
+        .eq("id", session.user.id)
+        .single();
+
+      if (error || !profile) {
+        console.error("Profile fetch error:", error);
+        return;
       }
 
-      const meta = session?.user?.user_metadata || {};
-
-      // Build merged object
-      const merged = {
-        // keep full backend structure
-        ...backendData,
-
-        // convenience fields for UI
+      const merged: UserInfo = {
+        id: profile.id,
+        email: session.user.email || "",
+        credits_remaining: profile.credits_remaining ?? 0,
+        max_credits: 5000, // fallback until you add a max_credits column
+        user: {
+          plan_type: profile.plan_type,
+          subscription_status: profile.subscription_status,
+          renewal_date: profile.renewal_date,
+        },
         full_name:
-          backendData?.user?.full_name ||
-          meta.full_name ||
-          meta.name ||
+          session.user.user_metadata?.full_name ||
+          session.user.email ||
           "User",
-        avatar_url:
-          backendData?.user?.avatar_url ||
-          meta.avatar_url ||
-          meta.picture ||
-          null,
-        email: backendData?.user?.email || session?.user?.email || null,
+        avatar_url: session.user.user_metadata?.avatar_url || null,
+        ledger: [],
       };
 
       setUserInfo(merged);
     } catch (err) {
-      console.error("Failed to build userInfo", err);
+      console.error("Failed to fetch user info", err);
     }
   };
 
+  const refreshUserInfo = async () => {
+    if (session) {
+      await fetchUserInfo(session);
+    }
+  };
+
+  const value: AuthContextProps = {
+    session,
+    user,
+    userInfo,
+    loading,
+    refreshUserInfo,
+  };
+
   return (
-    <AuthContext.Provider value={{ session, loading, userInfo }}>
-       {loading ? <p className="text-center text-gray-500 mt-20">Loading...</p> : children}
+    <AuthContext.Provider value={value}>
+      {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  return useContext(AuthContext);
 }

@@ -2,10 +2,13 @@
 
 import { useAuth } from "../lib/AuthProvider";
 import AddonSection from "./AddonSection";
+import { useRouter } from "next/router";
+import { useEffect } from "react";
 
 export default function BillingPage() {
-  const { session, userInfo } = useAuth();
+  const { session, userInfo, refreshUserInfo } = useAuth();
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  const router = useRouter();
 
   const plans = [
     {
@@ -60,6 +63,19 @@ export default function BillingPage() {
       alert("Something went wrong starting checkout");
     }
   };
+
+  // ✅ Refresh user info after successful Stripe checkout
+  useEffect(() => {
+    if (router.query.success === "true") {
+      refreshUserInfo();
+      const { success, ...rest } = router.query;
+      router.replace(
+        { pathname: router.pathname, query: rest },
+        undefined,
+        { shallow: true }
+      );
+    }
+  }, [router.query.success]);
 
   // Current plan info from backend
   const currentPlan =
@@ -150,9 +166,7 @@ export default function BillingPage() {
           {credits.toLocaleString()} lines remaining
         </p>
         {renewalDate && (
-          <p className="mt-2 text-xs text-gray-500">
-            Renews on {renewalDate}
-          </p>
+          <p className="mt-2 text-xs text-gray-500">Renews on {renewalDate}</p>
         )}
         <button
           disabled

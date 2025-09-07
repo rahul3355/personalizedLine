@@ -1,15 +1,31 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request, Depends, Header
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from dotenv import load_dotenv
 import uuid, shutil, os, tempfile, threading, pandas as pd, base64, json, stripe, time
+from fastapi.responses import StreamingResponse
+import io
+from pydantic import BaseModel
+import os
 from . import db, jobs
 import queue_utils
-from fastapi.responses import FileResponse
-from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
+from .supabase_client import supabase
+from supabase import create_client
+from fastapi import APIRouter, Body
+from io import BytesIO
+from datetime import datetime, timedelta
 
-# Load env (backend/.env)
+
+
+
+# Load env
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
 app = FastAPI()
+
+# Security scheme (adds Authorize button in Swagger)
+security = HTTPBearer()
 
 # Stripe Setup
 STRIPE_SECRET = os.getenv("STRIPE_SECRET_KEY", "")
@@ -25,15 +41,20 @@ ADDON_PRICE_MAP = {
     "pro": os.getenv("STRIPE_PRICE_ADDON_PRO"),
 }
 
+from . import jobs
 
 def start_worker():
-    t = threading.Thread(target=queue_utils.worker_loop, daemon=True)
+    t = threading.Thread(target=jobs.worker_loop, daemon=True)
     t.start()
 
+
 @app.on_event("startup")
-def startup_event():
+async def startup_event():
+    print("[Main] Running startup_event")
     db.init_db()
     start_worker()
+    print("[Main] Worker started")
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -50,13 +71,9 @@ app.add_middleware(
 def health():
     return {"status": "ok"}
 
-# ---- Helper: extract user_id from Supabase JWT ----
-def get_current_user(request: Request):
-    auth = request.headers.get("authorization")
-    if not auth or not auth.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
-    token = auth.split(" ")[1]
-
+# ---- Extract user_id from JWT ----
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
     try:
         payload_part = token.split(".")[1]
         padded = payload_part + "=" * (-len(payload_part) % 4)
@@ -67,125 +84,295 @@ def get_current_user(request: Request):
         raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
 
 # ✅ Step 1 — Parse headers
+def get_supabase():
+    url = os.getenv("SUPABASE_URL")
+    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    return create_client(url, key)
+
+
+class ParseRequest(BaseModel):
+    user_id: str
+    file_path: str
+
 @app.post("/parse_headers")
-def parse_headers(file: UploadFile = File(...), user_id: str = Depends(get_current_user)):
-    tmp_dir = tempfile.gettempdir()
-    temp_path = os.path.join(tmp_dir, f"{uuid.uuid4()}_{file.filename}")
-
-    with open(temp_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-
+async def parse_headers(payload: dict = Body(...)):
     try:
-        df = pd.read_csv(temp_path) if temp_path.endswith(".csv") else pd.read_excel(temp_path)
+        file_path = payload.get("file_path")
+        user_id = payload.get("user_id")
+        if not file_path or not user_id:
+            raise HTTPException(status_code=400, detail="file_path and user_id required")
+
+        supabase = get_supabase()
+        res = supabase.storage.from_("inputs").download(file_path)
+
+        # ✅ Always treat response as raw bytes
+        if isinstance(res, (bytes, bytearray)):
+            contents = res
+        else:
+            # newer SDKs sometimes return objects with .content
+            if hasattr(res, "content"):
+                contents = res.content
+            else:
+                raise HTTPException(status_code=500, detail=f"Unexpected download response: {type(res)}")
+
+        # Parse dataframe
+        if file_path.endswith(".xlsx"):
+            df = pd.read_excel(BytesIO(contents))
+        else:
+            df = pd.read_csv(BytesIO(contents))
+
+        headers = df.columns.tolist()
+        return {"headers": headers, "file_path": file_path}
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to parse file: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-    headers = [str(c) for c in df.columns]
-    return {"headers": headers, "temp_path": temp_path}
 
-# ✅ Step 2 — Create job with new required fields
+
+# ✅ Step 2 — Create job
+from pydantic import BaseModel
+
+class JobRequest(BaseModel):
+    user_id: str
+    file_path: str
+    company_col: str
+    desc_col: str
+    industry_col: str
+    title_col: str
+    size_col: str
+    service: str   # <-- NEW
+
+
 @app.post("/jobs")
-def create_job(
-    file_path: str = Form(...),
-    company_col: str = Form(...),
-    desc_col: str = Form(...),
-    industry_col: str = Form(...),
-    title_col: str = Form(...),
-    size_col: str = Form(...),
-    service: str = Form(...),
-    user_id: str = Depends(get_current_user)
-):
-    meta = {
-        "file_path": file_path,
-        "company_col": company_col,
-        "desc_col": desc_col,
-        "industry_col": industry_col,
-        "title_col": title_col,
-        "size_col": size_col,
-        "service": service
-    }
-    job_id = db.enqueue_job("user-upload.xlsx", 0, meta, user_id)
-    return {"job_id": job_id}
+async def create_job(req: JobRequest):
+    """
+    Create a new job in Supabase.
+    Worker will pick it up once status = queued.
+    """
+    try:
+        # Download file from Supabase storage to count rows
+        supabase = get_supabase()
+        res = supabase.storage.from_("inputs").download(req.file_path)
+        if not res:
+            raise HTTPException(status_code=404, detail="File not found in storage")
+
+        contents = res  # raw bytes
+        if req.file_path.endswith(".xlsx"):
+            df = pd.read_excel(BytesIO(contents))
+        else:
+            df = pd.read_csv(BytesIO(contents))
+
+        row_count = len(df)
+
+        meta = {
+            "file_path": req.file_path,
+            "company_col": req.company_col,
+            "desc_col": req.desc_col,
+            "industry_col": req.industry_col,
+            "title_col": req.title_col,
+            "size_col": req.size_col,
+            "service": req.service,
+        }
+
+        result = (
+            supabase.table("jobs")
+            .insert(
+                {
+                    "user_id": req.user_id,
+                    "status": "queued",
+                    "filename": os.path.basename(req.file_path),
+                    "rows": row_count,
+                    "meta_json": meta,
+                    
+                }
+            )
+            .execute()
+        )
+
+        if not result.data:
+            raise HTTPException(status_code=500, detail="Failed to insert job")
+
+        job = result.data[0]
+        return {"id": job["id"], "status": job["status"], "rows": row_count}
+
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+# ✅ Other routes unchanged (get_me, list_jobs, get_job, download, progress, checkout, webhook)
+# ... keep all your code from [147†source] after this point
+
 
 @app.get("/me")
 def get_me(user_id: str = Depends(get_current_user)):
-    user = db.get_user(user_id)
-    if not user:
-        db.ensure_user(user_id, email="unknown@example.com")
-        # Give Free Plan baseline of 500 credits
-        with db.db() as con:
-            con.execute(
-                "UPDATE users SET plan_type=?, subscription_status=?, credits_remaining=?, renewal_date=? WHERE id=?",
-                ("free", "active", 500, int(time.time()) + 30*24*3600, user_id)
+    try:
+        res = (
+            supabase.table("profiles")
+            .select("id, email, credits_remaining, max_credits, plan_type, subscription_status, renewal_date")
+            .eq("id", user_id)
+            .single()
+            .execute()
+        )
+
+        if not res.data:
+            # bootstrap default profile
+            profile = {
+                "id": user_id,
+                "email": "unknown@example.com",
+                "credits_remaining": 500,
+                "max_credits": 5000,
+                "plan_type": "free",
+                "subscription_status": "active",
+                "renewal_date": (datetime.utcnow() + timedelta(days=30)).isoformat()
+            }
+            supabase.table("profiles").insert(profile).execute()
+            res = (
+                supabase.table("profiles")
+                .select("*")
+                .eq("id", user_id)
+                .single()
+                .execute()
             )
-        user = db.get_user(user_id)
 
-    credits = db.get_credits(user_id)
-    ledger = db.get_ledger(user_id, limit=10)
-
-    # Ensure defaults
-    user = dict(user)
-    user.setdefault("plan_type", "free")
-    user.setdefault("subscription_status", "inactive")
-    user.setdefault("renewal_date", int(time.time()) + 30*24*3600)
-
-    return {
-        "user": user,
-        "credits_remaining": credits,
-        "ledger": ledger,
-        "next_renewal": user.get("renewal_date")
-    }
-
-# ✅ Existing job management endpoints unchanged...
+        return res.data
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
 @app.get("/jobs")
 def list_jobs(user_id: str = Depends(get_current_user)):
-    jobs_list = db.list_jobs(user_id)
-    enriched = []
-    for job in jobs_list:
-        percent, message = db.get_progress(job["id"])
-        job["progress"] = percent
-        job["message"] = message
-        enriched.append(job)
-    return enriched
+    supabase = get_supabase()
+
+    jobs_res = (
+        supabase.table("jobs")
+        .select("*")
+        .eq("user_id", user_id)
+        .order("created_at", desc=True)
+        .execute()
+    )
+    jobs = jobs_res.data or []
+
+    for job in jobs:
+        logs_res = (
+            supabase.table("job_logs")
+            .select("step,total,message")
+            .eq("job_id", job["id"])
+            .order("step", desc=True)
+            .limit(1)
+            .execute()
+        )
+        last_log = logs_res.data[0] if logs_res.data else None
+
+        if last_log:
+            step = last_log["step"]
+            total = last_log["total"] or 1
+            job["progress"] = int((step / total) * 100)
+            job["message"] = last_log.get("message")
+        else:
+            job["progress"] = 0
+            job["message"] = None
+
+    return jobs
+
 
 @app.get("/jobs/{job_id}")
 def get_job(job_id: str, user_id: str = Depends(get_current_user)):
-    job = db.get_job(job_id)
-    if not job or job["user_id"] != user_id:
+    supabase = get_supabase()
+
+    job_res = (
+        supabase.table("jobs")
+        .select("*")
+        .eq("id", job_id)
+        .single()
+        .execute()
+    )
+    if not job_res.data:
         raise HTTPException(status_code=404, detail="Job not found")
-    percent, message = db.get_progress(job_id)
-    job["progress"] = percent
-    job["message"] = message
+
+    job = job_res.data
+    if job["user_id"] != user_id:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+
+    logs_res = (
+        supabase.table("job_logs")
+        .select("*")
+        .eq("job_id", job_id)
+        .order("step", desc=True)
+        .limit(1)
+        .execute()
+    )
+    last_log = logs_res.data[0] if logs_res.data else None
+
+    if last_log:
+        step = last_log["step"]
+        total = last_log["total"] or 1
+        job["progress"] = int((step / total) * 100)
+        job["message"] = last_log.get("message")
+    else:
+        job["progress"] = 0
+        job["message"] = None
+
     return job
 
+
 @app.get("/jobs/{job_id}/download")
-def download_job(job_id: str, user_id: str = Depends(get_current_user)):
-    job = db.get_job(job_id)
-    if not job or job["user_id"] != user_id:
-        raise HTTPException(status_code=404, detail="Job not found")
-
-    result_path = job.get("result_path")
-    if not result_path or not os.path.exists(result_path):
-        raise HTTPException(status_code=404, detail="Result file not found")
-
-    return FileResponse(
-        result_path,
-        filename=os.path.basename(result_path),
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+async def download_result(job_id: str):
+    job = (
+        supabase.table("jobs")
+        .select("result_path")
+        .eq("id", job_id)
+        .single()
+        .execute()
     )
+    if not job.data or not job.data["result_path"]:
+        raise HTTPException(status_code=404, detail="Result not found")
+
+    storage_path = job.data["result_path"]
+    file = supabase.storage.from_("outputs").download(storage_path)
+    return StreamingResponse(io.BytesIO(file), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={
+        "Content-Disposition": f"attachment; filename=result.xlsx"
+    })
+
 
 @app.get("/jobs/{job_id}/progress")
 def job_progress(job_id: str, user_id: str = Depends(get_current_user)):
-    job = db.get_job(job_id)
-    if not job or job["user_id"] != user_id:
+    supabase = get_supabase()
+
+    job_res = (
+        supabase.table("jobs")
+        .select("id,user_id,status")
+        .eq("id", job_id)
+        .single()
+        .execute()
+    )
+    if not job_res.data:
         raise HTTPException(status_code=404, detail="Job not found")
 
-    percent, message = db.get_progress(job_id)
+    job = job_res.data
+    if job["user_id"] != user_id:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+
+    logs_res = (
+        supabase.table("job_logs")
+        .select("*")
+        .eq("job_id", job_id)
+        .order("step", desc=True)
+        .limit(1)
+        .execute()
+    )
+    last_log = logs_res.data[0] if logs_res.data else None
+
+    if last_log:
+        step = last_log["step"]
+        total = last_log["total"] or 1
+        percent = int((step / total) * 100)
+        message = last_log.get("message")
+    else:
+        percent = 0
+        message = None
+
     return {
         "job_id": job_id,
         "status": job["status"],
         "percent": percent,
-        "message": message
+        "message": message,
     }
 
 # ✅ Stripe Checkout Session (subscription OR add-on)
@@ -250,6 +437,7 @@ def create_checkout_session(
 
 
 # ✅ Stripe Webhook with Idempotency + Customer-first lifecycle
+# ✅ Stripe Webhook with Idempotency + Customer-first lifecycle
 @app.post("/stripe-webhook")
 async def stripe_webhook(request: Request, stripe_signature: str = Header(None)):
     payload = await request.body()
@@ -263,14 +451,14 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
     event_id = event["id"]
     event_type = event["type"]
 
-    # --- Idempotency check ---
+    # --- Idempotency check (local SQLite) ---
     with db.db() as con:
         row = con.execute("SELECT 1 FROM webhook_events WHERE id=?", (event_id,)).fetchone()
         if row:
             return {"status": "duplicate"}
         con.execute(
             "INSERT INTO webhook_events (id, type, created_at) VALUES (?, ?, ?)",
-            (event_id, event_type, int(time.time()))
+            (event_id, event_type, datetime.utcnow().isoformat())
         )
 
     # --- Credits map ---
@@ -281,6 +469,7 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
         "pro": 25000,
     }
 
+    # ---- Handle Events ----
     if event_type == "checkout.session.completed":
         session = event["data"]["object"]
         user_id = session["metadata"].get("user_id")
@@ -290,27 +479,41 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
         if is_addon:
             qty = int(session["metadata"].get("quantity", 1))
             credits = qty * 1000
-            with db.db() as con:
-                con.execute(
-                    "UPDATE users SET credits_remaining = credits_remaining + ? WHERE id=?",
-                    (credits, user_id)
-                )
+
+            # Fetch current credits from Supabase
+            current = (
+                supabase.table("profiles")
+                .select("credits_remaining")
+                .eq("id", user_id)
+                .single()
+                .execute()
+            )
+            current_credits = current.data["credits_remaining"] if current.data else 0
+            new_total = current_credits + credits
+
+            # Update Supabase
+            supabase.table("profiles").update({
+                "credits_remaining": new_total
+            }).eq("id", user_id).execute()
+
+            # Optional: still log locally
             db.update_credits(user_id, credits, f"Add-on purchase x{qty}")
+
         else:
             plan = session["metadata"]["plan"]
             subscription_id = session.get("subscription")
             renewal_date = None
             if subscription_id:
                 sub = stripe.Subscription.retrieve(subscription_id)
-                renewal_date = sub.get("current_period_end")  # safe get
+                renewal_date = sub.get("current_period_end")
 
             credits = credits_map.get(plan, 0)
-            db.ensure_user(user_id, email=email)
-            with db.db() as con:
-                con.execute(
-                    "UPDATE users SET plan_type=?, subscription_status=?, renewal_date=?, credits_remaining=? WHERE id=?",
-                    (plan, "active", renewal_date, credits, user_id)
-                )
+            supabase.table("profiles").update({
+                "plan_type": plan,
+                "subscription_status": "active",
+                "renewal_date": renewal_date,
+                "credits_remaining": credits
+            }).eq("id", user_id).execute()
 
     elif event_type == "invoice.payment_succeeded":
         invoice = event["data"]["object"]
@@ -323,11 +526,11 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
             renewal_date = sub.get("current_period_end")
             if user_id and plan:
                 credits = credits_map.get(plan, 0)
-                with db.db() as con:
-                    con.execute(
-                        "UPDATE users SET credits_remaining=?, renewal_date=?, subscription_status=? WHERE id=?",
-                        (credits, renewal_date, "active", user_id)
-                    )
+                supabase.table("profiles").update({
+                    "credits_remaining": credits,
+                    "renewal_date": renewal_date,
+                    "subscription_status": "active"
+                }).eq("id", user_id).execute()
 
     elif event_type == "invoice.payment_failed":
         invoice = event["data"]["object"]
@@ -337,31 +540,29 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
         if sub and "metadata" in sub:
             user_id = sub["metadata"].get("user_id")
             if user_id:
-                with db.db() as con:
-                    con.execute(
-                        "UPDATE users SET subscription_status=? WHERE id=?",
-                        ("past_due", user_id)
-                    )
+                supabase.table("profiles").update({
+                    "subscription_status": "past_due"
+                }).eq("id", user_id).execute()
 
     elif event_type == "charge.refunded":
         charge = event["data"]["object"]
         metadata = charge.get("metadata", {})
         user_id = metadata.get("user_id")
         if user_id:
-            with db.db() as con:
-                con.execute(
-                    "UPDATE users SET plan_type=?, subscription_status=?, credits_remaining=? WHERE id=?",
-                    ("free", "inactive", 500, user_id)
-                )
+            supabase.table("profiles").update({
+                "plan_type": "free",
+                "subscription_status": "inactive",
+                "credits_remaining": 500
+            }).eq("id", user_id).execute()
 
     elif event_type == "customer.subscription.deleted":
         sub = event["data"]["object"]
         user_id = sub["metadata"]["user_id"] if "metadata" in sub else None
         if user_id:
-            with db.db() as con:
-                con.execute(
-                    "UPDATE users SET plan_type=?, subscription_status=?, credits_remaining=? WHERE id=?",
-                    ("free", "inactive", 500, user_id)
-                )
+            supabase.table("profiles").update({
+                "plan_type": "free",
+                "subscription_status": "inactive",
+                "credits_remaining": 500
+            }).eq("id", user_id).execute()
 
     return {"status": "success"}

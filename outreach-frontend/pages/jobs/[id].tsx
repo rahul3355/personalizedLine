@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { API_URL } from "../../lib/api";
 import { useAuth } from "../../lib/AuthProvider";
+import { API_URL } from "../../lib/api";
+import { useEffect, useState } from "react";
+import type { Session } from "@supabase/supabase-js";
 
+// --- Types ---
 interface Job {
   id: string;
-  status: string;
+  status: "pending" | "in_progress" | "succeeded" | "failed";
   filename: string;
   rows: number;
   created_at: number;
@@ -17,164 +19,148 @@ interface Job {
 }
 
 interface JobProgress {
-  job_id: string;
-  status: string;
   percent: number;
   message: string;
+  status: "in_progress" | "succeeded" | "failed";
 }
 
 export default function JobDetailPage() {
   const router = useRouter();
   const { id } = router.query;
-  const { session } = useAuth();
+  const { session } = useAuth() as { session: Session | null };
 
   const [job, setJob] = useState<Job | null>(null);
-  const [progress, setProgress] = useState<JobProgress | null>(null);
+  const [progress, setProgress] = useState<number>(0);
+  const [message, setMessage] = useState<string>("");
 
   useEffect(() => {
-    if (!id || !session) return;
+    if (!session || !id) return;
 
-    let interval: ReturnType<typeof setInterval> | null = null;
+    let interval: NodeJS.Timeout;
 
-    async function fetchJobAndProgress() {
+    async function fetchJob() {
       try {
         const res = await fetch(`${API_URL}/jobs/${id}`, {
-          headers: { Authorization: `Bearer ${session.access_token}` },
+          headers: { Authorization: `Bearer ${session?.access_token ?? ""}` },
         });
         if (!res.ok) throw new Error("Failed to fetch job");
-        const jobData = await res.json();
-        setJob(jobData);
+        const data: Job = await res.json();
+        setJob(data);
 
-        if (jobData.status === "in_progress") {
+        if (data.status !== "succeeded" && data.status !== "failed") {
           interval = setInterval(async () => {
-            const progRes = await fetch(`${API_URL}/jobs/${id}/progress`, {
-              headers: { Authorization: `Bearer ${session.access_token}` },
-            });
-            if (progRes.ok) {
-              const progData = await progRes.json();
-              setProgress(progData);
+            try {
+              const res2 = await fetch(`${API_URL}/jobs/${id}/progress`, {
+                headers: {
+                  Authorization: `Bearer ${session?.access_token ?? ""}`,
+                },
+              });
+              if (res2.ok) {
+                const prog: JobProgress = await res2.json();
+                setProgress(prog.percent);
+                setMessage(prog.message);
+                setJob((prev) =>
+                  prev ? { ...prev, status: prog.status } : prev
+                );
 
-              if (
-                progData.status === "succeeded" ||
-                progData.status === "failed"
-              ) {
-                clearInterval(interval!);
-                const finalRes = await fetch(`${API_URL}/jobs/${id}`, {
-                  headers: { Authorization: `Bearer ${session.access_token}` },
-                });
-                if (finalRes.ok) {
-                  const finalData = await finalRes.json();
-                  setJob(finalData);
-                  setProgress(null);
+                if (prog.status === "succeeded" || prog.status === "failed") {
+                  clearInterval(interval);
                 }
               }
+            } catch (err) {
+              console.error("Error fetching progress:", err);
             }
           }, 2000);
         }
       } catch (err) {
-        console.error(err);
+        console.error("Error fetching job:", err);
       }
     }
 
-    fetchJobAndProgress();
+    fetchJob();
 
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [id, session]);
+  }, [session, id]);
 
   async function handleDownload() {
-    if (!job) return;
-    const res = await fetch(`${API_URL}/jobs/${job.id}/download`, {
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    });
-    if (!res.ok) return alert("Download failed");
-    const blob = await res.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${job.filename || "result"}.xlsx`;
-    a.click();
+    if (!job || !session) return;
+    try {
+      const res = await fetch(`${API_URL}/jobs/${job.id}/download`, {
+        headers: { Authorization: `Bearer ${session?.access_token ?? ""}` },
+      });
+      if (!res.ok) {
+        alert("Download failed");
+        return;
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = job.filename || "result.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (err) {
+      console.error("Download error:", err);
+    }
   }
 
-  if (!job)
-    return <p className="text-center text-gray-500 mt-20">Loading job...</p>;
+  if (!session) return <p className="p-6">Please login to view this page</p>;
+  if (!job) return <p className="p-6">Loading job...</p>;
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-10">
-      <div className="bg-white shadow-xl rounded-2xl p-8 border border-gray-100">
-        {/* Page title */}
-        <h1 className="text-3xl font-semibold mb-6 text-gray-900 tracking-tight">
-          Job Detail
-        </h1>
+    <div className="max-w-3xl mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-4">Job Details</h1>
 
-        {/* Job info in two columns */}
-        <div className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm text-gray-700">
-          <div>
-            <p className="text-xs text-gray-500">ID</p>
-            <p className="font-medium text-gray-900 break-all">{job.id}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-500">Filename</p>
-            <p className="font-medium text-gray-900">{job.filename}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-500">Rows</p>
-            <p className="font-medium text-gray-900">{job.rows}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-500">Created At</p>
-            <p className="font-medium text-gray-900">
-              {new Date(job.created_at * 1000).toLocaleString()}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-500">Finished At</p>
-            <p className="font-medium text-gray-900">
-              {job.finished_at
-                ? new Date(job.finished_at * 1000).toLocaleString()
-                : "In progress"}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-500">Status</p>
-            <p
-              className={`font-semibold ${
-                job.status === "succeeded"
-                  ? "text-green-600"
-                  : job.status === "failed"
-                  ? "text-red-600"
-                  : "text-yellow-600"
-              }`}
-            >
-              {job.status}
-            </p>
-          </div>
-        </div>
+      <div className="bg-white p-4 rounded-xl shadow">
+        <p className="text-gray-700 mb-2">
+          <span className="font-semibold">Filename:</span> {job.filename}
+        </p>
+        <p className="text-gray-700 mb-2">
+          <span className="font-semibold">Rows:</span> {job.rows}
+        </p>
+        <p className="text-gray-700 mb-2">
+          <span className="font-semibold">Created:</span>{" "}
+          {new Date(job.created_at).toLocaleString()}
+        </p>
+        <p className="text-gray-700 mb-4">
+          <span className="font-semibold">Status:</span>{" "}
+          <span
+            className={
+              job.status === "succeeded"
+                ? "text-green-600 font-semibold"
+                : job.status === "failed"
+                ? "text-red-600 font-semibold"
+                : "text-yellow-600 font-semibold"
+            }
+          >
+            {job.status}
+          </span>
+        </p>
 
-        {/* Progress bar */}
-        {job.status === "in_progress" && (
-          <div className="mt-8">
+        {/* Progress Bar */}
+        {(job.status === "in_progress" || job.status === "pending") && (
+          <div className="mt-6">
             <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner">
               <div
                 className="h-3 bg-gradient-to-r from-gray-900 to-gray-700 transition-all duration-500 rounded-full"
-                style={{ width: `${progress?.percent || 0}%` }}
+                style={{ width: `${progress}%` }}
               />
             </div>
             <p className="text-xs text-gray-600 mt-2">
-              {progress
-                ? `${progress.percent}% — ${progress.message}`
-                : "Starting..."}
+              {progress > 0 ? `${progress}% – ${message}` : "Starting..."}
             </p>
           </div>
         )}
 
-        {/* Download button */}
+        {/* Download Button */}
         {job.status === "succeeded" && job.result_path && (
           <div className="mt-10 flex justify-center">
             <button
               onClick={handleDownload}
-              className="w-full sm:w-auto flex items-center justify-center py-3 px-6 rounded-xl font-medium text-white text-[15px] tracking-tight shadow-sm transition-all duration-300"
+              className="w-full sm:w-auto flex items-center justify-center px-6 py-3 rounded-xl font-medium text-white shadow-lg transition"
               style={{
                 background: "linear-gradient(#5a5a5a, #1c1c1c)",
                 fontFamily:
@@ -187,7 +173,6 @@ export default function JobDetailPage() {
                 e.currentTarget.style.boxShadow = "none";
               }}
             >
-              {/* Icon */}
               <svg
                 className="w-5 h-5 mr-2"
                 fill="none"
@@ -198,7 +183,7 @@ export default function JobDetailPage() {
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4"
+                  d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"
                 />
               </svg>
               Download Result
@@ -206,7 +191,7 @@ export default function JobDetailPage() {
           </div>
         )}
 
-        {/* Error */}
+        {/* Error Display */}
         {job.status === "failed" && (
           <div className="mt-8 text-center text-red-600 font-semibold">
             Job failed: {job.error || "Unknown error"}

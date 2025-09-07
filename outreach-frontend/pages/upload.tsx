@@ -8,6 +8,8 @@ import { useRouter } from "next/router";
 import { motion } from "framer-motion";
 import Lottie from "lottie-react";
 import confettiAnim from "../public/confetti.json";
+import { supabase } from "../lib/supabaseClient";
+
 
 const StepTracker = ({ step, jobCreated }: { step: number; jobCreated: boolean }) => {
   const steps = ["Upload File", "Confirm Headers", "Confirm Service"];
@@ -54,7 +56,7 @@ const StepTracker = ({ step, jobCreated }: { step: number; jobCreated: boolean }
 };
 
 export default function UploadPage() {
-  const { session, loading: authLoading } = useAuth();
+  const { user, session, loading: authLoading } = useAuth();
   const router = useRouter();
 
   const [file, setFile] = useState<File | null>(null);
@@ -105,28 +107,38 @@ export default function UploadPage() {
       setError("Please select a file first");
       return;
     }
+
     setLoading(true);
     setError(null);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
 
+    try {
+      const userId = session?.user?.id;
+      if (!userId) {
+        throw new Error("User not authenticated");
+      }
+
+      // 1. Upload file directly to Supabase
+      const storagePath = `${userId}/${Date.now()}_${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from("inputs")
+        .upload(storagePath, file, { upsert: true });
+
+      if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+
+      // 2. Tell backend to parse it
       const res = await fetch(`${API_URL}/parse_headers`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${session?.access_token}`,
-        },
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ file_path: storagePath, user_id: userId }),
       });
+
       if (!res.ok) throw new Error(`Failed: ${res.status}`);
 
       const data = await res.json();
       setHeaders(data.headers);
-      setTempPath(data.temp_path);
+      setTempPath(data.file_path);
 
-      // auto assign defaults
       autoMapHeaders(data.headers);
-
       setStep(1);
     } catch (err: any) {
       setError(err.message || "Something went wrong");
@@ -152,26 +164,33 @@ export default function UploadPage() {
     setLoading(true);
     setError(null);
     try {
-      const formData = new FormData();
-      formData.append("file_path", tempPath);
-      formData.append("company_col", companyCol);
-      formData.append("desc_col", descCol);
-      formData.append("industry_col", industryCol);
-      formData.append("title_col", titleCol);
-      formData.append("size_col", sizeCol);
-      formData.append("service", service);
+      const payload = {
+        user_id: session?.user.id || "",        // must be a UUID string
+        file_path: tempPath,             // comes from Step 1
+        company_col: companyCol,         // chosen in Step 2
+        desc_col: descCol,               // chosen in Step 2
+        industry_col: industryCol,       // chosen in Step 2
+        title_col: titleCol,             // chosen in Step 2
+        size_col: sizeCol,               // chosen in Step 2
+        service: service.trim() || "email outreach", // Step 3; fallback to default
+      };
 
       const res = await fetch(`${API_URL}/jobs`, {
         method: "POST",
         headers: {
+          "Content-Type": "application/json",
           Authorization: `Bearer ${session?.access_token}`,
         },
-        body: formData,
+        body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error(`Failed: ${res.status}`);
+      if (!res.ok) {
+        const errText = await res.text(); // <-- capture backend error body
+        throw new Error(`Failed: ${res.status} - ${errText}`);
+      }
 
       await res.json();
+
       setJobCreated(true);
 
       // redirect after confetti
@@ -224,8 +243,8 @@ export default function UploadPage() {
               onDragOver={handleDrag}
               onDrop={handleDrop}
               className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl py-12 transition ${dragActive
-                  ? "border-gray-900 bg-gray-50"
-                  : "border-gray-200 bg-gray-50/50"
+                ? "border-gray-900 bg-gray-50"
+                : "border-gray-200 bg-gray-50/50"
                 }`}
             >
               <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer">
