@@ -8,13 +8,17 @@ services:
     build:
       context: .
       dockerfile: backend/app/Dockerfile
-    command: ["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    command: uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - .:/app
     ports:
       - "8000:8000"
     env_file:
       - .env
+    environment:
+      - PYTHONPATH=/app
+      - WORKER_COUNT=10
+
     depends_on:
       - redis
 
@@ -22,10 +26,28 @@ services:
     build:
       context: .
       dockerfile: backend/app/Dockerfile
-    command: ["python", "-m", "backend.app.worker"]
+    command: python backend/app/worker.py
     volumes:
       - .:/app
     env_file:
       - .env
+    environment:
+      - PYTHONPATH=/app
+      - WORKER_COUNT=10
+    depends_on:
+      - redis
+
+  producer:
+    build:
+      context: .
+      dockerfile: backend/app/Dockerfile
+    command: python backend/app/producer.py
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app
+      - WORKER_COUNT=10
     depends_on:
       - redis
