@@ -45,31 +45,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
-      if (data.session?.user) {
-        fetchUserInfo(data.session);
-      }
-    });
+  supabase.auth.getSession().then(({ data }) => {
+    setSession(data.session);
+    setUser(data.session?.user ?? null);
+    if (data.session?.user) {
+      fetchUserInfo(data.session);
+    }
+    setLoading(false);   // ⬅️ move here
+  });
 
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchUserInfo(session);
-        } else {
-          setUserInfo(null);
-        }
+  const { data: listener } = supabase.auth.onAuthStateChange(
+    async (_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        await fetchUserInfo(session);
+      } else {
+        setUserInfo(null);
       }
-    );
+    }
+  );
 
-    setLoading(false);
-    return () => {
-      listener.subscription.unsubscribe();
-    };
-  }, []);
+  return () => {
+    listener.subscription.unsubscribe();
+  };
+}, []);
 
   const fetchUserInfo = async (session: Session | null) => {
     if (!session?.user) return;

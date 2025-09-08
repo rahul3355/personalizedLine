@@ -103,10 +103,15 @@ export default function UploadPage() {
   };
 
   const handleParseHeaders = async () => {
-    if (!file) {
-      setError("Please select a file first");
-      return;
-    }
+  if (!file) {
+    setError("Please select a file first");
+    return;
+  }
+
+  if (!session?.access_token) {
+    setError("Session not ready. Please wait a moment.");
+    return;
+  }
 
     setLoading(true);
     setError(null);
@@ -278,15 +283,13 @@ export default function UploadPage() {
                 </div>
 
                 <button
-                  onClick={handleParseHeaders}
-                  disabled={loading}
-                  className="w-full py-3 rounded-xl font-medium text-white text-[15px] tracking-tight shadow-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{
-                    background: "linear-gradient(#444, #1c1c1c)",
-                  }}
-                >
-                  {loading ? "Parsing..." : "Proceed"}
-                </button>
+  onClick={handleParseHeaders}
+  disabled={loading || !session?.access_token}
+  className="w-full py-3 rounded-xl font-medium text-white text-[15px] tracking-tight shadow-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+  style={{ background: "linear-gradient(#444, #1c1c1c)" }}
+>
+  {loading ? "Parsing..." : "Proceed"}
+</button>
               </div>
             )}
 
