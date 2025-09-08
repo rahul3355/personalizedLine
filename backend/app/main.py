@@ -9,7 +9,7 @@ import io
 from pydantic import BaseModel
 import os
 from . import db, jobs
-import queue_utils
+from backend.app.queue_utils import process_row
 from .supabase_client import supabase
 from supabase import create_client
 from fastapi import APIRouter, Body
@@ -18,6 +18,10 @@ from datetime import datetime, timedelta
 import requests
 import httpx
 from fastapi import Query
+import redis
+from rq import Queue
+ # reuse the same function your workers use
+
 
 
 
@@ -25,6 +29,13 @@ from fastapi import Query
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
 app = FastAPI()
+
+import os
+redis_url = os.getenv("REDIS_URL", "redis://redis:6379")
+redis_conn = redis.from_url(redis_url)
+  # use localhost when FastAPI runs on your host
+q = Queue(connection=redis_conn)
+
 
 # Security scheme (adds Authorize button in Swagger)
 security = HTTPBearer()
@@ -280,18 +291,14 @@ def list_jobs(user_id: str = Depends(get_current_user)):
 
 @app.post("/jobs")
 async def create_job(req: JobRequest):
-    """
-    Create a new job in Supabase.
-    Worker will pick it up once status = queued.
-    """
     try:
-        # Download file from Supabase storage to count rows
+        # Download file from Supabase storage
         supabase = get_supabase()
         res = supabase.storage.from_("inputs").download(req.file_path)
         if not res:
             raise HTTPException(status_code=404, detail="File not found in storage")
 
-        contents = res  # raw bytes
+        contents = res
         if req.file_path.endswith(".xlsx"):
             df = pd.read_excel(BytesIO(contents))
         else:
@@ -309,6 +316,7 @@ async def create_job(req: JobRequest):
             "service": req.service,
         }
 
+        # --- Step 1: insert into Supabase jobs table ---
         result = (
             supabase.table("jobs")
             .insert(
@@ -327,10 +335,16 @@ async def create_job(req: JobRequest):
             raise HTTPException(status_code=500, detail="Failed to insert job")
 
         job = result.data[0]
+
+        # --- Step 2: enqueue each row into Redis ---
+        for row_number in range(1, row_count + 1):
+            q.enqueue(process_row, row_number)
+
         return {"id": job["id"], "status": job["status"], "rows": row_count}
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
 
 
 

@@ -1,0 +1,32 @@
+# Web framework
+fastapi
+uvicorn[standard]
+
+# Data processing
+pandas
+openpyxl  # Excel writing
+xlrd      # Excel reading
+
+# Databases
+supabase
+psycopg2-binary  # Postgres
+# sqlite3 is built into Python, do NOT add sqlite3-binary (not on PyPI)
+
+# Background jobs
+rq
+redis
+
+# Auth & security
+python-dotenv
+python-multipart
+requests
+httpx
+
+# Payments
+stripe
+
+# AI / LLM
+openai
+
+# Misc
+typing-extensions

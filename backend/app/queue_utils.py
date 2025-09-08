@@ -1,9 +1,9 @@
 import time
 from backend.app.db import get_job, update_job
-
 from backend.app.jobs import process_job
 
 
+# --- Legacy job loop (still used elsewhere) ---
 def next_queued_job():
     from backend.app.db import db
     with db() as con:
@@ -23,3 +23,11 @@ def worker_loop():
                 update_job(job_id, status="failed", error=str(e))
         else:
             time.sleep(2)  # nothing to do
+
+
+# --- New RQ worker task for parallel processing ---
+def process_row(row_number: int):
+    print(f"[RQ Worker] Processing row {row_number}...")
+    time.sleep(2)  # simulate API call
+    print(f"[RQ Worker] Finished row {row_number}")
+    return f"row {row_number} done"

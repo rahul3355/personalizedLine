@@ -44,7 +44,7 @@ def generate_opener(company, description, industry, role, size, service):
     resp = client.chat.completions.create(
         model="deepseek-reasoner",  # Correct DeepSeek model
         messages=messages,
-        max_completion_tokens=3000
+        max_tokens=3000
     )
     opener = (resp.choices[0].message.content or "").strip()
     usage = resp.usage
