@@ -278,6 +278,62 @@ def list_jobs(user_id: str = Depends(get_current_user)):
     return jobs
 
 
+@app.post("/jobs")
+async def create_job(req: JobRequest):
+    """
+    Create a new job in Supabase.
+    Worker will pick it up once status = queued.
+    """
+    try:
+        # Download file from Supabase storage to count rows
+        supabase = get_supabase()
+        res = supabase.storage.from_("inputs").download(req.file_path)
+        if not res:
+            raise HTTPException(status_code=404, detail="File not found in storage")
+
+        contents = res  # raw bytes
+        if req.file_path.endswith(".xlsx"):
+            df = pd.read_excel(BytesIO(contents))
+        else:
+            df = pd.read_csv(BytesIO(contents))
+
+        row_count = len(df)
+
+        meta = {
+            "file_path": req.file_path,
+            "company_col": req.company_col,
+            "desc_col": req.desc_col,
+            "industry_col": req.industry_col,
+            "title_col": req.title_col,
+            "size_col": req.size_col,
+            "service": req.service,
+        }
+
+        result = (
+            supabase.table("jobs")
+            .insert(
+                {
+                    "user_id": req.user_id,
+                    "status": "queued",
+                    "filename": os.path.basename(req.file_path),
+                    "rows": row_count,
+                    "meta_json": meta,
+                }
+            )
+            .execute()
+        )
+
+        if not result.data:
+            raise HTTPException(status_code=500, detail="Failed to insert job")
+
+        job = result.data[0]
+        return {"id": job["id"], "status": job["status"], "rows": row_count}
+
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+
 @app.get("/jobs/{job_id}")
 def get_job(job_id: str, user_id: str = Depends(get_current_user)):
     supabase = get_supabase()
