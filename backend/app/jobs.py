@@ -11,11 +11,11 @@ from datetime import datetime
 import redis
 import rq
 import requests
+from rq import get_current_job
 
 # -----------------------------
 # Redis connection
 # -----------------------------
-# FIX: disable UTF-8 decoding (let RQ handle raw bytes safely)
 redis_conn = redis.Redis(host="redis", port=6379, decode_responses=False)
 queue = rq.Queue("default", connection=redis_conn)
 
@@ -69,7 +69,6 @@ def process_subjob(job_id: str, chunk_id: int, rows: list, meta: dict, user_id: 
 
         processed_in_chunk += 1
 
-        # --- NEW: Global row-level progress ---
         if processed_in_chunk % 5 == 0 or processed_in_chunk == len(rows):
             job_res = (
                 supabase.table("jobs")
@@ -79,18 +78,14 @@ def process_subjob(job_id: str, chunk_id: int, rows: list, meta: dict, user_id: 
                 .execute()
             )
             already_done = job_res.data[0]["rows_processed"] if job_res.data else 0
-            new_done = already_done + 5 if processed_in_chunk % 5 == 0 else already_done + (len(rows) - processed_in_chunk + 1)
-
+            increment = 5 if processed_in_chunk % 5 == 0 else (len(rows) - processed_in_chunk + 1)
+            new_done = already_done + increment
             if new_done > total_rows:
                 new_done = total_rows
-
             percent = round((new_done / total_rows) * 100, 2)
 
             supabase.table("jobs").update(
-                {
-                    "rows_processed": new_done,
-                    "progress_percent": percent
-                }
+                {"rows_processed": new_done, "progress_percent": percent}
             ).eq("id", job_id).execute()
 
             supabase.table("job_logs").insert(
@@ -102,15 +97,20 @@ def process_subjob(job_id: str, chunk_id: int, rows: list, meta: dict, user_id: 
                 }
             ).execute()
 
-    # Save partial chunk to Supabase storage
+    # Save partial chunk as CSV
     df = pd.DataFrame(rows)
     df["personalized_line"] = out_lines
 
-    local_dir = tempfile.mkdtemp()
-    out_path = os.path.join(local_dir, f"{job_id}_chunk_{chunk_id}.xlsx")
-    df.to_excel(out_path, index=False, engine="openpyxl")
+# Ensure /data/chunks/{job_id} exists
+    local_dir = os.path.join("/data/chunks", job_id)
+    os.makedirs(local_dir, exist_ok=True)
 
-    storage_path = f"{user_id}/{job_id}/chunk_{chunk_id}.xlsx"
+    out_path = os.path.join(local_dir, f"chunk_{chunk_id}.csv")
+    df.to_csv(out_path, index=False)
+    print(f"[Worker] Saved local chunk {chunk_id} at {out_path}")
+
+
+    storage_path = f"{user_id}/{job_id}/chunk_{chunk_id}.csv"
     with open(out_path, "rb") as f:
         supabase.storage.from_("outputs").upload(storage_path, f)
 
@@ -118,71 +118,106 @@ def process_subjob(job_id: str, chunk_id: int, rows: list, meta: dict, user_id: 
         {
             "user_id": user_id,
             "job_id": job_id,
-            "original_name": f"chunk_{chunk_id}.xlsx",
+            "original_name": f"chunk_{chunk_id}.csv",
             "storage_path": storage_path,
             "file_type": "partial_output",
         }
     ).execute()
 
+     # --- NEW: Save local chunk path in RQ job meta ---
+    from rq import get_current_job
+    try:
+        rq_job = get_current_job()
+        if rq_job:
+            rq_job.meta[f"local_chunk_{chunk_id}"] = out_path
+            rq_job.meta[f"storage_chunk_{chunk_id}"] = storage_path
+            rq_job.save_meta()
+            print(f"[Worker] Saved local path for chunk {chunk_id} -> {out_path}")
+    except Exception as e:
+        print(f"[Worker] Could not save local path for chunk {chunk_id}: {e}")
+
     elapsed = record_time(f"Chunk {chunk_id} row processing", sub_start, job_id)
-    supabase.table("job_logs").insert(
-        {"job_id": job_id, "step": chunk_id, "message": f"Chunk {chunk_id} done in {elapsed} sec"}
-    ).execute()
+
+    # Store per-chunk timing in job meta (merge later in finalize_job)
+    job_record = supabase.table("jobs").select("timing_json").eq("id", job_id).limit(1).execute()
+    timings = {}
+    if job_record.data and job_record.data[0].get("timing_json"):
+        try:
+            timings = json.loads(job_record.data[0]["timing_json"])
+        except Exception:
+            timings = {}
+    if "chunks" not in timings:
+        timings["chunks"] = {}
+    timings["chunks"][str(chunk_id)] = elapsed
+    supabase.table("jobs").update({"timing_json": json.dumps(timings)}).eq("id", job_id).execute()
 
     print(f"[Worker] Finished chunk {chunk_id}/{len(rows)} for job {job_id}")
     return storage_path
 
 
 def finalize_job(job_id: str, user_id: str, total_chunks: int):
-    """Merge all partial chunk files into one final result and update job status."""
+    """Merge all partial CSV files into one final result and update job status."""
     finalize_start = time.time()
-    timings = {}
     try:
         print(f"[Worker] Finalizing job {job_id} with {total_chunks} chunks")
 
+        # Load existing timing_json from DB
+        job_record = supabase.table("jobs").select("timing_json").eq("id", job_id).limit(1).execute()
+        timings = {}
+        if job_record.data and job_record.data[0].get("timing_json"):
+            try:
+                timings = json.loads(job_record.data[0]["timing_json"])
+            except Exception:
+                timings = {}
+        if "chunks" not in timings:
+            timings["chunks"] = {}
+
+        # --- Merge CSVs ---
         merge_start = time.time()
         frames = []
         for chunk_id in range(1, total_chunks + 1):
-            storage_path = f"{user_id}/{job_id}/chunk_{chunk_id}.xlsx"
-            signed = supabase.storage.from_("outputs").create_signed_url(storage_path, 300)
-            url = signed.get("signedURL") if signed else None
-            if not url:
-                raise Exception(f"Missing signed URL for {storage_path}")
+            local_path = os.path.join("/data/chunks", job_id, f"chunk_{chunk_id}.csv")
+            if os.path.exists(local_path):
+                print(f"[Worker] Using local chunk {chunk_id} for job {job_id}")
+                df = pd.read_csv(local_path)
+            else:
+                print(f"[Worker] Local chunk {chunk_id} missing, downloading from Supabase...")
+                storage_path = f"{user_id}/{job_id}/chunk_{chunk_id}.csv"
+                signed = supabase.storage.from_("outputs").create_signed_url(storage_path, 300)
+                url = signed.get("signedURL") if signed else None
+                if not url:
+                    raise Exception(f"Missing signed URL for {storage_path}")
+                resp = requests.get(url, timeout=60)
+                resp.raise_for_status()
+                tmp_dir = tempfile.mkdtemp()
+                local_path = os.path.join(tmp_dir, f"chunk_{chunk_id}.csv")
+                with open(local_path, "wb") as f:
+                    f.write(resp.content)
+                df = pd.read_csv(local_path)
 
-            resp = requests.get(url, timeout=60)
-            resp.raise_for_status()
-
-            local_dir = tempfile.mkdtemp()
-            local_path = os.path.join(local_dir, f"chunk_{chunk_id}.xlsx")
-            with open(local_path, "wb") as f:
-                f.write(resp.content)
-
-            df = pd.read_excel(local_path)
             frames.append(df)
 
-        timings["merge"] = record_time("Merging chunks", merge_start, job_id)
 
+        timings["merge_csvs"] = record_time("Merging CSV chunks", merge_start, job_id)
+
+        # --- Final CSV → XLSX ---
         upload_start = time.time()
         final_df = pd.concat(frames, ignore_index=True)
         local_dir = tempfile.mkdtemp()
-        out_path = os.path.join(local_dir, f"{job_id}_final.xlsx")
-        final_df.to_excel(out_path, index=False, engine="openpyxl")
+        out_csv = os.path.join(local_dir, f"{job_id}_final.csv")
+        out_xlsx = os.path.join(local_dir, f"{job_id}_final.xlsx")
+
+        final_df.to_csv(out_csv, index=False)
+        final_df.to_excel(out_xlsx, index=False, engine="openpyxl")
 
         storage_path = f"{user_id}/{job_id}/result.xlsx"
-        with open(out_path, "rb") as f:
+        with open(out_xlsx, "rb") as f:
             supabase.storage.from_("outputs").upload(storage_path, f)
-        timings["upload"] = record_time("Final upload", upload_start, job_id)
+        timings["csv_to_xlsx"] = record_time("Final CSV→XLSX + upload", upload_start, job_id)
 
-        supabase.table("files").insert(
-            {
-                "user_id": user_id,
-                "job_id": job_id,
-                "original_name": "result.xlsx",
-                "storage_path": storage_path,
-                "file_type": "output",
-            }
-        ).execute()
+        timings["finalize_total"] = record_time("Finalize total", finalize_start, job_id)
 
+        # Save full timings
         supabase.table("jobs").update(
             {
                 "status": "succeeded",
@@ -193,7 +228,14 @@ def finalize_job(job_id: str, user_id: str, total_chunks: int):
             }
         ).eq("id", job_id).execute()
 
-        timings["finalize_total"] = record_time("Finalize total", finalize_start, job_id)
+        # Cleanup local chunks
+        local_job_dir = os.path.join("/data/chunks", job_id)
+        if os.path.exists(local_job_dir):
+            import shutil
+            shutil.rmtree(local_job_dir, ignore_errors=True)
+            print(f"[Worker] Cleaned up local chunks for job {job_id}")
+
+
         print(f"[Worker] Finalized job {job_id} successfully")
 
     except Exception as e:
@@ -235,7 +277,7 @@ def process_job(job_id: str):
             ).eq("id", job_id).execute()
             return
 
-        # Download file
+        # --- Download file ---
         dl_start = time.time()
         signed = supabase.storage.from_("inputs").create_signed_url(file_path, 300)
         url = signed.get("signedURL") if signed else None
@@ -256,15 +298,22 @@ def process_job(job_id: str):
         with open(local_path, "wb") as f:
             f.write(resp.content)
 
+        # --- Convert XLSX → CSV if needed ---
         if local_path.endswith(".csv"):
             df = pd.read_csv(local_path)
         else:
+            xlsx_start = time.time()
             df = pd.read_excel(local_path)
+            csv_path = local_path.replace(".xlsx", ".csv")
+            df.to_csv(csv_path, index=False)
+            local_path = csv_path
+            timings["xlsx_to_csv"] = record_time("XLSX→CSV conversion", xlsx_start, job_id)
+
         timings["download_input"] = record_time("Download input file", dl_start, job_id)
 
         total = len(df)
 
-        # Check credits
+        # --- Check credits ---
         setup_start = time.time()
         profile_res = (
             supabase.table("profiles")
@@ -301,7 +350,7 @@ def process_job(job_id: str):
             }
         ).eq("id", job_id).execute()
 
-        # Chunking
+        # --- Chunking ---
         chunk_start = time.time()
         try:
             num_workers = int(os.getenv("WORKER_COUNT", "1"))
