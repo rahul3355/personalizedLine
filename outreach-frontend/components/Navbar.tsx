@@ -34,6 +34,15 @@ export default function Navbar() {
     router.push("/login");
   };
 
+  useEffect(() => {
+  if (menuOpen) {
+    document.body.style.overflow = "hidden";
+  } else {
+    document.body.style.overflow = "";
+  }
+}, [menuOpen]);
+
+
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -183,7 +192,7 @@ export default function Navbar() {
 
       {/* ---------------- Mobile Navbar ---------------- */}
       {/* --- Mobile Navbar --- */}
-{/* Navbar container (always visible) */}
+{/* ---------------- Mobile Navbar ---------------- */}
 <div className="lg:hidden fixed top-0 left-0 right-0 z-50">
   <div className="flex items-center justify-between px-4 h-16 bg-white border-b border-gray-200">
     {/* Hamburger / X */}
@@ -230,58 +239,65 @@ export default function Navbar() {
   </div>
 </div>
 
-{/* Overlay (starts below navbar, doesn’t hide it) */}
-{menuOpen && (
-  <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 0.4 }}
-    exit={{ opacity: 0 }}
-    transition={{ duration: 0.2 }}
-    className="fixed top-16 left-0 right-0 bottom-0 bg-black z-40 pointer-events-auto"
-    onClick={() => setMenuOpen(false)}
-  />
-)}
+{/* Overlay (fixed, disables scroll) */}
+<AnimatePresence>
+  {menuOpen && (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 0.4 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed top-16 left-0 right-0 bottom-0 bg-black z-40"
+      onClick={() => setMenuOpen(false)}
+    />
+  )}
+</AnimatePresence>
 
-{/* Dropdown Menu */}
-<motion.div
-  initial={{ scaleY: 0, opacity: 0 }}
-  animate={menuOpen ? { scaleY: 1, opacity: 1 } : { scaleY: 0, opacity: 0 }}
-  transition={{ duration: 0.18, ease: "easeOut" }}
-  className={`absolute top-16 left-0 w-full origin-top bg-white 
-    border-b border-gray-200 shadow-lg z-50 
-    ${menuOpen ? "pointer-events-auto" : "pointer-events-none"}`}
->
-  <motion.ul
-    initial="hidden"
-    animate={menuOpen ? "show" : "hidden"}
-    variants={{
-      hidden: {},
-      show: { transition: { staggerChildren: 0.03 } },
-    }}
-    className="flex flex-col px-6 py-4"
-  >
-    {[
-      { name: "Home", href: "/" },
-      { name: "Upload File", href: "/upload" },
-      { name: "Your Files", href: "/jobs" },
-      { name: "Plans & Billing", href: "/billing" },
-    ].map((item) => (
-      <motion.li
-        key={item.name}
+{/* Dropdown Menu (fixed under navbar) */}
+<AnimatePresence>
+  {menuOpen && (
+    <motion.div
+      initial={{ scaleY: 0, opacity: 0 }}
+      animate={{ scaleY: 1, opacity: 1 }}
+      exit={{ scaleY: 0, opacity: 0 }}
+      transition={{ duration: 0.18, ease: "easeOut" }}
+      className="fixed top-16 left-0 right-0 bg-white border-b border-gray-200 shadow-lg z-50 origin-top"
+    >
+      <motion.ul
+        initial="hidden"
+        animate="show"
+        exit="hidden"
         variants={{
-          hidden: { opacity: 0, y: -5 },
-          show: { opacity: 1, y: 0 },
+          hidden: {},
+          show: { transition: { staggerChildren: 0.03 } },
         }}
-        transition={{ duration: 0.15 }}
-        className="py-3 text-base font-medium text-gray-800 border-b last:border-0 border-gray-100"
+        className="flex flex-col px-6 py-4"
       >
-        <Link href={item.href} onClick={() => setMenuOpen(false)}>
-          {item.name}
-        </Link>
-      </motion.li>
-    ))}
-  </motion.ul>
-</motion.div>
+        {[
+          { name: "Home", href: "/" },
+          { name: "Upload File", href: "/upload" },
+          { name: "Your Files", href: "/jobs" },
+          { name: "Plans & Billing", href: "/billing" },
+        ].map((item) => (
+          <motion.li
+            key={item.name}
+            variants={{
+              hidden: { opacity: 0, y: -5 },
+              show: { opacity: 1, y: 0 },
+            }}
+            transition={{ duration: 0.15 }}
+            className="py-3 text-base font-medium text-gray-800 border-b last:border-0 border-gray-100"
+          >
+            <Link href={item.href} onClick={() => setMenuOpen(false)}>
+              {item.name}
+            </Link>
+          </motion.li>
+        ))}
+      </motion.ul>
+    </motion.div>
+  )}
+</AnimatePresence>
+
 
     </>
   );

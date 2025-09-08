@@ -5,6 +5,7 @@ import { useRouter } from "next/router";
 import { API_URL } from "../../lib/api";
 import { useAuth } from "../../lib/AuthProvider";
 import { Download } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Job {
   id: string;
@@ -94,7 +95,8 @@ export default function JobsPage() {
   }
 
   return (
-    <div className="p-12 font-sans max-w-5xl mx-auto">
+    <>
+    <div className="hidden md:block p-12 font-sans max-w-5xl mx-auto">
       <h1 className="text-3xl font-bold mb-10 text-gray-900 tracking-tight">
         Past Files
       </h1>
@@ -210,5 +212,97 @@ export default function JobsPage() {
         </div>
       )}
     </div>
+    
+    {/* ---------------- Mobile Jobs Page ---------------- */}
+{/* ---------------- Mobile Layout ---------------- */}
+      <div className="block md:hidden px-4 pt-4 pb-16 font-sans">
+        <h1 className="text-xl font-semibold text-gray-900 text-center mb-6">
+          Past Files
+        </h1>
+        <p className="text-sm text-gray-500 text-center mb-6">
+          Your recent file generations
+        </p>
+
+        {jobs.length === 0 ? (
+          <div className="text-gray-500 text-center text-sm">
+            No past files found.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <AnimatePresence>
+              {jobs.map((job) => (
+                <motion.div
+                  key={job.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.25 }}
+                  onClick={() => router.push(`/jobs/${job.id}`)}
+                  className="rounded-xl bg-white border shadow-sm p-4 flex flex-col gap-3 cursor-pointer active:scale-[0.98] transition-transform"
+                >
+                  {/* Filename */}
+                  <span className="text-gray-900 font-medium text-sm truncate">
+                    {job.filename}
+                  </span>
+
+                  {/* Status + Button */}
+                  <div className="flex items-center justify-between">
+                    {job.status === "succeeded" ? (
+                      <span className="px-2 py-1 rounded-full bg-green-50 text-emerald-600 font-medium text-xs">
+                        Done
+                      </span>
+                    ) : job.status === "failed" ? (
+                      <span className="px-2 py-1 rounded-full bg-red-50 text-red-600 font-medium text-xs">
+                        Failed
+                      </span>
+                    ) : (
+                      <span className="text-xs text-gray-500">Processing…</span>
+                    )}
+
+                    {job.status === "succeeded" ? (
+                      <motion.button
+                        whileTap={{ scale: 0.92 }}
+                        whileHover={{ scale: 1.03 }}
+                        onClick={(e) => handleDownload(job, e)}
+                        className="px-4 py-2 rounded-lg text-sm font-semibold text-white shadow-sm transition-all duration-200"
+                        style={{
+                          background: "linear-gradient(#3a3a3a, #1a1a1a)",
+                        }}
+                      >
+                        Download
+                      </motion.button>
+                    ) : (
+                      <span className="text-gray-400 text-xs">—</span>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+
+            {/* Load More */}
+            {hasMore && (
+              <div className="flex justify-center mt-6">
+                <motion.button
+                  whileTap={{ scale: 0.94 }}
+                  whileHover={{ scale: 1.04 }}
+                  onClick={() => {
+                    setLoadingMore(true);
+                    fetchJobs(offset, false);
+                  }}
+                  disabled={loadingMore}
+                  className="px-6 py-3 rounded-full font-semibold text-white text-[14px] shadow-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    background: "linear-gradient(#444, #1c1c1c)",
+                  }}
+                >
+                  {loadingMore ? "Loading…" : "Show More Files"}
+                </motion.button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    
+    </>
   );
 }
