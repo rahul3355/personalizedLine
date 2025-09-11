@@ -24,6 +24,7 @@ export default function Navbar() {
   const router = useRouter();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [shinePlayed, setShinePlayed] = useState(false);
 
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -74,14 +75,33 @@ export default function Navbar() {
       <div className="hidden lg:flex fixed top-0 left-0 h-screen w-60 bg-white border-r border-gray-100 flex-col font-sans z-50">
         {/* Top Section: Logo */}
         <div className="p-6 border-b border-gray-100">
-          <Image
-            src={logo}
-            alt="AuthorityPoint Logo"
-            width={180}
-            height={40}
-            priority
-            className="transition duration-500 ease-in-out hover:scale-105 hover:brightness-110 hover:drop-shadow-md"
-          />
+          <div
+            className="relative group w-[180px] h-[40px] cursor-pointer"
+            onMouseEnter={() => {
+              if (!shinePlayed) setShinePlayed(true);
+            }}
+          >
+            {/* Logo image */}
+            <Image
+              src={logo}
+              alt="AuthorityPoint Logo"
+              fill
+              
+            />
+
+            {/* Shimmer overlay, only triggers once */}
+            {shinePlayed && (
+              <motion.div
+                key="shine"
+                className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-transparent via-white to-transparent"
+                initial={{ x: "-100%" }}
+                animate={{ x: "100%" }}
+                transition={{ duration: 1.5, ease: "easeInOut" }}
+                style={{ mixBlendMode: "screen" }}
+              />
+            )}
+          </div>
+
         </div>
 
         {/* Middle Section: Nav Links */}

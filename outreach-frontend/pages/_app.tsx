@@ -4,6 +4,8 @@ import Navbar from "../components/Navbar";
 import { AuthProvider, useAuth } from "../lib/AuthProvider";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
+import AuthorityPointLoader from "../components/AuthorityPointLoader";
+import InlineLoader from "@/components/InlineLoader";
 
 interface LayoutProps {
   Component: AppProps["Component"];
@@ -39,9 +41,7 @@ function Layout({ Component, pageProps }: LayoutProps) {
   // Block render until session is resolved
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        Loading...
-      </div>
+      <AuthorityPointLoader/>
     );
   }
 
@@ -51,11 +51,18 @@ function Layout({ Component, pageProps }: LayoutProps) {
 
       {session && <Navbar />}
       <main
-        className={`flex-1 p-8 transition-all duration-200 ${session ? "md:ml-60 mt-16" : ""
-          }`}
-      >
-        {pageLoading ? <div>Loading page...</div> : <Component {...pageProps} />}
-      </main>
+  className={`flex-1 p-8 transition-all duration-200 ${
+    session ? "md:ml-60 mt-16" : ""
+  }`}
+>
+  {pageLoading ? (
+    <div className="flex-1 flex items-center justify-center">
+      <InlineLoader />
+    </div>
+  ) : (
+    <Component {...pageProps} />
+  )}
+</main>
     </div>
   );
 

@@ -3,15 +3,16 @@
 import { useAuth } from "../lib/AuthProvider";
 import { buyCredits } from "../lib/api";
 import { CreditCard } from "lucide-react";
+import InlineLoader from "@/components/InlineLoader";
 
 export default function Home() {
   const { session, loading, userInfo } = useAuth();
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-gray-500 text-sm">Loading...</p>
-      </div>
+      <div className="flex-1 flex items-center justify-center">
+      <InlineLoader />
+    </div>
     );
   }
 

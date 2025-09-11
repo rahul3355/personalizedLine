@@ -6,6 +6,7 @@ import { API_URL } from "../../lib/api";
 import { useAuth } from "../../lib/AuthProvider";
 import { Download } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import InlineLoader from "../../components/InlineLoader";
 
 interface Job {
   id: string;
@@ -34,13 +35,13 @@ export default function JobsPage() {
   }, [session]);
 
   // ⬇️ add this right below your first useEffect in JobsPage
- useEffect(() => {
-  if (!session) return;
-  const interval = setInterval(() => {
-    refreshJobs(); // silent refresh, no flicker
-  }, 2000);
-  return () => clearInterval(interval);
-}, [session]);
+  useEffect(() => {
+    if (!session) return;
+    const interval = setInterval(() => {
+      refreshJobs(); // silent refresh, no flicker
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [session]);
 
 
 
@@ -80,18 +81,18 @@ export default function JobsPage() {
   }
 
   async function refreshJobs() {
-  if (!session) return;
-  try {
-    const res = await fetch(`${API_URL}/jobs?offset=0&limit=5`, {
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    });
-    if (!res.ok) throw new Error("Failed to refresh jobs");
-    const data: Job[] = await res.json();
-    setJobs(data); // update without touching loading state
-  } catch (err) {
-    console.error("Error refreshing jobs:", err);
+    if (!session) return;
+    try {
+      const res = await fetch(`${API_URL}/jobs?offset=0&limit=5`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (!res.ok) throw new Error("Failed to refresh jobs");
+      const data: Job[] = await res.json();
+      setJobs(data); // update without touching loading state
+    } catch (err) {
+      console.error("Error refreshing jobs:", err);
+    }
   }
-}
 
   async function handleDownload(job: Job, e: React.MouseEvent) {
     e.stopPropagation();
@@ -119,8 +120,8 @@ export default function JobsPage() {
 
   if (loading) {
     return (
-      <div className="p-12 text-center text-gray-400 animate-pulse text-lg font-sans">
-        Loading your past files...
+      <div className="flex-1 flex items-center justify-center">
+        <InlineLoader />
       </div>
     );
   }
