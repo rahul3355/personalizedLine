@@ -11,7 +11,7 @@ interface LayoutProps {
 }
 
 function Layout({ Component, pageProps }: LayoutProps) {
-  const { session } = useAuth();
+  const { session, loading } = useAuth();
   const router = useRouter();
   const [pageLoading, setPageLoading] = useState(false);
 
@@ -31,10 +31,20 @@ function Layout({ Component, pageProps }: LayoutProps) {
   }, [router]);
 
   useEffect(() => {
-    if (!session && router.pathname !== "/login") {
+    if (!loading && !session && router.pathname !== "/login") {
       router.push("/login");
     }
-  }, [session, router]);
+  }, [session, loading, router]);
+
+  // Block render until session is resolved
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        Loading...
+      </div>
+    );
+  }
+
 
   return (
     <div className="min-h-screen flex bg-gray-50">
@@ -44,10 +54,11 @@ function Layout({ Component, pageProps }: LayoutProps) {
         className={`flex-1 p-8 transition-all duration-200 ${session ? "md:ml-60 mt-16" : ""
           }`}
       >
-        <Component {...pageProps} />
+        {pageLoading ? <div>Loading page...</div> : <Component {...pageProps} />}
       </main>
     </div>
   );
+
 }
 
 export default function MyApp({ Component, pageProps }: AppProps) {

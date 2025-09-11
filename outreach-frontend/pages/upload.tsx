@@ -103,18 +103,18 @@ export default function UploadPage() {
   };
 
   const handleParseHeaders = async () => {
-  if (!file) {
-    setError("Please select a file first");
-    return;
-  }
+    if (!file) {
+      setError("Please select a file first");
+      return;
+    }
 
-  if (!session?.access_token) {
-    setError("Session not ready. Please wait a moment.");
-    return;
-  }
+    if (!session?.access_token) {
+      setError("Session not ready. Please wait a moment.");
+      return;
+    }
 
-    setLoading(true);
     setError(null);
+    setLoading(true);
 
     try {
       const userId = session?.user?.id;
@@ -283,13 +283,13 @@ export default function UploadPage() {
                 </div>
 
                 <button
-  onClick={handleParseHeaders}
-  disabled={loading || !session?.access_token}
-  className="w-full py-3 rounded-xl font-medium text-white text-[15px] tracking-tight shadow-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-  style={{ background: "linear-gradient(#444, #1c1c1c)" }}
->
-  {loading ? "Parsing..." : "Proceed"}
-</button>
+                  onClick={handleParseHeaders}
+                  disabled={loading || !file}
+                  className="w-full py-3 rounded-xl font-medium text-white text-[15px] tracking-tight shadow-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ background: "linear-gradient(#444, #1c1c1c)" }}
+                >
+                  {loading ? "Parsing..." : "Proceed"}
+                </button>
               </div>
             )}
 
@@ -369,7 +369,7 @@ export default function UploadPage() {
               </div>
             )}
 
-            
+
 
             {/* Step 2: Confirm Service */}
             {step === 2 && !jobCreated && (
@@ -419,179 +419,178 @@ export default function UploadPage() {
         </div>
       </div>
 
-{/* Mobile Upload Section */}
-{step === 0 && !jobCreated && (
-  <div className="block md:hidden w-full h-[calc(100vh-159px)] px-4 flex items-center justify-center overflow-hidden relative -mt-[64px] pt-[64px]">
-    <div className="max-w-md w-full space-y-6 mt-0">
-      <h1 className="text-xl font-semibold text-gray-900 text-center">
-        Upload Outreach File
-      </h1>
-      <p className="text-gray-500 text-sm text-center">
-        Import your CSV/XLSX to begin personalization.
-      </p>
+      {/* Mobile Upload Section */}
+      {step === 0 && !jobCreated && (
+        <div className="block md:hidden w-full h-[calc(100vh-159px)] px-4 flex items-center justify-center overflow-hidden relative -mt-[64px] pt-[64px]">
+          <div className="max-w-md w-full space-y-6 mt-0">
+            <h1 className="text-xl font-semibold text-gray-900 text-center">
+              Upload Outreach File
+            </h1>
+            <p className="text-gray-500 text-sm text-center">
+              Import your CSV/XLSX to begin personalization.
+            </p>
 
-      <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6 text-center">
-        <div
-          onDragEnter={handleDrag}
-          onDragLeave={handleDrag}
-          onDragOver={handleDrag}
-          onDrop={handleDrop}
-          className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl py-12 transition ${
-            dragActive
-              ? "border-gray-900 bg-gray-50"
-              : "border-gray-200 bg-gray-50/50"
-          }`}
-        >
-          <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer">
-            <input
-              type="file"
-              accept=".csv,.xlsx"
-              className="hidden"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-            />
-            <Upload className="h-10 w-10 text-gray-400 mb-3" />
-            {file ? (
-              <span className="text-gray-700 font-medium">{file.name}</span>
-            ) : (
-              <span className="text-gray-400 text-sm">Tap to upload file</span>
-            )}
-          </label>
-        </div>
-
-        <button
-          onClick={handleParseHeaders}
-          disabled={loading}
-          className="w-full mt-6 py-3 rounded-xl font-medium text-white text-[15px] tracking-tight shadow-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ background: "linear-gradient(#444, #1c1c1c)" }}
-        >
-          {loading ? "Parsing..." : "Proceed"}
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
-{/* Mobile Confirm Headers Section */}
-{step === 1 && !jobCreated && (
-  <div className="block md:hidden w-full h-[calc(100vh-69px)] px-4 flex items-start justify-center overflow-hidden relative -mt-[64px] pt-[64px]">
-    <div className="max-w-md w-full space-y-6">
-      <h2 className="text-lg font-semibold text-gray-900 text-center">
-        Confirm Headers
-      </h2>
-      
-
-      <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6 space-y-4">
-        {[
-          {
-            label: "Company Column",
-            value: companyCol,
-            setValue: setCompanyCol,
-            icon: <Building2 className="h-4 w-4 text-gray-400" />,
-          },
-          {
-            label: "Description Column",
-            value: descCol,
-            setValue: setDescCol,
-            icon: <FileText className="h-4 w-4 text-gray-400" />,
-          },
-          {
-            label: "Industry Column",
-            value: industryCol,
-            setValue: setIndustryCol,
-            icon: <Briefcase className="h-4 w-4 text-gray-400" />,
-          },
-          {
-            label: "Title Column",
-            value: titleCol,
-            setValue: setTitleCol,
-            icon: <Tag className="h-4 w-4 text-gray-400" />,
-          },
-          {
-            label: "Size Column",
-            value: sizeCol,
-            setValue: setSizeCol,
-            icon: <Users className="h-4 w-4 text-gray-400" />,
-          },
-        ].map((field) => (
-          <div key={field.label} className="space-y-1">
-            <label className="text-xs text-gray-500 block">{field.label}</label>
-            <div className="flex items-center gap-2">
-              {field.icon}
-              <select
-                className="flex-1 rounded-lg border border-gray-200 bg-gray-100 shadow-inner focus:ring-2 focus:ring-gray-900 focus:border-gray-900 px-3 py-2 text-gray-700 text-sm transition-all"
-                value={field.value}
-                onChange={(e) => field.setValue(e.target.value)}
+            <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6 text-center">
+              <div
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+                className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl py-12 transition ${dragActive
+                    ? "border-gray-900 bg-gray-50"
+                    : "border-gray-200 bg-gray-50/50"
+                  }`}
               >
-                {headers.map((h) => (
-                  <option key={h} value={h}>
-                    {h}
-                  </option>
-                ))}
-              </select>
+                <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer">
+                  <input
+                    type="file"
+                    accept=".csv,.xlsx"
+                    className="hidden"
+                    onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  />
+                  <Upload className="h-10 w-10 text-gray-400 mb-3" />
+                  {file ? (
+                    <span className="text-gray-700 font-medium">{file.name}</span>
+                  ) : (
+                    <span className="text-gray-400 text-sm">Tap to upload file</span>
+                  )}
+                </label>
+              </div>
+
+              <button
+                onClick={handleParseHeaders}
+                disabled={loading}
+                className="w-full mt-6 py-3 rounded-xl font-medium text-white text-[15px] tracking-tight shadow-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ background: "linear-gradient(#444, #1c1c1c)" }}
+              >
+                {loading ? "Parsing..." : "Proceed"}
+              </button>
             </div>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
 
-      <button
-        onClick={handleConfirmHeaders}
-        disabled={loading}
-        className="w-full py-3 rounded-xl font-medium text-white text-[15px] tracking-tight shadow-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-        style={{ background: "linear-gradient(#444, #1c1c1c)" }}
-      >
-        {loading ? "Submitting..." : "Confirm Headers"}
-      </button>
-    </div>
-  </div>
+      {/* Mobile Confirm Headers Section */}
+      {step === 1 && !jobCreated && (
+        <div className="block md:hidden w-full h-[calc(100vh-69px)] px-4 flex items-start justify-center overflow-hidden relative -mt-[64px] pt-[64px]">
+          <div className="max-w-md w-full space-y-6">
+            <h2 className="text-lg font-semibold text-gray-900 text-center">
+              Confirm Headers
+            </h2>
 
-  
-)}
 
-{/* Mobile Confirm Service Section */}
-{step === 2 && !jobCreated && (
-  <div className="block md:hidden w-full h-[calc(100vh-69px)] px-4 flex items-start justify-center pt-[64px]">
-  <div className="max-w-md w-full space-y-6">
-    <h2 className="text-lg font-semibold text-gray-900 text-center">
-      Describe Your Service
-    </h2>
+            <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6 space-y-4">
+              {[
+                {
+                  label: "Company Column",
+                  value: companyCol,
+                  setValue: setCompanyCol,
+                  icon: <Building2 className="h-4 w-4 text-gray-400" />,
+                },
+                {
+                  label: "Description Column",
+                  value: descCol,
+                  setValue: setDescCol,
+                  icon: <FileText className="h-4 w-4 text-gray-400" />,
+                },
+                {
+                  label: "Industry Column",
+                  value: industryCol,
+                  setValue: setIndustryCol,
+                  icon: <Briefcase className="h-4 w-4 text-gray-400" />,
+                },
+                {
+                  label: "Title Column",
+                  value: titleCol,
+                  setValue: setTitleCol,
+                  icon: <Tag className="h-4 w-4 text-gray-400" />,
+                },
+                {
+                  label: "Size Column",
+                  value: sizeCol,
+                  setValue: setSizeCol,
+                  icon: <Users className="h-4 w-4 text-gray-400" />,
+                },
+              ].map((field) => (
+                <div key={field.label} className="space-y-1">
+                  <label className="text-xs text-gray-500 block">{field.label}</label>
+                  <div className="flex items-center gap-2">
+                    {field.icon}
+                    <select
+                      className="flex-1 rounded-lg border border-gray-200 bg-gray-100 shadow-inner focus:ring-2 focus:ring-gray-900 focus:border-gray-900 px-3 py-2 text-gray-700 text-sm transition-all"
+                      value={field.value}
+                      onChange={(e) => field.setValue(e.target.value)}
+                    >
+                      {headers.map((h) => (
+                        <option key={h} value={h}>
+                          {h}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              ))}
+            </div>
 
-    <textarea
-      value={service}
-      onChange={(e) => setService(e.target.value)}
-      placeholder="e.g. Lead generation services (appointment setting, outbound campaigns)"
-      className="w-full rounded-xl border border-black bg-white text-gray-900 text-[15px] px-4 py-3 resize-none 
+            <button
+              onClick={handleConfirmHeaders}
+              disabled={loading}
+              className="w-full py-3 rounded-xl font-medium text-white text-[15px] tracking-tight shadow-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ background: "linear-gradient(#444, #1c1c1c)" }}
+            >
+              {loading ? "Submitting..." : "Confirm Headers"}
+            </button>
+          </div>
+        </div>
+
+
+      )}
+
+      {/* Mobile Confirm Service Section */}
+      {step === 2 && !jobCreated && (
+        <div className="block md:hidden w-full h-[calc(100vh-69px)] px-4 flex items-start justify-center pt-[64px]">
+          <div className="max-w-md w-full space-y-6">
+            <h2 className="text-lg font-semibold text-gray-900 text-center">
+              Describe Your Service
+            </h2>
+
+            <textarea
+              value={service}
+              onChange={(e) => setService(e.target.value)}
+              placeholder="e.g. Lead generation services (appointment setting, outbound campaigns)"
+              className="w-full rounded-xl border border-black bg-white text-gray-900 text-[15px] px-4 py-3 resize-none 
                  focus:outline-none focus:ring-2 focus:ring-[#007AFF] focus:border-[#007AFF] transition-colors duration-200"
-      rows={7}
-    />
+              rows={7}
+            />
 
-    <button
-      onClick={handleCreateJob}
-      disabled={loading}
-      className="w-full py-3 rounded-xl font-medium text-white text-[15px] tracking-tight shadow-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-      style={{ background: "linear-gradient(#444, #1c1c1c)" }}
-    >
-      {loading ? "Submitting..." : "Start Generating"}
-    </button>
-  </div>
-</div>
-)}
+            <button
+              onClick={handleCreateJob}
+              disabled={loading}
+              className="w-full py-3 rounded-xl font-medium text-white text-[15px] tracking-tight shadow-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ background: "linear-gradient(#444, #1c1c1c)" }}
+            >
+              {loading ? "Submitting..." : "Start Generating"}
+            </button>
+          </div>
+        </div>
+      )}
 
-{/* Mobile Success Section (Confetti + Redirect) */}
-{jobCreated && (
-  <div className="block md:hidden w-full h-[calc(100vh-69px)] px-4 flex flex-col items-center justify-center pt-[64px]">
-    <Lottie
-      animationData={confettiAnim}
-      loop={false}
-      style={{ width: 200, height: 200 }}
-    />
-    <p className="mt-4 text-lg font-semibold text-green-600 text-center">
-      Job Created Successfully!
-    </p>
-    <p className="text-sm text-gray-500 text-center">
-      Redirecting to Your Files...
-    </p>
-  </div>
-)}
+      {/* Mobile Success Section (Confetti + Redirect) */}
+      {jobCreated && (
+        <div className="block md:hidden w-full h-[calc(100vh-69px)] px-4 flex flex-col items-center justify-center pt-[64px]">
+          <Lottie
+            animationData={confettiAnim}
+            loop={false}
+            style={{ width: 200, height: 200 }}
+          />
+          <p className="mt-4 text-lg font-semibold text-green-600 text-center">
+            Job Created Successfully!
+          </p>
+          <p className="text-sm text-gray-500 text-center">
+            Redirecting to Your Files...
+          </p>
+        </div>
+      )}
 
 
 

@@ -44,33 +44,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
-      if (data.session?.user) {
-        fetchUserInfo(data.session);
-      }
-      setLoading(false);
-    });
+ useEffect(() => {
+  const init = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    setSession(session);
+    setUser(session?.user ?? null);
 
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchUserInfo(session);
-          await refreshUserInfo();
-        } else {
-          setUserInfo(null);
-        }
-      }
-    );
+    if (session?.user) {
+      await fetchUserInfo(session);
+    }
 
-    return () => {
-      listener.subscription.unsubscribe();
-    };
-  }, []);
+    setLoading(false);
+  };
+
+  init();
+
+  const { data: listener } = supabase.auth.onAuthStateChange(
+    async (_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        await fetchUserInfo(session);
+      } else {
+        setUserInfo(null);
+      }
+    }
+  );
+
+  return () => {
+    listener.subscription.unsubscribe();
+  };
+}, []);
 
   const fetchUserInfo = async (session: Session | null) => {
     if (!session?.user) return;

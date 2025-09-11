@@ -27,7 +27,7 @@ export default function Navbar() {
 
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const { userInfo } = useAuth();
+  const { userInfo, loading } = useAuth();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -35,12 +35,12 @@ export default function Navbar() {
   };
 
   useEffect(() => {
-  if (menuOpen) {
-    document.body.style.overflow = "hidden";
-  } else {
-    document.body.style.overflow = "";
-  }
-}, [menuOpen]);
+    if (menuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+  }, [menuOpen]);
 
 
   // Close dropdown when clicking outside
@@ -61,8 +61,12 @@ export default function Navbar() {
 
   // Pull data from userInfo
   const credits = userInfo?.credits_remaining ?? 0;
-  const userName = userInfo?.full_name || "User";
-  const avatarUrl = userInfo?.avatar_url || null;
+  const userName = loading
+    ? ""
+    : userInfo?.full_name
+      ? userInfo.full_name
+      : "";
+  const avatarUrl = loading ? null : userInfo?.avatar_url || null;
 
   return (
     <>
@@ -84,44 +88,40 @@ export default function Navbar() {
         <div className="flex-1 flex flex-col px-4 py-6 gap-y-4">
           <Link
             href="/"
-            className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${
-              router.pathname === "/"
-                ? "bg-gray-100 text-gray-900 shadow-sm"
-                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-            }`}
+            className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${router.pathname === "/"
+              ? "bg-gray-100 text-gray-900 shadow-sm"
+              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              }`}
           >
             <FiHome className="mr-3 h-5 w-5" />
             Home
           </Link>
           <Link
             href="/upload"
-            className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${
-              router.pathname === "/upload"
-                ? "bg-gray-100 text-gray-900 shadow-sm"
-                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-            }`}
+            className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${router.pathname === "/upload"
+              ? "bg-gray-100 text-gray-900 shadow-sm"
+              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              }`}
           >
             <FiUpload className="mr-3 h-5 w-5" />
             Upload File
           </Link>
           <Link
             href="/jobs"
-            className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${
-              router.pathname === "/jobs"
-                ? "bg-gray-100 text-gray-900 shadow-sm"
-                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-            }`}
+            className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${router.pathname === "/jobs"
+              ? "bg-gray-100 text-gray-900 shadow-sm"
+              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              }`}
           >
             <FiFileText className="mr-3 h-5 w-5" />
             Your Files
           </Link>
           <Link
             href="/billing"
-            className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${
-              router.pathname === "/billing"
-                ? "bg-gray-100 text-gray-900 shadow-sm"
-                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-            }`}
+            className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${router.pathname === "/billing"
+              ? "bg-gray-100 text-gray-900 shadow-sm"
+              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              }`}
           >
             <CreditCard className="mr-3 h-5 w-5" />
             Plans & Billing
@@ -155,8 +155,10 @@ export default function Navbar() {
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
               className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition"
-            >
-              {avatarUrl ? (
+            >{loading ? (
+              <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse" />
+            ) :
+              avatarUrl ? (
                 <Image
                   src={avatarUrl}
                   alt={userName}
@@ -192,111 +194,113 @@ export default function Navbar() {
 
       {/* ---------------- Mobile Navbar ---------------- */}
       {/* --- Mobile Navbar --- */}
-{/* ---------------- Mobile Navbar ---------------- */}
-<div className="lg:hidden fixed top-0 left-0 right-0 z-50">
-  <div className="flex items-center justify-between px-4 h-16 bg-white border-b border-gray-200">
-    {/* Hamburger / X */}
-    <button
-      onClick={() => setMenuOpen(!menuOpen)}
-      className="relative w-8 h-8 flex flex-col justify-center items-center"
-    >
-      <motion.span
-        animate={menuOpen ? { rotate: 45, y: 6 } : { rotate: 0, y: 0 }}
-        transition={{ duration: 0.15 }}
-        className="block w-6 h-0.5 bg-gray-800 rounded-sm mb-1"
-      />
-      <motion.span
-        animate={menuOpen ? { opacity: 0 } : { opacity: 1 }}
-        transition={{ duration: 0.1 }}
-        className="block w-6 h-0.5 bg-gray-800 rounded-sm mb-1"
-      />
-      <motion.span
-        animate={menuOpen ? { rotate: -45, y: -6 } : { rotate: 0, y: 0 }}
-        transition={{ duration: 0.15 }}
-        className="block w-6 h-0.5 bg-gray-800 rounded-sm"
-      />
-    </button>
-
-    {/* Logo */}
-    <Image src={logo} alt="AuthorityPoint Logo" width={120} height={28} priority />
-
-    {/* Avatar */}
-    <div className="flex items-center gap-3">
-      {avatarUrl ? (
-        <Image
-          src={avatarUrl}
-          alt={userName}
-          width={32}
-          height={32}
-          className="rounded-full object-cover"
-        />
-      ) : (
-        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center font-medium text-gray-700">
-          {userName.charAt(0)}
-        </div>
-      )}
-    </div>
-  </div>
-</div>
-
-{/* Overlay (fixed, disables scroll) */}
-<AnimatePresence>
-  {menuOpen && (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 0.4 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.2 }}
-      className="fixed top-16 left-0 right-0 bottom-0 bg-black z-40"
-      onClick={() => setMenuOpen(false)}
-    />
-  )}
-</AnimatePresence>
-
-{/* Dropdown Menu (fixed under navbar) */}
-<AnimatePresence>
-  {menuOpen && (
-    <motion.div
-      initial={{ scaleY: 0, opacity: 0 }}
-      animate={{ scaleY: 1, opacity: 1 }}
-      exit={{ scaleY: 0, opacity: 0 }}
-      transition={{ duration: 0.18, ease: "easeOut" }}
-      className="fixed top-16 left-0 right-0 bg-white border-b border-gray-200 shadow-lg z-50 origin-top"
-    >
-      <motion.ul
-        initial="hidden"
-        animate="show"
-        exit="hidden"
-        variants={{
-          hidden: {},
-          show: { transition: { staggerChildren: 0.03 } },
-        }}
-        className="flex flex-col px-6 py-4"
-      >
-        {[
-          { name: "Home", href: "/" },
-          { name: "Upload File", href: "/upload" },
-          { name: "Your Files", href: "/jobs" },
-          { name: "Plans & Billing", href: "/billing" },
-        ].map((item) => (
-          <motion.li
-            key={item.name}
-            variants={{
-              hidden: { opacity: 0, y: -5 },
-              show: { opacity: 1, y: 0 },
-            }}
-            transition={{ duration: 0.15 }}
-            className="py-3 text-base font-medium text-gray-800 border-b last:border-0 border-gray-100"
+      {/* ---------------- Mobile Navbar ---------------- */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50">
+        <div className="flex items-center justify-between px-4 h-16 bg-white border-b border-gray-200">
+          {/* Hamburger / X */}
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="relative w-8 h-8 flex flex-col justify-center items-center"
           >
-            <Link href={item.href} onClick={() => setMenuOpen(false)}>
-              {item.name}
-            </Link>
-          </motion.li>
-        ))}
-      </motion.ul>
-    </motion.div>
-  )}
-</AnimatePresence>
+            <motion.span
+              animate={menuOpen ? { rotate: 45, y: 6 } : { rotate: 0, y: 0 }}
+              transition={{ duration: 0.15 }}
+              className="block w-6 h-0.5 bg-gray-800 rounded-sm mb-1"
+            />
+            <motion.span
+              animate={menuOpen ? { opacity: 0 } : { opacity: 1 }}
+              transition={{ duration: 0.1 }}
+              className="block w-6 h-0.5 bg-gray-800 rounded-sm mb-1"
+            />
+            <motion.span
+              animate={menuOpen ? { rotate: -45, y: -6 } : { rotate: 0, y: 0 }}
+              transition={{ duration: 0.15 }}
+              className="block w-6 h-0.5 bg-gray-800 rounded-sm"
+            />
+          </button>
+
+          {/* Logo */}
+          <Image src={logo} alt="AuthorityPoint Logo" width={120} height={28} priority />
+
+          {/* Avatar */}
+          <div className="flex items-center gap-3">
+            {loading ? (
+              <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse" />
+            ) : avatarUrl ? (
+              <Image
+                src={avatarUrl}
+                alt={userName}
+                width={32}
+                height={32}
+                className="rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center font-medium text-gray-700">
+                {userName.charAt(0)}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Overlay (fixed, disables scroll) */}
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.4 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed top-16 left-0 right-0 bottom-0 bg-black z-40"
+            onClick={() => setMenuOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Dropdown Menu (fixed under navbar) */}
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.div
+            initial={{ scaleY: 0, opacity: 0 }}
+            animate={{ scaleY: 1, opacity: 1 }}
+            exit={{ scaleY: 0, opacity: 0 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            className="fixed top-16 left-0 right-0 bg-white border-b border-gray-200 shadow-lg z-50 origin-top"
+          >
+            <motion.ul
+              initial="hidden"
+              animate="show"
+              exit="hidden"
+              variants={{
+                hidden: {},
+                show: { transition: { staggerChildren: 0.03 } },
+              }}
+              className="flex flex-col px-6 py-4"
+            >
+              {[
+                { name: "Home", href: "/" },
+                { name: "Upload File", href: "/upload" },
+                { name: "Your Files", href: "/jobs" },
+                { name: "Plans & Billing", href: "/billing" },
+              ].map((item) => (
+                <motion.li
+                  key={item.name}
+                  variants={{
+                    hidden: { opacity: 0, y: -5 },
+                    show: { opacity: 1, y: 0 },
+                  }}
+                  transition={{ duration: 0.15 }}
+                  className="py-3 text-base font-medium text-gray-800 border-b last:border-0 border-gray-100"
+                >
+                  <Link href={item.href} onClick={() => setMenuOpen(false)}>
+                    {item.name}
+                  </Link>
+                </motion.li>
+              ))}
+            </motion.ul>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
 
     </>
