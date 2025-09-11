@@ -60,6 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
       if (session?.user) {
         await fetchUserInfo(session);
+        await refreshUserInfo();
       } else {
         setUserInfo(null);
       }
@@ -72,43 +73,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 }, []);
 
   const fetchUserInfo = async (session: Session | null) => {
-    if (!session?.user) return;
+  if (!session?.user) return;
 
-    try {
-      const { data: profile, error } = await supabase
-        .from("profiles")
-        .select("id, plan_type, subscription_status, renewal_date, credits_remaining")
-        .eq("id", session.user.id)
-        .single();
+  const userId = session.user.id;
+  const email = session.user.email || "";
+  const fullName =
+    session.user.user_metadata?.full_name ||
+    session.user.user_metadata?.name ||
+    email.split("@")[0] || "User";
+  const avatarUrl =
+    session.user.user_metadata?.avatar_url ||
+    session.user.user_metadata?.picture ||
+    null;
 
-      if (error || !profile) {
-        console.error("Profile fetch error:", error);
-        return;
-      }
-
-      const merged: UserInfo = {
-        id: profile.id,
-        email: session.user.email || "",
-        credits_remaining: profile.credits_remaining ?? 0,
-        max_credits: 5000, // fallback until you add a max_credits column
-        user: {
-          plan_type: profile.plan_type,
-          subscription_status: profile.subscription_status,
-          renewal_date: profile.renewal_date,
+  try {
+    // 🔥 Upsert into profiles every time user logs in
+    const { data: profile, error } = await supabase
+      .from("profiles")
+      .upsert(
+        {
+          id: userId,
+          email,
+          full_name: fullName,
+          avatar_url: avatarUrl,
+          plan_type: "free",                // default plan
+          subscription_status: "inactive",  // default state
+          credits_remaining: 0,             // default balance
+          max_credits: 0,                   // default max
+          created_at: new Date().toISOString(),
         },
-        full_name:
-          session.user.user_metadata?.full_name ||
-          session.user.email ||
-          "User",
-        avatar_url: session.user.user_metadata?.avatar_url || null,
-        ledger: [],
-      };
+        { onConflict: "id" }
+      )
+      .select()
+      .single();
 
-      setUserInfo(merged);
-    } catch (err) {
-      console.error("Failed to fetch user info", err);
+    if (error) {
+      console.error("Profile upsert error:", error);
+      return;
     }
-  };
+
+    setUserInfo({
+      id: profile.id,
+      email,
+      credits_remaining: profile.credits_remaining ?? 0,
+      max_credits: profile.max_credits ?? 0,
+      user: {
+        plan_type: profile.plan_type,
+        subscription_status: profile.subscription_status,
+        renewal_date: profile.renewal_date,
+      },
+      full_name: profile.full_name,
+      avatar_url: profile.avatar_url,
+      ledger: [],
+    });
+  } catch (err) {
+    console.error("Failed to fetch/upsert user info", err);
+  }
+};
+
 
   const refreshUserInfo = async () => {
     if (session) {
