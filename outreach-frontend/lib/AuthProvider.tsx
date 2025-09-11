@@ -44,9 +44,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
 
- useEffect(() => {
+useEffect(() => {
+  let mounted = true;
+
   const init = async () => {
     const { data: { session } } = await supabase.auth.getSession();
+    if (!mounted) return;
+
     setSession(session);
     setUser(session?.user ?? null);
 
@@ -59,20 +63,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   init();
 
-  const { data: listener } = supabase.auth.onAuthStateChange(
-    async (_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await fetchUserInfo(session);
-      } else {
-        setUserInfo(null);
-      }
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    if (!mounted) return;
+    setSession(session);
+    setUser(session?.user ?? null);
+
+    if (session?.user) {
+      await fetchUserInfo(session);
+    } else {
+      setUserInfo(null);
     }
-  );
+
+    setLoading(false); // important: also update here
+  });
 
   return () => {
-    listener.subscription.unsubscribe();
+    mounted = false;
+    subscription.unsubscribe();
   };
 }, []);
 

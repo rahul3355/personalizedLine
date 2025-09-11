@@ -1,0 +1,12 @@
+{
+  "extends": "./outreach-frontend/tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "esModuleInterop": true
+  },
+  "include": [
+    "outreach-frontend/**/*",
+    "__tests__/**/*",
+    "jest.d.ts"
+  ]
+}

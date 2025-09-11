@@ -165,18 +165,7 @@ export default function JobsPage() {
                     <div className="flex flex-col gap-2 items-center w-full max-w-sm">
                       <div className="flex items-center gap-3 w-full">
                         <div className="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden relative">
-                          {job.progress && job.progress > 0 ? (
-                            <div
-                              className="h-2 rounded-full transition-all duration-500 ease-out"
-                              style={{
-                                width: `${job.progress}%`,
-                                background:
-                                  "linear-gradient(to right, #000, #333, #000)",
-                              }}
-                            />
-                          ) : (
-                            <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-gray-300 via-gray-200 to-gray-300" />
-                          )}
+                          <ProgressBar target={job.progress ?? 0} />
                         </div>
                         <span className="text-xs text-gray-500 font-medium min-w-[3rem] text-right">
                           {job.progress && job.progress > 0
@@ -335,5 +324,35 @@ export default function JobsPage() {
       </div>
 
     </>
+  );
+}
+
+function ProgressBar({ target }: { target: number }) {
+  const [displayed, setDisplayed] = useState(0);
+
+  useEffect(() => {
+    if (target > displayed) {
+      const step = () => {
+        setDisplayed((prev) => {
+          if (prev >= target) return prev;
+          const next = prev + Math.max(1, (target - prev) / 20);
+          return Math.min(next, target);
+        });
+      };
+      const id = setInterval(step, 200); // smooth increments
+      return () => clearInterval(id);
+    }
+  }, [target, displayed]);
+
+  return (
+    <div className="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden relative">
+      <div
+        className="h-2 rounded-full transition-all duration-300 ease-linear"
+        style={{
+          width: `${displayed}%`,
+          background: "linear-gradient(to right, #000, #333, #000)",
+        }}
+      />
+    </div>
   );
 }
