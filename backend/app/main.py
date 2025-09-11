@@ -481,11 +481,14 @@ async def create_checkout_session(data: CheckoutRequest):
         }
 
         # --- Add-on price IDs (plan specific)
+        # --- Add-on price IDs (plan specific, including free tier)
         addon_price_map = {
+            "free": os.getenv("STRIPE_PRICE_ADDON_FREE"),        # $10 per 1000
             "starter": os.getenv("STRIPE_PRICE_ADDON_STARTER"),  # $8 per 1000
             "growth": os.getenv("STRIPE_PRICE_ADDON_GROWTH"),    # $6 per 1000
             "pro": os.getenv("STRIPE_PRICE_ADDON_PRO"),          # $5 per 1000
         }
+
 
         line_items = []
         price_id = None

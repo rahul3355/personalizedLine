@@ -222,12 +222,65 @@ const handleCheckout = async (plan: string) => {
           </button>
         </div>
 
-        {/* Add-on Section */}
-        <AddonSection
-          planType={userInfo?.user?.plan_type || "free"}
-          session={session}
-          apiUrl={API_URL}
-        />
+        {/* Add-ons */}
+        <div className="relative mt-10 border border-gray-200 bg-white p-6 shadow-md rounded-lg z-10">
+          <h3 className="text-lg font-semibold text-gray-900 text-center">
+            Add-on Pricing
+          </h3>
+          <p className="mt-1 text-sm text-gray-500 text-center">
+            For <span className="font-medium text-gray-700">{currentPlan} Plan</span> —{" "}
+            <span className="text-green-600 font-medium">
+              ${userInfo?.addon_price || 5}
+            </span>{" "}
+            per 1000 lines
+          </p>
+
+          <div className="mt-6 text-center">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Select additional packs
+            </label>
+            <select
+              className="w-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-black transition"
+              onChange={(e) => setAddonCount(Number(e.target.value))}
+              value={addonCount}
+            >
+              {Array.from({ length: 100 }, (_, i) => i + 1).map((n) => (
+                <option key={n} value={n}>
+                  {n} × 1000 lines
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="mt-4 text-center">
+            <p className="text-sm font-medium text-gray-700">
+              ={" "}
+              <span className="font-semibold text-gray-900">
+                {(addonCount * 1000).toLocaleString()}
+              </span>{" "}
+              lines
+            </p>
+            <p className="mt-1 text-sm text-gray-700">
+              Total:{" "}
+              <span className="font-bold text-green-600">
+                ${(addonCount * (userInfo?.addon_price || 5)).toLocaleString()}
+              </span>
+            </p>
+          </div>
+
+          <button
+            onClick={handleBuyAddons}
+            className="mt-6 w-full py-3 font-semibold text-white bg-black border border-black text-[15px] tracking-tight rounded-lg relative overflow-hidden transition-transform duration-150 active:scale-95 hover:shadow-lg"
+          >
+            <span className="relative z-10">Buy Add-ons</span>
+            <span className="absolute inset-0 bg-white/20 opacity-0 active:opacity-100 transition-opacity duration-150"></span>
+          </button>
+        </div>
+      
+
+        
+
+        
       </div>
 
       {/* ---------------- Mobile Billing Page ---------------- */}
