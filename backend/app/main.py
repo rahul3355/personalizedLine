@@ -571,10 +571,7 @@ CREDITS_MAP = {
 }
 
 def log_db(label, res):
-    try:
-        print(f"[DB:{label}] data={getattr(res, 'data', None)} error={getattr(res, 'error', None)}")
-    except Exception as e:
-        print(f"[DB:{label}] logging failed: {e}")
+    print(f"[DB:{label}] {res}")
 
 @app.post("/stripe-webhook")
 async def stripe_webhook(request: Request, stripe_signature: str = Header(None)):
@@ -594,7 +591,7 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
     print(f"[EVENT] {event_type} id={event['id']}")
 
     def log_db(label, res):
-        print(f"[DB:{label}] data={res.data} error={res.error}")
+        print(f"[DB:{label}] {res}")
 
     if event_type == "checkout.session.completed":
         metadata = obj.get("metadata", {})
@@ -612,7 +609,7 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
             res_update = supabase.table("profiles").update({
                 "credits_remaining": new_total
             }).eq("id", user_id).execute()
-            log_db("update_profile_addon", res_update)
+            
 
             res_ledger = supabase.table("ledger").insert({
                 "user_id": user_id,
@@ -621,7 +618,7 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                 "reason": f"addon purchase x{qty}",
                 "ts": datetime.utcnow().isoformat()
             }).execute()
-            log_db("insert_ledger_addon", res_ledger)
+            
 
             print(f"[ADDON] user={user_id}, qty={qty}, credits={credits}, total={new_total}")
 

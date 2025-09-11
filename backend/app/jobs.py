@@ -337,8 +337,15 @@ def process_job(job_id: str):
             {"credits_remaining": available - total}
         ).eq("id", user_id).execute()
         supabase.table("ledger").insert(
-            {"user_id": user_id, "change": -total, "reason": f"job deduction: {job_id}"}
-        ).execute()
+    {
+        "user_id": user_id,
+        "change": -total,
+        "amount": 0.0,  # ensure non-null for deductions
+        "reason": f"job deduction: {job_id}",
+        "ts": datetime.utcnow().isoformat()  # optional, keeps timestamp consistent
+    }
+).execute()
+
         timings["setup"] = record_time("Setup (credits + DB updates)", setup_start, job_id)
 
         supabase.table("jobs").update(
