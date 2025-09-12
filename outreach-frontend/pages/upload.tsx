@@ -9,6 +9,8 @@ import { motion } from "framer-motion";
 import Lottie from "lottie-react";
 import confettiAnim from "../public/confetti.json";
 import { supabase } from "../lib/supabaseClient";
+import BlackUploadButton from "../components/BlackUploadButton";
+
 
 
 const StepTracker = ({ step, jobCreated }: { step: number; jobCreated: boolean }) => {
@@ -102,120 +104,139 @@ export default function UploadPage() {
     setSizeCol(findMatch(["employee count", "size", "headcount", "staff"]));
   };
 
-  const handleParseHeaders = async () => {
-    if (!file) {
-      setError("Please select a file first");
-      return;
+ const handleParseHeaders = async (): Promise<boolean> => {
+  if (!file) {
+    setError("Please select a file first");
+    return false;
+  }
+
+  if (!session?.access_token) {
+    setError("Session not ready. Please wait a moment.");
+    return false;
+  }
+
+  setError(null);
+  setLoading(true);
+
+  try {
+    const userId = session?.user?.id;
+    if (!userId) throw new Error("User not authenticated");
+
+    // 1. Upload file to Supabase
+    const storagePath = `${userId}/${Date.now()}_${file.name}`;
+    const { error: uploadError } = await supabase.storage
+      .from("inputs")
+      .upload(storagePath, file, { upsert: true });
+
+    if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+    console.log("[Upload] File uploaded:", storagePath);
+
+    // 2. Tell backend to parse
+    const res = await fetch(`${API_URL}/parse_headers`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ file_path: storagePath, user_id: userId }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Backend failed: ${res.status} - ${errText}`);
     }
 
-    if (!session?.access_token) {
-      setError("Session not ready. Please wait a moment.");
-      return;
+    const data = await res.json();
+    if (!data.headers || !Array.isArray(data.headers)) {
+      throw new Error("Invalid headers received from backend");
     }
 
-    setError(null);
-    setLoading(true);
+    setHeaders(data.headers);
+    setTempPath(data.file_path);
+    autoMapHeaders(data.headers);
+    console.log("[Upload] Headers parsed:", data.headers);
+    setTimeout(() => {
+  setStep(1);
+}, 500);
 
-    try {
-      const userId = session?.user?.id;
-      if (!userId) throw new Error("User not authenticated");
+    return true; // ✅ success
+  } catch (err: any) {
+    console.error("[Upload] ParseHeaders error:", err);
+    setError(err.message || "Something went wrong");
+    return false; // ❌ failure
+  } finally {
+    setLoading(false);
+  }
+};
 
-      // 1. Upload file directly to Supabase
-      const storagePath = `${userId}/${Date.now()}_${file.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from("inputs")
-        .upload(storagePath, file, { upsert: true });
+  const handleConfirmHeaders = async (): Promise<boolean> => {
+  if (!companyCol || !descCol || !industryCol || !titleCol || !sizeCol) {
+    setError("Please select all required columns");
+    return false;
+  }
 
-      if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
-      console.log("[Upload] File uploaded:", storagePath);
+  setError(null);
 
-      // 2. Tell backend to parse it
-      const res = await fetch(`${API_URL}/parse_headers`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ file_path: storagePath, user_id: userId }),
-      });
-
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`Backend failed: ${res.status} - ${errText}`);
-      }
-
-      const data = await res.json();
-      if (!data.headers || !Array.isArray(data.headers)) {
-        throw new Error("Invalid headers received from backend");
-      }
-
-      setHeaders(data.headers);
-      setTempPath(data.file_path);
-      autoMapHeaders(data.headers);
-
-      console.log("[Upload] Headers parsed:", data.headers);
-      setStep(1);
-    } catch (err: any) {
-      console.error("[Upload] ParseHeaders error:", err);
-      setError(err.message || "Something went wrong");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleConfirmHeaders = () => {
-    if (!companyCol || !descCol || !industryCol || !titleCol || !sizeCol) {
-      setError("Please select all required columns");
-      return;
-    }
-    setError(null);
+  // ✅ delay step change by 0.5s
+  setTimeout(() => {
     setStep(2);
-  };
+  }, 500);
 
-  const handleCreateJob = async () => {
-    if (!tempPath || !companyCol || !descCol || !industryCol || !titleCol || !sizeCol || !service) {
-      setError("Please complete all required fields");
-      return;
+  return true; // tell button it succeeded
+};
+  const handleCreateJob = async (): Promise<boolean> => {
+  if (!tempPath || !companyCol || !descCol || !industryCol || !titleCol || !sizeCol || !service) {
+    setError("Please complete all required fields");
+    return false;
+  }
+
+  setLoading(true);
+  setError(null);
+
+  try {
+    const payload = { 
+      user_id: session?.user.id || "",
+      file_path: tempPath,
+      company_col: companyCol,
+      desc_col: descCol,
+      industry_col: industryCol,
+      title_col: titleCol,
+      size_col: sizeCol,
+      service: service.trim() || "email outreach",
+    };
+
+    const res = await fetch(`${API_URL}/jobs`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session?.access_token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Failed: ${res.status} - ${errText}`);
     }
-    setLoading(true);
-    setError(null);
-    try {
-      const payload = {
-        user_id: session?.user.id || "",        // must be a UUID string
-        file_path: tempPath,             // comes from Step 1
-        company_col: companyCol,         // chosen in Step 2
-        desc_col: descCol,               // chosen in Step 2
-        industry_col: industryCol,       // chosen in Step 2
-        title_col: titleCol,             // chosen in Step 2
-        size_col: sizeCol,               // chosen in Step 2
-        service: service.trim() || "email outreach", // Step 3; fallback to default
-      };
 
-      const res = await fetch(`${API_URL}/jobs`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.access_token}`,
-        },
-        body: JSON.stringify(payload),
-      });
+    await res.json();
 
-      if (!res.ok) {
-        const errText = await res.text(); // <-- capture backend error body
-        throw new Error(`Failed: ${res.status} - ${errText}`);
-      }
-
-      await res.json();
-
+    // ✅ Show success for 0.5s, then set job created
+    setTimeout(() => {
       setJobCreated(true);
 
       // redirect after confetti
       setTimeout(() => {
         router.push("/jobs");
       }, 1500);
-    } catch (err: any) {
-      setError(err.message || "Something went wrong");
-    } finally {
-      setLoading(false);
-    }
-  };
+    }, 500);
+
+    return true;
+  } catch (err: any) {
+    setError(err.message || "Something went wrong");
+    return false;
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -275,21 +296,19 @@ export default function UploadPage() {
                     ) : (
                       <span className="text-gray-400 text-sm">
                         Drag & drop or{" "}
-                        <span className="text-gray-900 underline">click</span> to
+                        <span className="text-gray-900">click</span> to
                         upload file
                       </span>
                     )}
                   </label>
                 </div>
 
-                <button
-                  onClick={handleParseHeaders}
-                  disabled={loading || !file}
-                  className="w-full py-3 rounded-xl font-medium text-white text-[15px] tracking-tight shadow-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ background: "linear-gradient(#444, #1c1c1c)" }}
-                >
-                  {loading ? "Parsing..." : "Proceed"}
-                </button>
+                <BlackUploadButton
+  onProceed={handleParseHeaders}
+  disabled={!file}
+  loading={loading}
+/>
+
               </div>
             )}
 
@@ -356,16 +375,11 @@ export default function UploadPage() {
                   </div>
                 </div>
 
-                <button
-                  onClick={handleConfirmHeaders}
-                  disabled={loading}
-                  className="w-full py-3 rounded-xl font-medium text-white text-[15px] tracking-tight shadow-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{
-                    background: "linear-gradient(#444, #1c1c1c)",
-                  }}
-                >
-                  Confirm Headers
-                </button>
+                <BlackUploadButton
+  onProceed={handleConfirmHeaders}
+  disabled={loading}
+/>
+
               </div>
             )}
 
@@ -392,16 +406,11 @@ export default function UploadPage() {
                   </div>
                 )}
 
-                <button
-                  onClick={handleCreateJob}
-                  disabled={loading}
-                  className="w-full py-3 rounded-xl font-medium text-white text-[15px] tracking-tight shadow-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{
-                    background: "linear-gradient(#444, #1c1c1c)",
-                  }}
-                >
-                  {loading ? "Submitting..." : "Confirm Service"}
-                </button>
+               <BlackUploadButton
+  onProceed={handleCreateJob}
+  disabled={loading}
+/>
+
               </div>
             )}
 

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { CreditCard } from "lucide-react";
 import { useRouter } from "next/router";
+import { HouseLineIcon } from "@phosphor-icons/react";
 import {
   FiHome,
   FiUpload,
@@ -30,10 +31,42 @@ export default function Navbar() {
 
   const { userInfo, loading } = useAuth();
 
+  const iconWrapperRef = useRef<HTMLSpanElement | null>(null);
+
+  useEffect(() => {
+    if (router.pathname === "/jobs" && iconWrapperRef.current) {
+      iconWrapperRef.current.animate(
+        [
+          { transform: "rotate(0deg)" },
+          { transform: "rotate(-15deg)" },
+          { transform: "rotate(15deg)" },
+          { transform: "rotate(0deg)" },
+        ],
+        { duration: 300, easing: "ease-in-out" }
+      );
+    }
+  }, [router.pathname]);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/login");
   };
+
+  const handleHover = () => {
+    if (iconWrapperRef.current) {
+      iconWrapperRef.current.animate(
+        [
+          { transform: "rotate(0deg)" },
+          { transform: "rotate(-15deg)" },
+          { transform: "rotate(15deg)" },
+          { transform: "rotate(0deg)" },
+        ],
+        { duration: 300, easing: "ease-in-out" }
+      );
+    }
+  };
+
+
 
   useEffect(() => {
     if (menuOpen) {
@@ -86,7 +119,7 @@ export default function Navbar() {
               src={logo}
               alt="AuthorityPoint Logo"
               fill
-              
+
             />
 
             {/* Shimmer overlay, only triggers once */}
@@ -106,6 +139,7 @@ export default function Navbar() {
 
         {/* Middle Section: Nav Links */}
         <div className="flex-1 flex flex-col px-4 py-6 gap-y-4">
+
           <Link
             href="/"
             className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${router.pathname === "/"
@@ -118,24 +152,60 @@ export default function Navbar() {
           </Link>
           <Link
             href="/upload"
-            className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${router.pathname === "/upload"
+            className={`flex items-center transition-colors duration-300 px-3 py-2 rounded-lg text-[15px] font-medium ${router.pathname === "/upload"
               ? "bg-gray-100 text-gray-900 shadow-sm"
-              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 hover:"
               }`}
           >
-            <FiUpload className="mr-3 h-5 w-5" />
+            <FiUpload
+              size={40}
+              className={`transition-colors duration-300 mr-3 h-5 w-5 ${router.pathname === "/upload"
+                ? "fill-blue-400 stroke-black transform transition-transform duration-200 rotate-[90deg]"
+                : "hover:fill-blue-100 hover:stroke-black"
+                }`}
+            />
             Upload File
           </Link>
+          {/* <FiUpload
+              size={40}
+              className={`transition-colors duration-300 mr-3 h-5 w-5 ${router.pathname === "/upload"
+                ? "fill-yellow-400 bg-gray-100 stroke-black transform transition-transform duration-150 rotate-[360deg]"
+                : "hover:fill-yellow-400 hover:stroke-black"
+                }`}
+            /> */}
+
+          
+
+
+
+
           <Link
             href="/jobs"
-            className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${router.pathname === "/jobs"
+            className={`group flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${router.pathname === "/jobs"
               ? "bg-gray-100 text-gray-900 shadow-sm"
               : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
               }`}
+            onMouseEnter={handleHover} // hover works everywhere
           >
-            <FiFileText className="mr-3 h-5 w-5" />
-            Your Files
+            <span ref={iconWrapperRef} className="mr-3 flex">
+              <FiFileText
+                size={20}
+                className={`h-5 w-5 transition-colors duration-300 ${router.pathname === "/jobs"
+                  ? "fill-yellow-100 stroke-black"
+                  : "group-hover:fill-yellow-100 group-hover:stroke-black"
+                  }`}
+              />
+            </span>
+            <span
+              className={`transition-colors duration-300 ${router.pathname === "/jobs"
+                ? "text-gray-900"
+                : "group-hover:text-gray-900"
+                }`}
+            >
+              Your Files
+            </span>
           </Link>
+
           <Link
             href="/billing"
             className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${router.pathname === "/billing"

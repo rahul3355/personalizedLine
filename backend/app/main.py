@@ -556,7 +556,6 @@ async def create_checkout_session(data: CheckoutRequest):
 from fastapi import Request, Header, HTTPException
 from datetime import datetime
 import stripe
-from supabase import create_client
 import os
 
 # Init Supabase (must be service role key)

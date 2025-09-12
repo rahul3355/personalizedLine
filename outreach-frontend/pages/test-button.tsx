@@ -34,7 +34,7 @@ export default function TestButtonPage() {
       <TestStripeButton disabled={!inputValue} shineKey={shineKey} />
 
       {/* BlackUploadButton */}
-      <BlackUploadButton />
+      <BlackUploadButton onProceed={() => {}} />
     </div>
   );
 }
