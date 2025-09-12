@@ -94,12 +94,12 @@ export default function LoginPage() {
         <div className="mt-auto pb-4">
           <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
             <Image
-              src="https://upload.wikimedia.org/wikipedia/en/a/ae/Flag_of_the_United_Kingdom.svg"
-              alt="UK Flag"
-              width={16}
-              height={16}
-              className="rounded-sm"
-            />
+  src="https://upload.wikimedia.org/wikipedia/en/a/ae/Flag_of_the_United_Kingdom.svg"
+  alt="UK Flag"
+  width={24}   // set width only
+  height={0}   // let aspect ratio calculate height
+  className="h-auto w-[24px] rounded-[2px] object-contain"
+/>
             <span>Made in United Kingdom</span>
           </div>
           <p className="mt-2 text-xs text-gray-400 text-center">

@@ -55,10 +55,10 @@ useEffect(() => {
     setUser(session?.user ?? null);
 
     if (session?.user) {
-      await fetchUserInfo(session);
+      fetchUserInfo(session); // don’t await here
     }
 
-    setLoading(false);
+    setLoading(false); // release loader right away
   };
 
   init();
@@ -71,12 +71,12 @@ useEffect(() => {
     setUser(session?.user ?? null);
 
     if (session?.user) {
-      await fetchUserInfo(session);
+      fetchUserInfo(session); // don’t await here
     } else {
       setUserInfo(null);
     }
 
-    setLoading(false); // important: also update here
+    setLoading(false);
   });
 
   return () => {
@@ -84,6 +84,7 @@ useEffect(() => {
     subscription.unsubscribe();
   };
 }, []);
+
 
   const fetchUserInfo = async (session: Session | null) => {
     if (!session?.user) return;
