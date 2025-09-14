@@ -7,15 +7,18 @@ import { Loader2, Check } from "lucide-react";
 type Status = "idle" | "processing" | "success";
 
 interface BlackUploadButtonProps {
-  onProceed: () => Promise<boolean> | void; // return true if success
+  onProceed: () => Promise<boolean> | void;
   disabled?: boolean;
   loading?: boolean;
+  showArrow?: boolean; // <--- add this
 }
+
 
 export default function BlackUploadButton({
   onProceed,
   disabled = false,
   loading = false,
+  showArrow = false, // <--- add this
 }: BlackUploadButtonProps) {
   const [status, setStatus] = useState<Status>("idle");
   const [shine, setShine] = useState(false);
@@ -48,7 +51,7 @@ export default function BlackUploadButton({
       if (result === true) {
         setStatus("success");
         // Show success briefly, then reset
-        setTimeout(() => setStatus("idle"), 500);
+        setTimeout(() => setStatus("idle"), 800);
       } else {
         setStatus("idle");
       }
@@ -63,18 +66,23 @@ export default function BlackUploadButton({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       disabled={disabled || status === "processing"}
-      className={`mt-6 w-full h-12 rounded-lg flex items-center justify-center font-semibold relative overflow-hidden transition-all
-        ${disabled ? "opacity-50 cursor-not-allowed" : "hover:shadow-lg"}`}
-      style={{
-        background:
-          status === "success"
-            ? "#2ecc71"
-            : "linear-gradient(to bottom, #3a3a3a, #1c1c1c)",
-        boxShadow: "0 2px 6px rgba(0,0,0,0.5)",
-        color: "#fff",
-        borderTop: status !== "success" ? "1px solid rgba(255,255,255,0.1)" : undefined,
-        borderBottom: status !== "success" ? "1px solid rgba(0,0,0,0.4)" : undefined,
-      }}
+      className={`mt-6 w-full h-12 rounded-lg flex items-center justify-center font-semibold relative overflow-hidden transition-all duration-300
+  ${disabled ? "opacity-50 cursor-not-allowed" : "hover:shadow-xl"}`}
+style={{
+  background:
+    status === "success"
+      ? "#2ecc71"
+      : hovered
+      ? "linear-gradient(to bottom, #4a4a4a, #2a2a2a)" // darker on hover
+      : "linear-gradient(to bottom, #3a3a3a, #1c1c1c)",
+  boxShadow: hovered
+    ? "0 4px 12px rgba(0,0,0,0.6)" // deeper shadow on hover
+    : "0 2px 6px rgba(0,0,0,0.5)",
+  color: "#fff",
+  borderTop: status !== "success" ? "1px solid rgba(255,255,255,0.1)" : undefined,
+  borderBottom: status !== "success" ? "1px solid rgba(0,0,0,0.4)" : undefined,
+}}
+
     >
       {/* Shine overlay */}
       {shine && (
@@ -117,22 +125,43 @@ export default function BlackUploadButton({
             exit={{ opacity: 0, y: -4 }}
           >
             <span>Proceed</span>
-           <motion.div
-  animate={{ opacity: hovered ? [1, 0.6, 1] : 1 }}
-  transition={{ duration: 0.6, repeat: hovered ? Infinity : 0 }}
->
-  {/* arrow svg */}
 
-              {/* Premium Arrow SVG start */}
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M6 12h12" />
-                <path d="M12 6l6 6-6 6" />
-              </svg>
-              {/* Premium Arrow SVG end */}
-            </motion.div>
           </motion.div>
+
         )}
       </AnimatePresence>
+      {showArrow && status === "idle" && (
+        <motion.div
+  key="arrow"
+  animate={{
+    opacity: [1, 0.2, 1],
+    x: hovered ? [0, 4, 0] : 0, // move back & forth only when hovered
+  }}
+  transition={{
+    duration: hovered ? 0.8 : 1,
+    repeat: Infinity,
+    ease: "easeInOut",
+  }}
+  style={{ display: "flex", alignItems: "center", marginLeft: "8px" }}
+>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="white"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M6 12h12" />
+    <path d="M12 6l6 6-6 6" />
+  </svg>
+</motion.div>
+
+      )}
+
     </motion.button>
   );
 }

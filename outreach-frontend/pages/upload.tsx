@@ -13,7 +13,7 @@ import BlackUploadButton from "../components/BlackUploadButton";
 
 
 
-const StepTracker = ({ step, jobCreated }: { step: number; jobCreated: boolean }) => {
+const StepTracker = ({ step, jobCreated, hasFile }: { step: number; jobCreated: boolean; hasFile: boolean }) => {
   const steps = ["Upload File", "Confirm Headers", "Confirm Service"];
 
   return (
@@ -31,8 +31,9 @@ const StepTracker = ({ step, jobCreated }: { step: number; jobCreated: boolean }
     ${isActive ? "border-blue-500 bg-blue-100 text-blue-700" : ""}
     ${!isCompleted && !isActive ? "border-gray-300 bg-white text-gray-400" : ""}
   `}
-              animate={isActive && current === 0 ? { scale: [1, 1.2, 1] } : {}}
-              transition={{ duration: 0.6, repeat: isActive && current === 0 ? Infinity : 0 }}
+              animate={isActive && current === 0 && !hasFile ? { scale: [1, 1.2, 1] } : {}}
+              transition={{ duration: 0.6, repeat: isActive && current === 0 && !hasFile ? Infinity : 0 }}
+
             >
               {isCompleted ? "✓" : index + 1}
             </motion.div>
@@ -104,138 +105,138 @@ export default function UploadPage() {
     setSizeCol(findMatch(["employee count", "size", "headcount", "staff"]));
   };
 
- const handleParseHeaders = async (): Promise<boolean> => {
-  if (!file) {
-    setError("Please select a file first");
-    return false;
-  }
-
-  if (!session?.access_token) {
-    setError("Session not ready. Please wait a moment.");
-    return false;
-  }
-
-  setError(null);
-  setLoading(true);
-
-  try {
-    const userId = session?.user?.id;
-    if (!userId) throw new Error("User not authenticated");
-
-    // 1. Upload file to Supabase
-    const storagePath = `${userId}/${Date.now()}_${file.name}`;
-    const { error: uploadError } = await supabase.storage
-      .from("inputs")
-      .upload(storagePath, file, { upsert: true });
-
-    if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
-    console.log("[Upload] File uploaded:", storagePath);
-
-    // 2. Tell backend to parse
-    const res = await fetch(`${API_URL}/parse_headers`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ file_path: storagePath, user_id: userId }),
-    });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Backend failed: ${res.status} - ${errText}`);
+  const handleParseHeaders = async (): Promise<boolean> => {
+    if (!file) {
+      setError("Please select a file first");
+      return false;
     }
 
-    const data = await res.json();
-    if (!data.headers || !Array.isArray(data.headers)) {
-      throw new Error("Invalid headers received from backend");
+    if (!session?.access_token) {
+      setError("Session not ready. Please wait a moment.");
+      return false;
     }
 
-    setHeaders(data.headers);
-    setTempPath(data.file_path);
-    autoMapHeaders(data.headers);
-    console.log("[Upload] Headers parsed:", data.headers);
-    setTimeout(() => {
-  setStep(1);
-}, 500);
+    setError(null);
+    setLoading(true);
 
-    return true; // ✅ success
-  } catch (err: any) {
-    console.error("[Upload] ParseHeaders error:", err);
-    setError(err.message || "Something went wrong");
-    return false; // ❌ failure
-  } finally {
-    setLoading(false);
-  }
-};
+    try {
+      const userId = session?.user?.id;
+      if (!userId) throw new Error("User not authenticated");
+
+      // 1. Upload file to Supabase
+      const storagePath = `${userId}/${Date.now()}_${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from("inputs")
+        .upload(storagePath, file, { upsert: true });
+
+      if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+      console.log("[Upload] File uploaded:", storagePath);
+
+      // 2. Tell backend to parse
+      const res = await fetch(`${API_URL}/parse_headers`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ file_path: storagePath, user_id: userId }),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Backend failed: ${res.status} - ${errText}`);
+      }
+
+      const data = await res.json();
+      if (!data.headers || !Array.isArray(data.headers)) {
+        throw new Error("Invalid headers received from backend");
+      }
+
+      setHeaders(data.headers);
+      setTempPath(data.file_path);
+      autoMapHeaders(data.headers);
+      console.log("[Upload] Headers parsed:", data.headers);
+      setTimeout(() => {
+        setStep(1);
+      }, 500);
+
+      return true; // ✅ success
+    } catch (err: any) {
+      console.error("[Upload] ParseHeaders error:", err);
+      setError(err.message || "Something went wrong");
+      return false; // ❌ failure
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleConfirmHeaders = async (): Promise<boolean> => {
-  if (!companyCol || !descCol || !industryCol || !titleCol || !sizeCol) {
-    setError("Please select all required columns");
-    return false;
-  }
-
-  setError(null);
-
-  // ✅ delay step change by 0.5s
-  setTimeout(() => {
-    setStep(2);
-  }, 500);
-
-  return true; // tell button it succeeded
-};
-  const handleCreateJob = async (): Promise<boolean> => {
-  if (!tempPath || !companyCol || !descCol || !industryCol || !titleCol || !sizeCol || !service) {
-    setError("Please complete all required fields");
-    return false;
-  }
-
-  setLoading(true);
-  setError(null);
-
-  try {
-    const payload = { 
-      user_id: session?.user.id || "",
-      file_path: tempPath,
-      company_col: companyCol,
-      desc_col: descCol,
-      industry_col: industryCol,
-      title_col: titleCol,
-      size_col: sizeCol,
-      service: service.trim() || "email outreach",
-    };
-
-    const res = await fetch(`${API_URL}/jobs`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session?.access_token}`,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Failed: ${res.status} - ${errText}`);
+    if (!companyCol || !descCol || !industryCol || !titleCol || !sizeCol) {
+      setError("Please select all required columns");
+      return false;
     }
 
-    await res.json();
+    setError(null);
 
-    // ✅ Show success for 0.5s, then set job created
+    // ✅ delay step change by 0.5s
     setTimeout(() => {
-      setJobCreated(true);
-
-      // redirect after confetti
-      setTimeout(() => {
-        router.push("/jobs");
-      }, 1500);
+      setStep(2);
     }, 500);
 
-    return true;
-  } catch (err: any) {
-    setError(err.message || "Something went wrong");
-    return false;
-  } finally {
-    setLoading(false);
-  }
-};
+    return true; // tell button it succeeded
+  };
+  const handleCreateJob = async (): Promise<boolean> => {
+    if (!tempPath || !companyCol || !descCol || !industryCol || !titleCol || !sizeCol || !service) {
+      setError("Please complete all required fields");
+      return false;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const payload = {
+        user_id: session?.user.id || "",
+        file_path: tempPath,
+        company_col: companyCol,
+        desc_col: descCol,
+        industry_col: industryCol,
+        title_col: titleCol,
+        size_col: sizeCol,
+        service: service.trim() || "email outreach",
+      };
+
+      const res = await fetch(`${API_URL}/jobs`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Failed: ${res.status} - ${errText}`);
+      }
+
+      await res.json();
+
+      // ✅ Show success for 0.5s, then set job created
+      setTimeout(() => {
+        setJobCreated(true);
+
+        // redirect after confetti
+        setTimeout(() => {
+          router.push("/jobs");
+        }, 1500);
+      }, 500);
+
+      return true;
+    } catch (err: any) {
+      setError(err.message || "Something went wrong");
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
   const handleDrag = (e: React.DragEvent) => {
@@ -268,7 +269,7 @@ export default function UploadPage() {
               Import your CSV/XLSX and configure columns for personalization.
             </p>
 
-            <StepTracker step={step} jobCreated={jobCreated} />
+            <StepTracker step={step} jobCreated={jobCreated} hasFile={!!file} />
 
             {/* Step 0: Upload File */}
             {step === 0 && !jobCreated && (
@@ -304,10 +305,11 @@ export default function UploadPage() {
                 </div>
 
                 <BlackUploadButton
-  onProceed={handleParseHeaders}
-  disabled={!file}
-  loading={loading}
-/>
+                  onProceed={handleParseHeaders}
+                  disabled={!file}
+                  loading={loading}
+                  showArrow={!!file}   // <--- add this
+                />
 
               </div>
             )}
@@ -376,9 +378,9 @@ export default function UploadPage() {
                 </div>
 
                 <BlackUploadButton
-  onProceed={handleConfirmHeaders}
-  disabled={loading}
-/>
+                  onProceed={handleConfirmHeaders}
+                  disabled={loading}
+                />
 
               </div>
             )}
@@ -406,10 +408,10 @@ export default function UploadPage() {
                   </div>
                 )}
 
-               <BlackUploadButton
-  onProceed={handleCreateJob}
-  disabled={loading}
-/>
+                <BlackUploadButton
+                  onProceed={handleCreateJob}
+                  disabled={loading}
+                />
 
               </div>
             )}
@@ -446,8 +448,8 @@ export default function UploadPage() {
                 onDragOver={handleDrag}
                 onDrop={handleDrop}
                 className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl py-12 transition ${dragActive
-                    ? "border-gray-900 bg-gray-50"
-                    : "border-gray-200 bg-gray-50/50"
+                  ? "border-gray-900 bg-gray-50"
+                  : "border-gray-200 bg-gray-50/50"
                   }`}
               >
                 <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer">

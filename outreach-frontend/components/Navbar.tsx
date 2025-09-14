@@ -174,7 +174,7 @@ export default function Navbar() {
                 }`}
             /> */}
 
-          
+
 
 
 
@@ -249,6 +249,23 @@ export default function Navbar() {
       <div className="hidden lg:flex fixed top-0 left-60 right-0 h-16 border-b border-gray-100 bg-white items-center justify-between px-8 shadow-sm z-40">
         <div className="flex-1" />
         <div className="flex items-center gap-6 ml-6">
+         <div
+  style={{
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "flex-end", // ensures right alignment with icons
+    minWidth: "120px",          // keeps consistent spacing even when numbers grow
+    fontFamily:
+      '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
+    color: "#111111",
+    fontSize: "14px",
+    fontWeight: 500,
+    letterSpacing: "-0.2px",
+  }}
+>
+  {credits.toLocaleString()} lines
+</div>
+
           <FiBell className="w-5 h-5 cursor-pointer text-gray-500 hover:text-gray-900 transition" />
           <FiHelpCircle className="w-5 h-5 cursor-pointer text-gray-500 hover:text-gray-900 transition" />
           <div className="relative" ref={dropdownRef}>
