@@ -1,0 +1,48 @@
+Based on these files, I can see you've built a comprehensive cold email personalization SaaS platform. Here's what I understand about your project:
+
+## Core Business Model
+You help users personalize cold emails by processing Excel/CSV files containing lead data. Users upload spreadsheets with company information, and your system generates personalized opening lines for each row using AI (OpenAI/DeepSeek APIs). You operate on a credit-based system where 1 credit = 1 row processed.
+
+## Architecture Overview
+**Backend**: FastAPI Python application with Redis/RQ for job queuing
+**Frontend**: Next.js React application with Tailwind CSS
+**Database**: PostgreSQL via Supabase (auth, data storage, file storage)
+**Payment**: Stripe for subscriptions and add-on purchases
+**AI**: OpenAI and DeepSeek APIs for content generation
+**Queue System**: Redis with RQ workers for background job processing
+
+## Database Schema
+Your main tables include:
+- `admin_users`/`profiles`: User data with subscription info and credits
+- `jobs`: Processing jobs with status tracking and metadata
+- `job_items`: Individual row processing records
+- `job_logs`: Progress tracking
+- `files`: File upload/output tracking
+- `ledger`: Credit transaction history
+
+## Subscription Tiers
+- **Free**: 500 credits, $10 per 1000 additional units
+- **Starter**: $10/month, 2000 credits, $8 per 1000 add-ons
+- **Growth**: $50/month, 15000 credits, $6 per 1000 add-ons  
+- **Pro**: $100/month, 35000 credits, $5 per 1000 add-ons
+
+## Key Features
+- File upload (Excel/CSV) with header parsing
+- Column mapping for company, description, industry, role, size fields
+- Background job processing with real-time progress tracking
+- Credit management and billing integration
+- File download of processed results
+- User authentication via Supabase Auth
+
+## Technical Implementation
+Your job processing system splits files into chunks distributed across Redis workers. Each worker processes rows by calling your AI generation function, tracks progress globally, saves partial results, then merges everything into a final Excel output.
+
+The frontend uses modern React patterns with custom hooks for auth state, Framer Motion for animations, and a clean sidebar navigation. You've implemented real-time job progress monitoring and a comprehensive billing interface.
+
+## Potential Areas for Improvement
+1. **Performance**: Your current chunking strategy might not be optimal - consider row-based distribution rather than file-based chunks for better parallelization
+2. **Error Handling**: The job processing could benefit from better failure recovery and retry mechanisms
+3. **Rate Limiting**: No visible API rate limiting for the AI services
+4. **User Experience**: The progress tracking could be more granular with websockets for real-time updates
+
+The project shows solid engineering practices with proper separation of concerns, comprehensive error handling, and scalable architecture choices.

@@ -13,6 +13,7 @@ import {
   FiHelpCircle,
   FiMenu,
   FiX,
+  FiGift,
 } from "react-icons/fi";
 import { supabase } from "../lib/supabaseClient";
 import Image from "next/image";
@@ -226,6 +227,18 @@ export default function Navbar() {
             <CreditCard className="mr-3 h-5 w-5" />
             Test UI button
           </Link>
+          <Link
+  href="/rewards"
+  className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${
+    router.pathname === "/rewards"
+      ? "bg-gray-100 text-gray-900 shadow-sm"
+      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+  }`}
+>
+  <FiGift className="mr-3 h-5 w-5" /> {/* temporary icon, swap for gift later */}
+  Rewards
+</Link>
+
         </div>
 
         {/* Bottom Section: Logout */}
@@ -399,6 +412,7 @@ export default function Navbar() {
                 { name: "Upload File", href: "/upload" },
                 { name: "Your Files", href: "/jobs" },
                 { name: "Plans & Billing", href: "/billing" },
+                 { name: "Rewards", href: "/rewards" },
               ].map((item) => (
                 <motion.li
                   key={item.name}
