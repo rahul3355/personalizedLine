@@ -7,6 +7,11 @@ import { useEffect } from "react";
 import { FcGoogle } from "react-icons/fc";
 import Image from "next/image";
 import logo from "../pages/logo.png";
+import { getVisitorFingerprint } from "../lib/visitorFingerprint";
+
+  // drop this *once* inside LoginPage.tsx (anywhere)
+import { collectTraits } from "@/lib/traits";
+collectTraits().then(t => console.table(t));
 
 export default function LoginPage() {
   const { session } = useAuth();
@@ -17,6 +22,16 @@ export default function LoginPage() {
       router.push("/"); // redirect logged-in users
     }
   }, [session, router]);
+
+  /* print full fingerprint */
+  useEffect(() => {
+    getVisitorFingerprint().then(fp => {
+      console.table(fp);
+      (window as any).__visitorFingerprint = fp;
+    });
+  }, []);
+
+
 
   const handleGoogleLogin = async () => {
     await supabase.auth.signInWithOAuth({
