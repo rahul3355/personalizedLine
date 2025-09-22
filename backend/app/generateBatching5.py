@@ -66,92 +66,76 @@ Service context: {service}"""
 
 # === Enrichment helpers ===
 
-def lookup_recent_news(company_name: str) -> str:
-    """Fetch top Google News headline for a company."""
-    try:
-        url = f"https://news.google.com/rss/search?q={company_name}"
-        feed = feedparser.parse(requests.get(url, timeout=10).text)
-        if feed.entries:
-            entry = feed.entries[0]
-            headline = entry.title
-            link = entry.link
-            published = entry.get("published", "")
-            return f"{headline} ({published}) {link}"
-        return f"No recent news found for {company_name}"
-    except Exception as e:
-        return f"Error fetching news for {company_name}: {e}"
-
-import base64
-import requests
-import feedparser
-
-COMPANIES_HOUSE_KEY = "210ef790-d957-4724-9a76-83b9f38e1be8"
-
-def lookup_funding_news(company_name, country="United Kingdom"):
+def lookup_recent_news(company_name: str, company_domain: str = None) -> str:
     """
-    Returns a string summarizing funding/financial info for a given company.
-    Order of preference:
-    1. Companies House (UK companies)
-    2. SEC EDGAR (US companies)
-    3. Google News RSS fallback for all others
+    Get the most relevant recent news for a company.
+    Priority:
+      1. Company blog RSS (if domain provided)
+      2. Google News RSS restricted to domain
+      3. Google News RSS restricted to company name in quotes
+    Filters out irrelevant/noisy headlines.
     """
-    try:
-        # --- 1. UK Companies → Companies House API ---
-        if country.lower() in ["united kingdom", "uk", "england", "scotland", "wales", "northern ireland"]:
+
+    # 1. Blog RSS (most reliable)
+    if company_domain:
+        rss_candidates = [
+            f"https://{company_domain}/feed",
+            f"https://{company_domain}/rss",
+            f"https://{company_domain}/blog/feed",
+            f"https://{company_domain}/blog/rss",
+        ]
+        for rss_url in rss_candidates:
             try:
-                # Encode API key for Basic Auth
-                key_bytes = f"{COMPANIES_HOUSE_KEY}:".encode("utf-8")
-                b64_key = base64.b64encode(key_bytes).decode("utf-8")
-                headers = {"Authorization": f"Basic {b64_key}"}
+                feed = feedparser.parse(requests.get(rss_url, timeout=10).text)
+                if feed.entries:
+                    entry = feed.entries[0]
+                    return f"Blog: {entry.title} ({entry.get('published','')}) {entry.link}"
+            except Exception:
+                continue
 
-                # Search by name
-                search_url = f"https://api.company-information.service.gov.uk/search/companies?q={company_name}"
-                resp = requests.get(search_url, headers=headers, timeout=10)
-                if resp.status_code == 200 and "items" in resp.json() and len(resp.json()["items"]) > 0:
-                    company_number = resp.json()["items"][0]["company_number"]
-
-                    # Get filing history
-                    filings_url = f"https://api.company-information.service.gov.uk/company/{company_number}/filing-history"
-                    filings_resp = requests.get(filings_url, headers=headers, timeout=10)
-                    if filings_resp.status_code == 200:
-                        filings = filings_resp.json().get("items", [])
-                        # Look for capital/funding relevant filings
-                        for f in filings[:10]:
-                            desc = f.get("description", "")
-                            date = f.get("date", "")
-                            if "capital" in desc.lower() or "allotment" in desc.lower():
-                                return f"Companies House filing: {desc} on {date}"
-                        return f"No explicit funding filings found for {company_name} (Companies House)."
-                else:
-                    return f"No Companies House record found for {company_name}."
-            except Exception as e:
-                return f"Companies House lookup failed: {str(e)}"
-
-        # --- 2. US Companies → SEC EDGAR ---
-        if country.lower() in ["united states", "usa", "us"]:
-            try:
-                query = company_name.replace(" ", "+")
-                search_url = f"https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company={query}&owner=exclude&count=10"
-                # We’re not parsing filings deeply here (would need EDGAR XML), just returning the search URL
-                return f"SEC EDGAR filings available: {search_url}"
-            except Exception as e:
-                return f"SEC lookup failed: {str(e)}"
-
-        # --- 3. Global fallback → Google News RSS (funding-specific search) ---
+    # 2. Google News with domain restriction
+    if company_domain:
         try:
-            query = f"{company_name} funding OR investment OR raised"
-            rss_url = f"https://news.google.com/rss/search?q={query}"
-            feed = feedparser.parse(rss_url)
+            query = f"site:{company_domain}"
+            url = f"https://news.google.com/rss/search?q={quote(query)}"
+            feed = feedparser.parse(requests.get(url, timeout=10).text)
             if feed.entries:
-                top = feed.entries[0]
-                return f"{top.title} ({top.published}) {top.link}"
-            return f"No funding news found for {company_name}."
-        except Exception as e:
-            return f"Google News funding fallback failed: {str(e)}"
+                entry = feed.entries[0]
+                return f"News: {entry.title} ({entry.get('published','')}) {entry.link}"
+        except Exception:
+            pass
 
-    except Exception as e:
-        return f"Funding lookup error: {str(e)}"
+    # 3. Google News with quoted company name
+    try:
+        query = f'"{company_name}"'
+        url = f"https://news.google.com/rss/search?q={quote(query)}"
+        feed = feedparser.parse(requests.get(url, timeout=10).text)
+        for entry in feed.entries[:5]:  # scan first 5 to avoid irrelevant
+            title = entry.title.lower()
+            if company_name.lower() in title:
+                return f"News: {entry.title} ({entry.get('published','')}) {entry.link}"
+        return ""
+    except Exception:
+        return ""
 
+
+def lookup_funding_news(company_name: str) -> str:
+    """
+    Funding is often irrelevant/noisy if not via Crunchbase/PitchBook.
+    This now only uses Google News with funding-specific keywords.
+    Filters out junk that doesn't mention the company.
+    """
+    try:
+        query = f'"{company_name}" (funding OR raised OR investment)'
+        url = f"https://news.google.com/rss/search?q={quote(query)}"
+        feed = feedparser.parse(requests.get(url, timeout=10).text)
+        for entry in feed.entries[:5]:
+            title = entry.title.lower()
+            if company_name.lower() in title:
+                return f"Funding: {entry.title} ({entry.get('published','')}) {entry.link}"
+        return ""
+    except Exception:
+        return ""
 
 # === AI Batch Generator ===
 def generate_openers_batch(batch_rows):
@@ -244,4 +228,4 @@ def process_excel_in_batches(file_path, batch_size=10, output_file="output.xlsx"
     print(f"Results saved to: {output_file}")
 
 if __name__ == "__main__":
-    process_excel_in_batches("p3.xlsx", batch_size=10, output_file="p3_with_openers.xlsx")
+    process_excel_in_batches("p3.xlsx", batch_size=10, output_file="p3_with_openers2.xlsx")
