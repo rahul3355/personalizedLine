@@ -108,7 +108,7 @@ export default function Navbar() {
       {/* ---------------- Desktop Navbar ---------------- */}
       <div className="hidden lg:flex fixed top-0 left-0 h-screen w-60 bg-white border-r border-gray-100 flex-col font-sans z-50">
         {/* Top Section: Logo */}
-        <div className="p-6 border-b border-gray-100">
+        <div className="p-6">
           <div
             className="relative group w-[180px] h-[40px] cursor-pointer"
             onMouseEnter={() => {
@@ -228,16 +228,15 @@ export default function Navbar() {
             Test UI button
           </Link>
           <Link
-  href="/rewards"
-  className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${
-    router.pathname === "/rewards"
-      ? "bg-gray-100 text-gray-900 shadow-sm"
-      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-  }`}
->
-  <FiGift className="mr-3 h-5 w-5" /> {/* temporary icon, swap for gift later */}
-  Rewards
-</Link>
+            href="/rewards"
+            className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${router.pathname === "/rewards"
+                ? "bg-gray-100 text-gray-900 shadow-sm"
+                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              }`}
+          >
+            <FiGift className="mr-3 h-5 w-5" /> {/* temporary icon, swap for gift later */}
+            Rewards
+          </Link>
 
         </div>
 
@@ -262,22 +261,70 @@ export default function Navbar() {
       <div className="hidden lg:flex fixed top-0 left-60 right-0 h-16 border-b border-gray-100 bg-white items-center justify-between px-8 shadow-sm z-40">
         <div className="flex-1" />
         <div className="flex items-center gap-6 ml-6">
-         <div
-  style={{
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "flex-end", // ensures right alignment with icons
-    minWidth: "120px",          // keeps consistent spacing even when numbers grow
-    fontFamily:
-      '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
-    color: "#111111",
-    fontSize: "14px",
-    fontWeight: 500,
-    letterSpacing: "-0.2px",
-  }}
->
-  {credits.toLocaleString()} lines
-</div>
+          
+
+          {/* ---------------- Rewards Progress (Top Navbar) ---------------- */}
+          <div className="flex items-center gap-3 pr-6">
+            {/* Milestone coin icon */}
+            <div
+              className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${188 < 500 ? "bg-white-300 text-gray-600" : "bg-yellow-400 text-white"
+                }`}
+              style={{
+                fontFamily:
+                  '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
+              }}
+            >
+              🪙
+            </div>
+
+            {/* Progress + bar */}
+            <div className="flex flex-col">
+              <span
+                className="text-[13px] font-medium text-gray-800 tracking-tight"
+                style={{
+                  fontFamily:
+                    '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
+                }}
+              >
+                188 / 500
+              </span>
+              <div className="relative w-28 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="absolute top-0 left-0 h-full bg-black"
+                  style={{ width: `${(188 / 500) * 100}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Countdown */}
+            <span
+              className="text-[13px] text-gray-600 font-medium"
+              style={{
+                fontFamily:
+                  '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
+              }}
+            >
+              7d 12h left
+            </span>
+          </div>
+          
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-end", // ensures right alignment with icons
+              minWidth: "120px",          // keeps consistent spacing even when numbers grow
+              fontFamily:
+                '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
+              color: "#111111",
+              fontSize: "14px",
+              fontWeight: 500,
+              letterSpacing: "-0.2px",
+            }}
+          >
+            {credits.toLocaleString()} lines
+          </div>
+
 
           <FiBell className="w-5 h-5 cursor-pointer text-gray-500 hover:text-gray-900 transition" />
           <FiHelpCircle className="w-5 h-5 cursor-pointer text-gray-500 hover:text-gray-900 transition" />
@@ -412,7 +459,7 @@ export default function Navbar() {
                 { name: "Upload File", href: "/upload" },
                 { name: "Your Files", href: "/jobs" },
                 { name: "Plans & Billing", href: "/billing" },
-                 { name: "Rewards", href: "/rewards" },
+                { name: "Rewards", href: "/rewards" },
               ].map((item) => (
                 <motion.li
                   key={item.name}

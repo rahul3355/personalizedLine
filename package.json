@@ -4,7 +4,8 @@
     "@phosphor-icons/react": "^2.1.10",
     "@stripe/stripe-js": "^7.9.0",
     "lucide-react": "^0.542.0",
-    "next-auth": "^4.24.11"
+    "next-auth": "^4.24.11",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.8.0",

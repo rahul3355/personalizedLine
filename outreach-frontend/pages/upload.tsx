@@ -81,6 +81,11 @@ export default function UploadPage() {
   const [dragActive, setDragActive] = useState(false);
   const [step, setStep] = useState(0); // 0 = upload, 1 = confirm headers, 2 = confirm service
 
+  // NEW: preview states
+  const [rowCount, setRowCount] = useState<number | null>(null);
+  const [creditsRequired, setCreditsRequired] = useState<number | null>(null);
+
+
   // 🔒 protect route
   useEffect(() => {
     if (!authLoading && !session) {
@@ -104,6 +109,52 @@ export default function UploadPage() {
     setTitleCol(findMatch(["title", "seniority", "role", "position"]));
     setSizeCol(findMatch(["employee count", "size", "headcount", "staff"]));
   };
+
+  // NEW: Local row counter (CSV only for now; XLSX via xlsx lib if installed)
+  // NEW: Local row counter (supports CSV + XLSX)
+  const handleLocalRowCount = async (selectedFile: File) => {
+    return new Promise<number>((resolve, reject) => {
+      const reader = new FileReader();
+
+      if (selectedFile.name.endsWith(".csv")) {
+        // CSV path
+        reader.onload = (e) => {
+          const text = e.target?.result as string;
+          // CSV path
+          const rows = text.split(/\r\n|\n/).filter((line) => line.trim() !== "");
+          const dataRowCount = rows.length - 1; // minus header
+          resolve(dataRowCount > 0 ? dataRowCount : 0); // NEW guard
+
+        };
+        reader.onerror = reject;
+        reader.readAsText(selectedFile);
+      } else if (selectedFile.name.endsWith(".xlsx")) {
+        // NEW XLSX path
+        reader.onload = async (e) => {
+          try {
+            const XLSX = await import("xlsx");
+            const data = e.target?.result;
+            const workbook = XLSX.read(data, { type: "binary" });
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            // XLSX path
+            const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 })
+              .filter((row: any) => Array.isArray(row) && row.some((cell) => cell !== null && cell !== ""));
+            const dataRowCount = rows.length - 1; // minus header
+            resolve(dataRowCount > 0 ? dataRowCount : 0); // NEW guard
+
+          } catch (err) {
+            reject(err);
+          }
+        };
+        reader.onerror = reject;
+        reader.readAsBinaryString(selectedFile);
+      } else {
+        reject(new Error("Unsupported file type"));
+      }
+    });
+  };
+
+
 
   const handleParseHeaders = async (): Promise<boolean> => {
     if (!file) {
@@ -289,8 +340,20 @@ export default function UploadPage() {
                       type="file"
                       accept=".csv,.xlsx"
                       className="hidden"
-                      onChange={(e) => setFile(e.target.files?.[0] || null)}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0] || null;
+                        setFile(f);
+                        if (f) {
+                          handleLocalRowCount(f)
+                            .then((count) => {
+                              setRowCount(count);
+                              setCreditsRequired(count);
+                            })
+                            .catch((err) => console.error("Local row count failed", err));
+                        }
+                      }}
                     />
+
                     <Upload className="h-8 w-8 text-gray-400 mb-2" />
                     {file ? (
                       <span className="text-gray-700 font-medium">{file.name}</span>
@@ -303,6 +366,15 @@ export default function UploadPage() {
                     )}
                   </label>
                 </div>
+
+                {/* NEW: Row/credit preview */}
+                {rowCount !== null && (
+                  <div className="text-sm text-gray-600 space-y-1">
+                    <p>Rows detected: {rowCount}</p>
+                    <p>Credits required: {creditsRequired}</p>
+                  </div>
+                )}
+
 
                 <BlackUploadButton
                   onProceed={handleParseHeaders}

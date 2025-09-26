@@ -67,59 +67,104 @@ def safe_output(text: str) -> str:
 # ------------------------------------------------------------------
 
 def kimi_batch_enrich(batch_rows):
-    """Fetch latest news for a batch of companies in one Kimi call"""
+    """
+    Fetch latest news for a batch of companies (up to 20) using Kimi's $web_search tool.
+    One API call per batch instead of one per company.
+    """
     global KIMI_INPUT, KIMI_OUTPUT, KIMI_TIME
     companies = [row.get("Company Name") or row.get("Cleaned Company Name") or "" for row in batch_rows]
 
-    query = "Give me one concise, company-specific, 1–2 sentence news update for each of these companies:\n"
-    query += "\n".join([f"{i+1}. {c}" for i, c in enumerate(companies)])
+    # Build user query with all companies listed
+    query = "Please search the internet and provide one reliable, company-specific news update " \
+            "(1–2 sentences, last 30 days) for each of these companies:\n\n"
+    query += "\n".join([f"{i+1}. {c}" for i, c in enumerate(companies, start=1)])
 
-    print("\n[Kimi] Querying for companies:")
+    print("\n[Kimi] Querying batch for companies:")
     for c in companies:
         print("   -", c)
 
-    try:
-        start = time.time()
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "You are Kimi, an AI assistant. Use the $web_search tool to fetch fresh company-specific news. "
+                "Return a numbered list matching the input order. "
+                "Each entry must be exactly 1–2 sentences. "
+                "If no news is found, output: 'No recent reliable news found for {company}'."
+            ),
+        },
+        {"role": "user", "content": query},
+    ]
+
+    tools = [
+        {"type": "builtin_function", "function": {"name": "$web_search"}}
+    ]
+
+    start_time = time.time()
+    finish_reason = None
+    resp_text = ""
+
+    while finish_reason is None or finish_reason == "tool_calls":
         resp = kimi_client.chat.completions.create(
             model="kimi-k2-0905-preview",
-            messages=[
-                {"role": "system", "content": "Return a numbered list. One update per company. Strictly 1–2 sentences each. Always include the company name."},
-                {"role": "user", "content": query}
-            ],
-            max_tokens=2500
+            messages=messages,
+            tools=tools,
+            temperature=0.3,
+            max_tokens=2500,
         )
-        duration = time.time() - start
+        choice = resp.choices[0]
+        finish_reason = choice.finish_reason
+
         usage = resp.usage
-        KIMI_TIME += duration
         KIMI_INPUT += usage.prompt_tokens
         KIMI_OUTPUT += usage.completion_tokens
-        print(f"[Kimi Batch] {len(companies)} companies | Time: {duration:.2f}s | In: {usage.prompt_tokens} Out: {usage.completion_tokens}")
 
-        content = safe_output(resp.choices[0].message.content.strip())
-        print("\n[Kimi Raw Output]\n", content, "\n---")
+        if finish_reason == "tool_calls":
+            messages.append(choice.message)
+            for tool_call in choice.message.tool_calls:
+                if tool_call.function.name == "$web_search":
+                    # Echo the arguments back so Kimi executes its search
+                    messages.append({
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "name": tool_call.function.name,
+                        "content": tool_call.function.arguments,
+                    })
+        elif finish_reason == "stop":
+            resp_text = safe_output(choice.message.content.strip())
 
-        lines = []
-        pattern = r'^\s*(\d+)[\.\)]\s*(.+)$'
-        for line in content.split("\n"):
-            m = re.match(pattern, line.strip())
-            if m:
-                lines.append(m.group(2).strip())
+    duration = time.time() - start_time
+    KIMI_TIME += duration
+    print(f"[Kimi Batch] {len(companies)} companies | Time: {duration:.2f}s")
+    print("[Kimi Raw Output]\n", resp_text, "\n---")
 
-        if not lines:
-            print("[Kimi] Parse failed, falling back to raw line splitting")
-            lines = [l.strip() for l in content.split("\n") if l.strip()]
+    # Parse numbered list back into separate lines
+    outputs = []
+    pattern = r'^\s*(\d+)[\.\)]\s*(.+)$'
+    for line in resp_text.split("\n"):
+        m = re.match(pattern, line.strip())
+        if m:
+            outputs.append(m.group(2).strip())
 
-        while len(lines) < len(companies):
-            lines.append("")
+    # Fallback: split on non-empty lines if regex fails
+    if not outputs:
+        outputs = [l.strip() for l in resp_text.split("\n") if l.strip()]
 
-        print("[Kimi] Parsed outputs:")
-        for i, l in enumerate(lines):
-            print(f"   {companies[i]} -> {l}")
+    # Ensure length matches company count
+    while len(outputs) < len(companies):
+        outputs.append("")
 
-        return lines
-    except Exception as e:
-        print(f"[Kimi ERROR]: {e}")
-        sys.exit(1)
+    print("[Kimi] Parsed outputs:")
+    for i, l in enumerate(outputs):
+        print(f"   {companies[i]} -> {l}")
+
+    # Sleep 20 seconds to stay under 6 RPM
+    print("[Kimi] Sleeping 20 seconds to respect rate limits...")
+    time.sleep(20)
+
+    return outputs
+
+
 
 # ------------------------------------------------------------------
 # DeepSeek opener generator
@@ -188,6 +233,13 @@ Service context: {row.get("Service") or DEFAULT_SERVICE_CONTEXT}"""
 # ------------------------------------------------------------------
 
 def process_excel_in_batches(file_path, batch_size=19, output_file="output.xlsx"):
+    """
+    Process an Excel file in batches of companies.
+    For each batch:
+      1. Fetch Kimi news snippets via a single $web_search call.
+      2. Generate personalized openers with DeepSeek.
+      3. Sleep 20s to respect Kimi’s 6 RPM limit.
+    """
     df = pd.read_excel(file_path)
     total_rows = len(df)
     batch_count = 0
@@ -199,21 +251,24 @@ def process_excel_in_batches(file_path, batch_size=19, output_file="output.xlsx"
 
         rows_as_dicts = batch.to_dict(orient="records")
 
-        # Step 1: Enrich all rows with Kimi
+        # Step 1: Enrich rows with Kimi news (one request for the batch)
         kimi_outputs = kimi_batch_enrich(rows_as_dicts)
         for i, row in enumerate(batch.index):
             df.at[row, "kimi_news_enriched"] = kimi_outputs[i]
 
-        # Step 2: Only run DeepSeek after Kimi news is ready
+        # Step 2: Generate personalized openers using DeepSeek
         enriched_rows = batch.to_dict(orient="records")
         outputs = generate_openers_batch(enriched_rows)
 
         while len(outputs) < len(batch):
             outputs.append("")
+
         for i, row in enumerate(batch.index):
             df.at[row, "Personalized Opener"] = outputs[i]
 
-    df.to_excel(output_file, index=False)
+        # Save progress after each batch (important for long runs)
+        df.to_excel(output_file, index=False)
+        print(f"[Batch {batch_count}] Results written to {output_file}")
 
     # Final summary
     print("\n=== Job Summary ===")
@@ -229,5 +284,6 @@ def process_excel_in_batches(file_path, batch_size=19, output_file="output.xlsx"
     print(f"Results saved to: {output_file}")
 
 
+
 if __name__ == "__main__":
-    process_excel_in_batches("p3.xlsx", batch_size=19, output_file="p3_with_kimi_batched1.xlsx")
+    process_excel_in_batches("p3.xlsx", batch_size=19, output_file="p3_with_kimi_batched2.xlsx")

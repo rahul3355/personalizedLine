@@ -67,59 +67,91 @@ def safe_output(text: str) -> str:
 # ------------------------------------------------------------------
 
 def kimi_batch_enrich(batch_rows):
-    """Fetch latest news for a batch of companies in one Kimi call"""
+    """
+    Fetch latest news for each company using Kimi's built-in $web_search tool.
+    One real search per company.
+    """
     global KIMI_INPUT, KIMI_OUTPUT, KIMI_TIME
-    companies = [row.get("Company Name") or row.get("Cleaned Company Name") or "" for row in batch_rows]
+    outputs = []
 
-    query = "Give me one concise, company-specific, 1–2 sentence news update for each of these companies:\n"
-    query += "\n".join([f"{i+1}. {c}" for i, c in enumerate(companies)])
+    for idx, row in enumerate(batch_rows, start=1):
+        company = row.get("Company Name") or row.get("Cleaned Company Name") or ""
+        if not company:
+            outputs.append("")
+            continue
 
-    print("\n[Kimi] Querying for companies:")
-    for c in companies:
-        print("   -", c)
+        print(f"\n[Kimi] Searching news for: {company}")
 
-    try:
-        start = time.time()
-        resp = kimi_client.chat.completions.create(
-            model="kimi-k2-0905-preview",
-            messages=[
-                {"role": "system", "content": "Return a numbered list. One update per company. Strictly 1–2 sentences each. Always include the company name."},
-                {"role": "user", "content": query}
-            ],
-            max_tokens=2500
-        )
-        duration = time.time() - start
-        usage = resp.usage
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "You are Kimi, an AI assistant. Use the $web_search tool "
+                    "to fetch fresh company-specific news. Return 1–2 sentences "
+                    "summarizing the most recent reliable news item. If nothing is found, "
+                    "say: 'No recent reliable news found for {company}.' Always include the company name."
+                ),
+            },
+            {
+                "role": "user",
+                "content": f"Please search for the latest company-specific news about {company} "
+                           f"from the past month and summarize in 1–2 sentences.",
+            },
+        ]
+
+        # Declare Kimi's built-in web search tool
+        tools = [
+            {
+                "type": "builtin_function",
+                "function": {"name": "$web_search"},
+            }
+        ]
+
+        start_time = time.time()
+        finish_reason = None
+        resp_text = ""
+
+        while finish_reason is None or finish_reason == "tool_calls":
+            resp = kimi_client.chat.completions.create(
+                model="kimi-k2-0905-preview",
+                messages=messages,
+                max_tokens=800,
+                tools=tools,
+                temperature=0.3,
+            )
+            choice = resp.choices[0]
+            finish_reason = choice.finish_reason
+
+            usage = resp.usage
+            KIMI_INPUT += usage.prompt_tokens
+            KIMI_OUTPUT += usage.completion_tokens
+
+            if finish_reason == "tool_calls":
+                # Kimi wants to execute $web_search
+                messages.append(choice.message)
+                for tool_call in choice.message.tool_calls:
+                    tool_call_name = tool_call.function.name
+                    tool_call_args = tool_call.function.arguments
+                    if tool_call_name == "$web_search":
+                        # Echo the arguments back so Kimi actually performs the search
+                        messages.append({
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "name": tool_call_name,
+                            "content": tool_call_args,
+                        })
+            elif finish_reason == "stop":
+                resp_text = safe_output(choice.message.content.strip())
+
+        duration = time.time() - start_time
         KIMI_TIME += duration
-        KIMI_INPUT += usage.prompt_tokens
-        KIMI_OUTPUT += usage.completion_tokens
-        print(f"[Kimi Batch] {len(companies)} companies | Time: {duration:.2f}s | In: {usage.prompt_tokens} Out: {usage.completion_tokens}")
+        print(f"[Kimi] {company} | Time: {duration:.2f}s")
+        print("[Kimi Raw Output]", resp_text)
 
-        content = safe_output(resp.choices[0].message.content.strip())
-        print("\n[Kimi Raw Output]\n", content, "\n---")
+        outputs.append(resp_text)
 
-        lines = []
-        pattern = r'^\s*(\d+)[\.\)]\s*(.+)$'
-        for line in content.split("\n"):
-            m = re.match(pattern, line.strip())
-            if m:
-                lines.append(m.group(2).strip())
+    return outputs
 
-        if not lines:
-            print("[Kimi] Parse failed, falling back to raw line splitting")
-            lines = [l.strip() for l in content.split("\n") if l.strip()]
-
-        while len(lines) < len(companies):
-            lines.append("")
-
-        print("[Kimi] Parsed outputs:")
-        for i, l in enumerate(lines):
-            print(f"   {companies[i]} -> {l}")
-
-        return lines
-    except Exception as e:
-        print(f"[Kimi ERROR]: {e}")
-        sys.exit(1)
 
 # ------------------------------------------------------------------
 # DeepSeek opener generator
@@ -230,4 +262,4 @@ def process_excel_in_batches(file_path, batch_size=19, output_file="output.xlsx"
 
 
 if __name__ == "__main__":
-    process_excel_in_batches("p3.xlsx", batch_size=19, output_file="p3_with_kimi_batched1.xlsx")
+    process_excel_in_batches("p3.xlsx", batch_size=19, output_file="p3_with_kimi_batched2.xlsx")
