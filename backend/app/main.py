@@ -330,6 +330,28 @@ async def create_job(req: JobRequest):
 
         row_count = len(df)
 
+        # Update milestone progress in parallel with profile deduction
+# --- Update milestone progress safely ---
+        milestone = (
+            supabase.table("milestones")
+            .select("id, progress_spent")
+            .eq("user_id", req.user_id)
+            .eq("status", "active")
+            .maybe_single()
+            .execute()
+        )
+
+        if milestone.data:
+            current = milestone.data.get("progress_spent", 0)
+            new_val = current + row_count
+
+            supabase.table("milestones").update({
+                "progress_spent": new_val,
+                "updated_at": datetime.utcnow().isoformat()
+            }).eq("id", milestone.data["id"]).execute()
+
+
+
         meta = {
             "file_path": req.file_path,
             "company_col": req.company_col,
@@ -838,3 +860,106 @@ async def claim_reward(user_id: str, reward_type: str):
 
     except Exception as e:
         return {"error": str(e)}
+    
+
+
+@app.get("/milestones/active")
+async def get_active_milestone(user_id: str):
+    """
+    Return the user's current milestone.
+    Includes both 'active' and 'unlocked' so progress doesn't disappear.
+    Read-only. Safe to remove without breaking baseline.
+    """
+    milestone = (
+        supabase.table("milestones")
+        .select("*")
+        .eq("user_id", user_id)
+        .in_("status", ["active", "unlocked"])
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+
+    if not milestone.data:
+        return {"milestone": None}
+
+    return {"milestone": milestone.data[0]}
+
+
+import logging
+logger = logging.getLogger("uvicorn.error")
+
+@app.post("/milestones/claim")
+def claim_milestone(user_id: str, milestone_id: int):
+    print(f"[CLAIM] user_id={user_id}, milestone_id={milestone_id}")
+
+    try:
+        # 1. Fetch milestone safely
+        milestone_resp = (
+            supabase.table("milestones")
+            .select("*")
+            .eq("id", milestone_id)
+            .eq("user_id", user_id)
+            .eq("status", "unlocked")
+            .maybe_single()   # <-- safer, avoids crash
+            .execute()
+        )
+        print(f"[CLAIM][DEBUG] milestone_resp={milestone_resp}")
+
+        milestone = milestone_resp.data
+        if not milestone:
+            print("[CLAIM][ERROR] No unlocked milestone found")
+            raise HTTPException(status_code=404, detail="No unlocked milestone found")
+
+        reward_amount = milestone["reward_amount"]
+
+        # 2. Add credits to profile
+        profile_update = (
+            supabase.table("profiles")
+            .update({"credits_remaining": supabase.func.coalesce("credits_remaining", 0) + reward_amount})
+            .eq("id", user_id)
+            .execute()
+        )
+        print(f"[CLAIM][DEBUG] profile_update={profile_update}")
+
+        # 3. Write ledger entry
+        ledger_entry = (
+            supabase.table("ledger")
+            .insert({
+                "user_id": user_id,
+                "change": reward_amount,
+                "amount": reward_amount,
+                "reason": f"milestone_claim:{milestone_id}"
+            })
+            .execute()
+        )
+        print(f"[CLAIM][DEBUG] ledger_entry={ledger_entry}")
+
+        # 4. Mark milestone claimed
+        supabase.table("milestones").update({"status": "claimed"}).eq("id", milestone_id).execute()
+
+        # 5. Create next milestone
+        new_level = milestone["milestone_level"] + 1
+        new_target = milestone["target_spend"] * 2
+        new_reward = milestone["reward_amount"] * 2
+
+        next_milestone = (
+            supabase.table("milestones")
+            .insert({
+                "user_id": user_id,
+                "milestone_level": new_level,
+                "target_spend": new_target,
+                "reward_amount": new_reward,
+                "progress_spent": 0,
+                "status": "active",
+                "expires_at": (datetime.utcnow() + timedelta(days=7)).isoformat()
+            })
+            .execute()
+        )
+        print(f"[CLAIM][DEBUG] next_milestone={next_milestone}")
+
+        return {"message": "Milestone claimed", "reward": reward_amount, "next": next_milestone.data}
+
+    except Exception as e:
+        print(f"[CLAIM][ERROR] Exception: {e}")
+        raise HTTPException(status_code=500, detail="Milestone claim failed")

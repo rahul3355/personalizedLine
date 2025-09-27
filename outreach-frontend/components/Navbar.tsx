@@ -21,6 +21,7 @@ import logo from "../pages/logo.png";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../lib/AuthProvider";
 import { motion, AnimatePresence } from "framer-motion";
+import { MILESTONE_API_URL } from "../lib/api";
 
 export default function Navbar() {
   const router = useRouter();
@@ -29,7 +30,7 @@ export default function Navbar() {
   const [shinePlayed, setShinePlayed] = useState(false);
 
   const [menuOpen, setMenuOpen] = useState(false);
-
+  const [milestone, setMilestone] = useState<any | null>(null);
   const { userInfo, loading } = useAuth();
 
   const iconWrapperRef = useRef<HTMLSpanElement | null>(null);
@@ -66,6 +67,36 @@ export default function Navbar() {
       );
     }
   };
+
+
+
+
+
+
+useEffect(() => {
+  async function fetchMilestone() {
+    try {
+      console.debug("[Milestone] Using API URL:", MILESTONE_API_URL);
+      const url = `${MILESTONE_API_URL}/milestones/active?user_id=${userInfo?.id}`;
+      console.debug("[Milestone] Fetching:", url);
+
+      const response = await fetch(url, { headers: { accept: "application/json" } });
+      const text = await response.text();
+      console.debug("[Milestone] Raw response:", text);
+
+      const data = JSON.parse(text);
+      console.debug("[Milestone] Parsed JSON:", data);
+
+      setMilestone(data.milestone);
+    } catch (error) {
+      console.error("[Milestone] Failed to fetch milestone:", error);
+    }
+  }
+
+  if (userInfo?.id) {
+    fetchMilestone();
+  }
+}, [userInfo?.id]);
 
 
 
@@ -230,8 +261,8 @@ export default function Navbar() {
           <Link
             href="/rewards"
             className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${router.pathname === "/rewards"
-                ? "bg-gray-100 text-gray-900 shadow-sm"
-                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              ? "bg-gray-100 text-gray-900 shadow-sm"
+              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
               }`}
           >
             <FiGift className="mr-3 h-5 w-5" /> {/* temporary icon, swap for gift later */}
@@ -261,53 +292,29 @@ export default function Navbar() {
       <div className="hidden lg:flex fixed top-0 left-60 right-0 h-16 border-b border-gray-100 bg-white items-center justify-between px-8 shadow-sm z-40">
         <div className="flex-1" />
         <div className="flex items-center gap-6 ml-6">
-          
 
-          {/* ---------------- Rewards Progress (Top Navbar) ---------------- */}
-          <div className="flex items-center gap-3 pr-6">
-            {/* Milestone coin icon */}
-            <div
-              className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${188 < 500 ? "bg-white-300 text-gray-600" : "bg-yellow-400 text-white"
-                }`}
-              style={{
-                fontFamily:
-                  '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
-              }}
-            >
-              🪙
-            </div>
 
-            {/* Progress + bar */}
-            <div className="flex flex-col">
-              <span
-                className="text-[13px] font-medium text-gray-800 tracking-tight"
-                style={{
-                  fontFamily:
-                    '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
-                }}
-              >
-                188 / 500
-              </span>
-              <div className="relative w-28 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className="absolute top-0 left-0 h-full bg-black"
-                  style={{ width: `${(188 / 500) * 100}%` }}
-                />
-              </div>
-            </div>
+          {milestone ? (
+  <div className="flex items-center space-x-2">
+    <div className="w-32 bg-gray-200 rounded-full h-2">
+      <div
+        className="bg-green-500 h-2 rounded-full"
+        style={{
+          width: `${Math.min(
+            (milestone.progress_spent / milestone.target_spend) * 100,
+            100
+          )}%`,
+        }}
+      />
+    </div>
+    <span className="text-xs text-gray-600">
+      {milestone.progress_spent}/{milestone.target_spend}
+    </span>
+  </div>
+) : (
+  <span className="text-xs text-gray-400">No active milestone</span>
+)}
 
-            {/* Countdown */}
-            <span
-              className="text-[13px] text-gray-600 font-medium"
-              style={{
-                fontFamily:
-                  '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
-              }}
-            >
-              7d 12h left
-            </span>
-          </div>
-          
           <div
             style={{
               display: "flex",

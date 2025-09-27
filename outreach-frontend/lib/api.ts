@@ -74,3 +74,7 @@ export async function buyCredits(token: string, addon: string) {
 
   return res.json(); // returns { checkout_url }
 }
+
+// --- Milestone specific (force FastAPI backend) ---
+export const MILESTONE_API_URL = "http://localhost:8000";
+
