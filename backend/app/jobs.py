@@ -19,6 +19,13 @@ from rq import get_current_job
 redis_conn = redis.Redis(host="redis", port=6379, decode_responses=False)
 queue = rq.Queue("default", connection=redis_conn)
 
+
+def _get_job_timeout():
+    try:
+        return int(os.getenv("SUBJOB_TIMEOUT", "600"))
+    except (TypeError, ValueError):
+        return 600
+
 # -----------------------------
 # Timing helper
 # -----------------------------
@@ -373,9 +380,20 @@ def process_job(job_id: str):
         ]
         timings["chunking"] = record_time("Chunking + enqueue", chunk_start, job_id)
 
+        job_timeout = _get_job_timeout()
+
         subjob_refs = []
         for idx, rows in enumerate(chunks, start=1):
-            job_ref = queue.enqueue(process_subjob, job_id, idx, rows, meta, user_id, total)
+            job_ref = queue.enqueue(
+                process_subjob,
+                job_id,
+                idx,
+                rows,
+                meta,
+                user_id,
+                total,
+                job_timeout=job_timeout,
+            )
             subjob_refs.append(job_ref)
 
         queue.enqueue(
@@ -383,7 +401,8 @@ def process_job(job_id: str):
             job_id,
             user_id,
             len(chunks),
-            depends_on=subjob_refs
+            depends_on=subjob_refs,
+            job_timeout=job_timeout,
         )
 
         timings["process_job_total"] = record_time("process_job total", job_start, job_id)
