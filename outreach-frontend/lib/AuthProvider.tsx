@@ -33,7 +33,7 @@ const AuthContext = createContext<AuthContextProps>({
   user: null,
   userInfo: null,
   loading: true,
-  refreshUserInfo: async () => {},
+  refreshUserInfo: async () => { },
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -44,46 +44,69 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
 
-useEffect(() => {
-  let mounted = true;
+  useEffect(() => {
+    let mounted = true;
 
-  const init = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!mounted) return;
+    const init = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!mounted) return;
 
-    setSession(session);
-    setUser(session?.user ?? null);
+      setSession(session);
+      setUser(session?.user ?? null);
+      // 60-68  NEW  -----------------------------------------------------------------
+      // inside init()
+      if (session?.user) {
+        import("@/lib/traits")
+          .then(m => m.collectTraits())
+          .then(async t => {
+            if (!t.country) {
+              console.warn("Geo missing – skipping traits store");
+              return;
+            }
 
-    if (session?.user) {
-      fetchUserInfo(session); // don’t await here
-    }
+            // store traits as before
+            supabase.from("user_core_traits").upsert({ user_id: session.user.id, ...t });
 
-    setLoading(false); // release loader right away
-  };
+            // FIX: point to /api/insights
+            await fetch("/api/insights", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ userId: session.user.id }),
+            });
+          });
+      }
 
-  init();
 
-  const {
-    data: { subscription },
-  } = supabase.auth.onAuthStateChange(async (_event, session) => {
-    if (!mounted) return;
-    setSession(session);
-    setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchUserInfo(session); // don’t await here
+      }
 
-    if (session?.user) {
-      fetchUserInfo(session); // don’t await here
-    } else {
-      setUserInfo(null);
-    }
+      setLoading(false); // release loader right away
+    };
 
-    setLoading(false);
-  });
+    init();
 
-  return () => {
-    mounted = false;
-    subscription.unsubscribe();
-  };
-}, []);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!mounted) return;
+      setSession(session);
+      setUser(session?.user ?? null);
+
+      if (session?.user) {
+        fetchUserInfo(session); // don’t await here
+      } else {
+        setUserInfo(null);
+      }
+
+      setLoading(false);
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
 
   const fetchUserInfo = async (session: Session | null) => {

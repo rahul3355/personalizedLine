@@ -35,6 +35,25 @@ redis_conn = redis.from_url(redis_url)
   # use localhost when FastAPI runs on your host
 q = Queue(connection=redis_conn)
 
+from fastapi import Depends, HTTPException, Request
+from backend.app.supabase_client import supabase
+
+def get_supabase():
+    return supabase
+
+def get_current_user(request: Request):
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing or invalid token")
+
+    token = auth_header.split(" ")[1]
+    user = supabase.auth.get_user(token)
+    if not user or not user.user:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    return user.user.id
+
+
 
 # Security scheme (adds Authorize button in Swagger)
 security = HTTPBearer()
@@ -655,3 +674,167 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
 
     print("========== END WEBHOOK ==========")
     return {"status": "success"}
+
+from fastapi import Query
+from datetime import datetime
+
+@app.get("/rewards/status")
+async def get_rewards_status(user_id: str):
+    try:
+        # 1. Current credits
+        profile_res = supabase.table("profiles").select(
+            "credits_remaining"
+        ).eq("id", user_id).execute()
+
+        credits = 0
+        if profile_res.data:
+            credits = profile_res.data[0].get("credits_remaining", 0)
+
+        # 2. Total jobs
+        jobs_res = supabase.table("jobs").select("id", count="planned").eq("user_id", user_id).execute()
+        total_jobs = jobs_res.count or 0
+
+        # 3. Total files uploaded
+        files_res = supabase.table("files").select("id", count="planned").eq("user_id", user_id).execute()
+        total_files_uploaded = files_res.count or 0
+
+        # 4. Claimed rewards from ledger
+        ledger_res = supabase.table("ledger").select("reason").eq("user_id", user_id).execute()
+        claimed_rewards = set()
+        for row in ledger_res.data or []:
+            reason = row.get("reason", "").lower()
+            if reason.startswith("reward claimed:"):
+                reward_type = reason.replace("reward claimed:", "").strip()
+                claimed_rewards.add(reward_type)
+
+        # 5. Define rewards
+        rewards = {
+            "milestone": {
+                "requirement": "Process 10,000 jobs",
+                "progress": total_jobs,
+                "target": 10000,
+                "eligible": total_jobs >= 10000,
+                "claimed": "milestone" in claimed_rewards,
+            },
+            "streak": {
+                "requirement": "Upload weekly for 4 weeks",
+                "progress": total_files_uploaded,
+                "target": 4,
+                "eligible": total_files_uploaded >= 4,
+                "claimed": "streak" in claimed_rewards,
+            },
+            "referral": {
+                "requirement": "Refer 1 paying friend",
+                "progress": 0,  # placeholder
+                "target": 1,
+                "eligible": False,
+                "claimed": "referral" in claimed_rewards,
+            },
+        }
+
+        # 6. Build list of claimable rewards
+        claimable = [
+            name for name, info in rewards.items()
+            if info["eligible"] and not info["claimed"]
+        ]
+
+        return {
+            "user_id": user_id,
+            "credits_remaining": credits,
+            "rewards": rewards,
+            "claimable": claimable
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
+
+
+
+
+
+@app.post("/rewards/claim")
+async def claim_reward(user_id: str, reward_type: str):
+    try:
+        bonus_map = {
+            "milestone": 1000,
+            "streak": 2000,
+            "referral": 2000,
+        }
+        bonus = bonus_map.get(reward_type)
+        if not bonus:
+            return {"error": "Invalid reward type"}
+
+        # --- 1. Reuse rewards/status logic ---
+        # Get totals
+        profile_res = supabase.table("profiles").select("credits_remaining").eq("id", user_id).execute()
+        if not profile_res.data:
+            return {"error": "User not found"}
+        current_credits = profile_res.data[0]["credits_remaining"] or 0
+
+        jobs_res = supabase.table("jobs").select("id", count="planned").eq("user_id", user_id).execute()
+        total_jobs = jobs_res.count or 0
+
+        files_res = supabase.table("files").select("id", count="planned").eq("user_id", user_id).execute()
+        total_files_uploaded = files_res.count or 0
+
+        ledger_res = supabase.table("ledger").select("reason").eq("user_id", user_id).execute()
+        claimed_rewards = set()
+        for row in ledger_res.data or []:
+            reason = row.get("reason", "").lower()
+            if reason.startswith("reward claimed:"):
+                reward_type_found = reason.replace("reward claimed:", "").strip()
+                claimed_rewards.add(reward_type_found)
+
+        rewards = {
+            "milestone": {
+                "eligible": total_jobs >= 10000,
+                "claimed": "milestone" in claimed_rewards,
+            },
+            "streak": {
+                "eligible": total_files_uploaded >= 4,
+                "claimed": "streak" in claimed_rewards,
+            },
+            "referral": {
+                "eligible": False,  # placeholder
+                "claimed": "referral" in claimed_rewards,
+            },
+        }
+
+        # --- 2. Check if claimable ---
+        if reward_type not in rewards:
+            return {"error": "Unknown reward type"}
+
+        if not rewards[reward_type]["eligible"]:
+            return {"error": f"Reward '{reward_type}' is not yet eligible"}
+
+        if rewards[reward_type]["claimed"]:
+            return {"error": f"Reward '{reward_type}' already claimed"}
+
+        # --- 3. Apply reward ---
+        new_total = current_credits + bonus
+
+        # Update profile
+        supabase.table("profiles").update(
+            {"credits_remaining": new_total}
+        ).eq("id", user_id).execute()
+
+        # Insert ledger record
+        supabase.table("ledger").insert(
+            {
+                "user_id": user_id,
+                "change": bonus,
+                "amount": bonus,
+                "reason": f"reward claimed: {reward_type}",
+                "ts": datetime.utcnow().isoformat()
+            }
+        ).execute()
+
+        return {
+            "success": True,
+            "reward": reward_type,
+            "bonus": bonus,
+            "new_total": new_total,
+        }
+
+    except Exception as e:
+        return {"error": str(e)}

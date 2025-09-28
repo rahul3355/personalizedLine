@@ -6,6 +6,8 @@ node_modules/
 /.streamlit
 .secrets.toml
 
+.schemadump1.txt
+
 
 # Ignore virtual environments
 venv/
