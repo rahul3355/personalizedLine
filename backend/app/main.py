@@ -165,6 +165,20 @@ class ParseRequest(BaseModel):
     file_path: str
 
 
+def assert_user_owns_path(file_path: str, user_id: str) -> str:
+    """Ensure the storage path belongs to the authenticated user."""
+    if not file_path:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    normalized_path = file_path.lstrip("/")
+    expected_prefix = f"{user_id}/"
+
+    if not normalized_path.startswith(expected_prefix):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    return normalized_path
+
+
 @app.post("/parse_headers")
 async def parse_headers(
     payload: ParseRequest = Body(...),
@@ -174,6 +188,8 @@ async def parse_headers(
         file_path = payload.file_path
         if not file_path:
             raise HTTPException(status_code=400, detail="file_path required")
+
+        file_path = assert_user_owns_path(file_path, current_user.user_id)
 
         # --- Step 1: Generate signed URL from Supabase ---
         try:
@@ -203,6 +219,8 @@ async def parse_headers(
 
         return {"headers": headers, "file_path": file_path}
 
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"[ParseHeaders] ERROR: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -311,6 +329,8 @@ def get_me(current_user: AuthenticatedUser = Depends(get_current_user)):
             )
 
         return res.data
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     
@@ -357,14 +377,16 @@ async def create_job(
     current_user: AuthenticatedUser = Depends(get_current_user),
 ):
     try:
+        file_path = assert_user_owns_path(req.file_path, current_user.user_id)
+
         # Download file from Supabase storage
         supabase = get_supabase()
-        res = supabase.storage.from_("inputs").download(req.file_path)
+        res = supabase.storage.from_("inputs").download(file_path)
         if not res:
             raise HTTPException(status_code=404, detail="File not found in storage")
 
         contents = res
-        if req.file_path.endswith(".xlsx"):
+        if file_path.endswith(".xlsx"):
             df = pd.read_excel(BytesIO(contents))
         else:
             df = pd.read_csv(BytesIO(contents))
@@ -372,7 +394,7 @@ async def create_job(
         row_count = len(df)
 
         meta = {
-            "file_path": req.file_path,
+            "file_path": file_path,
             "company_col": req.company_col,
             "desc_col": req.desc_col,
             "industry_col": req.industry_col,
@@ -388,7 +410,7 @@ async def create_job(
                 {
                     "user_id": current_user.user_id,
                     "status": "queued",
-                    "filename": os.path.basename(req.file_path),
+                    "filename": os.path.basename(file_path),
                     "rows": row_count,
                     "meta_json": meta,
                 }
@@ -407,6 +429,8 @@ async def create_job(
 
         return {"id": job["id"], "status": job["status"], "rows": row_count}
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
