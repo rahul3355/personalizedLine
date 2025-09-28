@@ -458,22 +458,35 @@ def get_job(
 
 
 @app.get("/jobs/{job_id}/download")
-async def download_result(job_id: str):
+async def download_result(
+    job_id: str,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+):
+    supabase = get_supabase()
+
     job = (
         supabase.table("jobs")
-        .select("result_path")
+        .select("user_id,result_path")
         .eq("id", job_id)
         .single()
         .execute()
     )
-    if not job.data or not job.data["result_path"]:
+
+    if not job.data or not job.data.get("result_path"):
         raise HTTPException(status_code=404, detail="Result not found")
+
+    if job.data.get("user_id") != current_user.user_id:
+        raise HTTPException(status_code=403)
 
     storage_path = job.data["result_path"]
     file = supabase.storage.from_("outputs").download(storage_path)
-    return StreamingResponse(io.BytesIO(file), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={
-        "Content-Disposition": f"attachment; filename=result.xlsx"
-    })
+    return StreamingResponse(
+        io.BytesIO(file),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f"attachment; filename=result.xlsx"
+        },
+    )
 
 
 @app.get("/jobs/{job_id}/progress")
