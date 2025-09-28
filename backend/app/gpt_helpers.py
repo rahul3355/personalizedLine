@@ -1,5 +1,6 @@
 import os
 from openai import OpenAI
+import json
 
 # --- Client (DeepSeek API not OpenAI API) ---
 client = OpenAI(
@@ -47,5 +48,31 @@ def generate_opener(company, description, industry, role, size, service):
         max_tokens=3000
     )
     opener = (resp.choices[0].message.content or "").strip()
+    if not opener:
+        choice = resp.choices[0]
+        message_payload = {}
+
+        msg = getattr(choice, "message", None)
+        if msg is not None:
+            try:
+                message_payload = msg.model_dump()
+            except AttributeError:
+                message_payload = {
+                    "role": getattr(msg, "role", None),
+                    "content": getattr(msg, "content", None),
+                    "refusal": getattr(msg, "refusal", None),
+                    "metadata": getattr(msg, "metadata", None),
+                }
+
+        debug_payload = {
+            "response_id": getattr(resp, "id", None),
+            "finish_reason": getattr(choice, "finish_reason", None),
+            "message": message_payload,
+        }
+        print(
+            "[DeepSeek][Empty opener] "
+            + json.dumps(debug_payload, default=str, ensure_ascii=False)
+        )
+        opener = "[No opener generated]"
     usage = resp.usage
     return opener, usage.prompt_tokens, usage.completion_tokens, usage.total_tokens
