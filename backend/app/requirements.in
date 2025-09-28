@@ -21,6 +21,7 @@ python-dotenv
 python-multipart
 requests
 httpx
+PyJWT
 
 # Payments
 stripe

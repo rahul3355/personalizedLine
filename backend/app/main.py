@@ -3,7 +3,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from dotenv import load_dotenv
-import uuid, shutil, os, tempfile, threading, pandas as pd, base64, json, stripe, time
+import uuid, shutil, os, tempfile, threading, pandas as pd, json, stripe, time
 from fastapi.responses import StreamingResponse
 import io
 from pydantic import BaseModel
@@ -39,11 +39,36 @@ q = Queue(connection=redis_conn)
 # Security scheme (adds Authorize button in Swagger)
 security = HTTPBearer()
 
+from dataclasses import dataclass
+from typing import Any, Dict
+
+try:
+    import jwt
+    from jwt import (
+        ExpiredSignatureError,
+        InvalidAudienceError,
+        InvalidIssuerError,
+        InvalidTokenError,
+    )
+except ModuleNotFoundError:  # pragma: no cover - fallback for offline environments
+    from backend.app import jwt_fallback as jwt
+    from backend.app.jwt_fallback import (
+        ExpiredSignatureError,
+        InvalidAudienceError,
+        InvalidIssuerError,
+        InvalidTokenError,
+    )
+
+
+@dataclass
+class AuthenticatedUser:
+    user_id: str
+    claims: Dict[str, Any]
+
 class CheckoutRequest(BaseModel):
     plan: str
     addon: bool = False
     quantity: int = 1
-    user_id: str
 
 # Stripe Setup
 STRIPE_SECRET = os.getenv("STRIPE_SECRET_KEY", "")
@@ -89,17 +114,45 @@ app.add_middleware(
 def health():
     return {"status": "ok"}
 
-# ---- Extract user_id from JWT ----
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+# ---- Extract user from JWT ----
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> AuthenticatedUser:
     token = credentials.credentials
+
+    secret = os.getenv("SUPABASE_JWT_SECRET")
+    if not secret:
+        raise HTTPException(status_code=500, detail="SUPABASE_JWT_SECRET is not configured")
+
+    supabase_url = os.getenv("SUPABASE_URL", "").rstrip("/")
+    issuer = os.getenv("SUPABASE_JWT_ISS", f"{supabase_url}/auth/v1" if supabase_url else None)
+    audience = os.getenv("SUPABASE_JWT_AUD", os.getenv("SUPABASE_JWT_AUDIENCE", "authenticated"))
+
+    options = {"require": ["exp"]}
+    if issuer:
+        options["require"].append("iss")
+    if audience:
+        options["require"].append("aud")
+
     try:
-        payload_part = token.split(".")[1]
-        padded = payload_part + "=" * (-len(payload_part) % 4)
-        decoded = base64.urlsafe_b64decode(padded)
-        payload = json.loads(decoded)
-        return payload.get("sub")
-    except Exception as e:
-        raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
+        payload = jwt.decode(
+            token,
+            secret,
+            algorithms=["HS256"],
+            audience=audience if audience else None,
+            issuer=issuer if issuer else None,
+            options={**options, "verify_aud": bool(audience)},
+        )
+    except ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token has expired")
+    except (InvalidAudienceError, InvalidIssuerError) as exc:
+        raise HTTPException(status_code=401, detail=str(exc))
+    except InvalidTokenError as exc:
+        raise HTTPException(status_code=401, detail=f"Invalid token: {exc}")
+
+    user_id = payload.get("sub")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Token missing subject")
+
+    return AuthenticatedUser(user_id=user_id, claims=payload)
 
 # ✅ Step 1 — Parse headers
 def get_supabase():
@@ -109,16 +162,18 @@ def get_supabase():
 
 
 class ParseRequest(BaseModel):
-    user_id: str
     file_path: str
 
+
 @app.post("/parse_headers")
-async def parse_headers(payload: dict = Body(...)):
+async def parse_headers(
+    payload: ParseRequest = Body(...),
+    current_user: AuthenticatedUser = Depends(get_current_user),
+):
     try:
-        file_path = payload.get("file_path")
-        user_id = payload.get("user_id")
-        if not file_path or not user_id:
-            raise HTTPException(status_code=400, detail="file_path and user_id required")
+        file_path = payload.file_path
+        if not file_path:
+            raise HTTPException(status_code=400, detail="file_path required")
 
         # --- Step 1: Generate signed URL from Supabase ---
         try:
@@ -158,7 +213,6 @@ async def parse_headers(payload: dict = Body(...)):
 from pydantic import BaseModel
 
 class JobRequest(BaseModel):
-    user_id: str
     file_path: str
     company_col: str
     desc_col: str
@@ -170,11 +224,12 @@ class JobRequest(BaseModel):
 
 @app.get("/jobs")
 def list_jobs(
-    user_id: str = Depends(get_current_user),
+    current_user: AuthenticatedUser = Depends(get_current_user),
     offset: int = 0,
     limit: int = 5
 ):
     supabase = get_supabase()
+    user_id = current_user.user_id
 
     jobs_res = (
         supabase.table("jobs")
@@ -224,8 +279,9 @@ def list_jobs(
 
 
 @app.get("/me")
-def get_me(user_id: str = Depends(get_current_user)):
+def get_me(current_user: AuthenticatedUser = Depends(get_current_user)):
     try:
+        user_id = current_user.user_id
         res = (
             supabase.table("profiles")
             .select("id, email, credits_remaining, max_credits, plan_type, subscription_status, renewal_date")
@@ -259,8 +315,9 @@ def get_me(user_id: str = Depends(get_current_user)):
         raise HTTPException(status_code=400, detail=str(e))
     
 @app.get("/jobs")
-def list_jobs(user_id: str = Depends(get_current_user)):
+def list_jobs(current_user: AuthenticatedUser = Depends(get_current_user)):
     supabase = get_supabase()
+    user_id = current_user.user_id
 
     jobs_res = (
         supabase.table("jobs")
@@ -295,7 +352,10 @@ def list_jobs(user_id: str = Depends(get_current_user)):
 
 
 @app.post("/jobs")
-async def create_job(req: JobRequest):
+async def create_job(
+    req: JobRequest,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+):
     try:
         # Download file from Supabase storage
         supabase = get_supabase()
@@ -326,7 +386,7 @@ async def create_job(req: JobRequest):
             supabase.table("jobs")
             .insert(
                 {
-                    "user_id": req.user_id,
+                    "user_id": current_user.user_id,
                     "status": "queued",
                     "filename": os.path.basename(req.file_path),
                     "rows": row_count,
@@ -354,8 +414,12 @@ async def create_job(req: JobRequest):
 
 
 @app.get("/jobs/{job_id}")
-def get_job(job_id: str, user_id: str = Depends(get_current_user)):
+def get_job(
+    job_id: str,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+):
     supabase = get_supabase()
+    user_id = current_user.user_id
 
     job_res = (
         supabase.table("jobs")
@@ -413,8 +477,12 @@ async def download_result(job_id: str):
 
 
 @app.get("/jobs/{job_id}/progress")
-def job_progress(job_id: str, user_id: str = Depends(get_current_user)):
+def job_progress(
+    job_id: str,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+):
     supabase = get_supabase()
+    user_id = current_user.user_id
 
     job_res = (
         supabase.table("jobs")
@@ -462,16 +530,19 @@ class CheckoutRequest(BaseModel):
     plan: str
     addon: bool = False
     quantity: int = 1
-    user_id: str
 
 # ========================
 # /create_checkout_session
 # ========================
 @app.post("/create_checkout_session")
-async def create_checkout_session(data: CheckoutRequest):
+async def create_checkout_session(
+    data: CheckoutRequest,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+):
     try:
         print("========== CREATE CHECKOUT SESSION ==========")
         print(f"[DEBUG] Incoming data: {data}")
+        user_id = current_user.user_id
 
         # --- Base plan price IDs
         price_map = {
@@ -518,7 +589,7 @@ async def create_checkout_session(data: CheckoutRequest):
             }]
             mode = "subscription"
 
-        print(f"[INFO] Using price_id={price_id}, mode={mode}, user_id={data.user_id}")
+        print(f"[INFO] Using price_id={price_id}, mode={mode}, user_id={user_id}")
 
         # --- Create checkout session
         session = stripe.checkout.Session.create(
@@ -529,14 +600,14 @@ async def create_checkout_session(data: CheckoutRequest):
             cancel_url="http://localhost:3000/billing?canceled=true",
             # attach metadata everywhere
             metadata={
-                "user_id": data.user_id,
+                "user_id": user_id,
                 "plan": data.plan,
                 "addon": str(data.addon).lower(),
                 "quantity": str(data.quantity),
             },
             subscription_data=None if data.addon else {
                 "metadata": {
-                    "user_id": data.user_id,
+                    "user_id": user_id,
                     "plan": data.plan,
                 }
             },
