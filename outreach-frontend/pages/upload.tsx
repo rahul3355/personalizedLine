@@ -135,8 +135,11 @@ export default function UploadPage() {
       // 2. Tell backend to parse
       const res = await fetch(`${API_URL}/parse_headers`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ file_path: storagePath, user_id: userId }),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({ file_path: storagePath }),
       });
 
       if (!res.ok) {
