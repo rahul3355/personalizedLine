@@ -696,9 +696,23 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
         print(f"[ERROR] Webhook verification failed: {e}")
         raise HTTPException(status_code=400, detail=f"Webhook error: {e}")
 
+    event_id = event["id"]
     event_type = event["type"]
     obj = event["data"]["object"]
-    print(f"[EVENT] {event_type} id={event['id']}")
+    print(f"[EVENT] {event_type} id={event_id}")
+
+    # --- Idempotency guard -------------------------------------------------
+    existing_event = (
+        supabase.table("webhook_events")
+        .select("id")
+        .eq("id", event_id)
+        .limit(1)
+        .execute()
+    )
+
+    if existing_event.data:
+        print(f"[SKIP] Event {event_id} already processed")
+        return {"status": "already_processed"}
 
     def log_db(label, res):
         print(f"[DB:{label}] {res}")
@@ -758,6 +772,14 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
             log_db("insert_ledger_plan", res_ledger)
 
             print(f"[PLAN] user={user_id}, plan={plan}, credits={credits}, renewal={renewal_date}")
+
+    supabase.table("webhook_events").insert(
+        {
+            "id": event_id,
+            "type": event_type,
+            "created_at": datetime.utcnow().isoformat(),
+        }
+    ).execute()
 
     # ... leave other cases (subscription.created, invoice.payment_succeeded, etc.) unchanged
 
