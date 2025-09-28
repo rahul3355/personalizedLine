@@ -696,9 +696,15 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
         print(f"[ERROR] Webhook verification failed: {e}")
         raise HTTPException(status_code=400, detail=f"Webhook error: {e}")
 
+    event_id = event["id"]
     event_type = event["type"]
     obj = event["data"]["object"]
-    print(f"[EVENT] {event_type} id={event['id']}")
+    print(f"[EVENT] {event_type} id={event_id}")
+
+    # --- Idempotency guard -------------------------------------------------
+    if db.webhook_event_exists(event_id):
+        print(f"[SKIP] Event {event_id} already processed")
+        return {"status": "already_processed"}
 
     def log_db(label, res):
         print(f"[DB:{label}] {res}")
@@ -758,6 +764,12 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
             log_db("insert_ledger_plan", res_ledger)
 
             print(f"[PLAN] user={user_id}, plan={plan}, credits={credits}, renewal={renewal_date}")
+
+    try:
+        db.record_webhook_event(event_id, event_type)
+    except Exception as exc:
+        # Don't fail the webhook if recording the event for idempotency failed.
+        print(f"[WARN] Failed to persist webhook event {event_id}: {exc}")
 
     # ... leave other cases (subscription.created, invoice.payment_succeeded, etc.) unchanged
 

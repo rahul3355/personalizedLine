@@ -66,6 +66,30 @@ def init_db():
             created_at INT
         )""")
 
+
+def webhook_event_exists(event_id: str) -> bool:
+    """Return True if the Stripe event has already been processed."""
+    with db() as con:
+        cur = con.execute(
+            "SELECT 1 FROM webhook_events WHERE id=? LIMIT 1", (event_id,)
+        )
+        return cur.fetchone() is not None
+
+
+def record_webhook_event(event_id: str, event_type: str):
+    """Persist a processed Stripe event for idempotency guarantees."""
+    with db() as con:
+        con.execute(
+            "INSERT OR IGNORE INTO webhook_events(id, type, created_at) VALUES (?,?,?)",
+            (event_id, event_type, int(time.time())),
+        )
+
+
+def delete_webhook_event(event_id: str):
+    """Remove a webhook event record (used when processing fails mid-flight)."""
+    with db() as con:
+        con.execute("DELETE FROM webhook_events WHERE id=?", (event_id,))
+
 def enqueue_job(filename, rows, meta: dict, user_id: str) -> str:
     job_id = str(uuid.uuid4())
     print(f"[DB] Enqueue job {job_id} file={filename} rows={rows}")
