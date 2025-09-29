@@ -1,83 +1,54 @@
 "use client";
 
 import Link from "next/link";
-import { CreditCard } from "lucide-react";
 import { useRouter } from "next/router";
-import { HouseLineIcon } from "@phosphor-icons/react";
 import {
   FiHome,
   FiUpload,
   FiFileText,
-  FiLogOut,
   FiBell,
-  FiHelpCircle,
-  FiMenu,
-  FiX,
+  FiSettings,
 } from "react-icons/fi";
+import { CreditCard } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
-import Image from "next/image";
-import logo from "../pages/logo.png";
-import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../lib/AuthProvider";
-import { motion, AnimatePresence } from "framer-motion";
+
+interface NavItem {
+  label: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+}
+
+const navItems: NavItem[] = [
+  { label: "Home", href: "/", icon: FiHome },
+  { label: "Upload", href: "/upload", icon: FiUpload },
+  { label: "Files", href: "/jobs", icon: FiFileText },
+  { label: "Billing", href: "/billing", icon: CreditCard },
+  { label: "Labs", href: "/test-button", icon: FiSettings },
+];
+
+const quickActions = [
+  { label: "Move", href: "/upload", variant: "filled" as const },
+  { label: "Statement", href: "/billing", variant: "outline" as const },
+  { label: "Account details", href: "/billing", variant: "outline" as const },
+];
 
 export default function Navbar() {
   const router = useRouter();
+  const { userInfo, loading } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const [shinePlayed, setShinePlayed] = useState(false);
 
-  const [menuOpen, setMenuOpen] = useState(false);
+  const credits = userInfo?.credits_remaining ?? 0;
+  const userName = loading
+    ? ""
+    : userInfo?.full_name
+    ? userInfo.full_name
+    : "";
+  const avatarUrl = loading ? null : userInfo?.avatar_url || null;
+  const userInitial = userName ? userName.charAt(0).toUpperCase() : "U";
 
-  const { userInfo, loading } = useAuth();
-
-  const iconWrapperRef = useRef<HTMLSpanElement | null>(null);
-
-  useEffect(() => {
-    if (router.pathname === "/jobs" && iconWrapperRef.current) {
-      iconWrapperRef.current.animate(
-        [
-          { transform: "rotate(0deg)" },
-          { transform: "rotate(-15deg)" },
-          { transform: "rotate(15deg)" },
-          { transform: "rotate(0deg)" },
-        ],
-        { duration: 300, easing: "ease-in-out" }
-      );
-    }
-  }, [router.pathname]);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push("/login");
-  };
-
-  const handleHover = () => {
-    if (iconWrapperRef.current) {
-      iconWrapperRef.current.animate(
-        [
-          { transform: "rotate(0deg)" },
-          { transform: "rotate(-15deg)" },
-          { transform: "rotate(15deg)" },
-          { transform: "rotate(0deg)" },
-        ],
-        { duration: 300, easing: "ease-in-out" }
-      );
-    }
-  };
-
-
-
-  useEffect(() => {
-    if (menuOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-  }, [menuOpen]);
-
-
-  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -87,219 +58,132 @@ export default function Navbar() {
         setDropdownOpen(false);
       }
     }
+
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Pull data from userInfo
-  const credits = userInfo?.credits_remaining ?? 0;
-  const userName = loading
-    ? ""
-    : userInfo?.full_name
-      ? userInfo.full_name
-      : "";
-  const avatarUrl = loading ? null : userInfo?.avatar_url || null;
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
+
+  const isActive = (href: string) => router.pathname === href;
 
   return (
-    <>
-      {/* ---------------- Desktop Navbar ---------------- */}
-      <div className="hidden lg:flex fixed top-0 left-0 h-screen w-60 bg-white border-r border-gray-100 flex-col font-sans z-50">
-        {/* Top Section: Logo */}
-        <div className="p-6 border-b border-gray-100">
-          <div
-            className="relative group w-[180px] h-[40px] cursor-pointer"
-            onMouseEnter={() => {
-              if (!shinePlayed) setShinePlayed(true);
-            }}
-          >
-            {/* Logo image */}
-            <Image
-              src={logo}
-              alt="AuthorityPoint Logo"
-              fill
-
-            />
-
-            {/* Shimmer overlay, only triggers once */}
-            {shinePlayed && (
-              <motion.div
-                key="shine"
-                className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-transparent via-white to-transparent"
-                initial={{ x: "-100%" }}
-                animate={{ x: "100%" }}
-                transition={{ duration: 0.8, ease: "easeInOut" }}
-                style={{ mixBlendMode: "screen" }}
-              />
-            )}
-          </div>
-
-        </div>
-
-        {/* Middle Section: Nav Links */}
-        <div className="flex-1 flex flex-col px-4 py-6 gap-y-4">
-
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-[#E6E8F2] bg-white/80 backdrop-blur-xl">
+      <div className="mx-auto flex h-20 max-w-[1180px] items-center justify-between px-5 sm:px-8">
+        <div className="flex items-center gap-7">
           <Link
             href="/"
-            className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${router.pathname === "/"
-              ? "bg-gray-100 text-gray-900 shadow-sm"
-              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-              }`}
+            className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0F101C] text-2xl font-semibold text-white shadow-[0_12px_24px_rgba(12,14,27,0.18)]"
           >
-            <FiHome className="mr-3 h-5 w-5" />
-            Home
+            R
           </Link>
-          <Link
-            href="/upload"
-            className={`flex items-center transition-colors duration-300 px-3 py-2 rounded-lg text-[15px] font-medium ${router.pathname === "/upload"
-              ? "bg-gray-100 text-gray-900 shadow-sm"
-              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 hover:"
-              }`}
-          >
-            <FiUpload
-              size={40}
-              className={`transition-colors duration-300 mr-3 h-5 w-5 ${router.pathname === "/upload"
-                ? "fill-blue-400 stroke-black transform transition-transform duration-200 rotate-[90deg]"
-                : "hover:fill-blue-100 hover:stroke-black"
-                }`}
-            />
-            Upload File
-          </Link>
-          {/* <FiUpload
-              size={40}
-              className={`transition-colors duration-300 mr-3 h-5 w-5 ${router.pathname === "/upload"
-                ? "fill-yellow-400 bg-gray-100 stroke-black transform transition-transform duration-150 rotate-[360deg]"
-                : "hover:fill-yellow-400 hover:stroke-black"
-                }`}
-            /> */}
 
-
-
-
-
-
-          <Link
-            href="/jobs"
-            className={`group flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${router.pathname === "/jobs"
-              ? "bg-gray-100 text-gray-900 shadow-sm"
-              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-              }`}
-            onMouseEnter={handleHover} // hover works everywhere
-          >
-            <span ref={iconWrapperRef} className="mr-3 flex">
-              <FiFileText
-                size={20}
-                className={`h-5 w-5 transition-colors duration-300 ${router.pathname === "/jobs"
-                  ? "fill-yellow-100 stroke-black"
-                  : "group-hover:fill-yellow-100 group-hover:stroke-black"
+          <nav className="hidden md:flex items-end gap-6">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`group relative flex h-[70px] w-16 flex-col items-center justify-end gap-2 text-[11px] font-semibold tracking-wide transition-colors ${
+                    active ? "text-[#181C2F]" : "text-[#7A82A4] hover:text-[#1F2337]"
                   }`}
-              />
+                >
+                  <span
+                    className={`flex h-12 w-12 items-center justify-center rounded-2xl border text-base transition-all duration-150 ${
+                      active
+                        ? "border-transparent bg-gradient-to-b from-[#EFF1FF] to-[#DDE2FF] text-[#2F3BFF] shadow-[0_12px_22px_rgba(87,96,255,0.22)]"
+                        : "border-[#E4E7F5] bg-white text-[#7A82A4] group-hover:border-[#D5DAF5] group-hover:bg-[#F6F7FF]"
+                    }`}
+                  >
+                    <Icon className="h-5 w-5" strokeWidth={active ? 2.2 : 1.7} />
+                  </span>
+                  <span>{item.label}</span>
+                  {active && (
+                    <span className="absolute -bottom-1 h-1 w-8 rounded-full bg-gradient-to-r from-[#2F3BFF] via-[#7B66FF] to-[#A377FF]" />
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+
+        <div className="flex items-center gap-3 md:gap-5">
+          <div className="hidden md:flex items-center gap-3 rounded-2xl border border-[#E4E7F5] bg-[#F6F7FF] px-4 py-2 text-[13px] font-medium text-[#1C2034]">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.26em] text-[#9CA2C2]">
+              Credits
             </span>
-            <span
-              className={`transition-colors duration-300 ${router.pathname === "/jobs"
-                ? "text-gray-900"
-                : "group-hover:text-gray-900"
+            <span className="text-sm font-semibold text-[#14182B]">
+              {credits.toLocaleString()} lines
+            </span>
+          </div>
+
+          <div className="hidden lg:flex items-center gap-2">
+            {quickActions.map((action) => (
+              <Link
+                key={action.label}
+                href={action.href}
+                className={`rounded-full border px-4 py-2 text-sm font-semibold transition-all ${
+                  action.variant === "filled"
+                    ? "border-transparent bg-gradient-to-r from-[#343DFF] via-[#5853FF] to-[#9E6BFF] text-white shadow-[0_10px_18px_rgba(75,83,255,0.25)] hover:brightness-[1.05]"
+                    : "border-[#E3E6F6] bg-white text-[#1B1F32] hover:border-[#D3D8F5] hover:bg-[#F6F7FF]"
                 }`}
-            >
-              Your Files
-            </span>
-          </Link>
+              >
+                {action.label}
+              </Link>
+            ))}
+          </div>
 
-          <Link
-            href="/billing"
-            className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${router.pathname === "/billing"
-              ? "bg-gray-100 text-gray-900 shadow-sm"
-              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-              }`}
-          >
-            <CreditCard className="mr-3 h-5 w-5" />
-            Plans & Billing
-          </Link>
-          <Link
-            href="/test-button"
-            className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${router.pathname === "/billing"
-              ? "bg-gray-100 text-gray-900 shadow-sm"
-              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-              }`}
-          >
-            <CreditCard className="mr-3 h-5 w-5" />
-            Test UI button
-          </Link>
-        </div>
-
-        {/* Bottom Section: Logout */}
-        <div className="p-4 border-t border-gray-100">
           <button
-            onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium text-white text-[15px] tracking-tight shadow-sm transition-all duration-300"
-            style={{
-              background: "linear-gradient(#5a5a5a, #1c1c1c)",
-              fontFamily:
-                '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
-            }}
+            type="button"
+            className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#E4E7F5] bg-white text-[#70779C] transition hover:border-[#D6DBF6] hover:bg-[#F6F7FF] hover:text-[#1D2236]"
           >
-            <FiLogOut className="h-5 w-5" />
-            Logout
+            <FiBell className="h-5 w-5" />
           </button>
-        </div>
-      </div>
 
-      {/* ---------------- Desktop Top Strip ---------------- */}
-      <div className="hidden lg:flex fixed top-0 left-60 right-0 h-16 border-b border-gray-100 bg-white items-center justify-between px-8 shadow-sm z-40">
-        <div className="flex-1" />
-        <div className="flex items-center gap-6 ml-6">
-         <div
-  style={{
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "flex-end", // ensures right alignment with icons
-    minWidth: "120px",          // keeps consistent spacing even when numbers grow
-    fontFamily:
-      '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
-    color: "#111111",
-    fontSize: "14px",
-    fontWeight: 500,
-    letterSpacing: "-0.2px",
-  }}
->
-  {credits.toLocaleString()} lines
-</div>
-
-          <FiBell className="w-5 h-5 cursor-pointer text-gray-500 hover:text-gray-900 transition" />
-          <FiHelpCircle className="w-5 h-5 cursor-pointer text-gray-500 hover:text-gray-900 transition" />
           <div className="relative" ref={dropdownRef}>
             <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition"
-            >{loading ? (
-              <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse" />
-            ) :
-              avatarUrl ? (
-                <Image
+              onClick={() => setDropdownOpen((prev) => !prev)}
+              className="flex items-center gap-3 rounded-2xl border border-[#E4E7F5] bg-white/90 px-2.5 py-2 text-left text-sm font-medium text-[#1C2034] transition hover:border-[#D6DBF6] hover:bg-[#F6F7FF]"
+            >
+              {loading ? (
+                <div className="h-9 w-9 animate-pulse rounded-full bg-[#EEF0FB]" />
+              ) : avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
                   src={avatarUrl}
                   alt={userName}
-                  width={32}
-                  height={32}
-                  className="rounded-full object-cover"
+                  className="h-9 w-9 rounded-full object-cover"
                 />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center font-medium text-gray-700">
-                  {userName.charAt(0)}
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-r from-[#343DFF] to-[#9E6BFF] text-sm font-semibold text-white">
+                  {userInitial}
                 </div>
               )}
-              <span className="font-medium text-gray-700 text-sm">
-                {userName}
+              <span className="leading-tight">
+                <span className="block text-[10px] font-semibold uppercase tracking-[0.3em] text-[#A0A6C6]">
+                  Profile
+                </span>
+                <span className="text-[13px] font-semibold text-[#1C2034]">
+                  {userName || "Member"}
+                </span>
               </span>
             </button>
             {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
-                <button className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-50">
+              <div className="absolute right-0 mt-3 w-48 overflow-hidden rounded-2xl border border-[#E4E7F5] bg-white shadow-xl">
+                <button className="w-full px-4 py-3 text-left text-sm text-[#1B1F33] transition hover:bg-[#F6F7FF]">
                   Account
+                </button>
+                <button className="w-full px-4 py-3 text-left text-sm text-[#1B1F33] transition hover:bg-[#F6F7FF]">
+                  Help centre
                 </button>
                 <button
                   onClick={handleLogout}
-                  className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-50"
+                  className="w-full px-4 py-3 text-left text-sm text-[#FF5B5C] transition hover:bg-[#FFF5F5]"
                 >
                   Sign out
                 </button>
@@ -309,117 +193,36 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* ---------------- Mobile Navbar ---------------- */}
-      {/* --- Mobile Navbar --- */}
-      {/* ---------------- Mobile Navbar ---------------- */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50">
-        <div className="flex items-center justify-between px-4 h-16 bg-white border-b border-gray-200">
-          {/* Hamburger / X */}
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="relative w-8 h-8 flex flex-col justify-center items-center"
-          >
-            <motion.span
-              animate={menuOpen ? { rotate: 45, y: 6 } : { rotate: 0, y: 0 }}
-              transition={{ duration: 0.15 }}
-              className="block w-6 h-0.5 bg-gray-800 rounded-sm mb-1"
-            />
-            <motion.span
-              animate={menuOpen ? { opacity: 0 } : { opacity: 1 }}
-              transition={{ duration: 0.1 }}
-              className="block w-6 h-0.5 bg-gray-800 rounded-sm mb-1"
-            />
-            <motion.span
-              animate={menuOpen ? { rotate: -45, y: -6 } : { rotate: 0, y: 0 }}
-              transition={{ duration: 0.15 }}
-              className="block w-6 h-0.5 bg-gray-800 rounded-sm"
-            />
-          </button>
-
-          {/* Logo */}
-          <Image src={logo} alt="AuthorityPoint Logo" width={120} height={28} priority />
-
-          {/* Avatar */}
-          <div className="flex items-center gap-3">
-            {loading ? (
-              <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse" />
-            ) : avatarUrl ? (
-              <Image
-                src={avatarUrl}
-                alt={userName}
-                width={32}
-                height={32}
-                className="rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center font-medium text-gray-700">
-                {userName.charAt(0)}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Overlay (fixed, disables scroll) */}
-      <AnimatePresence>
-        {menuOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.4 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed top-16 left-0 right-0 bottom-0 bg-black z-40"
-            onClick={() => setMenuOpen(false)}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Dropdown Menu (fixed under navbar) */}
-      <AnimatePresence>
-        {menuOpen && (
-          <motion.div
-            initial={{ scaleY: 0, opacity: 0 }}
-            animate={{ scaleY: 1, opacity: 1 }}
-            exit={{ scaleY: 0, opacity: 0 }}
-            transition={{ duration: 0.18, ease: "easeOut" }}
-            className="fixed top-16 left-0 right-0 bg-white border-b border-gray-200 shadow-lg z-50 origin-top"
-          >
-            <motion.ul
-              initial="hidden"
-              animate="show"
-              exit="hidden"
-              variants={{
-                hidden: {},
-                show: { transition: { staggerChildren: 0.03 } },
-              }}
-              className="flex flex-col px-6 py-4"
-            >
-              {[
-                { name: "Home", href: "/" },
-                { name: "Upload File", href: "/upload" },
-                { name: "Your Files", href: "/jobs" },
-                { name: "Plans & Billing", href: "/billing" },
-              ].map((item) => (
-                <motion.li
-                  key={item.name}
-                  variants={{
-                    hidden: { opacity: 0, y: -5 },
-                    show: { opacity: 1, y: 0 },
-                  }}
-                  transition={{ duration: 0.15 }}
-                  className="py-3 text-base font-medium text-gray-800 border-b last:border-0 border-gray-100"
+      <nav className="md:hidden border-t border-[#E6E8F2] bg-white/95 px-4 pb-3 pt-2">
+        <div className="flex items-end gap-3 overflow-x-auto">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const active = isActive(item.href);
+            return (
+              <Link
+                key={`mobile-${item.href}`}
+                href={item.href}
+                className={`flex min-w-[72px] flex-col items-center gap-1 rounded-2xl border px-3 py-2 text-[11px] font-semibold transition ${
+                  active
+                    ? "border-transparent bg-gradient-to-b from-[#EFF1FF] to-[#DDE2FF] text-[#20243A] shadow-[0_10px_20px_rgba(65,74,255,0.18)]"
+                    : "border-[#E4E7F5] bg-white text-[#7A82A4]"
+                }`}
+              >
+                <span
+                  className={`flex h-10 w-10 items-center justify-center rounded-2xl ${
+                    active
+                      ? "bg-white text-[#343DFF]"
+                      : "bg-[#F5F6FB] text-[#7A82A4]"
+                  }`}
                 >
-                  <Link href={item.href} onClick={() => setMenuOpen(false)}>
-                    {item.name}
-                  </Link>
-                </motion.li>
-              ))}
-            </motion.ul>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-
-    </>
+                  <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2.1 : 1.6} />
+                </span>
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+    </header>
   );
 }

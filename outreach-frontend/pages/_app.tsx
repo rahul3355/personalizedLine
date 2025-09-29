@@ -30,7 +30,7 @@ function Layout({ Component, pageProps }: LayoutProps) {
       router.events.off("routeChangeComplete", handleComplete);
       router.events.off("routeChangeError", handleComplete);
     };
-  }, [router]);
+  }, [router.events]);
 
   useEffect(() => {
     if (!loading && !session && router.pathname !== "/login") {
@@ -38,34 +38,28 @@ function Layout({ Component, pageProps }: LayoutProps) {
     }
   }, [session, loading, router]);
 
-  // Block render until session is resolved
   if (loading) {
-    return (
-      <AuthorityPointLoader/>
-    );
+    return <AuthorityPointLoader />;
   }
 
-
-  return (
-    <div className="min-h-screen flex bg-gray-50">
-
-      {session && <Navbar />}
-      <main
-  className={`flex-1 p-8 transition-all duration-200 ${
-    session ? "md:ml-60 mt-16" : ""
-  }`}
->
-  {pageLoading ? (
-    <div className="flex-1 flex items-center justify-center">
+  const content = pageLoading ? (
+    <div className="flex min-h-[50vh] items-center justify-center">
       <InlineLoader />
     </div>
   ) : (
     <Component {...pageProps} />
-  )}
-</main>
-    </div>
   );
 
+  return (
+    <div className="min-h-screen bg-[#F5F6FB]">
+      {session && <Navbar />}
+      <main className={`${session ? "pt-[140px] md:pt-[120px]" : "pt-6"}`}>
+        <div className="mx-auto w-full max-w-[1180px] px-5 pb-12 sm:px-8">
+          {content}
+        </div>
+      </main>
+    </div>
+  );
 }
 
 export default function MyApp({ Component, pageProps }: AppProps) {

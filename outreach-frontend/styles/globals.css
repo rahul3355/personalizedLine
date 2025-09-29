@@ -1,38 +1,36 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* --- Apple-style global baseline --- */
-
-/* Light background + smooth text */
-body {
-  @apply bg-gray-50 text-gray-900 antialiased;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  margin: 0;
-  padding: 0;
+:root {
+  --background: #f5f6fb;
+  --foreground: #111321;
 }
 
-/* Consistent root colors */
-:root {
-  --background: #f9fafb;   /* Apple-style light gray */
-  --foreground: #111827;   /* Neutral dark gray */
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 @keyframes progress {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
-
-/* Force light UI even in dark mode */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #f9fafb;  /* keep same as light */
-    --foreground: #111827;
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #f5f6fb;
+    --foreground: #111321;
+  }
 }
