@@ -257,7 +257,8 @@ export default function Navbar() {
       </div>
 
       {/* ====================== DESKTOP: TOP STRIP (thicker + bolder + left) ====================== */}
-      <div className="hidden lg:flex fixed top-0 left-[90px] right-0 h-[68px] bg-[#F7F7F7] border-b border-[#E9ECF2] items-center justify-between pl-4 pr-5 z-40">
+      <div className="hidden lg:flex fixed top-0 left-[90px] right-0 h-[68px] bg-[#F7F7F7] items-center justify-between pl-4 pr-5 z-40">
+
         {/* Title */}
         <h1
           className="text-[26px] leading-[32px] font-bold text-[#111827] tracking-[-0.2px]"
