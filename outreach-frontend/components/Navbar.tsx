@@ -1,38 +1,39 @@
 "use client";
 
 import Link from "next/link";
-import { CreditCard } from "lucide-react";
+import Image from "next/image";
 import { useRouter } from "next/router";
-import { HouseLineIcon } from "@phosphor-icons/react";
 import {
-  FiHome,
-  FiUpload,
-  FiFileText,
   FiLogOut,
   FiBell,
   FiHelpCircle,
-  FiMenu,
-  FiX,
 } from "react-icons/fi";
-import { supabase } from "../lib/supabaseClient";
-import Image from "next/image";
-import logo from "../pages/logo.png";
+import {
+  RiHome2Fill,
+  RiUploadCloud2Fill,
+  RiFileList2Fill,
+  RiBankCard2Fill,
+} from "react-icons/ri";
 import { useState, useRef, useEffect } from "react";
-import { useAuth } from "../lib/AuthProvider";
 import { motion, AnimatePresence } from "framer-motion";
+
+import { supabase } from "../lib/supabaseClient";
+import { useAuth } from "../lib/AuthProvider";
+import logo from "../pages/logo.png";
 
 export default function Navbar() {
   const router = useRouter();
+
+  // --- state (functionality unchanged) ---
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const [shinePlayed, setShinePlayed] = useState(false);
-
+  const [shinePlayed, setShinePlayed] = useState(false); // kept for parity (unused in rail now)
   const [menuOpen, setMenuOpen] = useState(false);
+  const iconWrapperRef = useRef<HTMLSpanElement | null>(null);
 
   const { userInfo, loading } = useAuth();
 
-  const iconWrapperRef = useRef<HTMLSpanElement | null>(null);
-
+  // --- effects (functionality unchanged) ---
   useEffect(() => {
     if (router.pathname === "/jobs" && iconWrapperRef.current) {
       iconWrapperRef.current.animate(
@@ -47,37 +48,11 @@ export default function Navbar() {
     }
   }, [router.pathname]);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push("/login");
-  };
-
-  const handleHover = () => {
-    if (iconWrapperRef.current) {
-      iconWrapperRef.current.animate(
-        [
-          { transform: "rotate(0deg)" },
-          { transform: "rotate(-15deg)" },
-          { transform: "rotate(15deg)" },
-          { transform: "rotate(0deg)" },
-        ],
-        { duration: 300, easing: "ease-in-out" }
-      );
-    }
-  };
-
-
-
   useEffect(() => {
-    if (menuOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    if (menuOpen) document.body.style.overflow = "hidden";
+    else document.body.style.overflow = "";
   }, [menuOpen]);
 
-
-  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -88,194 +63,257 @@ export default function Navbar() {
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Pull data from userInfo
+  // --- handlers (functionality unchanged) ---
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
+
+  const handleHover = () => {
+    if (!iconWrapperRef.current) return;
+    iconWrapperRef.current.animate(
+      [
+        { transform: "rotate(0deg)" },
+        { transform: "rotate(-15deg)" },
+        { transform: "rotate(15deg)" },
+        { transform: "rotate(0deg)" },
+      ],
+      { duration: 300, easing: "ease-in-out" }
+    );
+  };
+
+  // --- derived (functionality unchanged) ---
   const credits = userInfo?.credits_remaining ?? 0;
-  const userName = loading
-    ? ""
-    : userInfo?.full_name
-      ? userInfo.full_name
-      : "";
+  const userName = loading ? "" : userInfo?.full_name ? userInfo.full_name : "";
   const avatarUrl = loading ? null : userInfo?.avatar_url || null;
+
+  const isActive = (path: string) => router.pathname === path;
+
+  // --- Desktop rail tokens (exact Revolut-like) ---
+  // Rail bg is light grey; icons are filled dark grey; active gets a white squircle behind.
+  const railBg = "bg-[#F5F7FA]"; // very light grey
+  const railBorder = "border-r border-[#E9ECF2]";
+  const railWidth = "w-[96px]"; // thicker rail
+  const iconSizeBox = "h-9 w-9"; // squircle size
+  const iconLabel =
+    'mt-1 text-[12px] leading-none font-medium tracking-[-0.1px]'; // always shown below
+  const iconInactive = "text-[#5B616E]"; // dark grey
+  const iconActive = "text-[#111827]"; // near-black
+  const squircle =
+    "rounded-[14px] bg-white shadow-[0_1px_2px_rgba(16,24,40,.06),0_1px_1px_rgba(16,24,40,.04)] ring-1 ring-inset ring-[#EDF0F6]";
+  const hit =
+    "flex flex-col items-center justify-start py-3 px-0 transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2";
 
   return (
     <>
-      {/* ---------------- Desktop Navbar ---------------- */}
-      <div className="hidden lg:flex fixed top-0 left-0 h-screen w-60 bg-white border-r border-gray-100 flex-col font-sans z-50">
-        {/* Top Section: Logo */}
-        <div className="p-6 border-b border-gray-100">
+      {/* ====================== DESKTOP: EXACT REVOLUT-STYLE SIDENAV ====================== */}
+      <div className={`hidden lg:flex fixed top-0 left-0 h-screen ${railWidth} ${railBg} ${railBorder} flex-col items-center z-50`}>
+        {/* Brand puck — solid gradient circle (no logo image) */}
+        <div className="w-full flex items-center justify-center pt-4 pb-2">
           <div
-            className="relative group w-[180px] h-[40px] cursor-pointer"
-            onMouseEnter={() => {
-              if (!shinePlayed) setShinePlayed(true);
-            }}
-          >
-            {/* Logo image */}
-            <Image
-              src={logo}
-              alt="AuthorityPoint Logo"
-              fill
-
-            />
-
-            {/* Shimmer overlay, only triggers once */}
-            {shinePlayed && (
-              <motion.div
-                key="shine"
-                className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-transparent via-white to-transparent"
-                initial={{ x: "-100%" }}
-                animate={{ x: "100%" }}
-                transition={{ duration: 0.8, ease: "easeInOut" }}
-                style={{ mixBlendMode: "screen" }}
-              />
-            )}
-          </div>
-
+            className="h-10 w-10 rounded-full bg-[radial-gradient(72%_72%_at_30%_30%,#9BA2FF_0%,#7F84F6_45%,#5B5FEA_100%)] shadow-[0_8px_24px_rgba(16,24,40,.10)]"
+            aria-label="Brand"
+            title="Brand"
+          />
         </div>
 
-        {/* Middle Section: Nav Links */}
-        <div className="flex-1 flex flex-col px-4 py-6 gap-y-4">
-
+        {/* Nav items: icon with label under; active uses white squircle */}
+        <nav className="mt-2 flex-1 flex flex-col items-center">
+          {/* Home */}
           <Link
             href="/"
-            className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${router.pathname === "/"
-              ? "bg-gray-100 text-gray-900 shadow-sm"
-              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-              }`}
+            className={`${hit}`}
+            aria-current={isActive("/") ? "page" : undefined}
+            title="Home"
           >
-            <FiHome className="mr-3 h-5 w-5" />
-            Home
+            <div
+              className={`${iconSizeBox} flex items-center justify-center ${
+                isActive("/") ? squircle : ""
+              }`}
+            >
+              <RiHome2Fill
+                className={`h-5 w-5 ${
+                  isActive("/") ? iconActive : iconInactive
+                }`}
+              />
+            </div>
+            <div
+              className={`${iconLabel} ${
+                isActive("/") ? "text-[#111827]" : "text-[#697386]"
+              }`}
+            >
+              Home
+            </div>
           </Link>
+
+          {/* Upload */}
           <Link
             href="/upload"
-            className={`flex items-center transition-colors duration-300 px-3 py-2 rounded-lg text-[15px] font-medium ${router.pathname === "/upload"
-              ? "bg-gray-100 text-gray-900 shadow-sm"
-              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 hover:"
-              }`}
+            className={`${hit}`}
+            aria-current={isActive("/upload") ? "page" : undefined}
+            title="Upload File"
           >
-            <FiUpload
-              size={40}
-              className={`transition-colors duration-300 mr-3 h-5 w-5 ${router.pathname === "/upload"
-                ? "fill-blue-400 stroke-black transform transition-transform duration-200 rotate-[90deg]"
-                : "hover:fill-blue-100 hover:stroke-black"
+            <div
+              className={`${iconSizeBox} flex items-center justify-center ${
+                isActive("/upload") ? squircle : ""
+              }`}
+            >
+              <RiUploadCloud2Fill
+                className={`h-5 w-5 ${
+                  isActive("/upload") ? iconActive : iconInactive
                 }`}
-            />
-            Upload File
+              />
+            </div>
+            <div
+              className={`${iconLabel} ${
+                isActive("/upload") ? "text-[#111827]" : "text-[#697386]"
+              }`}
+            >
+              Upload
+            </div>
           </Link>
-          {/* <FiUpload
-              size={40}
-              className={`transition-colors duration-300 mr-3 h-5 w-5 ${router.pathname === "/upload"
-                ? "fill-yellow-400 bg-gray-100 stroke-black transform transition-transform duration-150 rotate-[360deg]"
-                : "hover:fill-yellow-400 hover:stroke-black"
-                }`}
-            /> */}
 
-
-
-
-
-
+          {/* Your Files */}
           <Link
             href="/jobs"
-            className={`group flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${router.pathname === "/jobs"
-              ? "bg-gray-100 text-gray-900 shadow-sm"
-              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-              }`}
-            onMouseEnter={handleHover} // hover works everywhere
+            className={`${hit}`}
+            aria-current={isActive("/jobs") ? "page" : undefined}
+            title="Your Files"
+            onMouseEnter={handleHover}
           >
-            <span ref={iconWrapperRef} className="mr-3 flex">
-              <FiFileText
-                size={20}
-                className={`h-5 w-5 transition-colors duration-300 ${router.pathname === "/jobs"
-                  ? "fill-yellow-100 stroke-black"
-                  : "group-hover:fill-yellow-100 group-hover:stroke-black"
-                  }`}
-              />
-            </span>
-            <span
-              className={`transition-colors duration-300 ${router.pathname === "/jobs"
-                ? "text-gray-900"
-                : "group-hover:text-gray-900"
-                }`}
+            <div
+              className={`${iconSizeBox} flex items-center justify-center ${
+                isActive("/jobs") ? squircle : ""
+              }`}
             >
-              Your Files
-            </span>
+              <span ref={iconWrapperRef} className="flex">
+                <RiFileList2Fill
+                  className={`h-5 w-5 ${
+                    isActive("/jobs") ? iconActive : iconInactive
+                  }`}
+                />
+              </span>
+            </div>
+            <div
+              className={`${iconLabel} ${
+                isActive("/jobs") ? "text-[#111827]" : "text-[#697386]"
+              }`}
+            >
+              Files
+            </div>
           </Link>
 
+          {/* Billing */}
           <Link
             href="/billing"
-            className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${router.pathname === "/billing"
-              ? "bg-gray-100 text-gray-900 shadow-sm"
-              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-              }`}
+            className={`${hit}`}
+            aria-current={isActive("/billing") ? "page" : undefined}
+            title="Plans & Billing"
           >
-            <CreditCard className="mr-3 h-5 w-5" />
-            Plans & Billing
+            <div
+              className={`${iconSizeBox} flex items-center justify-center ${
+                isActive("/billing") ? squircle : ""
+              }`}
+            >
+              <RiBankCard2Fill
+                className={`h-5 w-5 ${
+                  isActive("/billing") ? iconActive : iconInactive
+                }`}
+              />
+            </div>
+            <div
+              className={`${iconLabel} ${
+                isActive("/billing") ? "text-[#111827]" : "text-[#697386]"
+              }`}
+            >
+              Billing
+            </div>
           </Link>
+
+          {/* Test UI button */}
           <Link
             href="/test-button"
-            className={`flex items-center px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${router.pathname === "/billing"
-              ? "bg-gray-100 text-gray-900 shadow-sm"
-              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-              }`}
+            className={`${hit}`}
+            aria-current={isActive("/test-button") ? "page" : undefined}
+            title="Test UI button"
           >
-            <CreditCard className="mr-3 h-5 w-5" />
-            Test UI button
+            <div
+              className={`${iconSizeBox} flex items-center justify-center ${
+                isActive("/test-button") ? squircle : ""
+              }`}
+            >
+              <RiBankCard2Fill
+                className={`h-5 w-5 ${
+                  isActive("/test-button") ? iconActive : iconInactive
+                }`}
+              />
+            </div>
+            <div
+              className={`${iconLabel} ${
+                isActive("/test-button") ? "text-[#111827]" : "text-[#697386]"
+              }`}
+            >
+              Test
+            </div>
           </Link>
-        </div>
+        </nav>
 
-        {/* Bottom Section: Logout */}
-        <div className="p-4 border-t border-gray-100">
+        {/* Bottom actions (logout) — unchanged behavior, visuals neutral */}
+        <div className="w-full mt-auto mb-4 px-2">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium text-white text-[15px] tracking-tight shadow-sm transition-all duration-300"
-            style={{
-              background: "linear-gradient(#5a5a5a, #1c1c1c)",
-              fontFamily:
-                '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
-            }}
+            className="w-full flex items-center justify-center gap-2 h-10 rounded-[18px] text-[14px] font-medium text-white shadow-sm transition-all duration-150 hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2"
+            style={{ background: "linear-gradient(#5a5a5a, #1c1c1c)" }}
+            title="Logout"
           >
             <FiLogOut className="h-5 w-5" />
-            Logout
           </button>
+          <div className="w-full border-t border-[#E9ECF2] mt-3" />
         </div>
       </div>
 
-      {/* ---------------- Desktop Top Strip ---------------- */}
-      <div className="hidden lg:flex fixed top-0 left-60 right-0 h-16 border-b border-gray-100 bg-white items-center justify-between px-8 shadow-sm z-40">
-        <div className="flex-1" />
-        <div className="flex items-center gap-6 ml-6">
-         <div
-  style={{
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "flex-end", // ensures right alignment with icons
-    minWidth: "120px",          // keeps consistent spacing even when numbers grow
-    fontFamily:
-      '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
-    color: "#111111",
-    fontSize: "14px",
-    fontWeight: 500,
-    letterSpacing: "-0.2px",
-  }}
->
-  {credits.toLocaleString()} lines
-</div>
+      {/* ====================== DESKTOP: TOP STRIP (unchanged functionality; left offset matches thicker rail) ====================== */}
+      <div className="hidden lg:flex fixed top-0 left-[96px] right-0 h-16 bg-white border-b border-gray-100 items-center justify-end px-6 z-40">
+        {/* right cluster */}
+        <div className="flex items-center gap-3">
+          <div
+            className="hidden md:flex items-center h-9 px-3 rounded-[14px] border border-gray-200 bg-slate-50 text-sm font-medium text-gray-900 min-w-[120px] justify-end tracking-tight tabular-nums"
+            style={{
+              fontFamily:
+                '"Aeonik Pro","Aeonik",-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif',
+              letterSpacing: "-0.2px",
+            }}
+            aria-label="Credits remaining"
+          >
+            {credits.toLocaleString()} lines
+          </div>
 
-          <FiBell className="w-5 h-5 cursor-pointer text-gray-500 hover:text-gray-900 transition" />
-          <FiHelpCircle className="w-5 h-5 cursor-pointer text-gray-500 hover:text-gray-900 transition" />
+          <button
+            aria-label="Notifications"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-[14px] border border-gray-200 bg-slate-50 text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-100 transition-colors duration-150 ease-[cubic-bezier(.2,.8,.2,1)] focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2"
+          >
+            <FiBell className="h-5 w-5" />
+          </button>
+          <button
+            aria-label="Help"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-[14px] border border-gray-200 bg-slate-50 text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-100 transition-colors duration-150 ease-[cubic-bezier(.2,.8,.2,1)] focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2"
+          >
+            <FiHelpCircle className="h-5 w-5" />
+          </button>
+
           <div className="relative" ref={dropdownRef}>
             <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition"
-            >{loading ? (
-              <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse" />
-            ) :
-              avatarUrl ? (
+              onClick={() => setDropdownOpen((v) => !v)}
+              className="flex items-center gap-3 px-2 py-1.5 rounded-[14px] hover:bg-slate-50 transition-colors duration-150 ease-[cubic-bezier(.2,.8,.2,1)] focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2"
+              aria-haspopup="menu"
+              aria-expanded={dropdownOpen}
+            >
+              {loading ? (
+                <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse" />
+              ) : avatarUrl ? (
                 <Image
                   src={avatarUrl}
                   alt={userName}
@@ -288,33 +326,50 @@ export default function Navbar() {
                   {userName.charAt(0)}
                 </div>
               )}
-              <span className="font-medium text-gray-700 text-sm">
+              <span
+                className="font-medium text-gray-700 text-sm"
+                style={{
+                  fontFamily:
+                    '"Aeonik Pro","Aeonik",-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif',
+                }}
+              >
                 {userName}
               </span>
             </button>
-            {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
-                <button className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-50">
-                  Account
-                </button>
-                <button
-                  onClick={handleLogout}
-                  className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-50"
+
+            <AnimatePresence>
+              {dropdownOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.16 }}
+                  className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-[12px] shadow-[0_8px_24px_rgba(16,24,40,.10)] overflow-hidden"
+                  role="menu"
                 >
-                  Sign out
-                </button>
-              </div>
-            )}
+                  <button
+                    className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-50"
+                    role="menuitem"
+                  >
+                    Account
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-50"
+                    role="menuitem"
+                  >
+                    Sign out
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>
 
-      {/* ---------------- Mobile Navbar ---------------- */}
-      {/* --- Mobile Navbar --- */}
-      {/* ---------------- Mobile Navbar ---------------- */}
+      {/* ====================== MOBILE: UNCHANGED BELOW ====================== */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50">
         <div className="flex items-center justify-between px-4 h-16 bg-white border-b border-gray-200">
-          {/* Hamburger / X */}
           <button
             onClick={() => setMenuOpen(!menuOpen)}
             className="relative w-8 h-8 flex flex-col justify-center items-center"
@@ -336,10 +391,14 @@ export default function Navbar() {
             />
           </button>
 
-          {/* Logo */}
-          <Image src={logo} alt="AuthorityPoint Logo" width={120} height={28} priority />
+          <Image
+            src={logo}
+            alt="AuthorityPoint Logo"
+            width={120}
+            height={28}
+            priority
+          />
 
-          {/* Avatar */}
           <div className="flex items-center gap-3">
             {loading ? (
               <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse" />
@@ -360,7 +419,6 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Overlay (fixed, disables scroll) */}
       <AnimatePresence>
         {menuOpen && (
           <motion.div
@@ -374,7 +432,6 @@ export default function Navbar() {
         )}
       </AnimatePresence>
 
-      {/* Dropdown Menu (fixed under navbar) */}
       <AnimatePresence>
         {menuOpen && (
           <motion.div
@@ -418,8 +475,6 @@ export default function Navbar() {
           </motion.div>
         )}
       </AnimatePresence>
-
-
     </>
   );
 }
