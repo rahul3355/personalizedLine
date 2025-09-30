@@ -263,7 +263,7 @@ export default function UploadPage() {
   return (
     <>
       <div className="hidden md:block">
-        <div className="hidden md:flex items-start justify-center bg-gray-50 px-4 py-10 font-sans min-h-[calc(80vh-64px)]">
+        <div className="hidden md:flex items-start justify-center px-4 py-10 font-sans min-h-[calc(80vh-64px)]">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl p-10 border border-gray-100">
             <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
               Upload Outreach File
