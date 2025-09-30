@@ -3,7 +3,8 @@ import type { AppProps } from "next/app";
 import Navbar from "../components/Navbar";
 import { AuthProvider, useAuth } from "../lib/AuthProvider";
 import { useRouter } from "next/router";
-import { useEffect, useState, useRef, type ComponentType } from "react";
+
+import { useEffect, useMemo, useState, useRef, type ComponentType } from "react";
 import AuthorityPointLoader from "../components/AuthorityPointLoader";
 import InlineLoader from "@/components/InlineLoader";
 import { supabase } from "../lib/supabaseClient";
@@ -88,6 +89,7 @@ function Layout({ Component, pageProps }: LayoutProps) {
 
   const isLoginRoute = router.pathname === "/login";
 
+
   const pageTitle = (() => {
     const path = router.pathname;
     if (path.startsWith("/upload")) return "Upload File";
@@ -116,6 +118,7 @@ function Layout({ Component, pageProps }: LayoutProps) {
     },
   ];
 
+
   if (loading) {
     return <AuthorityPointLoader />;
   }
@@ -142,6 +145,52 @@ function Layout({ Component, pageProps }: LayoutProps) {
     setProfileOpen(false);
     router.push("/login");
   };
+
+
+  const pageTitle = useMemo(() => {
+    const path = router.pathname;
+    if (path.startsWith("/upload")) return "Upload File";
+    if (path.startsWith("/billing")) return "Plans & Billing";
+    if (path.startsWith("/jobs/[")) return "File Details";
+    if (path.startsWith("/jobs")) return "Past Files";
+    if (path.startsWith("/settings")) return "Account Settings";
+    return "Home";
+  }, [router.pathname]);
+
+  const actions: Action[] = useMemo(
+    () => [
+      {
+        label: "Move money",
+        onClick: () => router.push("/upload"),
+        Icon: ArrowUpRight,
+      },
+      {
+        label: "Statements",
+        onClick: () => router.push("/jobs"),
+        Icon: FileText,
+      },
+      {
+        label: "Account",
+        onClick: () => router.push("/billing"),
+        Icon: IdCard,
+      },
+    ],
+    [router]
+  );
+
+  const creditsRemaining = userInfo?.credits_remaining ?? 0;
+  const resolvedName =
+    userInfo?.full_name || session?.user?.email?.split("@")[0] || "";
+  const displayName = resolvedName || "User";
+  const avatarUrl = userInfo?.avatar_url || null;
+  const displayInitial = displayName.charAt(0).toUpperCase();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setProfileOpen(false);
+    router.push("/login");
+  };
+
 
   return (
     <div className="min-h-screen bg-[var(--r-bg)] text-[var(--r-on-bg)]">
