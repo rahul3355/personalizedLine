@@ -51,6 +51,7 @@ function Layout({ Component, pageProps }: LayoutProps) {
       {session && <Navbar />}
       <main
         className={`flex-1 flex flex-col transition-all duration-200 ${
+          session ? "lg:ml-[108px] mt-16 px-4 sm:px-8 lg:px-8 xl:px-12 pb-10" : ""
           session ? "md:ml-60 mt-16 px-4 sm:px-8 lg:px-12 pb-10" : ""
         }`}
       >
