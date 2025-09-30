@@ -2,37 +2,65 @@
 @tailwind components;
 @tailwind utilities;
 
-/* --- Apple-style global baseline --- */
+:root {
+  --r-font-sans: "Aeonik Pro", "Aeonik", system-ui, -apple-system, "Segoe UI", "Inter", "Roboto", "Arial", sans-serif;
+  --r-bg: #FFFFFF;
+  --r-on-bg: #191C1F;
+  --r-primary: #7F84F6;
+  --r-primary-ink: #0D1168;
+  --r-accent-1: #6E4CE5;
+  --r-accent-2: #81B2F1;
+  --r-border: #E9ECEF;
+  --r-hover: #F5F7FA;
+  --r-active: #EEF2FF;
+  --r-radius-squircle: 16px;
+  --r-radius-card: 20px;
+  --r-shadow-card: 0 2px 12px rgba(16, 24, 40, 0.06);
+  --r-shadow-float: 0 8px 24px rgba(16, 24, 40, 0.1);
+  --r-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --r-fast: 140ms;
+  --r-med: 220ms;
+  --r-icon: 20px;
+  --r-pad-1: 8px;
+  --r-pad-2: 12px;
+  --r-pad-3: 16px;
+  --r-pad-4: 20px;
+  --rail-collapsed: 80px;
+  --rail-expanded: 256px;
+  --rail-current: var(--rail-collapsed);
+}
 
-/* Light background + smooth text */
+* {
+  box-sizing: border-box;
+}
+
+html,
 body {
-  @apply bg-gray-50 text-gray-900 antialiased;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--r-font-sans);
+  color: var(--r-on-bg);
+  background: var(--r-bg);
   margin: 0;
   padding: 0;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Consistent root colors */
-:root {
-  --background: #f9fafb;   /* Apple-style light gray */
-  --foreground: #111827;   /* Neutral dark gray */
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }
 
-@keyframes progress {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+::selection {
+  background: rgba(127, 132, 246, 0.18);
 }
 
-
-/* Force light UI even in dark mode */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #f9fafb;  /* keep same as light */
-    --foreground: #111827;
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
 }
