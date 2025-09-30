@@ -47,22 +47,33 @@ function Layout({ Component, pageProps }: LayoutProps) {
 
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
-
+    <div className="min-h-screen flex bg-[#F7F7F7]">
       {session && <Navbar />}
       <main
-  className={`flex-1 p-8 transition-all duration-200 ${
-    session ? "md:ml-60 mt-16" : ""
-  }`}
->
-  {pageLoading ? (
-    <div className="flex-1 flex items-center justify-center">
-      <InlineLoader />
-    </div>
-  ) : (
-    <Component {...pageProps} />
-  )}
-</main>
+        className={`flex-1 flex flex-col transition-all duration-200 ${
+          session ? "md:ml-60 mt-16 px-4 sm:px-8 lg:px-12 pb-10" : ""
+        }`}
+      >
+        {session ? (
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-t-[32px] bg-white shadow-sm">
+            {pageLoading ? (
+              <div className="flex flex-1 items-center justify-center px-6 py-8 sm:px-8 lg:px-10">
+                <InlineLoader />
+              </div>
+            ) : (
+              <div className="flex-1 px-6 py-8 sm:px-8 lg:px-10">
+                <Component {...pageProps} />
+              </div>
+            )}
+          </div>
+        ) : pageLoading ? (
+          <div className="flex flex-1 items-center justify-center">
+            <InlineLoader />
+          </div>
+        ) : (
+          <Component {...pageProps} />
+        )}
+      </main>
     </div>
   );
 
