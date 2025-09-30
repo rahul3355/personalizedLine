@@ -18,6 +18,18 @@ body {
   --foreground: #111827;   /* Neutral dark gray */
 }
 
+/* remove default click/tap highlight + focus rings + active flash */
+a, button { -webkit-tap-highlight-color: transparent; }
+a, a:focus, a:focus-visible, a:active { outline: none !important; box-shadow: none !important; }
+a:active { background: transparent !important; }
+:focus { outline: none !important; }
+:focus-visible { outline: none !important; }
+
+/* fix subpixel dark-edge on rounded hover boxes during mousedown */
+.sidebar-iconbox { backface-visibility: hidden; transform: translateZ(0); }
+
+
+
 @keyframes progress {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }

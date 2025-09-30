@@ -3,23 +3,29 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/router";
+import { FiUserPlus } from "react-icons/fi";
 import {
-  ArrowSquareOut,
-  Bell,
-  CreditCard,
-  House,
-  Lifebuoy,
-  SignOut,
-  SquaresFour,
-  Upload,
-  Wallet,
-} from "@phosphor-icons/react";
+  PiNavigationArrowFill,
+  PiQuestionBold,
+  PiGearSixFill,
+  PiSignOutBold,
+} from "react-icons/pi";
+
+import { PiHouseLineFill } from "react-icons/pi";
+import { PiFileArrowDownFill } from "react-icons/pi";
+import { PiCreditCardFill } from "react-icons/pi";
+import { PiMoneyWavyFill } from "react-icons/pi";
+
+
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthProvider";
 import logo from "../pages/logo.png";
+import aplogo from "./aplogo.svg"
+
+
 
 export default function Navbar() {
   const router = useRouter();
@@ -32,6 +38,7 @@ export default function Navbar() {
   const iconWrapperRef = useRef<HTMLSpanElement | null>(null);
 
   const { userInfo, loading } = useAuth();
+
 
   // --- effects (functionality unchanged) ---
   useEffect(() => {
@@ -94,196 +101,205 @@ export default function Navbar() {
 
   // --- Desktop rail tokens (exact Revolut-like) ---
   // Rail bg is light grey; icons are filled dark grey; active gets a white squircle behind.
-  const railBg = "bg-[#F5F7FA]"; // very light grey
-  const railBorder = "border-r border-[#E9ECF2]";
-  const railWidth = "w-[264px]"; // Revolut desktop rail width
+  const railBg = "bg-[#F7F7F7]"; // very light grey
+  // before: const railBorder = "border-r border-[#E9ECF2]";
+  const railBorder = "border-r border-transparent";
+
+  const railWidth = "w-[108px]"; // thicker rail
   const iconSizeBox = "h-9 w-9"; // squircle size
   const iconLabel =
-    'text-[14px] font-medium tracking-[-0.2px] text-[#1F2933]';
-  const iconDescription =
-    'text-[13px] text-[#697386] tracking-[-0.1px]';
-  const iconInactive = "text-[#5B616E]"; // dark grey
-  const iconActive = "text-[#111827]"; // near-black
+    'mt-1.5 text-[12px] leading-none font-medium tracking-[-0.1px]'; // always shown below
+  const iconInactive = "text-[#717173]"; // grey 
+  const iconActive = "text-[#4F55F1]"; // purple
+  const labelInactive = "text-[#717173]";        // default label color
+  const labelActive = "text-[#4F55F1]";          // ACTIVE label color
+  // flat squircle for ACTIVE (no shadow)
+  const squircleActive = "rounded-[14px] bg-white";
   const squircle =
-    "rounded-[16px] bg-white shadow-[0_12px_24px_rgba(15,23,42,.08)] ring-1 ring-inset ring-[#E3E8EF]";
+    "rounded-[14px] bg-white ";
   const hit =
-    "group relative flex w-full items-center gap-3 rounded-[18px] px-3 py-2 transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#F5F7FA]";
+    "flex flex-col items-center justify-start py-3 px-0 transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] focus:outline-none cursor-pointer select-none ";
 
-  const navItems = [
-    {
-      label: "Home",
-      description: "Personal overview",
-      href: "/",
-      icon: House,
-    },
-    {
-      label: "Upload",
-      description: "Create new jobs",
-      href: "/upload",
-      icon: Upload,
-    },
-    {
-      label: "Files",
-      description: "History & status",
-      href: "/jobs",
-      icon: SquaresFour,
-    },
-    {
-      label: "Billing",
-      description: "Plans & invoices",
-      href: "/billing",
-      icon: CreditCard,
-    },
-    {
-      label: "Test",
-      description: "Lab features",
-      href: "/test-button",
-      icon: Wallet,
-    },
-  ];
+  const pageTitle = {
+    "/": "Home",
+    "/upload": "Enrich",
+    "/jobs": "Files",
+    "/billing": "Billing",
+    "/test-button": "Test",
+  }[router.pathname] ?? "";
+
+  const displayName = loading ? "" : (userInfo?.full_name ?? "");
+  const handleName =
+    loading ? "" : (userInfo?.email ? `@${userInfo.email.split("@")[0]}` : "");
+  const initials =
+    displayName
+      ? displayName.split(" ").map(s => s[0]).join("").slice(0, 2).toUpperCase()
+      : (userName?.[0]?.toUpperCase() ?? "U");
+
 
   return (
     <>
       {/* ====================== DESKTOP: EXACT REVOLUT-STYLE SIDENAV ====================== */}
-      <div
-        className={`hidden lg:flex fixed top-0 left-0 h-screen ${railWidth} ${railBg} ${railBorder} flex-col z-50 px-6 pb-6`}
-        style={{
-          fontFamily:
-            '"Aeonik Pro","Aeonik",-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif',
-        }}
-      >
-        {/* Brand puck — solid gradient circle */}
-        <div className="flex items-center gap-3 pt-6 pb-3">
-          <div
-            className="h-10 w-10 rounded-full bg-[radial-gradient(64%_64%_at_30%_30%,#9BA2FF_0%,#7F84F6_42%,#5B5FEA_100%)] shadow-[0_16px_32px_rgba(15,23,42,.16)]"
-            aria-label="Brand"
-            title="AuthorityPoint"
-          />
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold tracking-[-0.2px] text-[#111827]">AuthorityPoint</span>
-            <span className="text-xs text-[#697386] tracking-[-0.1px]">Workspace</span>
+      <div className={`hidden lg:flex fixed top-0 left-0 h-screen ${railWidth} ${railBg} ${railBorder} flex-col items-center z-50`}>
+        {/* Brand puck — solid gradient circle (no logo image) */}
+        {/* Brand logo in a flat white squircle, same size as selected icon */}
+        <div className="w-full flex items-center justify-center pt-4 pb-2">
+          <div className="h-9 w-9 rounded-[14px] bg-white flex items-center justify-center">
+            <Link href="/">
+              <Image src={aplogo} alt="AuthorityPoint" width={18} height={18} priority />
+            </Link>
           </div>
         </div>
 
-        <div className="mt-2 flex-1 space-y-1">
-          {navItems.map(({ icon: Icon, label, description, href }) => {
-            const active = isActive(href);
 
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={`${hit} ${active ? "bg-white shadow-[0_16px_32px_rgba(15,23,42,.08)]" : "hover:bg-white/60"}`}
-                aria-current={active ? "page" : undefined}
-                title={label}
-                onMouseEnter={href === "/jobs" ? handleHover : undefined}
-              >
-                <div
-                  className={`${iconSizeBox} flex items-center justify-center ${
-                    active
-                      ? `${squircle} text-[#2B2E3A]`
-                      : "rounded-[16px] bg-white/60 text-[#5B616E] border border-transparent group-hover:border-white/80"
-                  }`}
-                >
-                  <span ref={href === "/jobs" ? iconWrapperRef : undefined}>
-                    <Icon size={20} weight={active ? "fill" : "regular"} />
-                  </span>
-                </div>
-                <div className="flex flex-col">
-                  <span className={`${iconLabel} ${active ? "text-[#111827]" : ""}`}>{label}</span>
-                  <span className={iconDescription}>{description}</span>
-                </div>
-                {active && (
-                  <span className="absolute inset-y-1 right-2 w-1.5 rounded-full bg-[#6366F1]" aria-hidden />
-                )}
-              </Link>
-            );
-          })}
-        </div>
-
-        <div className="mt-6 space-y-3">
-          <div className="rounded-[18px] bg-white/80 px-3 py-3 shadow-[0_8px_24px_rgba(15,23,42,.08)] ring-1 ring-[#E3E8EF]">
-            <p className="text-xs font-semibold uppercase text-[#556079] tracking-[0.12em]">Need help?</p>
-            <button
-              className="mt-2 inline-flex items-center gap-2 text-sm font-medium text-[#373F51] hover:text-[#1F2937] transition-colors"
+        {/* Nav items: icon with label under; active uses white squircle */}
+        <nav className="mt-2 flex-1 flex flex-col items-center">
+          {/* Home */}
+          <Link href="/" className={`${hit} group`} aria-current={isActive("/") ? "page" : undefined} title="Home">
+            <div
+              className={`${iconSizeBox} flex items-center justify-center
+      ${isActive("/") ? squircleActive : "group-hover:bg-[#E2E2E7] group-hover:rounded-[14px]"}
+    `}
             >
-              <Lifebuoy size={18} weight="duotone" />
-              Support Center
-            </button>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="flex w-full items-center justify-center gap-2 rounded-[18px] bg-[#111827] py-2.5 text-[14px] font-medium text-white shadow-[0_12px_24px_rgba(15,23,42,.24)] transition duration-150 ease-[cubic-bezier(.2,.8,.2,1)] hover:bg-[#0f172a] focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#F5F7FA]"
-            title="Logout"
-          >
-            <SignOut size={18} weight="bold" />
-            Sign out
-          </button>
-        </div>
+              <PiHouseLineFill className={`h-5 w-5 ${isActive("/") ? iconActive : iconInactive}`} />
+
+            </div>
+            <div className={`${iconLabel} ${isActive("/") ? labelActive : labelInactive}`}>
+              Home
+            </div>
+
+          </Link>
+
+          {/* Upload */}
+          <Link href="/upload" className={`${hit} group active:scale-[0.98]`} style={{ transform: "translateZ(0)", willChange: "transform" }} aria-current={isActive("/upload") ? "page" : undefined} title="Upload">
+            <div
+              className={`${iconSizeBox} flex items-center justify-center
+      ${isActive("/upload") ? squircleActive : "group-hover:bg-[#E2E2E7] group-hover:rounded-[14px]"}
+    `}
+            >
+              <FiUserPlus
+                className={`h-5 w-5 ${isActive("/upload") ? iconActive : iconInactive
+                  }`}
+              />
+            </div>
+            <div
+              className={`${iconLabel} ${isActive("/upload") ? labelActive : labelInactive
+                }`}
+            >
+              Enrich
+            </div>
+          </Link>
+
+          {/* Your Files */}
+          <Link href="/jobs" className={`${hit} group`} aria-current={isActive("/jobs") ? "page" : undefined} title="Your Files">
+            <div
+              className={`${iconSizeBox} flex items-center justify-center
+      ${isActive("/jobs") ? squircleActive : "group-hover:bg-[#E2E2E7] group-hover:rounded-[14px]"}
+    `}
+            >
+              <span ref={iconWrapperRef} className="flex">
+                <PiFileArrowDownFill
+                  className={`h-5 w-5 ${isActive("/jobs") ? iconActive : iconInactive
+                    }`}
+                />
+              </span>
+            </div>
+            <div
+              className={`${iconLabel} ${isActive("/jobs") ? labelActive : labelInactive
+                }`}
+            >
+              Files
+            </div>
+          </Link>
+
+          {/* Billing */}
+          <Link href="/billing" className={`${hit} group`} aria-current={isActive("/billing") ? "page" : undefined} title="Billing">
+            <div
+              className={`${iconSizeBox} flex items-center justify-center
+      ${isActive("/billing") ? squircleActive : "group-hover:bg-[#E2E2E7] group-hover:rounded-[14px]"}
+    `}
+            >
+              <PiCreditCardFill
+                className={`h-5 w-5 ${isActive("/billing") ? iconActive : iconInactive
+                  }`}
+              />
+            </div>
+            <div
+              className={`${iconLabel} ${isActive("/billing") ? labelActive : labelInactive
+                }`}
+            >
+              Billing
+            </div>
+          </Link>
+
+          {/* Test UI button */}
+          <Link href="/test-button" className={`${hit} group`} aria-current={isActive("/test-button") ? "page" : undefined} title="Test UI button">
+            <div
+              className={`${iconSizeBox} flex items-center justify-center
+      ${isActive("/test-button") ? squircleActive : "group-hover:bg-[#E2E2E7] group-hover:rounded-[14px]"}
+    `}
+            >
+              <PiMoneyWavyFill
+                className={`h-5 w-5 ${isActive("/test-button") ? iconActive : iconInactive
+                  }`}
+              />
+            </div>
+            <div
+              className={`${iconLabel} ${isActive("/test-button") ? labelActive : labelInactive
+                }`}
+            >
+              Test
+            </div>
+          </Link>
+        </nav>
+
+
       </div>
 
-      {/* ====================== DESKTOP: TOP STRIP (unchanged functionality; left offset matches thicker rail) ====================== */}
-      <div className="hidden lg:flex fixed top-0 left-[264px] right-0 h-16 bg-white border-b border-gray-100 items-center justify-end px-6 z-40">
-        {/* right cluster */}
-        <div className="flex items-center gap-3">
+      {/* ====================== DESKTOP: TOP STRIP (thicker + bolder + left) ====================== */}
+      <div className="hidden lg:flex fixed top-0 left-[90px] right-0 h-[68px] bg-[#F7F7F7] border-b border-[#E9ECF2] items-center justify-between pl-4 pr-5 z-40">
+        {/* Title */}
+        <h1
+          className="text-[26px] leading-[32px] font-bold text-[#111827] tracking-[-0.2px]"
+          style={{
+            fontFamily:
+              '"Aeonik Pro","Aeonik",-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif',
+          }}
+        >
+          {pageTitle}
+        </h1>
+
+
+        {/* Right cluster: Credits + Avatar */}
+        <div className="flex items-center gap-[10px]">
           <div
-            className="hidden md:flex items-center h-9 px-3 rounded-[14px] border border-gray-200 bg-slate-50 text-sm font-medium text-gray-900 min-w-[120px] justify-end tracking-tight tabular-nums"
-            style={{
-              fontFamily:
-                '"Aeonik Pro","Aeonik",-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif',
-              letterSpacing: "-0.2px",
-            }}
-            aria-label="Credits remaining"
+            className="inline-flex items-center h-8 px-3 rounded-full bg-white border border-[#E6E6E6]
+               text-[12px] font-medium text-[#111827] tracking-tight tabular-nums"
+            aria-label="Credits"
           >
-            {credits.toLocaleString()} lines
+            <span className="opacity-70 mr-2">Credits</span>
+            {credits.toLocaleString()}
           </div>
 
-          <button
-            aria-label="Notifications"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-[14px] border border-gray-200 bg-slate-50 text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-100 transition-colors duration-150 ease-[cubic-bezier(.2,.8,.2,1)] focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2"
-          >
-            <Bell size={18} weight="bold" />
-          </button>
-          <button
-            aria-label="Help"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-[14px] border border-gray-200 bg-slate-50 text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-100 transition-colors duration-150 ease-[cubic-bezier(.2,.8,.2,1)] focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2"
-          >
-            <Lifebuoy size={18} weight="bold" />
-          </button>
-
           <div className="relative" ref={dropdownRef}>
+            {/* Avatar button */}
             <button
-              onClick={() => setDropdownOpen((v) => !v)}
-              className="flex items-center gap-3 px-2 py-1.5 rounded-[14px] hover:bg-slate-50 transition-colors duration-150 ease-[cubic-bezier(.2,.8,.2,1)] focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2"
-              aria-haspopup="menu"
-              aria-expanded={dropdownOpen}
+              onClick={() => setDropdownOpen(v => !v)}
+              className="flex items-center justify-center w-8 h-8 rounded-full overflow-hidden bg-[#EEF0F4] focus:outline-none"
+              aria-haspopup="menu" aria-expanded={dropdownOpen}
             >
               {loading ? (
                 <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse" />
               ) : avatarUrl ? (
-                <Image
-                  src={avatarUrl}
-                  alt={userName}
-                  width={32}
-                  height={32}
-                  className="rounded-full object-cover"
-                />
+                <Image src={avatarUrl} alt={displayName} width={32} height={32} className="rounded-full object-cover" />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center font-medium text-gray-700">
-                  {userName.charAt(0)}
+                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-[12px] font-semibold text-gray-700">
+                  {initials}
                 </div>
               )}
-              <span
-                className="font-medium text-gray-700 text-sm"
-                style={{
-                  fontFamily:
-                    '"Aeonik Pro","Aeonik",-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif',
-                }}
-              >
-                {userName}
-              </span>
             </button>
 
+            {/* Revolut-style dropdown */}
             <AnimatePresence>
               {dropdownOpen && (
                 <motion.div
@@ -291,28 +307,74 @@ export default function Navbar() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -6 }}
                   transition={{ duration: 0.16 }}
-                  className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-[12px] shadow-[0_8px_24px_rgba(16,24,40,.10)] overflow-hidden"
+                  className="absolute right-0 mt-2 w-[360px] rounded-2xl bg-white
+             ring-1 ring-[#EEF0F4] shadow-[0_20px_60px_rgba(16,24,40,0.08),0_2px_8px_rgba(16,24,40,0.06)] p-4"
                   role="menu"
+                  style={{
+                    fontFamily:
+                      '"Aeonik Pro","Aeonik",-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif',
+                  }}
                 >
-                  <button
-                    className="flex w-full items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                    role="menuitem"
-                  >
-                    Account
-                    <ArrowSquareOut size={16} />
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-50"
-                    role="menuitem"
-                  >
-                    Sign out
-                  </button>
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-1 py-2">
+                    <div>
+                      <div className="text-[26px] leading-6 font-semibold text-[#111827] tracking-[-0.2px]">
+                        {displayName}
+                      </div>
+
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-[#EEF0F4] overflow-hidden flex items-center justify-center">
+                      {avatarUrl ? (
+                        <Image src={avatarUrl} alt={displayName} width={40} height={40} className="rounded-full object-cover" />
+                      ) : (
+                        <span className="text-[13px] font-semibold text-gray-700">{initials}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="my-2 border-t border-[#EAECEE]" />
+
+                  {/* Rows (transparent icons, no border) */}
+                  <div className="flex flex-col gap-1">
+                    <Link href="/help" role="menuitem" className="group flex items-center h-11 px-2.5 rounded-[12px] hover:bg-[#F7F7F7]">
+                      <span className="mr-3 inline-flex items-center justify-center min-w-[20px] bg-transparent text-[#4F55F1]">
+                        <PiQuestionBold className="w-5 h-5" />
+                      </span>
+                      <span className="text-[15px] text-[#111827]">Help</span>
+                    </Link>
+
+                    <Link href="/settings" role="menuitem" className="group flex items-center h-11 px-2.5 rounded-[12px] hover:bg-[#F7F7F7]">
+                      <span className="mr-3 inline-flex items-center justify-center min-w-[20px] bg-transparent text-[#4F55F1]">
+                        <PiGearSixFill className="w-5 h-5" />
+                      </span>
+                      <span className="text-[15px] text-[#111827]">Settings</span>
+                    </Link>
+
+                    <div className="my-1 border-t border-[#EAECEE]" />
+
+                    <Link href="/about" role="menuitem" className="group flex items-center h-11 px-2.5 rounded-[12px] hover:bg-[#F7F7F7]">
+                      <span className="mr-3 inline-flex items-center justify-center min-w-[20px] bg-transparent text-[#4F55F1]">
+                        <PiNavigationArrowFill className="w-5 h-5" />
+                      </span>
+                      <span className="text-[15px] text-[#111827]">About us</span>
+                    </Link>
+
+                    <div className="my-1 border-t border-[#EAECEE]" />
+
+                    <button onClick={handleLogout} role="menuitem" className="group flex items-center h-11 px-2.5 rounded-[12px] hover:bg-[#F7F7F7] w-full text-left">
+                      <span className="mr-3 inline-flex items-center justify-center min-w-[20px] bg-transparent text-[#4F55F1]">
+                        <PiSignOutBold className="w-5 h-5" />
+                      </span>
+                      <span className="text-[15px] text-[#111827]">Log out</span>
+                    </button>
+                  </div>
+
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
         </div>
+
       </div>
 
       {/* ====================== MOBILE: UNCHANGED BELOW ====================== */}
