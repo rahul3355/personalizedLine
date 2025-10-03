@@ -2,8 +2,7 @@
 
 import { useAuth } from "../lib/AuthProvider";
 import AddonSection from "./AddonSection";
-import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { loadStripe } from "@stripe/stripe-js";
 
@@ -16,7 +15,6 @@ export default function BillingPage() {
   const { session, userInfo, refreshUserInfo } = useAuth();
   const [addonCount, setAddonCount] = useState(1);
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-  const router = useRouter();
 
   // ✅ Plans displayed in UI
   const plans = [
@@ -118,18 +116,6 @@ const handleCheckout = async (plan: string) => {
 
 
   // ✅ Refresh user info after successful Stripe checkout
-  useEffect(() => {
-    if (router.query.success === "true") {
-      refreshUserInfo();
-      const { success, ...rest } = router.query;
-      router.replace(
-        { pathname: router.pathname, query: rest },
-        undefined,
-        { shallow: true }
-      );
-    }
-  }, [router.query.success]);
-
   // ✅ Current Plan Info
   const currentPlan =
     userInfo?.user?.plan_type || userInfo?.plan_type || "free";
