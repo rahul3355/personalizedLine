@@ -326,41 +326,58 @@ def process_job(job_id: str):
         lock = redis_conn.lock(lock_name, timeout=30, blocking_timeout=10)
         acquired = False
         deducted = False
-        available = 0
+        previous_balance = 0
         try:
             acquired = lock.acquire(blocking=True)
             if not acquired:
                 raise RuntimeError("Unable to acquire credit lock")
 
-            profile_res = (
-                supabase.table("profiles")
-                .select("credits_remaining")
-                .eq("id", user_id)
-                .limit(1)
-                .execute()
-            )
-            available = profile_res.data[0]["credits_remaining"] if profile_res.data else 0
-            if available < total:
-                supabase.table("jobs").update(
-                    {
-                        "status": "failed",
-                        "finished_at": datetime.utcnow().isoformat() + "Z",
-                        "error": "Not enough credits",
-                    }
-                ).eq("id", job_id).execute()
-                return
+            max_attempts = 5
+            for _ in range(max_attempts):
+                profile_res = (
+                    supabase.table("profiles")
+                    .select("credits_remaining")
+                    .eq("id", user_id)
+                    .limit(1)
+                    .execute()
+                )
+                previous_balance = (
+                    profile_res.data[0]["credits_remaining"] if profile_res.data else 0
+                )
 
-            update_res = (
-                supabase.table("profiles")
-                .update({"credits_remaining": available - total})
-                .eq("id", user_id)
-                .execute()
-            )
+                if previous_balance < total:
+                    supabase.table("jobs").update(
+                        {
+                            "status": "failed",
+                            "finished_at": datetime.utcnow().isoformat() + "Z",
+                            "error": "Not enough credits",
+                        }
+                    ).eq("id", job_id).execute()
+                    return
 
-            if getattr(update_res, "error", None):
-                raise RuntimeError(getattr(update_res, "error", "Failed to update credits"))
+                update_res = (
+                    supabase.table("profiles")
+                    .update({"credits_remaining": previous_balance - total})
+                    .eq("id", user_id)
+                    .eq("credits_remaining", previous_balance)
+                    .execute()
+                )
 
-            deducted = True
+                if getattr(update_res, "error", None):
+                    raise RuntimeError(
+                        getattr(update_res, "error", "Failed to update credits")
+                    )
+
+                updated_rows = getattr(update_res, "data", None) or []
+                if updated_rows:
+                    deducted = True
+                    break
+
+                # Retry if another concurrent update changed the balance
+                time.sleep(0.1)
+
+            if not deducted:
+                raise RuntimeError("Failed to atomically deduct credits")
 
             supabase.table("ledger").insert(
                 {
@@ -376,7 +393,9 @@ def process_job(job_id: str):
             print(f"[Credits] Error while deducting for job {job_id}: {exc}")
             if deducted:
                 try:
-                    supabase.table("profiles").update({"credits_remaining": available}).eq("id", user_id).execute()
+                    supabase.table("profiles").update(
+                        {"credits_remaining": previous_balance}
+                    ).eq("id", user_id).execute()
                 except Exception as rollback_exc:
                     print(f"[Credits] Failed to rollback deduction for job {job_id}: {rollback_exc}")
             supabase.table("jobs").update(
