@@ -11,6 +11,7 @@ from datetime import datetime
 import redis
 import rq
 import requests
+from redis.exceptions import LockError
 from rq import get_current_job
 
 # -----------------------------
@@ -321,36 +322,77 @@ def process_job(job_id: str):
 
         # --- Check credits ---
         setup_start = time.time()
-        profile_res = (
-            supabase.table("profiles")
-            .select("credits_remaining")
-            .eq("id", user_id)
-            .limit(1)
-            .execute()
-        )
-        available = profile_res.data[0]["credits_remaining"] if profile_res.data else 0
-        if available < total:
+        lock_name = f"credits_lock:{user_id}"
+        lock = redis_conn.lock(lock_name, timeout=30, blocking_timeout=10)
+        acquired = False
+        deducted = False
+        available = 0
+        try:
+            acquired = lock.acquire(blocking=True)
+            if not acquired:
+                raise RuntimeError("Unable to acquire credit lock")
+
+            profile_res = (
+                supabase.table("profiles")
+                .select("credits_remaining")
+                .eq("id", user_id)
+                .limit(1)
+                .execute()
+            )
+            available = profile_res.data[0]["credits_remaining"] if profile_res.data else 0
+            if available < total:
+                supabase.table("jobs").update(
+                    {
+                        "status": "failed",
+                        "finished_at": datetime.utcnow().isoformat() + "Z",
+                        "error": "Not enough credits",
+                    }
+                ).eq("id", job_id).execute()
+                return
+
+            update_res = (
+                supabase.table("profiles")
+                .update({"credits_remaining": available - total})
+                .eq("id", user_id)
+                .execute()
+            )
+
+            if getattr(update_res, "error", None):
+                raise RuntimeError(getattr(update_res, "error", "Failed to update credits"))
+
+            deducted = True
+
+            supabase.table("ledger").insert(
+                {
+                    "user_id": user_id,
+                    "change": -total,
+                    "amount": 0.0,  # ensure non-null for deductions
+                    "reason": f"job deduction: {job_id}",
+                    "ts": datetime.utcnow().isoformat(),
+                }
+            ).execute()
+
+        except Exception as exc:
+            print(f"[Credits] Error while deducting for job {job_id}: {exc}")
+            if deducted:
+                try:
+                    supabase.table("profiles").update({"credits_remaining": available}).eq("id", user_id).execute()
+                except Exception as rollback_exc:
+                    print(f"[Credits] Failed to rollback deduction for job {job_id}: {rollback_exc}")
             supabase.table("jobs").update(
                 {
                     "status": "failed",
                     "finished_at": datetime.utcnow().isoformat() + "Z",
-                    "error": "Not enough credits",
+                    "error": "Unable to deduct credits",
                 }
             ).eq("id", job_id).execute()
             return
-
-        supabase.table("profiles").update(
-            {"credits_remaining": available - total}
-        ).eq("id", user_id).execute()
-        supabase.table("ledger").insert(
-    {
-        "user_id": user_id,
-        "change": -total,
-        "amount": 0.0,  # ensure non-null for deductions
-        "reason": f"job deduction: {job_id}",
-        "ts": datetime.utcnow().isoformat()  # optional, keeps timestamp consistent
-    }
-).execute()
+        finally:
+            if lock is not None and acquired:
+                try:
+                    lock.release()
+                except LockError:
+                    pass
 
         timings["setup"] = record_time("Setup (credits + DB updates)", setup_start, job_id)
 
