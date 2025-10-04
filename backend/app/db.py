@@ -122,6 +122,7 @@ def ensure_user(user_id: str, email: str):
             con.execute("INSERT INTO users(id,email,plan_type,subscription_status,renewal_date,credits_remaining) VALUES (?,?,?,?,?,?)",
                         (user_id, email, None, "inactive", 0, 0))
 
+
 def get_user(user_id: str):
     with db() as con:
         cur = con.execute("SELECT * FROM users WHERE id=?", (user_id,))

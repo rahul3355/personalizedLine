@@ -40,7 +40,7 @@ q = Queue(connection=redis_conn)
 security = HTTPBearer()
 
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 try:
     import jwt
@@ -76,6 +76,13 @@ STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 if STRIPE_SECRET:
     stripe.api_key = STRIPE_SECRET
 
+# Base plan price mapping (subscriptions)
+PLAN_PRICE_MAP = {
+    "starter": os.getenv("STRIPE_PRICE_STARTER"),
+    "growth": os.getenv("STRIPE_PRICE_GROWTH"),
+    "pro": os.getenv("STRIPE_PRICE_PRO"),
+}
+
 # Add-on product mapping
 ADDON_PRICE_MAP = {
     "free": os.getenv("STRIPE_PRICE_ADDON_FREE"),
@@ -83,6 +90,185 @@ ADDON_PRICE_MAP = {
     "growth": os.getenv("STRIPE_PRICE_ADDON_GROWTH"),
     "pro": os.getenv("STRIPE_PRICE_ADDON_PRO"),
 }
+
+PRICE_TO_PLAN = {pid: plan for plan, pid in PLAN_PRICE_MAP.items() if pid}
+
+CREDITS_MAP = {
+    "free": 500,
+    "starter": 2000,
+    "growth": 10000,
+    "pro": 25000,
+}
+
+APP_BASE_URL = os.getenv("APP_BASE_URL", "http://localhost:3000").rstrip("/")
+SUCCESS_RETURN_PATH = os.getenv("STRIPE_SUCCESS_PATH", "/billing/success")
+SUCCESS_URL = f"{APP_BASE_URL}{SUCCESS_RETURN_PATH}"
+CANCEL_URL = f"{APP_BASE_URL}/billing?canceled=true"
+
+STRIPE_SYNC_EVENTS = {
+    "checkout.session.completed",
+    "customer.subscription.created",
+    "customer.subscription.updated",
+    "customer.subscription.deleted",
+    "customer.subscription.paused",
+    "customer.subscription.resumed",
+    "customer.subscription.pending_update_applied",
+    "customer.subscription.pending_update_expired",
+    "customer.subscription.trial_will_end",
+    "invoice.paid",
+    "invoice.payment_failed",
+    "invoice.payment_action_required",
+    "invoice.upcoming",
+    "invoice.marked_uncollectible",
+    "invoice.payment_succeeded",
+    "payment_intent.succeeded",
+    "payment_intent.payment_failed",
+    "payment_intent.canceled",
+}
+
+
+def _fetch_profile(user_id: str, columns: str = "id,email,stripe_customer_id") -> Optional[Dict[str, Any]]:
+    try:
+        response = (
+            supabase.table("profiles")
+            .select(columns)
+            .eq("id", user_id)
+            .single()
+            .execute()
+        )
+        if getattr(response, "data", None):
+            return response.data
+    except Exception as exc:  # pragma: no cover - supabase availability
+        print(f"[Stripe] Failed to fetch profile for {user_id}: {exc}")
+    return None
+
+
+def _update_profile(user_id: str, payload: Dict[str, Any]) -> None:
+    if not payload:
+        return
+
+    try:
+        supabase.table("profiles").upsert(
+            {**payload, "id": user_id}
+        ).execute()
+    except Exception as exc:  # pragma: no cover - supabase availability
+        print(f"[Stripe] Failed to update profile {user_id}: {exc}")
+
+
+def _find_user_by_customer(customer_id: str) -> Optional[str]:
+    if not customer_id:
+        return None
+
+    try:
+        response = (
+            supabase.table("profiles")
+            .select("id")
+            .eq("stripe_customer_id", customer_id)
+            .single()
+            .execute()
+        )
+        if getattr(response, "data", None):
+            return response.data.get("id")
+    except Exception as exc:  # pragma: no cover - supabase availability
+        print(f"[Stripe] Failed to map customer {customer_id} via Supabase: {exc}")
+
+    return None
+
+
+def ensure_stripe_customer_id(user_id: str, email: Optional[str] = None) -> Optional[str]:
+    profile = _fetch_profile(user_id)
+    if profile:
+        stripe_customer_id = profile.get("stripe_customer_id")
+        if stripe_customer_id:
+            return stripe_customer_id
+        email = email or profile.get("email")
+
+    if not STRIPE_SECRET:
+        return None
+
+    customer_payload: Dict[str, Any] = {"metadata": {"user_id": user_id}}
+    if email:
+        customer_payload["email"] = email
+
+    customer = stripe.Customer.create(**customer_payload)
+    stripe_customer_id = customer.get("id")
+
+    if stripe_customer_id:
+        _update_profile(user_id, {"stripe_customer_id": stripe_customer_id})
+
+    return stripe_customer_id
+
+
+def sync_stripe_customer(customer_id: str, user_id: Optional[str] = None) -> Dict[str, Any]:
+    if not STRIPE_SECRET or not customer_id:
+        return {"status": "skipped", "reason": "missing_credentials"}
+
+    if not user_id:
+        user_id = _find_user_by_customer(customer_id)
+
+    subscriptions = stripe.Subscription.list(
+        customer=customer_id,
+        limit=1,
+        status="all",
+        expand=["data.default_payment_method"],
+    )
+
+    if not subscriptions.data:
+        snapshot: Dict[str, Any] = {"status": "none"}
+    else:
+        subscription = subscriptions.data[0]
+        default_payment = subscription.get("default_payment_method")
+        payment_method: Optional[Dict[str, Any]] = None
+        if default_payment and not isinstance(default_payment, str):
+            payment_method = {
+                "brand": default_payment.get("card", {}).get("brand"),
+                "last4": default_payment.get("card", {}).get("last4"),
+            }
+
+        snapshot = {
+            "subscriptionId": subscription.get("id"),
+            "status": subscription.get("status"),
+            "priceId": subscription.get("items", {})
+            .get("data", [{}])[0]
+            .get("price", {})
+            .get("id"),
+            "currentPeriodEnd": subscription.get("current_period_end"),
+            "currentPeriodStart": subscription.get("current_period_start"),
+            "cancelAtPeriodEnd": subscription.get("cancel_at_period_end"),
+            "paymentMethod": payment_method,
+        }
+
+    if user_id:
+        profile_update: Dict[str, Any] = {
+            "subscription_status": snapshot.get("status") or "inactive",
+            "renewal_date": snapshot.get("currentPeriodEnd"),
+            "stripe_subscription_id": snapshot.get("subscriptionId"),
+            "stripe_price_id": snapshot.get("priceId"),
+            "stripe_current_period_start": snapshot.get("currentPeriodStart"),
+            "stripe_current_period_end": snapshot.get("currentPeriodEnd"),
+            "stripe_cancel_at_period_end": snapshot.get("cancelAtPeriodEnd"),
+            "stripe_payment_brand": snapshot.get("paymentMethod", {}).get("brand")
+            if snapshot.get("paymentMethod")
+            else None,
+            "stripe_payment_last4": snapshot.get("paymentMethod", {}).get("last4")
+            if snapshot.get("paymentMethod")
+            else None,
+        }
+
+        plan_slug = PRICE_TO_PLAN.get(snapshot.get("priceId"))
+        if plan_slug:
+            profile_update["plan_type"] = plan_slug
+
+        if snapshot.get("status") == "none":
+            profile_update["subscription_status"] = "inactive"
+
+        _update_profile(user_id, profile_update)
+
+    return {
+        "customerId": customer_id,
+        "userId": user_id,
+        "subscription": snapshot,
+    }
 
 from . import jobs
 
@@ -561,7 +747,6 @@ def job_progress(
         "message": message,
     }
 
-YOUR_DOMAIN = "http://localhost:3000"
 # ✅ Stripe Checkout Session (subscription OR add-on)
 class CheckoutRequest(BaseModel):
     plan: str
@@ -580,69 +765,65 @@ async def create_checkout_session(
         print("========== CREATE CHECKOUT SESSION ==========")
         print(f"[DEBUG] Incoming data: {data}")
         user_id = current_user.user_id
+        user_email = current_user.claims.get("email")
 
-        # --- Base plan price IDs
-        price_map = {
-            "starter": os.getenv("STRIPE_PRICE_STARTER"),
-            "growth": os.getenv("STRIPE_PRICE_GROWTH"),
-            "pro": os.getenv("STRIPE_PRICE_PRO"),
-        }
+        if not STRIPE_SECRET:
+            raise HTTPException(status_code=500, detail="Stripe is not configured")
 
-        # --- Add-on price IDs (plan specific)
-        # --- Add-on price IDs (plan specific, including free tier)
-        addon_price_map = {
-            "free": os.getenv("STRIPE_PRICE_ADDON_FREE"),        # $10 per 1000
-            "starter": os.getenv("STRIPE_PRICE_ADDON_STARTER"),  # $8 per 1000
-            "growth": os.getenv("STRIPE_PRICE_ADDON_GROWTH"),    # $6 per 1000
-            "pro": os.getenv("STRIPE_PRICE_ADDON_PRO"),          # $5 per 1000
-        }
-
+        stripe_customer_id = ensure_stripe_customer_id(user_id, email=user_email)
+        if not stripe_customer_id:
+            raise HTTPException(status_code=500, detail="Unable to create Stripe customer")
 
         line_items = []
         price_id = None
         mode = "subscription"
 
         if data.addon:
-            # Add-on purchase
-            addon_price_id = addon_price_map.get(data.plan)
+            addon_price_id = ADDON_PRICE_MAP.get(data.plan)
             if not addon_price_id:
                 print(f"[ERROR] Invalid addon plan: {data.plan}")
                 return {"error": "Invalid addon plan"}
             price_id = addon_price_id
-            line_items = [{
-                "price": addon_price_id,
-                "quantity": data.quantity,
-            }]
+            line_items = [
+                {
+                    "price": addon_price_id,
+                    "quantity": data.quantity,
+                }
+            ]
             mode = "payment"
         else:
-            # Plan purchase
-            price_id = price_map.get(data.plan)
+            price_id = PLAN_PRICE_MAP.get(data.plan)
             if not price_id:
                 print(f"[ERROR] Invalid plan: {data.plan}")
                 return {"error": "Invalid plan"}
-            line_items = [{
-                "price": price_id,
-                "quantity": 1,
-            }]
+            line_items = [
+                {
+                    "price": price_id,
+                    "quantity": 1,
+                }
+            ]
             mode = "subscription"
 
-        print(f"[INFO] Using price_id={price_id}, mode={mode}, user_id={user_id}")
+        print(
+            f"[INFO] Using price_id={price_id}, mode={mode}, user_id={user_id}, customer={stripe_customer_id}"
+        )
 
-        # --- Create checkout session
         session = stripe.checkout.Session.create(
+            customer=stripe_customer_id,
             payment_method_types=["card"],
             mode=mode,
             line_items=line_items,
-            success_url="http://localhost:3000/billing?success=true",
-            cancel_url="http://localhost:3000/billing?canceled=true",
-            # attach metadata everywhere
+            success_url=SUCCESS_URL,
+            cancel_url=CANCEL_URL,
             metadata={
                 "user_id": user_id,
                 "plan": data.plan,
                 "addon": str(data.addon).lower(),
                 "quantity": str(data.quantity),
             },
-            subscription_data=None if data.addon else {
+            subscription_data=None
+            if data.addon
+            else {
                 "metadata": {
                     "user_id": user_id,
                     "plan": data.plan,
@@ -655,16 +836,37 @@ async def create_checkout_session(
 
         return {"id": session.id}
 
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"[ERROR] create_checkout_session failed: {e}")
         return {"error": str(e)}
 
 
 
-from fastapi import Request, Header, HTTPException
-from datetime import datetime
-import stripe
-import os
+@app.post("/stripe/sync")
+async def trigger_stripe_sync(
+    current_user: AuthenticatedUser = Depends(get_current_user),
+):
+    if not STRIPE_SECRET:
+        raise HTTPException(status_code=500, detail="Stripe is not configured")
+
+    user_id = current_user.user_id
+    stripe_customer_id = ensure_stripe_customer_id(
+        user_id, email=current_user.claims.get("email")
+    )
+
+    if not stripe_customer_id:
+        raise HTTPException(status_code=400, detail="Stripe customer missing")
+
+    sync_result = sync_stripe_customer(stripe_customer_id, user_id=user_id)
+    return {
+        "status": "ok",
+        "customerId": stripe_customer_id,
+        "subscription": sync_result.get("subscription"),
+    }
+
+
 
 # Init Supabase (must be service role key)
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -672,13 +874,6 @@ SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
-
-CREDITS_MAP = {
-    "free": 500,
-    "starter": 2000,
-    "growth": 10000,
-    "pro": 25000,
-}
 
 def log_db(label, res):
     print(f"[DB:{label}] {res}")
@@ -703,64 +898,110 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
     def log_db(label, res):
         print(f"[DB:{label}] {res}")
 
+    metadata = obj.get("metadata", {}) if hasattr(obj, "get") else {}
+    if hasattr(metadata, "to_dict"):
+        metadata = metadata.to_dict()
+    customer_id = obj.get("customer") if hasattr(obj, "get") else None
+    linked_user_id: Optional[str] = None
+
     if event_type == "checkout.session.completed":
-        metadata = obj.get("metadata", {})
         user_id = metadata.get("user_id")
         plan = metadata.get("plan")
-        is_addon = metadata.get("addon") == "true"
+        linked_user_id = user_id
 
-        if is_addon:
+        if customer_id and user_id:
+            _update_profile(user_id, {"stripe_customer_id": customer_id})
+
+        if metadata.get("addon") == "true":
             qty = int(metadata.get("quantity", 1))
             credits = qty * 1000
-            current = supabase.table("profiles").select("credits_remaining").eq("id", user_id).single().execute()
-            current_credits = current.data["credits_remaining"] if current.data else 0
-            new_total = current_credits + credits
+            try:
+                current = (
+                    supabase.table("profiles")
+                    .select("credits_remaining")
+                    .eq("id", user_id)
+                    .single()
+                    .execute()
+                )
+                current_credits = current.data.get("credits_remaining") if current.data else 0
+                new_total = (current_credits or 0) + credits
 
-            res_update = supabase.table("profiles").update({
-                "credits_remaining": new_total
-            }).eq("id", user_id).execute()
-            
+                res_update = (
+                    supabase.table("profiles")
+                    .update({"credits_remaining": new_total})
+                    .eq("id", user_id)
+                    .execute()
+                )
+                log_db("update_addon_credits", res_update)
 
-            res_ledger = supabase.table("ledger").insert({
-                "user_id": user_id,
-                "change": credits,
-                "amount": (obj.get("amount_total") or 0) / 100.0,
-                "reason": f"addon purchase x{qty}",
-                "ts": datetime.utcnow().isoformat()
-            }).execute()
-            
+                res_ledger = (
+                    supabase.table("ledger")
+                    .insert(
+                        {
+                            "user_id": user_id,
+                            "change": credits,
+                            "amount": (obj.get("amount_total") or 0) / 100.0,
+                            "reason": f"addon purchase x{qty}",
+                            "ts": datetime.utcnow().isoformat(),
+                        }
+                    )
+                    .execute()
+                )
+                log_db("insert_ledger_addon", res_ledger)
+            except Exception as exc:  # pragma: no cover - supabase availability
+                print(f"[Stripe] Failed to record add-on purchase: {exc}")
 
-            print(f"[ADDON] user={user_id}, qty={qty}, credits={credits}, total={new_total}")
-
+            print(
+                f"[ADDON] user={user_id}, qty={qty}, credits={credits}, customer={customer_id}"
+            )
         else:
             subscription_id = obj.get("subscription")
             renewal_date = None
             if subscription_id:
-                sub = stripe.Subscription.retrieve(subscription_id)
-                renewal_date = sub.get("current_period_end")
+                subscription = stripe.Subscription.retrieve(subscription_id)
+                renewal_date = subscription.get("current_period_end")
 
             credits = CREDITS_MAP.get(plan, 0)
-            res_update = supabase.table("profiles").update({
-                "plan_type": plan,
-                "subscription_status": "active",
-                "renewal_date": renewal_date,
-                "credits_remaining": credits
-            }).eq("id", user_id).execute()
-            log_db("update_profile_plan", res_update)
+            try:
+                res_update = (
+                    supabase.table("profiles")
+                    .update(
+                        {
+                            "plan_type": plan,
+                            "subscription_status": "active",
+                            "renewal_date": renewal_date,
+                            "credits_remaining": credits,
+                        }
+                    )
+                    .eq("id", user_id)
+                    .execute()
+                )
+                log_db("update_profile_plan", res_update)
 
-            res_ledger = supabase.table("ledger").insert({
-                "user_id": user_id,
-                "change": credits,
-                "amount": (obj.get("amount_total") or 0) / 100.0,
-                "reason": f"plan purchase - {plan}",
-                "ts": datetime.utcnow().isoformat()
-            }).execute()
-            log_db("insert_ledger_plan", res_ledger)
+                res_ledger = (
+                    supabase.table("ledger")
+                    .insert(
+                        {
+                            "user_id": user_id,
+                            "change": credits,
+                            "amount": (obj.get("amount_total") or 0) / 100.0,
+                            "reason": f"plan purchase - {plan}",
+                            "ts": datetime.utcnow().isoformat(),
+                        }
+                    )
+                    .execute()
+                )
+                log_db("insert_ledger_plan", res_ledger)
+            except Exception as exc:  # pragma: no cover - supabase availability
+                print(f"[Stripe] Failed to update plan purchase: {exc}")
 
-            print(f"[PLAN] user={user_id}, plan={plan}, credits={credits}, renewal={renewal_date}")
+            print(
+                f"[PLAN] user={user_id}, plan={plan}, credits={credits}, renewal={renewal_date}"
+            )
 
-
-    # ... leave other cases (subscription.created, invoice.payment_succeeded, etc.) unchanged
+    if event_type in STRIPE_SYNC_EVENTS and customer_id:
+        sync_result = sync_stripe_customer(customer_id, user_id=linked_user_id)
+        print(f"[SYNC] {sync_result}")
 
     print("========== END WEBHOOK ==========")
     return {"status": "success"}
