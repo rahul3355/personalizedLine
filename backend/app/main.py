@@ -8,6 +8,7 @@ from fastapi.responses import StreamingResponse
 import io
 from pydantic import BaseModel
 import os
+import logging
 from . import db, jobs
 from backend.app.queue_utils import process_row
 from .supabase_client import supabase
@@ -99,6 +100,21 @@ CREDITS_MAP = {
     "growth": 10000,
     "pro": 25000,
 }
+
+FRONTEND_BASE_URLS = os.getenv(
+    "FRONTEND_BASE_URLS",
+    "http://localhost:3000,http://127.0.0.1:3000",
+)
+
+ALLOWED_ORIGINS = [url.strip() for url in FRONTEND_BASE_URLS.split(",") if url.strip()]
+
+if not ALLOWED_ORIGINS:
+    env_value = os.getenv("ENV", "").lower()
+    debug_value = os.getenv("DEBUG", "").lower()
+    if env_value in {"prod", "production"} or debug_value in {"0", "false", "no", "off"}:
+        logging.warning(
+            "FRONTEND_BASE_URLS resolved to an empty list in a production-like environment."
+        )
 
 APP_BASE_URL = os.getenv("APP_BASE_URL", "http://localhost:3000").rstrip("/")
 SUCCESS_RETURN_PATH = os.getenv("STRIPE_SUCCESS_PATH", "/billing/success")
@@ -287,10 +303,7 @@ async def startup_event():
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000"
-    ],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
