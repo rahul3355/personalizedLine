@@ -50,7 +50,7 @@ export default function Navbar() {
           { transform: "rotate(15deg)" },
           { transform: "rotate(0deg)" },
         ],
-        { duration: 300, easing: "ease-in-out" }
+        { duration: 120, easing: "ease-in-out" }
       );
     }
   }, [router.pathname]);
