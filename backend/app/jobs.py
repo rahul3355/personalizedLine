@@ -2,6 +2,7 @@ import os
 import json
 import time
 import math
+from typing import Optional
 import pandas as pd
 import traceback
 import tempfile
@@ -19,6 +20,98 @@ from rq import get_current_job
 # -----------------------------
 redis_conn = redis.Redis(host="redis", port=6379, decode_responses=False)
 queue = rq.Queue("default", connection=redis_conn)
+
+
+def _ensure_dict(value):
+    if not value:
+        return {}
+    if isinstance(value, dict):
+        return dict(value)
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+            return parsed if isinstance(parsed, dict) else {}
+        except Exception:
+            return {}
+    return {}
+
+
+def refund_job_credits(job_id: str, user_id: Optional[str], reason: str = "") -> bool:
+    """Refund credits for a job if they were previously deducted."""
+    try:
+        job_res = (
+            supabase.table("jobs")
+            .select("meta_json, user_id")
+            .eq("id", job_id)
+            .limit(1)
+            .execute()
+        )
+        if not job_res.data:
+            return False
+
+        job_row = job_res.data[0]
+        meta = _ensure_dict(job_row.get("meta_json"))
+        user_id = user_id or job_row.get("user_id")
+        if not user_id:
+            return False
+        cost = meta.get("credit_cost")
+        if not cost or cost <= 0:
+            return False
+        if not meta.get("credits_deducted"):
+            return False
+        if meta.get("credits_refunded"):
+            return False
+
+        max_attempts = 5
+        for _ in range(max_attempts):
+            profile_res = (
+                supabase.table("profiles")
+                .select("credits_remaining")
+                .eq("id", user_id)
+                .limit(1)
+                .execute()
+            )
+            current_balance = (
+                profile_res.data[0]["credits_remaining"] if profile_res.data else 0
+            )
+
+            update_res = (
+                supabase.table("profiles")
+                .update({"credits_remaining": current_balance + cost})
+                .eq("id", user_id)
+                .eq("credits_remaining", current_balance)
+                .execute()
+            )
+
+            if getattr(update_res, "error", None):
+                raise RuntimeError(getattr(update_res, "error", "Failed to refund credits"))
+
+            updated_rows = getattr(update_res, "data", None) or []
+            if updated_rows:
+                break
+
+            time.sleep(0.1)
+        else:
+            raise RuntimeError("Failed to atomically refund credits")
+
+        supabase.table("ledger").insert(
+            {
+                "user_id": user_id,
+                "change": cost,
+                "amount": 0.0,
+                "reason": f"job refund: {job_id}{' - ' + reason if reason else ''}",
+                "ts": datetime.utcnow().isoformat(),
+            }
+        ).execute()
+
+        meta["credits_refunded"] = True
+        supabase.table("jobs").update({"meta_json": meta}).eq("id", job_id).execute()
+
+        print(f"[Credits] Refunded {cost} credits for job {job_id} ({reason})")
+        return True
+    except Exception as exc:
+        print(f"[Credits] Failed to refund credits for job {job_id}: {exc}")
+        return False
 
 def _get_job_timeout():
     try:
@@ -251,12 +344,14 @@ def finalize_job(job_id: str, user_id: str, total_chunks: int):
         supabase.table("jobs").update(
             {"status": "failed", "error": f"Finalize error: {e}"}
         ).eq("id", job_id).execute()
+        refund_job_credits(job_id, user_id, "finalize error")
 
 
 def process_job(job_id: str):
     """Split a job into chunks based on available workers and enqueue subjobs."""
     job_start = time.time()
     timings = {}
+    job = None
     try:
         print(f"[Worker] === Starting process_job for {job_id} ===")
 
@@ -272,9 +367,7 @@ def process_job(job_id: str):
             return
         job = job_res.data[0]
 
-        meta = job.get("meta_json", {})
-        if isinstance(meta, str):
-            meta = json.loads(meta)
+        meta = _ensure_dict(job.get("meta_json"))
 
         user_id = job["user_id"]
         file_path = meta.get("file_path")
@@ -389,6 +482,12 @@ def process_job(job_id: str):
                 }
             ).execute()
 
+            meta["credit_cost"] = total
+            meta["credits_deducted"] = True
+            if "credits_refunded" not in meta:
+                meta["credits_refunded"] = False
+            supabase.table("jobs").update({"meta_json": meta}).eq("id", job_id).execute()
+
         except Exception as exc:
             print(f"[Credits] Error while deducting for job {job_id}: {exc}")
             if deducted:
@@ -481,6 +580,8 @@ def process_job(job_id: str):
                 "error": str(e),
             }
         ).eq("id", job_id).execute()
+        user_for_refund = job.get("user_id") if isinstance(job, dict) else None
+        refund_job_credits(job_id, user_for_refund, "process_job error")
 
 
 def worker_loop(poll_interval: int = 5):
