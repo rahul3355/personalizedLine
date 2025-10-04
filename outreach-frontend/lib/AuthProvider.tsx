@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabaseClient";
 
@@ -44,49 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
 
-useEffect(() => {
-  let mounted = true;
-
-  const init = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!mounted) return;
-
-    setSession(session);
-    setUser(session?.user ?? null);
-
-    if (session?.user) {
-      fetchUserInfo(session); // don’t await here
-    }
-
-    setLoading(false); // release loader right away
-  };
-
-  init();
-
-  const {
-    data: { subscription },
-  } = supabase.auth.onAuthStateChange(async (_event, session) => {
-    if (!mounted) return;
-    setSession(session);
-    setUser(session?.user ?? null);
-
-    if (session?.user) {
-      fetchUserInfo(session); // don’t await here
-    } else {
-      setUserInfo(null);
-    }
-
-    setLoading(false);
-  });
-
-  return () => {
-    mounted = false;
-    subscription.unsubscribe();
-  };
-}, []);
-
-
-  const fetchUserInfo = async (session: Session | null) => {
+  const fetchUserInfo = useCallback(async (session: Session | null) => {
     if (!session?.user) return;
 
     const userId = session.user.id;
@@ -160,13 +124,56 @@ useEffect(() => {
     } catch (err) {
       console.error("Failed to fetch/create user info", err);
     }
-  };
+  }, []);
 
-  const refreshUserInfo = async () => {
+  const refreshUserInfo = useCallback(async () => {
     if (session) {
       await fetchUserInfo(session);
     }
-  };
+  }, [fetchUserInfo, session]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const init = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!mounted) return;
+
+      setSession(session);
+      setUser(session?.user ?? null);
+
+      if (session?.user) {
+        fetchUserInfo(session); // don’t await here
+      }
+
+      setLoading(false); // release loader right away
+    };
+
+    init();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!mounted) return;
+      setSession(session);
+      setUser(session?.user ?? null);
+
+      if (session?.user) {
+        fetchUserInfo(session); // don’t await here
+      } else {
+        setUserInfo(null);
+      }
+
+      setLoading(false);
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [fetchUserInfo]);
 
   const value: AuthContextProps = {
     session,
