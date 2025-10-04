@@ -132,12 +132,22 @@ def get_user(user_id: str):
         keys = [d[0] for d in cur.description]
         return dict(zip(keys, row))
 
-def update_credits(user_id: str, change: int, reason: str):
-    """Increment or decrement credits and record the change in ledger."""
+def update_credits(user_id: str, change: int, reason: str) -> bool:
+    """Increment or decrement credits and record the change in ledger atomically."""
     with db() as con:
-        con.execute("UPDATE users SET credits_remaining = credits_remaining + ? WHERE id=?", (change, user_id))
-        con.execute("INSERT INTO ledger(user_id, change, reason, ts) VALUES (?,?,?,?)",
-                    (user_id, change, reason, int(time.time())))
+        cur = con.execute(
+            "UPDATE users SET credits_remaining = credits_remaining + ? "
+            "WHERE id=? AND credits_remaining + ? >= 0",
+            (change, user_id, change),
+        )
+        if cur.rowcount == 0:
+            return False
+
+        con.execute(
+            "INSERT INTO ledger(user_id, change, reason, ts) VALUES (?,?,?,?)",
+            (user_id, change, reason, int(time.time())),
+        )
+        return True
 
 def get_credits(user_id: str):
     with db() as con:

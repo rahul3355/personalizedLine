@@ -339,18 +339,64 @@ def process_job(job_id: str):
             ).eq("id", job_id).execute()
             return
 
-        supabase.table("profiles").update(
-            {"credits_remaining": available - total}
-        ).eq("id", user_id).execute()
+        # Attempt an atomic deduction directly in Postgres to avoid race conditions.
+        deduction_res = (
+            supabase.rpc(
+                "deduct_credits",
+                {"p_user_id": user_id, "p_amount": total},
+            ).execute()
+        )
+
+        deduction_error = getattr(deduction_res, "error", None)
+        if deduction_error:
+            print(f"[Credits] Failed to deduct for job {job_id}: {deduction_error}")
+            supabase.table("jobs").update(
+                {
+                    "status": "failed",
+                    "finished_at": datetime.utcnow().isoformat() + "Z",
+                    "error": "Unable to deduct credits",
+                }
+            ).eq("id", job_id).execute()
+            return
+
+        deduction_data = getattr(deduction_res, "data", None)
+        new_balance = None
+        if isinstance(deduction_data, list) and deduction_data:
+            first_item = deduction_data[0]
+            if isinstance(first_item, dict):
+                for key in ("credits_remaining", "deduct_credits", "balance"):
+                    if key in first_item and first_item[key] is not None:
+                        new_balance = first_item[key]
+                        break
+            else:
+                new_balance = first_item
+        elif isinstance(deduction_data, dict):
+            for key in ("credits_remaining", "deduct_credits", "balance"):
+                if key in deduction_data and deduction_data[key] is not None:
+                    new_balance = deduction_data[key]
+                    break
+        elif isinstance(deduction_data, (int, float)):
+            new_balance = deduction_data
+
+        if new_balance is None:
+            supabase.table("jobs").update(
+                {
+                    "status": "failed",
+                    "finished_at": datetime.utcnow().isoformat() + "Z",
+                    "error": "Not enough credits",
+                }
+            ).eq("id", job_id).execute()
+            return
+
         supabase.table("ledger").insert(
-    {
-        "user_id": user_id,
-        "change": -total,
-        "amount": 0.0,  # ensure non-null for deductions
-        "reason": f"job deduction: {job_id}",
-        "ts": datetime.utcnow().isoformat()  # optional, keeps timestamp consistent
-    }
-).execute()
+            {
+                "user_id": user_id,
+                "change": -total,
+                "amount": 0.0,  # ensure non-null for deductions
+                "reason": f"job deduction: {job_id}",
+                "ts": datetime.utcnow().isoformat(),
+            }
+        ).execute()
 
         timings["setup"] = record_time("Setup (credits + DB updates)", setup_start, job_id)
 
