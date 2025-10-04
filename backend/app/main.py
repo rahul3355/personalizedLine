@@ -893,7 +893,8 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
 
     event_type = event["type"]
     obj = event["data"]["object"]
-    print(f"[EVENT] {event_type} id={event['id']}")
+    event_id = event.get("id")
+    print(f"[EVENT] {event_type} id={event_id}")
 
     def log_db(label, res):
         print(f"[DB:{label}] {res}")
@@ -934,16 +935,21 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                 )
                 log_db("update_addon_credits", res_update)
 
+                ledger_payload = {
+                    "user_id": user_id,
+                    "change": credits,
+                    "amount": (obj.get("amount_total") or 0) / 100.0,
+                    "reason": f"addon purchase x{qty}",
+                    "ts": datetime.utcnow().isoformat(),
+                    "stripe_event_id": event_id,
+                }
+
                 res_ledger = (
                     supabase.table("ledger")
-                    .insert(
-                        {
-                            "user_id": user_id,
-                            "change": credits,
-                            "amount": (obj.get("amount_total") or 0) / 100.0,
-                            "reason": f"addon purchase x{qty}",
-                            "ts": datetime.utcnow().isoformat(),
-                        }
+                    .upsert(
+                        ledger_payload,
+                        on_conflict="stripe_event_id",
+                        ignore_duplicates=True,
                     )
                     .execute()
                 )
@@ -978,16 +984,21 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                 )
                 log_db("update_profile_plan", res_update)
 
+                ledger_payload = {
+                    "user_id": user_id,
+                    "change": credits,
+                    "amount": (obj.get("amount_total") or 0) / 100.0,
+                    "reason": f"plan purchase - {plan}",
+                    "ts": datetime.utcnow().isoformat(),
+                    "stripe_event_id": event_id,
+                }
+
                 res_ledger = (
                     supabase.table("ledger")
-                    .insert(
-                        {
-                            "user_id": user_id,
-                            "change": credits,
-                            "amount": (obj.get("amount_total") or 0) / 100.0,
-                            "reason": f"plan purchase - {plan}",
-                            "ts": datetime.utcnow().isoformat(),
-                        }
+                    .upsert(
+                        ledger_payload,
+                        on_conflict="stripe_event_id",
+                        ignore_duplicates=True,
                     )
                     .execute()
                 )
