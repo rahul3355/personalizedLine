@@ -435,6 +435,17 @@ def process_subjob(
         supabase.table("jobs").update({"timing_json": json.dumps(timings)}).eq("id", job_id).execute()
 
         print(f"[Worker] Finished chunk {chunk_id}/{row_count} for job {job_id}")
+
+
+        try:
+            os.remove(chunk_path)
+        except FileNotFoundError:
+            pass
+        except Exception as cleanup_exc:
+            print(
+                f"[Worker] Warning: failed to remove temporary chunk file {chunk_path}: {cleanup_exc}"
+            )
+
         return storage_path
 
     except Exception as exc:
