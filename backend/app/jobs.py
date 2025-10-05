@@ -4,6 +4,7 @@ import json
 import time
 import math
 from typing import Optional, List
+import shutil
 import pandas as pd
 import traceback
 import tempfile
@@ -179,9 +180,11 @@ def _finalize_empty_job(job_id: str, user_id: str, headers: List[str], timings: 
             }
         ).eq("id", job_id).execute()
     finally:
-        import shutil
-
         shutil.rmtree(local_dir, ignore_errors=True)
+
+    input_chunk_dir = os.path.join("/data/input_chunks", job_id)
+    if os.path.exists(input_chunk_dir):
+        shutil.rmtree(input_chunk_dir, ignore_errors=True)
 
     print(f"[Worker] Job {job_id} contained no rows; generated empty result file")
 
@@ -294,16 +297,39 @@ def next_queued_job():
     return res.data[0] if res.data else None
 
 
-def process_subjob(job_id: str, chunk_id: int, rows: list, meta: dict, user_id: str, total_rows: int):
-    """Process a chunk of rows for a given job, with global progress logging."""
+def process_subjob(
+    job_id: str,
+    chunk_id: int,
+    chunk_path: str,
+    meta: dict,
+    user_id: str,
+    total_rows: int,
+):
+    """Process a chunk referenced by a temporary CSV file."""
     sub_start = time.time()
     out_lines = []
     processed_in_chunk = 0
 
+    rows = []
+    try:
+        with open(chunk_path, newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                sanitized = {
+                    key: (value if value is not None else "") for key, value in row.items()
+                }
+                rows.append(sanitized)
+    except FileNotFoundError as exc:
+        raise RuntimeError(f"Missing chunk input file: {chunk_path}") from exc
+
+    row_count = len(rows)
+
     try:
         for i, row in enumerate(rows, start=1):
             try:
-                print(f"[Worker] Job {job_id} | Chunk {chunk_id} | Row {i}/{len(rows)} -> {row}")
+                print(
+                    f"[Worker] Job {job_id} | Chunk {chunk_id} | Row {i}/{row_count} -> {row}"
+                )
                 line, _, _, _ = generate_opener(
                     company=row.get(meta.get("company_col", ""), ""),
                     description=row.get(meta.get("desc_col", ""), ""),
@@ -320,7 +346,7 @@ def process_subjob(job_id: str, chunk_id: int, rows: list, meta: dict, user_id: 
 
             processed_in_chunk += 1
 
-            if processed_in_chunk % 5 == 0 or processed_in_chunk == len(rows):
+            if processed_in_chunk % 5 == 0 or processed_in_chunk == row_count:
                 job_res = (
                     supabase.table("jobs")
                     .select("rows_processed")
@@ -329,7 +355,11 @@ def process_subjob(job_id: str, chunk_id: int, rows: list, meta: dict, user_id: 
                     .execute()
                 )
                 already_done = job_res.data[0]["rows_processed"] if job_res.data else 0
-                increment = 5 if processed_in_chunk % 5 == 0 else (len(rows) - processed_in_chunk + 1)
+                increment = (
+                    5
+                    if processed_in_chunk % 5 == 0
+                    else (row_count - processed_in_chunk + 1)
+                )
                 new_done = already_done + increment
                 if new_done > total_rows:
                     new_done = total_rows
@@ -404,7 +434,17 @@ def process_subjob(job_id: str, chunk_id: int, rows: list, meta: dict, user_id: 
         timings["chunks"][str(chunk_id)] = elapsed
         supabase.table("jobs").update({"timing_json": json.dumps(timings)}).eq("id", job_id).execute()
 
-        print(f"[Worker] Finished chunk {chunk_id}/{len(rows)} for job {job_id}")
+        print(f"[Worker] Finished chunk {chunk_id}/{row_count} for job {job_id}")
+
+        try:
+            os.remove(chunk_path)
+        except FileNotFoundError:
+            pass
+        except Exception as cleanup_exc:
+            print(
+                f"[Worker] Warning: failed to remove temporary chunk file {chunk_path}: {cleanup_exc}"
+            )
+
         return storage_path
 
     except Exception as exc:
@@ -514,10 +554,8 @@ def finalize_job(job_id: str, user_id: str, total_chunks: int):
         # Cleanup local chunks
         local_job_dir = os.path.join("/data/chunks", job_id)
         if os.path.exists(local_job_dir):
-            import shutil
             shutil.rmtree(local_job_dir, ignore_errors=True)
             print(f"[Worker] Cleaned up local chunks for job {job_id}")
-
 
         print(f"[Worker] Finalized job {job_id} successfully")
 
@@ -529,12 +567,19 @@ def finalize_job(job_id: str, user_id: str, total_chunks: int):
         ).eq("id", job_id).execute()
         refund_job_credits(job_id, user_id, "finalize error")
 
+    finally:
+        input_chunk_dir = os.path.join("/data/input_chunks", job_id)
+        if os.path.exists(input_chunk_dir):
+            shutil.rmtree(input_chunk_dir, ignore_errors=True)
+            print(f"[Worker] Cleaned up input chunks for job {job_id}")
+
 
 def process_job(job_id: str):
     """Split a job into chunks based on available workers and enqueue subjobs."""
     job_start = time.time()
     timings = {}
     job = None
+    input_chunk_dir = os.path.join("/data/input_chunks", job_id)
     try:
         print(f"[Worker] === Starting process_job for {job_id} ===")
 
@@ -703,44 +748,87 @@ def process_job(job_id: str):
             num_workers = 1
 
         subjob_refs = []
-        chunk_buffer = []
         chunk_count = 0
 
         job_timeout = _get_job_timeout()
 
-        if total > 0:
-            num_chunks = min(total, num_workers) or 1
-            chunk_size = max(1, math.ceil(total / num_chunks))
-            for row in row_iter:
-                chunk_buffer.append(row)
-                if len(chunk_buffer) >= chunk_size:
-                    chunk_count += 1
+        current_chunk_file = None
+        current_chunk_writer = None
+        current_chunk_path = None
+        current_chunk_id = 0
+        rows_in_current_chunk = 0
+
+        try:
+            if total > 0:
+                os.makedirs(input_chunk_dir, exist_ok=True)
+                num_chunks = min(total, num_workers) or 1
+                chunk_size = max(1, math.ceil(total / num_chunks))
+
+                for row in row_iter:
+                    if current_chunk_writer is None:
+                        chunk_count += 1
+                        current_chunk_id = chunk_count
+                        current_chunk_path = os.path.join(
+                            input_chunk_dir, f"chunk_{current_chunk_id}.csv"
+                        )
+                        current_chunk_file = open(
+                            current_chunk_path, "w", newline="", encoding="utf-8"
+                        )
+                        current_chunk_writer = csv.DictWriter(
+                            current_chunk_file, fieldnames=headers, extrasaction="ignore"
+                        )
+                        current_chunk_writer.writeheader()
+                        rows_in_current_chunk = 0
+
+                    sanitized_row = {header: row.get(header, "") for header in headers}
+                    current_chunk_writer.writerow(sanitized_row)
+                    rows_in_current_chunk += 1
+
+                    if rows_in_current_chunk >= chunk_size:
+                        current_chunk_file.close()
+                        job_ref = queue.enqueue(
+                            process_subjob,
+                            job_id,
+                            current_chunk_id,
+                            current_chunk_path,
+                            meta,
+                            user_id,
+                            total,
+                            job_timeout=job_timeout,
+                        )
+                        subjob_refs.append(job_ref)
+                        current_chunk_file = None
+                        current_chunk_writer = None
+                        current_chunk_path = None
+                        current_chunk_id = 0
+                        rows_in_current_chunk = 0
+
+                if current_chunk_writer is not None and rows_in_current_chunk > 0:
+                    current_chunk_file.close()
                     job_ref = queue.enqueue(
                         process_subjob,
                         job_id,
-                        chunk_count,
-                        chunk_buffer,
+                        current_chunk_id,
+                        current_chunk_path,
                         meta,
                         user_id,
                         total,
                         job_timeout=job_timeout,
                     )
                     subjob_refs.append(job_ref)
-                    chunk_buffer = []
-
-            if chunk_buffer:
-                chunk_count += 1
-                job_ref = queue.enqueue(
-                    process_subjob,
-                    job_id,
-                    chunk_count,
-                    chunk_buffer,
-                    meta,
-                    user_id,
-                    total,
-                    job_timeout=job_timeout,
-                )
-                subjob_refs.append(job_ref)
+                    current_chunk_file = None
+                    current_chunk_writer = None
+                    current_chunk_path = None
+                    current_chunk_id = 0
+                    rows_in_current_chunk = 0
+        finally:
+            if current_chunk_file is not None and not current_chunk_file.closed:
+                current_chunk_file.close()
+                if current_chunk_path:
+                    try:
+                        os.remove(current_chunk_path)
+                    except FileNotFoundError:
+                        pass
 
         timings["chunking"] = record_time("Chunking + enqueue", chunk_start, job_id)
 
@@ -772,6 +860,8 @@ def process_job(job_id: str):
                 "error": str(e),
             }
         ).eq("id", job_id).execute()
+        if os.path.exists(input_chunk_dir):
+            shutil.rmtree(input_chunk_dir, ignore_errors=True)
         user_for_refund = job.get("user_id") if isinstance(job, dict) else None
         refund_job_credits(job_id, user_for_refund, "process_job error")
 
