@@ -1,8 +1,9 @@
 import os
+import csv
 import json
 import time
 import math
-from typing import Optional
+from typing import Optional, List
 import pandas as pd
 import traceback
 import tempfile
@@ -15,6 +16,7 @@ import requests
 from redis.exceptions import LockError
 from rq import get_current_job
 from supabase import StorageException
+from openpyxl import load_workbook
 
 # -----------------------------
 # Redis connection
@@ -83,6 +85,105 @@ def _upload_to_storage(storage_path: str, file_obj, context: str, bucket: str = 
             )
 
     return response
+
+
+def _csv_headers_and_total(path: str):
+    with open(path, newline="", encoding="utf-8-sig") as f:
+        reader = csv.reader(f)
+        headers = next(reader, None) or []
+        total = sum(1 for _ in reader)
+    return headers, total
+
+
+def _iter_csv_rows(path: str):
+    def generator():
+        with open(path, newline="", encoding="utf-8-sig") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                yield {key: (value if value is not None else "") for key, value in row.items()}
+
+    return generator()
+
+
+def _xlsx_headers_and_total(path: str):
+    wb = load_workbook(path, read_only=True, data_only=True)
+    try:
+        ws = wb.active
+        rows_iter = ws.iter_rows(values_only=True)
+        headers_row = next(rows_iter, None) or []
+        headers = [str(cell) if cell is not None else "" for cell in headers_row]
+        max_row = ws.max_row or 0
+        total = max(max_row - 1, 0) if headers else 0
+        return headers, total
+    finally:
+        wb.close()
+
+
+def _iter_xlsx_rows(path: str, headers: List[str]):
+    def generator():
+        wb = load_workbook(path, read_only=True, data_only=True)
+        try:
+            ws = wb.active
+            rows_iter = ws.iter_rows(values_only=True)
+            # Skip header row if present
+            next(rows_iter, None)
+            for row in rows_iter:
+                values = list(row)
+                row_dict = {}
+                for idx, column in enumerate(headers):
+                    value = values[idx] if idx < len(values) else None
+                    row_dict[column] = "" if value is None else value
+                yield row_dict
+        finally:
+            wb.close()
+
+    return generator()
+
+
+def _input_iterator(local_path: str):
+    ext = os.path.splitext(local_path)[1].lower()
+    if ext == ".csv":
+        headers, total = _csv_headers_and_total(local_path)
+        return headers, total, _iter_csv_rows(local_path)
+    if ext in {".xlsx", ".xlsm", ".xltx", ".xltm"}:
+        headers, total = _xlsx_headers_and_total(local_path)
+        return headers, total, _iter_xlsx_rows(local_path, headers)
+    raise RuntimeError(f"Unsupported file type: {ext}")
+
+
+def _finalize_empty_job(job_id: str, user_id: str, headers: List[str], timings: dict, job_start: float):
+    final_columns = list(headers)
+    if "personalized_line" not in final_columns:
+        final_columns.append("personalized_line")
+
+    empty_df = pd.DataFrame(columns=final_columns)
+    local_dir = tempfile.mkdtemp()
+    out_csv = os.path.join(local_dir, f"{job_id}_final.csv")
+    out_xlsx = os.path.join(local_dir, f"{job_id}_final.xlsx")
+    try:
+        empty_df.to_csv(out_csv, index=False)
+        empty_df.to_excel(out_xlsx, index=False, engine="openpyxl")
+
+        storage_path = f"{user_id}/{job_id}/result.xlsx"
+        with open(out_xlsx, "rb") as f:
+            _upload_to_storage(storage_path, f, f"final result for job {job_id}")
+
+        timings["process_job_total"] = record_time("process_job total", job_start, job_id)
+        supabase.table("jobs").update(
+            {
+                "status": "succeeded",
+                "finished_at": datetime.utcnow().isoformat() + "Z",
+                "result_path": storage_path,
+                "progress_percent": 100,
+                "timing_json": json.dumps(timings),
+            }
+        ).eq("id", job_id).execute()
+    finally:
+        import shutil
+
+        shutil.rmtree(local_dir, ignore_errors=True)
+
+    print(f"[Worker] Job {job_id} contained no rows; generated empty result file")
 
 
 def refund_job_credits(job_id: str, user_id: Optional[str], reason: str = "") -> bool:
@@ -480,20 +581,9 @@ def process_job(job_id: str):
         with open(local_path, "wb") as f:
             f.write(resp.content)
 
-        # --- Convert XLSX → CSV if needed ---
-        if local_path.endswith(".csv"):
-            df = pd.read_csv(local_path)
-        else:
-            xlsx_start = time.time()
-            df = pd.read_excel(local_path)
-            csv_path = local_path.replace(".xlsx", ".csv")
-            df.to_csv(csv_path, index=False)
-            local_path = csv_path
-            timings["xlsx_to_csv"] = record_time("XLSX→CSV conversion", xlsx_start, job_id)
+        headers, total, row_iter = _input_iterator(local_path)
 
         timings["download_input"] = record_time("Download input file", dl_start, job_id)
-
-        total = len(df)
 
         # --- Check credits ---
         setup_start = time.time()
@@ -612,45 +702,65 @@ def process_job(job_id: str):
         except Exception:
             num_workers = 1
 
-        num_chunks = min(total, num_workers)
-        chunk_size = math.ceil(total / num_chunks)
+        subjob_refs = []
+        chunk_buffer = []
+        chunk_count = 0
 
-        chunks = [
-            df.iloc[i:i + chunk_size].to_dict(orient="records")
-            for i in range(0, total, chunk_size)
-        ]
-        timings["chunking"] = record_time("Chunking + enqueue", chunk_start, job_id)
-
-       
         job_timeout = _get_job_timeout()
 
-        subjob_refs = []
-        for idx, rows in enumerate(chunks, start=1):
-            job_ref = queue.enqueue(
-                process_subjob,
+        if total > 0:
+            num_chunks = min(total, num_workers) or 1
+            chunk_size = max(1, math.ceil(total / num_chunks))
+            for row in row_iter:
+                chunk_buffer.append(row)
+                if len(chunk_buffer) >= chunk_size:
+                    chunk_count += 1
+                    job_ref = queue.enqueue(
+                        process_subjob,
+                        job_id,
+                        chunk_count,
+                        chunk_buffer,
+                        meta,
+                        user_id,
+                        total,
+                        job_timeout=job_timeout,
+                    )
+                    subjob_refs.append(job_ref)
+                    chunk_buffer = []
+
+            if chunk_buffer:
+                chunk_count += 1
+                job_ref = queue.enqueue(
+                    process_subjob,
+                    job_id,
+                    chunk_count,
+                    chunk_buffer,
+                    meta,
+                    user_id,
+                    total,
+                    job_timeout=job_timeout,
+                )
+                subjob_refs.append(job_ref)
+
+        timings["chunking"] = record_time("Chunking + enqueue", chunk_start, job_id)
+
+        if chunk_count > 0:
+            queue.enqueue(
+                finalize_job,
                 job_id,
-                idx,
-                rows,
-                meta,
                 user_id,
-                total,
+                chunk_count,
+                depends_on=subjob_refs,
                 job_timeout=job_timeout,
             )
-            subjob_refs.append(job_ref)
-
-        queue.enqueue(
-            finalize_job,
-            job_id,
-            user_id,
-            len(chunks),
-            depends_on=subjob_refs,
-            job_timeout=job_timeout,
-        )
+        else:
+            _finalize_empty_job(job_id, user_id, headers, timings, job_start)
+            return
 
         timings["process_job_total"] = record_time("process_job total", job_start, job_id)
         supabase.table("jobs").update({"timing_json": json.dumps(timings)}).eq("id", job_id).execute()
 
-        print(f"[Worker] Enqueued {len(chunks)} chunks + finalize for job {job_id}")
+        print(f"[Worker] Enqueued {chunk_count} chunks + finalize for job {job_id}")
 
     except Exception as e:
         print(f"[Worker] FATAL ERROR job {job_id}: {e}")
