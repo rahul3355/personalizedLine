@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  type DragEvent as ReactDragEvent,
+} from "react";
 import { API_URL } from "../lib/api";
 import {
   Tag,
@@ -13,17 +19,14 @@ import {
   ArrowRight,
   ArrowLeft,
   X as XIcon,
-  Info,  // Add this
+  Info,
+  RefreshCcw,
 } from "lucide-react";
 import { useAuth } from "../lib/AuthProvider";
 import { useRouter } from "next/router";
-import { motion } from "framer-motion";
 import Lottie from "lottie-react";
 import confettiAnim from "../public/confetti.json";
 import { supabase } from "../lib/supabaseClient";
-import BlackUploadButton from "../components/BlackUploadButton";
-import { IoCloseSharp } from "react-icons/io5";
-import { TbFileSpreadsheet } from "react-icons/tb";
 // replace
 
 
@@ -55,6 +58,13 @@ const STEP_META = [
     sub: "Describe your service so we can personalize outputs.",
   },
 ] as const;
+
+type CreditInfo = {
+  rowCount: number;
+  creditsRemaining: number;
+  missingCredits: number;
+  hasEnoughCredits: boolean;
+};
 
 
 
@@ -124,7 +134,7 @@ const StepTracker = ({
 
 
 export default function UploadPage() {
-  const { user, session, loading: authLoading } = useAuth();
+  const { session, loading: authLoading, refreshUserInfo } = useAuth();
   const router = useRouter();
 
   const [file, setFile] = useState<File | null>(null);
@@ -142,11 +152,16 @@ export default function UploadPage() {
   const [loading, setLoading] = useState(false);
   const [jobCreated, setJobCreated] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [creditInfo, setCreditInfo] = useState<CreditInfo | null>(null);
+  const [refreshingCredits, setRefreshingCredits] = useState(false);
 
   const [dragActive, setDragActive] = useState(false);
   const [step, setStep] = useState(0); // 0 = upload, 1 = confirm headers, 2 = confirm service
 
   const [showDropOverlay, setShowDropOverlay] = useState(false);
+
+  const hasCreditShortage = Boolean(creditInfo && !creditInfo.hasEnoughCredits);
+  const formatNumber = useCallback((value: number) => value.toLocaleString(), []);
 
 
   const emptyInputRef = useRef<HTMLInputElement>(null);
@@ -156,6 +171,25 @@ export default function UploadPage() {
     if (emptyInputRef.current) emptyInputRef.current.value = "";
     if (replaceInputRef.current) replaceInputRef.current.value = "";
   };
+
+  const handleFileSelection = useCallback(
+    (next: File | null) => {
+      setFile(next);
+      setHeaders([]);
+      setTempPath(null);
+      setCreditInfo(null);
+      setError(null);
+      setJobCreated(false);
+      setStep(0);
+      setCompanyCol("");
+      setDescCol("");
+      setIndustryCol("");
+      setTitleCol("");
+      setSizeCol("");
+      setRefreshingCredits(false);
+    },
+    []
+  );
 
 
 
@@ -216,7 +250,7 @@ export default function UploadPage() {
       prevent(e);
       hide();
       if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
-        setFile(e.dataTransfer.files[0]);
+        handleFileSelection(e.dataTransfer.files[0]);
         clearFileInputs();
       }
     };
@@ -271,6 +305,173 @@ export default function UploadPage() {
     setSizeCol(findMatch(["employee count", "size", "headcount", "staff"]));
   };
 
+  const applyCreditPayload = (
+    payload: any,
+    options: { autoMap?: boolean; fallbackPath?: string } = {}
+  ) => {
+    if (payload && Array.isArray(payload.headers)) {
+      setHeaders(payload.headers);
+      if (options.autoMap) {
+        autoMapHeaders(payload.headers);
+      }
+    }
+
+    if (payload && typeof payload.file_path === "string") {
+      setTempPath(payload.file_path);
+    } else if (options.fallbackPath) {
+      setTempPath(options.fallbackPath);
+    }
+
+    const hasRow = payload && payload.row_count !== undefined && payload.row_count !== null;
+    const hasCredits =
+      payload && payload.credits_remaining !== undefined && payload.credits_remaining !== null;
+    const hasMissing =
+      payload && payload.missing_credits !== undefined && payload.missing_credits !== null;
+    const hasEnoughProvided = payload && typeof payload.has_enough_credits === "boolean";
+
+    if (hasRow || hasCredits || hasMissing || hasEnoughProvided) {
+      const rowCount = hasRow
+        ? Number(payload.row_count) || 0
+        : creditInfo?.rowCount ?? 0;
+      const creditsRemaining = hasCredits
+        ? Number(payload.credits_remaining) || 0
+        : creditInfo?.creditsRemaining ?? 0;
+      const missingCredits = hasMissing
+        ? Math.max(0, Number(payload.missing_credits) || 0)
+        : Math.max(0, rowCount - creditsRemaining);
+      const hasEnough = hasEnoughProvided
+        ? payload.has_enough_credits
+        : creditsRemaining >= rowCount;
+
+      setCreditInfo({
+        rowCount,
+        creditsRemaining,
+        missingCredits,
+        hasEnoughCredits: hasEnough,
+      });
+    }
+  };
+
+  const parseStoredFile = async (
+    storagePath: string,
+    token: string,
+    options: { autoMap?: boolean } = {}
+  ) => {
+    const res = await fetch(`${API_URL}/parse_headers`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ file_path: storagePath }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Backend failed: ${res.status} - ${errText}`);
+    }
+
+    const data = await res.json();
+    if (!data.headers || !Array.isArray(data.headers)) {
+      throw new Error("Invalid headers received from backend");
+    }
+    applyCreditPayload(data, { autoMap: options.autoMap, fallbackPath: storagePath });
+    return data;
+  };
+
+  const handleRefreshCredits = useCallback(async () => {
+    if (!tempPath || !session?.access_token) return;
+    setRefreshingCredits(true);
+    setError(null);
+    try {
+      await refreshUserInfo();
+      await parseStoredFile(tempPath, session.access_token, { autoMap: false });
+    } catch (err: any) {
+      console.error("[Upload] Refresh credits error:", err);
+      setError(err.message || "Unable to refresh credits");
+    } finally {
+      setRefreshingCredits(false);
+    }
+  }, [tempPath, session, refreshUserInfo]);
+
+  const renderCreditBanner = (compact = false) => {
+    if (!creditInfo) return null;
+
+    const { rowCount, creditsRemaining, missingCredits, hasEnoughCredits } = creditInfo;
+    const stateClasses = hasEnoughCredits
+      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+      : "border-amber-200 bg-amber-50 text-amber-800";
+    const iconClasses = hasEnoughCredits
+      ? "bg-emerald-500/10 text-emerald-700 border border-emerald-200"
+      : "bg-amber-500/10 text-amber-700 border border-amber-200";
+    const layoutClasses = compact
+      ? "space-y-3"
+      : "flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between";
+
+    return (
+      <div className={`mb-4 rounded-xl border px-4 py-3 ${stateClasses}`}>
+        <div className={layoutClasses}>
+          <div className="flex items-start gap-3">
+            <span
+              className={`mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full ${iconClasses}`}
+            >
+              <Info className="h-4 w-4" />
+            </span>
+            <div className="space-y-1">
+              <p className="text-sm font-medium">
+                This file contains {formatNumber(rowCount)} rows.
+              </p>
+              <p className="text-sm">
+                {hasEnoughCredits ? (
+                  <>
+                    You&apos;re good to go — you have {formatNumber(creditsRemaining)}
+                    credits available. Running this job will use
+                    {" "}{formatNumber(rowCount)} credits.
+                  </>
+                ) : (
+                  <>
+                    You have {formatNumber(creditsRemaining)} credits remaining, so
+                    you&apos;re short {formatNumber(missingCredits)} credits. Add
+                    credits to continue.
+                  </>
+                )}
+              </p>
+            </div>
+          </div>
+
+          {!hasEnoughCredits && (
+            <div
+              className={`${compact ? "flex flex-col" : "flex flex-wrap"} gap-2 sm:justify-end`}
+            >
+              <button
+                type="button"
+                onClick={() => router.push("/billing")}
+                className="inline-flex items-center justify-center rounded-md border px-3 py-2 text-sm font-medium"
+                style={{
+                  borderColor: "rgba(249, 115, 22, 0.3)",
+                  color: "#B45309",
+                  backgroundColor: "rgba(254, 243, 199, 0.6)",
+                }}
+              >
+                Buy credits
+              </button>
+              <button
+                type="button"
+                onClick={handleRefreshCredits}
+                disabled={refreshingCredits || !tempPath || !session?.access_token}
+                className="inline-flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                style={{ borderColor: BRAND_SOFT, color: BRAND }}
+              >
+                <RefreshCcw className={`h-4 w-4 ${refreshingCredits ? "animate-spin" : ""}`} />
+                {refreshingCredits ? "Refreshing..." : "I've added credits"}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const handleParseHeaders = async (): Promise<boolean> => {
     if (!file) {
       setError("Please select a file first");
@@ -297,28 +498,9 @@ export default function UploadPage() {
       if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
       console.log("[Upload] File uploaded:", storagePath);
 
-      const res = await fetch(`${API_URL}/parse_headers`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.access_token}`,
-        },
-        body: JSON.stringify({ file_path: storagePath }),
+      const data = await parseStoredFile(storagePath, session.access_token, {
+        autoMap: true,
       });
-
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`Backend failed: ${res.status} - ${errText}`);
-      }
-
-      const data = await res.json();
-      if (!data.headers || !Array.isArray(data.headers)) {
-        throw new Error("Invalid headers received from backend");
-      }
-
-      setHeaders(data.headers);
-      setTempPath(data.file_path);
-      autoMapHeaders(data.headers);
       console.log("[Upload] Headers parsed:", data.headers);
       setTimeout(() => {
         setStep(1);
@@ -337,6 +519,10 @@ export default function UploadPage() {
   const handleConfirmHeaders = async (): Promise<boolean> => {
     if (!companyCol || !descCol || !industryCol || !titleCol || !sizeCol) {
       setError("Please select all required columns");
+      return false;
+    }
+
+    if (hasCreditShortage) {
       return false;
     }
 
@@ -360,6 +546,10 @@ export default function UploadPage() {
       !service
     ) {
       setError("Please complete all required fields");
+      return false;
+    }
+
+    if (hasCreditShortage) {
       return false;
     }
 
@@ -388,11 +578,33 @@ export default function UploadPage() {
       });
 
       if (!res.ok) {
+        if (res.status === 402) {
+          let detail: any = null;
+          try {
+            const body = await res.json();
+            detail = typeof body.detail === "object" ? body.detail : body;
+          } catch (jsonErr) {
+            console.error("[Upload] Failed to parse credit error:", jsonErr);
+          }
+
+          if (detail) {
+            applyCreditPayload(detail);
+          }
+
+          return false;
+        }
+
         const errText = await res.text();
         throw new Error(`Failed: ${res.status} - ${errText}`);
       }
 
       await res.json();
+
+      try {
+        await refreshUserInfo();
+      } catch (refreshErr) {
+        console.error("[Upload] Failed to refresh user info after job creation", refreshErr);
+      }
 
       setTimeout(() => {
         setJobCreated(true);
@@ -411,20 +623,20 @@ export default function UploadPage() {
     }
   };
 
-  const handleDrag = (e: React.DragEvent) => {
+  const handleDrag = (e: ReactDragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     if (e.type === "dragenter" || e.type === "dragover") setDragActive(true);
     else if (e.type === "dragleave") setDragActive(false);
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = (e: ReactDragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
     const f = e.dataTransfer.files && e.dataTransfer.files[0];
     if (f) {
-      setFile(f);
+      handleFileSelection(f);
       clearFileInputs();  // ensure same-file selection works later
     }
   };
@@ -476,13 +688,14 @@ export default function UploadPage() {
         {STEP_META[step].sub}
       </p>
     )}
-  </header>
+          </header>
 )}
- 
+
 
 
 
             {/* NO CARD — direct on base background */}
+            {!jobCreated && renderCreditBanner()}
             {/* Step 0: Upload */}
             {step === 0 && !jobCreated && (
               <div className="flex flex-col">
@@ -509,7 +722,7 @@ export default function UploadPage() {
                     onClick={(e) => ((e.target as HTMLInputElement).value = "")}
                     onChange={(e) => {
                       const next = e.target.files?.[0] || null;
-                      setFile(next);
+                      handleFileSelection(next);
                       e.currentTarget.value = "";
                     }}
                   />
@@ -541,7 +754,11 @@ export default function UploadPage() {
                     <>
                       <button
                         type="button"
-                        onClick={(e) => { e.stopPropagation(); setFile(null); clearFileInputs(); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleFileSelection(null);
+                          clearFileInputs();
+                        }}
                         className="absolute top-3 right-3 inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-100"
                       >
                         <XIcon className="w-4 h-4" style={{ color: BRAND }} />
@@ -578,7 +795,7 @@ export default function UploadPage() {
                             className="hidden"
                             onChange={(e) => {
                               const next = e.target.files?.[0] || null;
-                              setFile(next);
+                              handleFileSelection(next);
                               e.currentTarget.value = "";
                             }}
                           />
@@ -704,7 +921,8 @@ export default function UploadPage() {
                   </button>
                   <button
                     onClick={handleConfirmHeaders}
-                    disabled={loading}
+                    disabled={loading || hasCreditShortage}
+                    title={hasCreditShortage ? "Add credits to continue" : undefined}
                     className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-md text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none"
                     style={{ backgroundColor: BRAND }}
                     onMouseEnter={(e) =>
@@ -763,7 +981,8 @@ export default function UploadPage() {
                   </button>
                   <button
                     onClick={handleCreateJob}
-                    disabled={loading}
+                    disabled={loading || hasCreditShortage}
+                    title={hasCreditShortage ? "Add credits to continue" : undefined}
                     className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-md text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none"
                     style={{ backgroundColor: BRAND }}
                     onMouseEnter={(e) =>
@@ -828,6 +1047,7 @@ export default function UploadPage() {
             <p className="text-gray-500 text-sm text-center">
               Import your CSV/XLSX to begin personalization.
             </p>
+            {renderCreditBanner(true)}
 
             <div className="rounded-xl border-2 border-dashed p-8 text-center"
               style={{ borderColor: "#E5E7EB" }}
@@ -838,7 +1058,11 @@ export default function UploadPage() {
                 type="file"
                 accept=".csv,.xlsx"
                 className="hidden"
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                onChange={(e) => {
+                  const next = e.target.files?.[0] || null;
+                  handleFileSelection(next);
+                  (e.target as HTMLInputElement).value = "";
+                }}
               />
               <UploadIcon className="h-10 w-10 mx-auto mb-3" style={{ color: BRAND }} />
               {file ? (
@@ -866,6 +1090,7 @@ export default function UploadPage() {
         <div className="block md:hidden w-full h-[calc(100vh-69px)] px-4 flex items-start justify-center overflow-hidden relative -mt-[64px] pt-[64px] bg-white">
           <div className="max-w-md w-full space-y-6" style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}>
             <h2 className="text-lg font-semibold text-gray-900 text-center">Confirm Headers</h2>
+            {renderCreditBanner(true)}
             <div className="rounded-xl border p-6 space-y-4" style={{ borderColor: "#E5E7EB" }}>
               {[
                 {
@@ -922,7 +1147,8 @@ export default function UploadPage() {
 
             <button
               onClick={handleConfirmHeaders}
-              disabled={loading}
+              disabled={loading || hasCreditShortage}
+              title={hasCreditShortage ? "Add credits to continue" : undefined}
               className="w-full py-3 rounded-md font-medium text-white text-[15px] tracking-tight disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ backgroundColor: BRAND }}
             >
@@ -936,6 +1162,7 @@ export default function UploadPage() {
         <div className="block md:hidden w-full h-[calc(100vh-69px)] px-4 flex items-start justify-center pt-[64px] bg-white">
           <div className="max-w-md w-full space-y-6" style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}>
             <h2 className="text-lg font-semibold text-gray-900 text-center">Describe Your Service</h2>
+            {renderCreditBanner(true)}
             <textarea
               value={service}
               onChange={(e) => setService(e.target.value)}
@@ -946,7 +1173,8 @@ export default function UploadPage() {
             />
             <button
               onClick={handleCreateJob}
-              disabled={loading}
+              disabled={loading || hasCreditShortage}
+              title={hasCreditShortage ? "Add credits to continue" : undefined}
               className="w-full py-3 rounded-md font-medium text-white text-[15px] tracking-tight disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ backgroundColor: BRAND }}
             >
