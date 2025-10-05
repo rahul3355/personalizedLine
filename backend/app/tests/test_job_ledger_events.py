@@ -78,6 +78,7 @@ class FakeSupabase:
         }
         self.profiles = {user_id: {"id": user_id, "credits_remaining": balance}}
         self.ledger_rows = []
+        self.job_ledger_events = {}
 
     def table(self, name):
         return FakeTable(self, name)
@@ -95,6 +96,8 @@ class FakeSupabase:
             return self._execute_profiles(action, payload, filters)
         if name == "ledger":
             return self._execute_ledger(action, payload, filters)
+        if name == "job_ledger_events":
+            return self._execute_job_ledger_events(action, payload, filters)
         raise NotImplementedError(name)
 
     def _execute_jobs(self, action, payload, filters):
@@ -168,6 +171,37 @@ class FakeSupabase:
                 self.ledger_rows = [
                     row for row in self.ledger_rows if row.get("external_id") != external_id
                 ]
+    def _execute_ledger(self, action, payload, _filters):
+        if action != "insert":
+            return FakeResponse([])
+        ledger_id = f"ledger-{len(self.ledger_rows) + 1}"
+        row = {"id": ledger_id, **payload}
+        self.ledger_rows.append(row)
+        return FakeResponse([row])
+
+    def _execute_job_ledger_events(self, action, payload, filters):
+        job_id = filters.get("job_id")
+        event_type = filters.get("event_type")
+        if payload:
+            job_id = job_id or payload.get("job_id")
+            event_type = event_type or payload.get("event_type")
+        key = (job_id, event_type)
+        if action == "insert":
+            if key in self.job_ledger_events:
+                return FakeResponse([], error={"message": "duplicate key value violates unique constraint"})
+            row = {"job_id": key[0], "event_type": key[1], "ledger_id": payload.get("ledger_id")}
+            self.job_ledger_events[key] = row
+            return FakeResponse([row])
+
+        if action == "update":
+            row = self.job_ledger_events.get(key)
+            if not row:
+                return FakeResponse([])
+            row.update(payload)
+            return FakeResponse([row])
+
+        if action == "delete":
+            self.job_ledger_events.pop(key, None)
             return FakeResponse([])
 
         return FakeResponse([])
@@ -194,6 +228,7 @@ def test_refund_job_credits_is_idempotent(monkeypatch):
     assert len(fake.ledger_rows) == 1
     assert fake.ledger_rows[0]["external_id"] == f"job_refund:{job_id}"
     assert fake.jobs[job_id]["meta_json"]["credits_refunded"] is True
+    assert fake.job_ledger_events[(job_id, "job_refund")]["ledger_id"] == "ledger-1"
 
     # Simulate metadata not marking the refund while the event record exists.
     fake.jobs[job_id]["meta_json"]["credits_refunded"] = False
@@ -226,6 +261,7 @@ def test_deduct_job_credits_is_idempotent(monkeypatch):
     assert len(fake.ledger_rows) == 1
     assert fake.ledger_rows[0]["external_id"] == f"job_deduction:{job_id}"
     assert fake.jobs[job_id]["meta_json"]["credits_deducted"] is True
+    assert fake.job_ledger_events[(job_id, "job_deduction")]["ledger_id"] == "ledger-1"
 
     fake.profiles[user_id]["credits_remaining"] = 6
     fake.jobs[job_id]["meta_json"]["credits_deducted"] = False
@@ -242,4 +278,5 @@ def test_deduct_job_credits_is_idempotent(monkeypatch):
     assert previous_balance_again is None
     assert fake.profiles[user_id]["credits_remaining"] == 6
     assert len(fake.ledger_rows) == 1
+    assert fake.job_ledger_events[(job_id, "job_deduction")]["ledger_id"] == "ledger-1"
     assert fake.jobs[job_id]["meta_json"]["credits_deducted"] is True
