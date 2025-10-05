@@ -369,6 +369,20 @@ export default function JobsPage() {
       return;
     }
 
+
+  const routerId = router.query?.id;
+
+  useEffect(() => {
+    if (!router.isReady) return;
+
+    if (!routerId) {
+      setSelectedJobId(null);
+      setSelectedJob(null);
+      setDetailError(null);
+      setDetailLoading(false);
+      return;
+    }
+
     const idValue = Array.isArray(routerId) ? routerId[0] : routerId;
     setSelectedJobId(idValue);
   }, [router.isReady, routerId]);
@@ -453,10 +467,15 @@ export default function JobsPage() {
       setActiveMonth(null);
       return;
     }
+
+    const firstTab = monthTabs[0];
+
     setActiveMonth((prev) => {
       if (prev && monthTabs.some((tab) => tab.value === prev)) {
         return prev;
       }
+
+      return firstTab ? firstTab.value : null;
       return monthTabs[0]?.value ?? null;
     });
   }, [monthTabs]);
@@ -489,6 +508,27 @@ export default function JobsPage() {
           jobs: [],
           sortKey: date.getTime(),
         });
+      }
+      map.get(key)?.jobs.push(job);
+    });
+
+    return Array.from(map.values())
+      .map((group) => ({
+        ...group,
+        jobs: group.jobs.sort((a, b) => b.created_at - a.created_at),
+      }))
+      .sort((a, b) => b.sortKey - a.sortKey);
+  }, [filteredJobs]);
+
+  const openJob = useCallback(
+    (id: string) => {
+      if (!router.isReady || id === selectedJobId) return;
+      const query = { ...router.query, id };
+      if (selectedJobId) {
+        router.replace({ pathname: "/jobs", query }, undefined, { shallow: true });
+      } else {
+        historyHasDrawer.current = true;
+        router.push({ pathname: "/jobs", query }, undefined, { shallow: true });
       }
       }
       return monthTabs[0]?.value ?? null;
@@ -922,6 +962,7 @@ function DetailPanel({
                 </div>
               </div>
             )}
+
 
             {job.status === "failed" && (
               <div className="rounded-3xl border border-red-200 bg-red-50/80 p-5 text-sm text-[#B42318]">
