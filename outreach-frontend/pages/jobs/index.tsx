@@ -369,6 +369,20 @@ export default function JobsPage() {
       return;
     }
 
+
+  const routerId = router.query?.id;
+
+  useEffect(() => {
+    if (!router.isReady) return;
+
+    if (!routerId) {
+      setSelectedJobId(null);
+      setSelectedJob(null);
+      setDetailError(null);
+      setDetailLoading(false);
+      return;
+    }
+
     const idValue = Array.isArray(routerId) ? routerId[0] : routerId;
     setSelectedJobId(idValue);
   }, [router.isReady, routerId]);
@@ -462,6 +476,62 @@ export default function JobsPage() {
       }
 
       return firstTab ? firstTab.value : null;
+      return monthTabs[0]?.value ?? null;
+    });
+  }, [monthTabs]);
+
+  useEffect(() => {
+    if (!selectedJobId) return;
+    const match = sortedJobs.find((job) => job.id === selectedJobId);
+    if (!match) return;
+    const monthKey = getMonthKey(new Date(match.created_at));
+    setActiveMonth((prev) => (prev === monthKey ? prev : monthKey));
+  }, [sortedJobs, selectedJobId]);
+
+  const filteredJobs = useMemo(() => {
+    if (!activeMonth) return sortedJobs;
+    return sortedJobs.filter((job) => {
+      const date = new Date(job.created_at);
+      return getMonthKey(date) === activeMonth;
+    });
+  }, [sortedJobs, activeMonth]);
+
+  const groupedJobs = useMemo<GroupedJobs[]>(() => {
+    const map = new Map<string, GroupedJobs>();
+    filteredJobs.forEach((job) => {
+      const date = new Date(job.created_at);
+      const key = getDayKey(date);
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          label: getDayLabel(date),
+          jobs: [],
+          sortKey: date.getTime(),
+        });
+      }
+      map.get(key)?.jobs.push(job);
+    });
+
+    return Array.from(map.values())
+      .map((group) => ({
+        ...group,
+        jobs: group.jobs.sort((a, b) => b.created_at - a.created_at),
+      }))
+      .sort((a, b) => b.sortKey - a.sortKey);
+  }, [filteredJobs]);
+
+  const openJob = useCallback(
+    (id: string) => {
+      if (!router.isReady || id === selectedJobId) return;
+      const query = { ...router.query, id };
+      if (selectedJobId) {
+        router.replace({ pathname: "/jobs", query }, undefined, { shallow: true });
+      } else {
+        historyHasDrawer.current = true;
+        router.push({ pathname: "/jobs", query }, undefined, { shallow: true });
+      }
+      }
+      return monthTabs[0]?.value ?? null;
     });
   }, [monthTabs]);
 
@@ -579,6 +649,11 @@ export default function JobsPage() {
   ]
     .filter((value): value is string => Boolean(value))
     .join(" ");
+  const containerBaseClasses =
+    "mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 pb-16 pt-12 md:px-8";
+  const containerClasses = isDrawerOpen
+    ? `${containerBaseClasses} md:grid md:grid-cols-[minmax(0,1fr)_360px] md:gap-10`
+    : containerBaseClasses;
 
   if (loading) {
     return (
@@ -591,6 +666,7 @@ export default function JobsPage() {
   return (
     <div className="min-h-screen bg-[#F7F7F7]">
       <div className={containerClasses}>
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 pb-16 pt-12 md:grid md:grid-cols-[minmax(0,1fr)_360px] md:gap-10 md:px-8">
         <div className="min-w-0">
           <header className="flex flex-col gap-2">
             <span className="text-xs font-semibold uppercase tracking-[0.32em] text-[#717173]">
@@ -728,6 +804,21 @@ export default function JobsPage() {
 
       <AnimatePresence>
         {isDrawerOpen && (
+        <aside className="hidden md:block">
+          <DetailPanel
+            job={selectedJob}
+            isLoading={detailLoading && Boolean(selectedJobId)}
+            error={detailError}
+            onClose={closeDrawer}
+            onRetry={handleRetry}
+            onDownload={handleDownload}
+            downloading={downloading}
+          />
+        </aside>
+      </div>
+
+      <AnimatePresence>
+        {selectedJobId && (
           <motion.div
             key="drawer"
             initial={{ opacity: 0 }}
@@ -871,6 +962,27 @@ function DetailPanel({
                 </div>
               </div>
             )}
+
+
+            {job.status === "failed" && (
+              <div className="rounded-3xl border border-red-200 bg-red-50/80 p-5 text-sm text-[#B42318]">
+                <h4 className="text-sm font-semibold text-[#B42318]">Job failed</h4>
+                <p className="mt-2 text-xs text-[#B42318]">
+                  {job.error || "Unknown error"}
+                </p>
+              </div>
+            )}
+
+
+            {job.status === "failed" && (
+              <div className="rounded-3xl border border-red-200 bg-red-50/80 p-5 text-sm text-[#B42318]">
+                <h4 className="text-sm font-semibold text-[#B42318]">Job failed</h4>
+                <p className="mt-2 text-xs text-[#B42318]">
+                  {job.error || "Unknown error"}
+                </p>
+              </div>
+            )}
+
 
             {job.status === "failed" && (
               <div className="rounded-3xl border border-red-200 bg-red-50/80 p-5 text-sm text-[#B42318]">
