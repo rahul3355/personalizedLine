@@ -530,61 +530,6 @@ export default function JobsPage() {
         historyHasDrawer.current = true;
         router.push({ pathname: "/jobs", query }, undefined, { shallow: true });
       }
-      }
-      return monthTabs[0]?.value ?? null;
-    });
-  }, [monthTabs]);
-
-  useEffect(() => {
-    if (!selectedJobId) return;
-    const match = sortedJobs.find((job) => job.id === selectedJobId);
-    if (!match) return;
-    const monthKey = getMonthKey(new Date(match.created_at));
-    setActiveMonth((prev) => (prev === monthKey ? prev : monthKey));
-  }, [sortedJobs, selectedJobId]);
-
-  const filteredJobs = useMemo(() => {
-    if (!activeMonth) return sortedJobs;
-    return sortedJobs.filter((job) => {
-      const date = new Date(job.created_at);
-      return getMonthKey(date) === activeMonth;
-    });
-  }, [sortedJobs, activeMonth]);
-
-  const groupedJobs = useMemo<GroupedJobs[]>(() => {
-    const map = new Map<string, GroupedJobs>();
-    filteredJobs.forEach((job) => {
-      const date = new Date(job.created_at);
-      const key = getDayKey(date);
-      if (!map.has(key)) {
-        map.set(key, {
-          key,
-          label: getDayLabel(date),
-          jobs: [],
-          sortKey: date.getTime(),
-        });
-      }
-      map.get(key)?.jobs.push(job);
-    });
-
-    return Array.from(map.values())
-      .map((group) => ({
-        ...group,
-        jobs: group.jobs.sort((a, b) => b.created_at - a.created_at),
-      }))
-      .sort((a, b) => b.sortKey - a.sortKey);
-  }, [filteredJobs]);
-
-  const openJob = useCallback(
-    (id: string) => {
-      if (!router.isReady || id === selectedJobId) return;
-      const query = { ...router.query, id };
-      if (selectedJobId) {
-        router.replace({ pathname: "/jobs", query }, undefined, { shallow: true });
-      } else {
-        historyHasDrawer.current = true;
-        router.push({ pathname: "/jobs", query }, undefined, { shallow: true });
-      }
     },
     [router, selectedJobId]
   );
