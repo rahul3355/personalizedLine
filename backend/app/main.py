@@ -10,7 +10,6 @@ from pydantic import BaseModel
 import os
 import logging
 from . import db, jobs
-from backend.app.queue_utils import process_row
 from .supabase_client import supabase
 from supabase import create_client
 from fastapi import APIRouter, Body
@@ -621,10 +620,6 @@ async def create_job(
             raise HTTPException(status_code=500, detail="Failed to insert job")
 
         job = result.data[0]
-
-        # --- Step 2: enqueue each row into Redis ---
-        for row_number in range(1, row_count + 1):
-            q.enqueue(process_row, row_number)
 
         return {"id": job["id"], "status": job["status"], "rows": row_count}
 
