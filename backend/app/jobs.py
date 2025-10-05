@@ -132,16 +132,42 @@ def record_time(label, start, job_id):
 # -----------------------------
 
 def next_queued_job():
-    """Fetch the next queued job from Supabase."""
+    """Fetch and atomically claim the next queued job from Supabase."""
     res = (
         supabase.table("jobs")
-        .select("*")
+        .select("id")
         .eq("status", "queued")
         .order("created_at", desc=False)
         .limit(1)
         .execute()
     )
-    return res.data[0] if res.data else None
+
+    if not getattr(res, "data", None):
+        return None
+
+    job = res.data[0]
+    job_id = job.get("id")
+    if not job_id:
+        return None
+
+    try:
+        claim_res = (
+            supabase.table("jobs")
+            .update({"status": "dispatching"})
+            .eq("id", job_id)
+            .eq("status", "queued")
+            .execute()
+        )
+    except Exception as exc:
+        print(f"[Worker] Failed to claim job {job_id}: {exc}")
+        return None
+
+    updated_rows = getattr(claim_res, "data", None) or []
+    if not updated_rows:
+        print(f"[Worker] Job {job_id} was claimed by another worker. Retrying...")
+        return None
+
+    return updated_rows[0]
 
 
 def process_subjob(job_id: str, chunk_id: int, rows: list, meta: dict, user_id: str, total_rows: int):
@@ -593,8 +619,13 @@ def worker_loop(poll_interval: int = 5):
                 print("[Worker] No jobs found. Sleeping...")
                 time.sleep(poll_interval)
                 continue
+            print(f"[Worker] Claimed job {job['id']}. Dispatching...")
             process_job(job["id"])
         except Exception as e:
             print("[Worker] Dispatcher ERROR:", str(e))
             traceback.print_exc()
             time.sleep(poll_interval)
+
+
+if __name__ == "__main__":
+    worker_loop()

@@ -287,17 +287,32 @@ def sync_stripe_customer(customer_id: str, user_id: Optional[str] = None) -> Dic
 
 from . import jobs
 
+DISPATCHER_AUTOSTART = os.getenv("ENABLE_JOB_DISPATCHER", "").lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+
+
 def start_worker():
-    t = threading.Thread(target=jobs.worker_loop, daemon=True)
+    t = threading.Thread(target=jobs.worker_loop, daemon=True, name="job-dispatcher")
     t.start()
+    return t
 
 
 @app.on_event("startup")
 async def startup_event():
     print("[Main] Running startup_event")
     db.init_db()
-    start_worker()
-    print("[Main] Worker started")
+    if DISPATCHER_AUTOSTART:
+        print("[Main] Starting background job dispatcher")
+        start_worker()
+        print("[Main] Worker started")
+    else:
+        print(
+            "[Main] Dispatcher auto-start disabled. Set ENABLE_JOB_DISPATCHER=1 to enable."
+        )
 
 
 app.add_middleware(
