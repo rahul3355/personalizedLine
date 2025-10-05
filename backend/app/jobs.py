@@ -311,6 +311,7 @@ def process_subjob(
     job_id: str,
     chunk_id: int,
     chunk_path: str,
+
     chunk_storage_path: Optional[str],
     chunk_storage_bucket: str,
     meta: dict,
@@ -321,6 +322,7 @@ def process_subjob(
     sub_start = time.time()
     out_lines = []
     processed_in_chunk = 0
+
 
     if meta is None:
         meta = {}
@@ -364,15 +366,25 @@ def process_subjob(
                 ) from download_exc
 
         with source_handle as f:
+
+    rows = []
+    try:
+        with open(chunk_path, newline="", encoding="utf-8") as f:
+
             reader = csv.DictReader(f)
             for row in reader:
                 sanitized = {
                     key: (value if value is not None else "") for key, value in row.items()
                 }
                 rows.append(sanitized)
+
     finally:
         if download_tmp_dir:
             shutil.rmtree(download_tmp_dir, ignore_errors=True)
+
+    except FileNotFoundError as exc:
+        raise RuntimeError(f"Missing chunk input file: {chunk_path}") from exc
+
 
     row_count = len(rows)
 
@@ -488,6 +500,7 @@ def process_subjob(
 
         print(f"[Worker] Finished chunk {chunk_id}/{row_count} for job {job_id}")
 
+
         if chunk_storage_path:
             try:
                 supabase.storage.from_(chunk_storage_bucket).remove([chunk_storage_path])
@@ -498,6 +511,8 @@ def process_subjob(
                 print(
                     f"[Worker] Warning: failed to remove remote chunk {chunk_storage_path}: {storage_cleanup_exc}"
                 )
+
+
 
         try:
             os.remove(chunk_path)
@@ -539,6 +554,15 @@ def process_subjob(
 
         refund_job_credits(job_id, user_id, "chunk error")
         raise
+    finally:
+        try:
+            os.remove(chunk_path)
+        except FileNotFoundError:
+            pass
+        except Exception as cleanup_exc:
+            print(
+                f"[Worker] Warning: failed to remove temporary chunk file {chunk_path}: {cleanup_exc}"
+            )
 
 
 def finalize_job(job_id: str, user_id: str, total_chunks: int):
@@ -849,6 +873,7 @@ def process_job(job_id: str):
 
                     if rows_in_current_chunk >= chunk_size:
                         current_chunk_file.close()
+
                         chunk_storage_path = (
                             f"{user_id}/{job_id}/input_chunk_{current_chunk_id}.csv"
                         )
@@ -860,11 +885,13 @@ def process_job(job_id: str):
                                 bucket=INPUT_CHUNK_BUCKET,
                                 upsert=True,
                             )
+
                         job_ref = queue.enqueue(
                             process_subjob,
                             job_id,
                             current_chunk_id,
                             current_chunk_path,
+
                             chunk_storage_path,
                             INPUT_CHUNK_BUCKET,
                             meta,
@@ -881,6 +908,7 @@ def process_job(job_id: str):
 
                 if current_chunk_writer is not None and rows_in_current_chunk > 0:
                     current_chunk_file.close()
+
                     chunk_storage_path = (
                         f"{user_id}/{job_id}/input_chunk_{current_chunk_id}.csv"
                     )
@@ -892,13 +920,17 @@ def process_job(job_id: str):
                             bucket=INPUT_CHUNK_BUCKET,
                             upsert=True,
                         )
+
+
                     job_ref = queue.enqueue(
                         process_subjob,
                         job_id,
                         current_chunk_id,
                         current_chunk_path,
+
                         chunk_storage_path,
                         INPUT_CHUNK_BUCKET,
+
                         meta,
                         user_id,
                         total,
