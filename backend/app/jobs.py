@@ -30,6 +30,92 @@ RAW_CHUNK_BASE_DIR = "/data/raw_chunks"
 RAW_CHUNK_BUCKET = "inputs"
 
 
+class InsufficientCreditsError(Exception):
+    """Raised when a user does not have enough credits for a job."""
+
+
+class CreditDeductionFailed(RuntimeError):
+    """Raised when a credit deduction partially succeeds but downstream work fails."""
+
+    def __init__(self, message: str, previous_balance: Optional[int] = None):
+        super().__init__(message)
+        self.previous_balance = previous_balance
+
+
+def _is_duplicate_key_error(error) -> bool:
+    message = ""
+    if error is None:
+        return False
+    if isinstance(error, dict):
+        message = error.get("message") or json.dumps(error)
+    else:
+        message = str(error)
+    message = message.lower()
+    return "duplicate key" in message or "already exists" in message
+
+
+def _begin_job_ledger_event(job_id: str, event_type: str, *, supabase_client=None) -> bool:
+    supabase_client = supabase_client or supabase
+    payload = {"job_id": job_id, "event_type": event_type}
+    try:
+        response = supabase_client.table("job_ledger_events").insert(payload).execute()
+    except Exception as exc:
+        if _is_duplicate_key_error(exc):
+            return False
+        raise
+
+    if _is_duplicate_key_error(getattr(response, "error", None)):
+        return False
+
+    error = getattr(response, "error", None)
+    if error:
+        raise RuntimeError(
+            f"Failed to insert job ledger event for {job_id} ({event_type}): {error}"
+        )
+
+    return True
+
+
+def _finalize_job_ledger_event(
+    job_id: str,
+    event_type: str,
+    ledger_row: Optional[dict],
+    *,
+    supabase_client=None,
+):
+    supabase_client = supabase_client or supabase
+    ledger_id = None
+    if isinstance(ledger_row, dict):
+        ledger_id = ledger_row.get("id")
+
+    if ledger_id:
+        supabase_client.table("job_ledger_events").update({"ledger_id": ledger_id}).eq(
+            "job_id", job_id
+        ).eq("event_type", event_type).execute()
+
+
+def _delete_job_ledger_event(job_id: str, event_type: str, *, supabase_client=None):
+    supabase_client = supabase_client or supabase
+    try:
+        supabase_client.table("job_ledger_events").delete().eq("job_id", job_id).eq(
+            "event_type", event_type
+        ).execute()
+    except Exception:
+        # Best effort cleanup; errors here should not mask the original failure.
+        pass
+
+
+def _extract_first_row(response) -> Optional[dict]:
+    if not response:
+        return None
+    data = getattr(response, "data", None)
+    if isinstance(data, list) and data:
+        row = data[0]
+        if isinstance(row, dict):
+            return row
+    return None
+
+
 def _ensure_dict(value):
     if not value:
         return {}
@@ -278,6 +364,11 @@ def refund_job_credits(job_id: str, user_id: Optional[str], reason: str = "") ->
         if meta.get("credits_refunded"):
             return False
 
+        event_type = "job_refund"
+        event_started = _begin_job_ledger_event(job_id, event_type)
+        if not event_started:
+            return False
+
         max_attempts = 5
         for _ in range(max_attempts):
             profile_res = (
@@ -310,15 +401,28 @@ def refund_job_credits(job_id: str, user_id: Optional[str], reason: str = "") ->
         else:
             raise RuntimeError("Failed to atomically refund credits")
 
-        supabase.table("ledger").insert(
-            {
-                "user_id": user_id,
-                "change": cost,
-                "amount": 0.0,
-                "reason": f"job refund: {job_id}{' - ' + reason if reason else ''}",
-                "ts": datetime.utcnow().isoformat(),
-            }
-        ).execute()
+        try:
+            ledger_res = supabase.table("ledger").insert(
+                {
+                    "user_id": user_id,
+                    "change": cost,
+                    "amount": 0.0,
+                    "reason": f"job refund: {job_id}{' - ' + reason if reason else ''}",
+                    "ts": datetime.utcnow().isoformat(),
+                    "external_id": f"{event_type}:{job_id}",
+                }
+            ).execute()
+
+            if getattr(ledger_res, "error", None):
+                raise RuntimeError(getattr(ledger_res, "error"))
+
+            ledger_row = _extract_first_row(ledger_res)
+            _finalize_job_ledger_event(
+                job_id, event_type, ledger_row, supabase_client=supabase
+            )
+        except Exception:
+            _delete_job_ledger_event(job_id, event_type, supabase_client=supabase)
+            raise
 
         meta["credits_refunded"] = True
         supabase.table("jobs").update({"meta_json": meta}).eq("id", job_id).execute()
@@ -326,8 +430,140 @@ def refund_job_credits(job_id: str, user_id: Optional[str], reason: str = "") ->
         print(f"[Credits] Refunded {cost} credits for job {job_id} ({reason})")
         return True
     except Exception as exc:
+        if 'event_type' in locals():
+            _delete_job_ledger_event(job_id, event_type, supabase_client=supabase)
         print(f"[Credits] Failed to refund credits for job {job_id}: {exc}")
         return False
+
+def _deduct_job_credits(
+    job_id: str,
+    user_id: str,
+    total: int,
+    meta: dict,
+    *,
+    supabase_client=None,
+    max_attempts: int = 5,
+    retry_delay: float = 0.1,
+) -> Tuple[bool, Optional[int]]:
+    supabase_client = supabase_client or supabase
+    event_type = "job_deduction"
+    event_started = _begin_job_ledger_event(
+        job_id, event_type, supabase_client=supabase_client
+    )
+
+    if not event_started:
+        updated = False
+        if meta.get("credit_cost") != total:
+            meta["credit_cost"] = total
+            updated = True
+        if not meta.get("credits_deducted"):
+            meta["credits_deducted"] = True
+            updated = True
+        if "credits_refunded" not in meta:
+            meta["credits_refunded"] = False
+            updated = True
+        if updated:
+            response = (
+                supabase_client.table("jobs")
+                .update({"meta_json": meta})
+                .eq("id", job_id)
+                .execute()
+            )
+            if getattr(response, "error", None):
+                raise RuntimeError(
+                    f"Failed to persist job meta for existing deduction on {job_id}: {response.error}"
+                )
+        return False, None
+
+    deduction_applied_balance: Optional[int] = None
+    try:
+        for _ in range(max_attempts):
+            profile_res = (
+                supabase_client.table("profiles")
+                .select("credits_remaining")
+                .eq("id", user_id)
+                .limit(1)
+                .execute()
+            )
+            previous_balance = (
+                profile_res.data[0]["credits_remaining"] if profile_res.data else 0
+            )
+
+            if previous_balance < total:
+                raise InsufficientCreditsError("Not enough credits")
+
+            update_res = (
+                supabase_client.table("profiles")
+                .update({"credits_remaining": previous_balance - total})
+                .eq("id", user_id)
+                .eq("credits_remaining", previous_balance)
+                .execute()
+            )
+
+            if getattr(update_res, "error", None):
+                raise RuntimeError(getattr(update_res, "error"))
+
+            updated_rows = getattr(update_res, "data", None) or []
+            if updated_rows:
+                deduction_applied_balance = previous_balance
+                ledger_res = (
+                    supabase_client.table("ledger")
+                    .insert(
+                        {
+                            "user_id": user_id,
+                            "change": -total,
+                            "amount": 0.0,
+                            "reason": f"job deduction: {job_id}",
+                            "ts": datetime.utcnow().isoformat(),
+                            "external_id": f"{event_type}:{job_id}",
+                        }
+                    )
+                    .execute()
+                )
+
+                if getattr(ledger_res, "error", None):
+                    raise CreditDeductionFailed(
+                        getattr(ledger_res, "error"), previous_balance
+                    )
+
+                ledger_row = _extract_first_row(ledger_res)
+                _finalize_job_ledger_event(
+                    job_id, event_type, ledger_row, supabase_client=supabase_client
+                )
+
+                meta["credit_cost"] = total
+                meta["credits_deducted"] = True
+                if "credits_refunded" not in meta:
+                    meta["credits_refunded"] = False
+
+                meta_update = (
+                    supabase_client.table("jobs")
+                    .update({"meta_json": meta})
+                    .eq("id", job_id)
+                    .execute()
+                )
+                if getattr(meta_update, "error", None):
+                    raise CreditDeductionFailed(
+                        getattr(meta_update, "error"), previous_balance
+                    )
+
+                return True, previous_balance
+
+            time.sleep(retry_delay)
+
+        raise RuntimeError("Failed to atomically deduct credits")
+    except InsufficientCreditsError:
+        _delete_job_ledger_event(job_id, event_type, supabase_client=supabase_client)
+        raise
+    except CreditDeductionFailed:
+        _delete_job_ledger_event(job_id, event_type, supabase_client=supabase_client)
+        raise
+    except Exception as exc:
+        _delete_job_ledger_event(job_id, event_type, supabase_client=supabase_client)
+        if deduction_applied_balance is not None:
+            raise CreditDeductionFailed(str(exc), deduction_applied_balance) from exc
+        raise
+
 
 def _get_job_timeout():
     try:
@@ -773,78 +1009,38 @@ def process_job(job_id: str):
         lock = redis_conn.lock(lock_name, timeout=30, blocking_timeout=10)
         acquired = False
         deducted = False
-        previous_balance = 0
+        previous_balance: Optional[int] = None
         try:
             acquired = lock.acquire(blocking=True)
             if not acquired:
                 raise RuntimeError("Unable to acquire credit lock")
 
-            max_attempts = 5
-            for _ in range(max_attempts):
-                profile_res = (
-                    supabase.table("profiles")
-                    .select("credits_remaining")
-                    .eq("id", user_id)
-                    .limit(1)
-                    .execute()
+            try:
+                deducted, previous_balance = _deduct_job_credits(
+                    job_id,
+                    user_id,
+                    total,
+                    meta,
+                    supabase_client=supabase,
                 )
-                previous_balance = (
-                    profile_res.data[0]["credits_remaining"] if profile_res.data else 0
-                )
-
-                if previous_balance < total:
-                    supabase.table("jobs").update(
-                        {
-                            "status": "failed",
-                            "finished_at": datetime.utcnow().isoformat() + "Z",
-                            "error": "Not enough credits",
-                        }
-                    ).eq("id", job_id).execute()
-                    return
-
-                update_res = (
-                    supabase.table("profiles")
-                    .update({"credits_remaining": previous_balance - total})
-                    .eq("id", user_id)
-                    .eq("credits_remaining", previous_balance)
-                    .execute()
-                )
-
-                if getattr(update_res, "error", None):
-                    raise RuntimeError(
-                        getattr(update_res, "error", "Failed to update credits")
-                    )
-
-                updated_rows = getattr(update_res, "data", None) or []
-                if updated_rows:
+            except InsufficientCreditsError:
+                supabase.table("jobs").update(
+                    {
+                        "status": "failed",
+                        "finished_at": datetime.utcnow().isoformat() + "Z",
+                        "error": "Not enough credits",
+                    }
+                ).eq("id", job_id).execute()
+                return
+            except CreditDeductionFailed as deduction_exc:
+                if deduction_exc.previous_balance is not None:
                     deducted = True
-                    break
-
-                # Retry if another concurrent update changed the balance
-                time.sleep(0.1)
-
-            if not deducted:
-                raise RuntimeError("Failed to atomically deduct credits")
-
-            supabase.table("ledger").insert(
-                {
-                    "user_id": user_id,
-                    "change": -total,
-                    "amount": 0.0,  # ensure non-null for deductions
-                    "reason": f"job deduction: {job_id}",
-                    "ts": datetime.utcnow().isoformat(),
-                }
-            ).execute()
-
-            meta["credit_cost"] = total
-            meta["credits_deducted"] = True
-            if "credits_refunded" not in meta:
-                meta["credits_refunded"] = False
-            supabase.table("jobs").update({"meta_json": meta}).eq("id", job_id).execute()
+                    previous_balance = deduction_exc.previous_balance
+                raise
 
         except Exception as exc:
             print(f"[Credits] Error while deducting for job {job_id}: {exc}")
-            if deducted:
+            if deducted and previous_balance is not None:
                 try:
                     supabase.table("profiles").update(
                         {"credits_remaining": previous_balance}
