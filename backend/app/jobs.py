@@ -3,10 +3,11 @@ import csv
 import json
 import time
 import math
-from typing import Optional, List
+from typing import Optional, List, Dict
 import pandas as pd
 import traceback
 import tempfile
+import shutil
 from backend.app.gpt_helpers import generate_opener
 from backend.app.supabase_client import supabase
 from datetime import datetime
@@ -23,6 +24,10 @@ from openpyxl import load_workbook
 # -----------------------------
 redis_conn = redis.Redis(host="redis", port=6379, decode_responses=False)
 queue = rq.Queue("default", connection=redis_conn)
+
+
+RAW_CHUNK_BASE_DIR = "/data/raw_chunks"
+RAW_CHUNK_BUCKET = "inputs"
 
 
 def _ensure_dict(value):
@@ -85,6 +90,67 @@ def _upload_to_storage(storage_path: str, file_obj, context: str, bucket: str = 
             )
 
     return response
+
+
+def _remove_from_storage(storage_path: str, context: str, bucket: str = "outputs"):
+    try:
+        supabase.storage.from_(bucket).remove([storage_path])
+    except StorageException as exc:
+        print(f"[Worker] Warning: failed to remove {context} ({storage_path}) from {bucket}: {exc}")
+    except Exception as exc:
+        print(f"[Worker] Warning: unexpected error removing {context} ({storage_path}) from {bucket}: {exc}")
+
+
+def _chunk_raw_local_path(job_id: str, chunk_id: int) -> str:
+    local_dir = os.path.join(RAW_CHUNK_BASE_DIR, job_id)
+    os.makedirs(local_dir, exist_ok=True)
+    return os.path.join(local_dir, f"chunk_{chunk_id}.csv")
+
+
+def _persist_chunk_rows(job_id: str, chunk_id: int, headers: List[str], rows: List[Dict[str, str]], user_id: str) -> str:
+    local_path = _chunk_raw_local_path(job_id, chunk_id)
+    with open(local_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=headers)
+        writer.writeheader()
+        for row in rows:
+            normalized = {}
+            for header in headers:
+                value = row.get(header, "")
+                normalized[header] = "" if value is None else value
+            writer.writerow(normalized)
+
+    storage_path = f"{user_id}/{job_id}/raw_chunks/chunk_{chunk_id}.csv"
+    with open(local_path, "rb") as f:
+        _upload_to_storage(
+            storage_path,
+            f,
+            f"raw chunk {chunk_id} for job {job_id}",
+            bucket=RAW_CHUNK_BUCKET,
+        )
+
+    return storage_path
+
+
+def _download_chunk_from_storage(storage_path: str) -> str:
+    data = supabase.storage.from_(RAW_CHUNK_BUCKET).download(storage_path)
+    if data is None:
+        raise RuntimeError(f"Empty response downloading chunk {storage_path} from storage")
+
+    if isinstance(data, bytes):
+        payload = data
+    elif hasattr(data, "read"):
+        payload = data.read()
+    elif isinstance(data, str):
+        payload = data.encode("utf-8")
+    else:
+        raise RuntimeError(f"Unsupported download payload type for chunk {storage_path}: {type(data)}")
+
+    tmp_dir = tempfile.mkdtemp(prefix="chunk_raw_")
+    local_path = os.path.join(tmp_dir, os.path.basename(storage_path))
+    with open(local_path, "wb") as f:
+        f.write(payload)
+
+    return local_path
 
 
 def _csv_headers_and_total(path: str):
@@ -294,70 +360,107 @@ def next_queued_job():
     return res.data[0] if res.data else None
 
 
-def process_subjob(job_id: str, chunk_id: int, rows: list, meta: dict, user_id: str, total_rows: int):
+def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: dict, user_id: str, total_rows: int):
     """Process a chunk of rows for a given job, with global progress logging."""
     sub_start = time.time()
-    out_lines = []
     processed_in_chunk = 0
+    updates_since_last_log = 0
+    chunk_input_path = _chunk_raw_local_path(job_id, chunk_id)
+    downloaded_temp_dir = None
+    cleanup_local_raw = False
 
     try:
-        for i, row in enumerate(rows, start=1):
-            try:
-                print(f"[Worker] Job {job_id} | Chunk {chunk_id} | Row {i}/{len(rows)} -> {row}")
-                line, _, _, _ = generate_opener(
-                    company=row.get(meta.get("company_col", ""), ""),
-                    description=row.get(meta.get("desc_col", ""), ""),
-                    industry=row.get(meta.get("industry_col", ""), ""),
-                    role=row.get(meta.get("title_col", ""), ""),
-                    size=row.get(meta.get("size_col", ""), ""),
-                    service=meta.get("service", ""),
-                )
-            except Exception as e:
-                print(f"[Worker] ERROR row {i}: {e}")
-                traceback.print_exc()
-                line = f"[Error generating line: {e}]"
-            out_lines.append(line)
+        if os.path.exists(chunk_input_path):
+            print(
+                f"[Worker] Job {job_id} | Chunk {chunk_id} | using local raw chunk at {chunk_input_path}"
+            )
+        else:
+            print(
+                f"[Worker] Job {job_id} | Chunk {chunk_id} | downloading raw chunk {chunk_storage_path}"
+            )
+            downloaded_path = _download_chunk_from_storage(chunk_storage_path)
+            downloaded_temp_dir = os.path.dirname(downloaded_path)
+            chunk_input_path = downloaded_path
 
-            processed_in_chunk += 1
+        headers, chunk_total_rows = _csv_headers_and_total(chunk_input_path)
+        if chunk_total_rows == 0:
+            print(f"[Worker] Chunk {chunk_id} for job {job_id} is empty; skipping generation")
+            _remove_from_storage(
+                chunk_storage_path,
+                f"raw chunk {chunk_id} for job {job_id}",
+                bucket=RAW_CHUNK_BUCKET,
+            )
+            cleanup_local_raw = True
+            return None
 
-            if processed_in_chunk % 5 == 0 or processed_in_chunk == len(rows):
-                job_res = (
-                    supabase.table("jobs")
-                    .select("rows_processed")
-                    .eq("id", job_id)
-                    .limit(1)
-                    .execute()
-                )
-                already_done = job_res.data[0]["rows_processed"] if job_res.data else 0
-                increment = 5 if processed_in_chunk % 5 == 0 else (len(rows) - processed_in_chunk + 1)
-                new_done = already_done + increment
-                if new_done > total_rows:
-                    new_done = total_rows
-                percent = round((new_done / total_rows) * 100, 2)
-
-                supabase.table("jobs").update(
-                    {"rows_processed": new_done, "progress_percent": percent}
-                ).eq("id", job_id).execute()
-
-                supabase.table("job_logs").insert(
-                    {
-                        "job_id": job_id,
-                        "step": new_done,
-                        "total": total_rows,
-                        "message": f"Global progress: {new_done}/{total_rows} rows ({percent}%)",
-                    }
-                ).execute()
-
-        # Save partial chunk as CSV
-        df = pd.DataFrame(rows)
-        df["personalized_line"] = out_lines
-
-        # Ensure /data/chunks/{job_id} exists
         local_dir = os.path.join("/data/chunks", job_id)
         os.makedirs(local_dir, exist_ok=True)
-
         out_path = os.path.join(local_dir, f"chunk_{chunk_id}.csv")
-        df.to_csv(out_path, index=False)
+
+        with open(chunk_input_path, newline="", encoding="utf-8-sig") as in_f, open(
+            out_path, "w", newline="", encoding="utf-8"
+        ) as out_f:
+            reader = csv.DictReader(in_f)
+            input_headers = reader.fieldnames or headers
+            output_headers = list(input_headers)
+            if "personalized_line" not in output_headers:
+                output_headers.append("personalized_line")
+            writer = csv.DictWriter(out_f, fieldnames=output_headers)
+            writer.writeheader()
+
+            for i, row in enumerate(reader, start=1):
+                try:
+                    print(
+                        f"[Worker] Job {job_id} | Chunk {chunk_id} | Row {i}/{chunk_total_rows} -> {row}"
+                    )
+                    line, _, _, _ = generate_opener(
+                        company=row.get(meta.get("company_col", ""), ""),
+                        description=row.get(meta.get("desc_col", ""), ""),
+                        industry=row.get(meta.get("industry_col", ""), ""),
+                        role=row.get(meta.get("title_col", ""), ""),
+                        size=row.get(meta.get("size_col", ""), ""),
+                        service=meta.get("service", ""),
+                    )
+                except Exception as e:
+                    print(f"[Worker] ERROR row {i}: {e}")
+                    traceback.print_exc()
+                    line = f"[Error generating line: {e}]"
+
+                normalized_row = {header: row.get(header, "") for header in input_headers}
+                normalized_row["personalized_line"] = line
+                writer.writerow(normalized_row)
+
+                processed_in_chunk += 1
+                updates_since_last_log += 1
+
+                is_last_row = processed_in_chunk == chunk_total_rows
+                if updates_since_last_log >= 5 or is_last_row:
+                    job_res = (
+                        supabase.table("jobs")
+                        .select("rows_processed")
+                        .eq("id", job_id)
+                        .limit(1)
+                        .execute()
+                    )
+                    already_done = job_res.data[0]["rows_processed"] if job_res.data else 0
+                    increment = updates_since_last_log
+                    updates_since_last_log = 0
+                    new_done = min(total_rows, already_done + increment)
+                    percent = round((new_done / total_rows) * 100, 2)
+
+                    supabase.table("jobs").update(
+                        {"rows_processed": new_done, "progress_percent": percent}
+                    ).eq("id", job_id).execute()
+
+                    supabase.table("job_logs").insert(
+                        {
+                            "job_id": job_id,
+                            "step": new_done,
+                            "total": total_rows,
+                            "message": f"Global progress: {new_done}/{total_rows} rows ({percent}%)",
+                        }
+                    ).execute()
+
         print(f"[Worker] Saved local chunk {chunk_id} at {out_path}")
 
         storage_path = f"{user_id}/{job_id}/chunk_{chunk_id}.csv"
@@ -374,9 +477,6 @@ def process_subjob(job_id: str, chunk_id: int, rows: list, meta: dict, user_id: 
             }
         ).execute()
 
-        # --- NEW: Save local chunk path in RQ job meta ---
-        from rq import get_current_job
-
         try:
             rq_job = get_current_job()
             if rq_job:
@@ -389,7 +489,6 @@ def process_subjob(job_id: str, chunk_id: int, rows: list, meta: dict, user_id: 
 
         elapsed = record_time(f"Chunk {chunk_id} row processing", sub_start, job_id)
 
-        # Store per-chunk timing in job meta (merge later in finalize_job)
         job_record = (
             supabase.table("jobs").select("timing_json").eq("id", job_id).limit(1).execute()
         )
@@ -404,7 +503,11 @@ def process_subjob(job_id: str, chunk_id: int, rows: list, meta: dict, user_id: 
         timings["chunks"][str(chunk_id)] = elapsed
         supabase.table("jobs").update({"timing_json": json.dumps(timings)}).eq("id", job_id).execute()
 
-        print(f"[Worker] Finished chunk {chunk_id}/{len(rows)} for job {job_id}")
+        print(f"[Worker] Finished chunk {chunk_id}/{chunk_total_rows} for job {job_id}")
+
+        _remove_from_storage(chunk_storage_path, f"raw chunk {chunk_id} for job {job_id}", bucket=RAW_CHUNK_BUCKET)
+        cleanup_local_raw = True
+
         return storage_path
 
     except Exception as exc:
@@ -436,6 +539,23 @@ def process_subjob(job_id: str, chunk_id: int, rows: list, meta: dict, user_id: 
 
         refund_job_credits(job_id, user_id, "chunk error")
         raise
+    finally:
+        if cleanup_local_raw:
+            try:
+                if downloaded_temp_dir:
+                    shutil.rmtree(downloaded_temp_dir, ignore_errors=True)
+                elif os.path.exists(chunk_input_path):
+                    os.remove(chunk_input_path)
+                    parent_dir = os.path.dirname(chunk_input_path)
+                    try:
+                        if os.path.isdir(parent_dir) and not os.listdir(parent_dir):
+                            os.rmdir(parent_dir)
+                    except Exception:
+                        pass
+            except Exception as exc:
+                print(
+                    f"[Worker] Warning: failed to remove local raw chunk {chunk_id} for job {job_id}: {exc}"
+                )
 
 
 def finalize_job(job_id: str, user_id: str, total_chunks: int):
@@ -715,11 +835,18 @@ def process_job(job_id: str):
                 chunk_buffer.append(row)
                 if len(chunk_buffer) >= chunk_size:
                     chunk_count += 1
+                    storage_chunk_path = _persist_chunk_rows(
+                        job_id,
+                        chunk_count,
+                        headers,
+                        chunk_buffer,
+                        user_id,
+                    )
                     job_ref = queue.enqueue(
                         process_subjob,
                         job_id,
                         chunk_count,
-                        chunk_buffer,
+                        storage_chunk_path,
                         meta,
                         user_id,
                         total,
@@ -730,17 +857,25 @@ def process_job(job_id: str):
 
             if chunk_buffer:
                 chunk_count += 1
+                storage_chunk_path = _persist_chunk_rows(
+                    job_id,
+                    chunk_count,
+                    headers,
+                    chunk_buffer,
+                    user_id,
+                )
                 job_ref = queue.enqueue(
                     process_subjob,
                     job_id,
                     chunk_count,
-                    chunk_buffer,
+                    storage_chunk_path,
                     meta,
                     user_id,
                     total,
                     job_timeout=job_timeout,
                 )
                 subjob_refs.append(job_ref)
+                chunk_buffer = []
 
         timings["chunking"] = record_time("Chunking + enqueue", chunk_start, job_id)
 
