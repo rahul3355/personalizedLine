@@ -577,173 +577,195 @@ export default function JobsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F7F7F7]">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 pb-16 pt-12 md:grid md:grid-cols-[minmax(0,1fr)_360px] md:gap-10 md:px-8">
-        <div className="min-w-0">
-          <header className="flex flex-col gap-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.32em] text-[#717173]">
-              Timeline
-            </span>
-            <h1 className="text-4xl font-semibold tracking-tight text-gray-900">Jobs</h1>
-            <p className="text-sm text-[#717173]">
-              Review and revisit every personalized outreach file you have generated.
-            </p>
-          </header>
-
-          {monthTabs.length > 0 && (
-            <div className="mt-8 -mx-4 flex gap-3 overflow-x-auto px-4 pb-2 md:mx-0 md:px-0">
-              {monthTabs.map((tab) => {
-                const isActive = tab.value === activeMonth;
-                return (
-                  <button
-                    key={tab.value}
-                    type="button"
-                    onClick={() => setActiveMonth(tab.value)}
-                    className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] transition-colors ${
-                      isActive
-                        ? "bg-[#4F55F1] text-white shadow-[0_12px_24px_rgba(79,85,241,0.3)]"
-                        : "bg-white/70 text-[#717173] hover:bg-[#E2E2E7]"
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {groupedJobs.length === 0 ? (
-            <div className="mt-10 flex flex-col items-center justify-center rounded-3xl border border-dashed border-[#D8D8DE] bg-white/70 p-12 text-center shadow-sm">
-              <FileText className="h-10 w-10 text-[#717173]" />
-              <h2 className="mt-4 text-lg font-semibold text-gray-900">No jobs yet</h2>
-              <p className="mt-2 max-w-xs text-sm text-[#717173]">
-                Upload a CSV to see your personalization jobs appear here in a Revolut-style timeline.
-              </p>
-            </div>
-          ) : (
-            <div className="mt-10 space-y-8">
-              {groupedJobs.map((group) => (
-                <section key={group.key} className="space-y-3">
-                  <div className="flex items-center gap-3 px-1 text-xs font-semibold uppercase tracking-[0.26em] text-[#717173]">
-                    <span>{group.label}</span>
-                    <span className="h-px flex-1 bg-[#E2E2E7]" />
-                  </div>
-                  <div className="space-y-2">
-                    {group.jobs.map((job) => {
-                      const isActive = job.id === selectedJobId;
+    <div className="min-h-screen bg-[#F5F6FB]">
+      <div className="relative mx-auto w-full max-w-6xl px-4 pb-16 pt-12 md:px-8">
+        <div
+          className={`transition-all duration-300 ${
+            selectedJobId ? "md:pr-[420px] lg:pr-[480px]" : ""
+          }`}
+        >
+          <div className="relative overflow-hidden rounded-[32px] border border-[#E4E6F2] bg-white/90 shadow-[0_32px_60px_rgba(15,23,42,0.1)] backdrop-blur">
+            <div className="border-b border-[#E4E6F2] px-6 py-6 md:px-10 md:py-8">
+              <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+                <div className="max-w-xl space-y-2">
+                  <span className="text-xs font-semibold uppercase tracking-[0.32em] text-[#8B8DA1]">
+                    Files
+                  </span>
+                  <h1 className="text-3xl font-semibold tracking-tight text-[#101225] md:text-[34px]">Transactions</h1>
+                  <p className="text-sm text-[#8B8DA1]">
+                    Browse every personalization job in a Revolut-inspired timeline.
+                  </p>
+                </div>
+                {monthTabs.length > 0 && (
+                  <div className="flex gap-2 overflow-x-auto rounded-full border border-[#ECEEF6] bg-[#F7F8FD] px-2 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[#8B8DA1]">
+                    {monthTabs.map((tab) => {
+                      const isActive = tab.value === activeMonth;
                       return (
                         <button
-                          key={job.id}
+                          key={tab.value}
                           type="button"
-                          onClick={() => openJob(job.id)}
-                          className={`relative w-full rounded-3xl border border-transparent bg-white/80 px-5 py-4 text-left shadow-sm transition-all duration-200 hover:-translate-y-[1px] hover:bg-[#E2E2E7] ${
+                          onClick={() => setActiveMonth(tab.value)}
+                          className={`whitespace-nowrap rounded-full px-4 py-2 transition-colors ${
                             isActive
-                              ? "border-[#4F55F1] bg-white shadow-[0_20px_45px_rgba(79,85,241,0.16)]"
-                              : ""
+                              ? "bg-white text-[#101225] shadow-[0_10px_20px_rgba(44,55,130,0.15)]"
+                              : "text-[#8B8DA1] hover:bg-white/60"
                           }`}
                         >
-                          <div className="flex items-center gap-4">
-                            <StatusIcon status={job.status} />
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-3">
-                                <p className="flex-1 truncate text-[15px] font-semibold text-gray-900">
-                                  {job.filename}
-                                </p>
-                                <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#717173]">
-                                  {formatTime(new Date(job.created_at))}
-                                </span>
-                              </div>
-                              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#717173]">
-                                <StatusPill status={job.status} progress={job.progress} />
-                                <span>{job.rows.toLocaleString()} rows</span>
-                                {job.status === "failed" && job.error ? (
-                                  <span className="text-[#DC2F2F]">{job.error}</span>
-                                ) : null}
-                              </div>
-                              {job.message && job.status !== "failed" && (
-                                <p className="mt-1 truncate text-xs text-[#717173]">{job.message}</p>
-                              )}
-                              {(job.status === "pending" || job.status === "in_progress") && (
-                                <div className="mt-3">
-                                  <ProgressBar value={job.progress ?? 0} />
-                                </div>
-                              )}
-                            </div>
-                            <ArrowRight
-                              className={`h-5 w-5 flex-shrink-0 transition-colors ${
-                                isActive ? "text-[#4F55F1]" : "text-[#717173]"
-                              }`}
-                            />
-                          </div>
+                          {tab.label}
                         </button>
                       );
                     })}
                   </div>
-                </section>
-              ))}
+                )}
+              </div>
+            </div>
 
-              {hasMore && (
-                <div className="flex justify-center pt-4">
-                  <button
-                    type="button"
-                    onClick={handleLoadMore}
-                    disabled={loadingMore}
-                    className="rounded-full px-6 py-3 text-sm font-semibold text-white shadow-[0_14px_26px_rgba(79,85,241,0.35)] transition-transform hover:-translate-y-0.5 active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
-                    style={{ background: "linear-gradient(135deg, #4F55F1 0%, #8186FF 100%)" }}
-                  >
-                    {loadingMore ? "Loading…" : "Load more"}
-                  </button>
+            <div className="px-6 pb-10 pt-6 md:px-10">
+              {groupedJobs.length === 0 ? (
+                <div className="flex flex-col items-center justify-center rounded-[28px] border border-dashed border-[#D8DAE6] bg-[#F7F8FD] px-6 py-12 text-center">
+                  <FileText className="h-10 w-10 text-[#8B8DA1]" />
+                  <h2 className="mt-4 text-lg font-semibold text-[#101225]">No jobs yet</h2>
+                  <p className="mt-2 max-w-xs text-sm text-[#8B8DA1]">
+                    Upload a CSV to see your personalization jobs appear here in a Revolut-style timeline.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-10">
+                  {groupedJobs.map((group) => (
+                    <section key={group.key} className="space-y-4">
+                      <div className="flex items-center gap-3 px-1 text-[11px] font-semibold uppercase tracking-[0.26em] text-[#8B8DA1]">
+                        <span>{group.label}</span>
+                        <span className="h-px flex-1 bg-[#E4E6F2]" />
+                      </div>
+                      <div className="space-y-3">
+                        {group.jobs.map((job) => {
+                          const isActive = job.id === selectedJobId;
+                          return (
+                            <button
+                              key={job.id}
+                              type="button"
+                              onClick={() => openJob(job.id)}
+                              className={`group relative w-full rounded-[28px] border border-transparent bg-white/80 px-5 py-5 text-left shadow-[0_12px_28px_rgba(15,23,42,0.05)] transition-all duration-200 hover:-translate-y-[1px] hover:border-[#E4E6F2] hover:bg-white ${
+                                isActive
+                                  ? "border-[#4F55F1] bg-white shadow-[0_24px_50px_rgba(79,85,241,0.18)]"
+                                  : ""
+                              }`}
+                            >
+                              <div className="flex items-center gap-5">
+                                <StatusIcon status={job.status} />
+                                <div className="min-w-0 flex-1 space-y-2">
+                                  <div className="flex items-center gap-3">
+                                    <p className="flex-1 truncate text-[15px] font-semibold text-[#101225]">
+                                      {job.filename}
+                                    </p>
+                                    <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8B8DA1]">
+                                      {formatTime(new Date(job.created_at))}
+                                    </span>
+                                  </div>
+                                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#8B8DA1]">
+                                    <StatusPill status={job.status} progress={job.progress} />
+                                    <span>{job.rows.toLocaleString()} rows</span>
+                                    {job.status === "failed" && job.error ? (
+                                      <span className="text-[#DC2F2F]">{job.error}</span>
+                                    ) : null}
+                                  </div>
+                                  {job.message && job.status !== "failed" && (
+                                    <p className="truncate text-xs text-[#8B8DA1]">{job.message}</p>
+                                  )}
+                                  {(job.status === "pending" || job.status === "in_progress") && (
+                                    <div className="pt-1">
+                                      <ProgressBar value={job.progress ?? 0} />
+                                    </div>
+                                  )}
+                                </div>
+                                <ArrowRight
+                                  className={`h-5 w-5 flex-shrink-0 transition-colors ${
+                                    isActive ? "text-[#4F55F1]" : "text-[#C1C3D6] group-hover:text-[#4F55F1]"
+                                  }`}
+                                />
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  ))}
+
+                  {hasMore && (
+                    <div className="flex justify-center pt-2">
+                      <button
+                        type="button"
+                        onClick={handleLoadMore}
+                        disabled={loadingMore}
+                        className="rounded-full px-6 py-3 text-sm font-semibold text-white shadow-[0_18px_32px_rgba(79,85,241,0.35)] transition-transform hover:-translate-y-0.5 active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                        style={{ background: "linear-gradient(135deg, #4F55F1 0%, #8186FF 100%)" }}
+                      >
+                        {loadingMore ? "Loading…" : "Load more"}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          )}
+          </div>
         </div>
 
-        <aside className="hidden md:block">
-          <DetailPanel
-            job={selectedJob}
-            isLoading={detailLoading && Boolean(selectedJobId)}
-            error={detailError}
-            onClose={closeDrawer}
-            onRetry={handleRetry}
-            onDownload={handleDownload}
-            downloading={downloading}
-          />
-        </aside>
-      </div>
+        <AnimatePresence>
+          {selectedJobId && (
+            <>
+              <motion.div
+                key="drawer-mobile"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm md:hidden"
+                onClick={closeDrawer}
+              >
+                <motion.div
+                  initial={{ x: "100%" }}
+                  animate={{ x: 0 }}
+                  exit={{ x: "100%" }}
+                  transition={{ type: "spring", stiffness: 260, damping: 30 }}
+                  className="absolute inset-y-0 right-0 w-full max-w-md bg-white"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <DetailPanel
+                    job={selectedJob}
+                    isLoading={detailLoading}
+                    error={detailError}
+                    onClose={closeDrawer}
+                    onRetry={handleRetry}
+                    onDownload={handleDownload}
+                    downloading={downloading}
+                    isMobile
+                  />
+                </motion.div>
+              </motion.div>
 
-      <AnimatePresence>
-        {selectedJobId && (
-          <motion.div
-            key="drawer"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm md:hidden"
-            onClick={closeDrawer}
-          >
-            <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", stiffness: 260, damping: 30 }}
-              className="absolute inset-y-0 right-0 w-full max-w-md bg-white"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <DetailPanel
-                job={selectedJob}
-                isLoading={detailLoading}
-                error={detailError}
-                onClose={closeDrawer}
-                onRetry={handleRetry}
-                onDownload={handleDownload}
-                downloading={downloading}
-                isMobile
-              />
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              <motion.div
+                key="drawer-desktop"
+                initial={{ opacity: 0, x: 60 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 60 }}
+                transition={{ type: "spring", stiffness: 260, damping: 30 }}
+                className="pointer-events-none absolute inset-y-0 right-0 hidden w-full max-w-xs md:flex md:max-w-sm lg:max-w-md"
+              >
+                <div className="pointer-events-auto h-full">
+                  <DetailPanel
+                    job={selectedJob}
+                    isLoading={detailLoading && Boolean(selectedJobId)}
+                    error={detailError}
+                    onClose={closeDrawer}
+                    onRetry={handleRetry}
+                    onDownload={handleDownload}
+                    downloading={downloading}
+                  />
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
