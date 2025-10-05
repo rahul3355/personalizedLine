@@ -490,6 +490,40 @@ export default function JobsPage() {
           sortKey: date.getTime(),
         });
       }
+      }
+      return monthTabs[0]?.value ?? null;
+    });
+  }, [monthTabs]);
+
+  useEffect(() => {
+    if (!selectedJobId) return;
+    const match = sortedJobs.find((job) => job.id === selectedJobId);
+    if (!match) return;
+    const monthKey = getMonthKey(new Date(match.created_at));
+    setActiveMonth((prev) => (prev === monthKey ? prev : monthKey));
+  }, [sortedJobs, selectedJobId]);
+
+  const filteredJobs = useMemo(() => {
+    if (!activeMonth) return sortedJobs;
+    return sortedJobs.filter((job) => {
+      const date = new Date(job.created_at);
+      return getMonthKey(date) === activeMonth;
+    });
+  }, [sortedJobs, activeMonth]);
+
+  const groupedJobs = useMemo<GroupedJobs[]>(() => {
+    const map = new Map<string, GroupedJobs>();
+    filteredJobs.forEach((job) => {
+      const date = new Date(job.created_at);
+      const key = getDayKey(date);
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          label: getDayLabel(date),
+          jobs: [],
+          sortKey: date.getTime(),
+        });
+      }
       map.get(key)?.jobs.push(job);
     });
 
@@ -569,6 +603,12 @@ export default function JobsPage() {
   }, [hasMore, loadingMore, fetchJobs, offset]);
 
   const isDrawerOpen = Boolean(selectedJobId);
+  const containerClasses = [
+    "mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 pb-16 pt-12 md:px-8",
+    isDrawerOpen ? "md:grid md:grid-cols-[minmax(0,1fr)_360px] md:gap-10" : null,
+  ]
+    .filter((value): value is string => Boolean(value))
+    .join(" ");
   const containerBaseClasses =
     "mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 pb-16 pt-12 md:px-8";
   const containerClasses = isDrawerOpen
@@ -882,6 +922,16 @@ function DetailPanel({
                 </div>
               </div>
             )}
+
+            {job.status === "failed" && (
+              <div className="rounded-3xl border border-red-200 bg-red-50/80 p-5 text-sm text-[#B42318]">
+                <h4 className="text-sm font-semibold text-[#B42318]">Job failed</h4>
+                <p className="mt-2 text-xs text-[#B42318]">
+                  {job.error || "Unknown error"}
+                </p>
+              </div>
+            )}
+
 
             {job.status === "failed" && (
               <div className="rounded-3xl border border-red-200 bg-red-50/80 p-5 text-sm text-[#B42318]">
