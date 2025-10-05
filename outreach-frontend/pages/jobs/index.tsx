@@ -568,6 +568,13 @@ export default function JobsPage() {
     fetchJobs(offset, { limit: PAGE_SIZE });
   }, [hasMore, loadingMore, fetchJobs, offset]);
 
+  const isDrawerOpen = Boolean(selectedJobId);
+  const containerBaseClasses =
+    "mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 pb-16 pt-12 md:px-8";
+  const containerClasses = isDrawerOpen
+    ? `${containerBaseClasses} md:grid md:grid-cols-[minmax(0,1fr)_360px] md:gap-10`
+    : containerBaseClasses;
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#F7F7F7]">
@@ -578,6 +585,7 @@ export default function JobsPage() {
 
   return (
     <div className="min-h-screen bg-[#F7F7F7]">
+      <div className={containerClasses}>
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 pb-16 pt-12 md:grid md:grid-cols-[minmax(0,1fr)_360px] md:gap-10 md:px-8">
         <div className="min-w-0">
           <header className="flex flex-col gap-2">
@@ -699,6 +707,23 @@ export default function JobsPage() {
           )}
         </div>
 
+        {isDrawerOpen && (
+          <aside className="hidden md:block">
+            <DetailPanel
+              job={selectedJob}
+              isLoading={detailLoading && Boolean(selectedJobId)}
+              error={detailError}
+              onClose={closeDrawer}
+              onRetry={handleRetry}
+              onDownload={handleDownload}
+              downloading={downloading}
+            />
+          </aside>
+        )}
+      </div>
+
+      <AnimatePresence>
+        {isDrawerOpen && (
         <aside className="hidden md:block">
           <DetailPanel
             job={selectedJob}
@@ -857,6 +882,16 @@ function DetailPanel({
                 </div>
               </div>
             )}
+
+            {job.status === "failed" && (
+              <div className="rounded-3xl border border-red-200 bg-red-50/80 p-5 text-sm text-[#B42318]">
+                <h4 className="text-sm font-semibold text-[#B42318]">Job failed</h4>
+                <p className="mt-2 text-xs text-[#B42318]">
+                  {job.error || "Unknown error"}
+                </p>
+              </div>
+            )}
+
 
             {job.status === "failed" && (
               <div className="rounded-3xl border border-red-200 bg-red-50/80 p-5 text-sm text-[#B42318]">
