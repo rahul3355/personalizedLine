@@ -53,24 +53,42 @@ export async function createJob(
   return res.json();
 }
 
-/**
- * Buy extra credits (/buy-credits)
- */
-export async function buyCredits(token: string, addon: string) {
-  const formData = new FormData();
-  formData.append("addon", addon);
+interface CheckoutSessionPayload {
+  plan: string;
+  addon?: boolean;
+  quantity?: number;
+  [key: string]: unknown;
+}
 
-  const res = await fetch(`${API_URL}/buy-credits`, {
+interface CheckoutSessionResponse {
+  id: string;
+}
+
+/**
+ * Create Stripe checkout session (/create_checkout_session)
+ */
+export async function buyCredits(
+  token: string,
+  payload: CheckoutSessionPayload
+): Promise<CheckoutSessionResponse> {
+  const res = await fetch(`${API_URL}/create_checkout_session`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
     },
-    body: formData,
+    body: JSON.stringify(payload),
   });
 
+  const data = await res.json();
+
   if (!res.ok) {
-    throw new Error("Failed to initiate credit purchase");
+    throw new Error(data?.error || "Failed to initiate credit purchase");
   }
 
-  return res.json(); // returns { checkout_url }
+  if (!data?.id) {
+    throw new Error(data?.error || "Invalid checkout session response");
+  }
+
+  return { id: data.id };
 }

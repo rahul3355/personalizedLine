@@ -2,8 +2,13 @@
 
 import { useAuth } from "../lib/AuthProvider";
 import { buyCredits } from "../lib/api";
+import { loadStripe } from "@stripe/stripe-js";
 import { CreditCard } from "lucide-react";
 import InlineLoader from "@/components/InlineLoader";
+
+const stripePromise = loadStripe(
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
+);
 
 export default function Home() {
   const { session, loading, userInfo } = useAuth();
@@ -26,12 +31,32 @@ export default function Home() {
     );
   }
 
-  const handleBuyCredits = async (addon: string) => {
+  const handleBuyCredits = async () => {
     try {
+      if (!session) {
+        throw new Error("No active session");
+      }
+
+      const plan = (userInfo?.user?.plan_type || "free").toLowerCase();
       const token = session.access_token;
-      const data = await buyCredits(token, addon);
-      if (data.checkout_url) {
-        window.location.href = data.checkout_url;
+      const data = await buyCredits(token, {
+        plan,
+        addon: true,
+        quantity: 1,
+        user_id: userInfo?.id,
+      });
+
+      const stripe = await stripePromise;
+      if (!stripe) {
+        throw new Error("Stripe failed to initialize");
+      }
+
+      const { error } = await stripe.redirectToCheckout({
+        sessionId: data.id,
+      });
+
+      if (error) {
+        throw error;
       }
     } catch (err) {
       console.error("Error buying credits:", err);
@@ -87,7 +112,7 @@ export default function Home() {
             {(userInfo?.credits_remaining ?? 0) <= 0 && (
               <div className="mt-6">
                 <button
-                  onClick={() => handleBuyCredits("addon_1000")}
+                  onClick={handleBuyCredits}
                   className="flex items-center justify-center gap-2 px-6 py-3 w-full sm:w-auto rounded-full bg-gradient-to-b from-gray-100 to-gray-800 text-white font-medium shadow-sm hover:scale-[1.02] active:scale-[0.98] transition-transform"
                 >
                   <CreditCard className="w-4 h-4" />
