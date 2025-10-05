@@ -14,6 +14,7 @@ import rq
 import requests
 from redis.exceptions import LockError
 from rq import get_current_job
+from supabase import StorageException
 
 # -----------------------------
 # Redis connection
@@ -34,6 +35,54 @@ def _ensure_dict(value):
         except Exception:
             return {}
     return {}
+
+
+def _format_storage_error(error) -> str:
+    if isinstance(error, dict):
+        message = error.get("message")
+        if message:
+            return message
+        return json.dumps(error)
+    return str(error)
+
+
+def _upload_to_storage(storage_path: str, file_obj, context: str, bucket: str = "outputs"):
+    """Upload a file to Supabase storage and raise if the response indicates failure."""
+    try:
+        response = supabase.storage.from_(bucket).upload(storage_path, file_obj)
+    except StorageException as exc:
+        raise RuntimeError(
+            f"Supabase upload failed for {context} ({storage_path}): {exc}"
+        ) from exc
+
+    if response is None:
+        raise RuntimeError(
+            f"Supabase upload failed for {context} ({storage_path}): empty response"
+        )
+
+    status_code = getattr(response, "status_code", None)
+    if status_code and status_code >= 400:
+        raise RuntimeError(
+            f"Supabase upload failed for {context} ({storage_path}): HTTP {status_code}"
+        )
+
+    try:
+        payload = response.json()
+    except Exception:
+        payload = None
+
+    if isinstance(payload, dict):
+        error = payload.get("error")
+        if error:
+            raise RuntimeError(
+                f"Supabase upload failed for {context} ({storage_path}): {_format_storage_error(error)}"
+            )
+        if payload.get("message") and payload.get("statusCode"):
+            raise RuntimeError(
+                f"Supabase upload failed for {context} ({storage_path}): {payload['statusCode']}: {payload['message']}"
+            )
+
+    return response
 
 
 def refund_job_credits(job_id: str, user_id: Optional[str], reason: str = "") -> bool:
@@ -150,109 +199,142 @@ def process_subjob(job_id: str, chunk_id: int, rows: list, meta: dict, user_id: 
     out_lines = []
     processed_in_chunk = 0
 
-    for i, row in enumerate(rows, start=1):
+    try:
+        for i, row in enumerate(rows, start=1):
+            try:
+                print(f"[Worker] Job {job_id} | Chunk {chunk_id} | Row {i}/{len(rows)} -> {row}")
+                line, _, _, _ = generate_opener(
+                    company=row.get(meta.get("company_col", ""), ""),
+                    description=row.get(meta.get("desc_col", ""), ""),
+                    industry=row.get(meta.get("industry_col", ""), ""),
+                    role=row.get(meta.get("title_col", ""), ""),
+                    size=row.get(meta.get("size_col", ""), ""),
+                    service=meta.get("service", ""),
+                )
+            except Exception as e:
+                print(f"[Worker] ERROR row {i}: {e}")
+                traceback.print_exc()
+                line = f"[Error generating line: {e}]"
+            out_lines.append(line)
+
+            processed_in_chunk += 1
+
+            if processed_in_chunk % 5 == 0 or processed_in_chunk == len(rows):
+                job_res = (
+                    supabase.table("jobs")
+                    .select("rows_processed")
+                    .eq("id", job_id)
+                    .limit(1)
+                    .execute()
+                )
+                already_done = job_res.data[0]["rows_processed"] if job_res.data else 0
+                increment = 5 if processed_in_chunk % 5 == 0 else (len(rows) - processed_in_chunk + 1)
+                new_done = already_done + increment
+                if new_done > total_rows:
+                    new_done = total_rows
+                percent = round((new_done / total_rows) * 100, 2)
+
+                supabase.table("jobs").update(
+                    {"rows_processed": new_done, "progress_percent": percent}
+                ).eq("id", job_id).execute()
+
+                supabase.table("job_logs").insert(
+                    {
+                        "job_id": job_id,
+                        "step": new_done,
+                        "total": total_rows,
+                        "message": f"Global progress: {new_done}/{total_rows} rows ({percent}%)",
+                    }
+                ).execute()
+
+        # Save partial chunk as CSV
+        df = pd.DataFrame(rows)
+        df["personalized_line"] = out_lines
+
+        # Ensure /data/chunks/{job_id} exists
+        local_dir = os.path.join("/data/chunks", job_id)
+        os.makedirs(local_dir, exist_ok=True)
+
+        out_path = os.path.join(local_dir, f"chunk_{chunk_id}.csv")
+        df.to_csv(out_path, index=False)
+        print(f"[Worker] Saved local chunk {chunk_id} at {out_path}")
+
+        storage_path = f"{user_id}/{job_id}/chunk_{chunk_id}.csv"
+        with open(out_path, "rb") as f:
+            _upload_to_storage(storage_path, f, f"chunk {chunk_id} for job {job_id}")
+
+        supabase.table("files").insert(
+            {
+                "user_id": user_id,
+                "job_id": job_id,
+                "original_name": f"chunk_{chunk_id}.csv",
+                "storage_path": storage_path,
+                "file_type": "partial_output",
+            }
+        ).execute()
+
+        # --- NEW: Save local chunk path in RQ job meta ---
+        from rq import get_current_job
+
         try:
-            print(f"[Worker] Job {job_id} | Chunk {chunk_id} | Row {i}/{len(rows)} -> {row}")
-            line, _, _, _ = generate_opener(
-                company=row.get(meta.get("company_col", ""), ""),
-                description=row.get(meta.get("desc_col", ""), ""),
-                industry=row.get(meta.get("industry_col", ""), ""),
-                role=row.get(meta.get("title_col", ""), ""),
-                size=row.get(meta.get("size_col", ""), ""),
-                service=meta.get("service", ""),
-            )
+            rq_job = get_current_job()
+            if rq_job:
+                rq_job.meta[f"local_chunk_{chunk_id}"] = out_path
+                rq_job.meta[f"storage_chunk_{chunk_id}"] = storage_path
+                rq_job.save_meta()
+                print(f"[Worker] Saved local path for chunk {chunk_id} -> {out_path}")
         except Exception as e:
-            print(f"[Worker] ERROR row {i}: {e}")
-            traceback.print_exc()
-            line = f"[Error generating line: {e}]"
-        out_lines.append(line)
+            print(f"[Worker] Could not save local path for chunk {chunk_id}: {e}")
 
-        processed_in_chunk += 1
+        elapsed = record_time(f"Chunk {chunk_id} row processing", sub_start, job_id)
 
-        if processed_in_chunk % 5 == 0 or processed_in_chunk == len(rows):
-            job_res = (
-                supabase.table("jobs")
-                .select("rows_processed")
-                .eq("id", job_id)
-                .limit(1)
-                .execute()
-            )
-            already_done = job_res.data[0]["rows_processed"] if job_res.data else 0
-            increment = 5 if processed_in_chunk % 5 == 0 else (len(rows) - processed_in_chunk + 1)
-            new_done = already_done + increment
-            if new_done > total_rows:
-                new_done = total_rows
-            percent = round((new_done / total_rows) * 100, 2)
+        # Store per-chunk timing in job meta (merge later in finalize_job)
+        job_record = (
+            supabase.table("jobs").select("timing_json").eq("id", job_id).limit(1).execute()
+        )
+        timings = {}
+        if job_record.data and job_record.data[0].get("timing_json"):
+            try:
+                timings = json.loads(job_record.data[0]["timing_json"])
+            except Exception:
+                timings = {}
+        if "chunks" not in timings:
+            timings["chunks"] = {}
+        timings["chunks"][str(chunk_id)] = elapsed
+        supabase.table("jobs").update({"timing_json": json.dumps(timings)}).eq("id", job_id).execute()
 
-            supabase.table("jobs").update(
-                {"rows_processed": new_done, "progress_percent": percent}
-            ).eq("id", job_id).execute()
+        print(f"[Worker] Finished chunk {chunk_id}/{len(rows)} for job {job_id}")
+        return storage_path
 
+    except Exception as exc:
+        error_message = f"Chunk {chunk_id} failed: {exc}"
+        print(f"[Worker] Chunk error for job {job_id}: {exc}")
+        traceback.print_exc()
+        try:
             supabase.table("job_logs").insert(
                 {
                     "job_id": job_id,
-                    "step": new_done,
+                    "step": chunk_id,
                     "total": total_rows,
-                    "message": f"Global progress: {new_done}/{total_rows} rows ({percent}%)",
+                    "message": error_message,
                 }
             ).execute()
+        except Exception as log_exc:
+            print(f"[Worker] Failed to log chunk error for job {job_id}: {log_exc}")
 
-    # Save partial chunk as CSV
-    df = pd.DataFrame(rows)
-    df["personalized_line"] = out_lines
-
-# Ensure /data/chunks/{job_id} exists
-    local_dir = os.path.join("/data/chunks", job_id)
-    os.makedirs(local_dir, exist_ok=True)
-
-    out_path = os.path.join(local_dir, f"chunk_{chunk_id}.csv")
-    df.to_csv(out_path, index=False)
-    print(f"[Worker] Saved local chunk {chunk_id} at {out_path}")
-
-
-    storage_path = f"{user_id}/{job_id}/chunk_{chunk_id}.csv"
-    with open(out_path, "rb") as f:
-        supabase.storage.from_("outputs").upload(storage_path, f)
-
-    supabase.table("files").insert(
-        {
-            "user_id": user_id,
-            "job_id": job_id,
-            "original_name": f"chunk_{chunk_id}.csv",
-            "storage_path": storage_path,
-            "file_type": "partial_output",
-        }
-    ).execute()
-
-     # --- NEW: Save local chunk path in RQ job meta ---
-    from rq import get_current_job
-    try:
-        rq_job = get_current_job()
-        if rq_job:
-            rq_job.meta[f"local_chunk_{chunk_id}"] = out_path
-            rq_job.meta[f"storage_chunk_{chunk_id}"] = storage_path
-            rq_job.save_meta()
-            print(f"[Worker] Saved local path for chunk {chunk_id} -> {out_path}")
-    except Exception as e:
-        print(f"[Worker] Could not save local path for chunk {chunk_id}: {e}")
-
-    elapsed = record_time(f"Chunk {chunk_id} row processing", sub_start, job_id)
-
-    # Store per-chunk timing in job meta (merge later in finalize_job)
-    job_record = supabase.table("jobs").select("timing_json").eq("id", job_id).limit(1).execute()
-    timings = {}
-    if job_record.data and job_record.data[0].get("timing_json"):
         try:
-            timings = json.loads(job_record.data[0]["timing_json"])
-        except Exception:
-            timings = {}
-    if "chunks" not in timings:
-        timings["chunks"] = {}
-    timings["chunks"][str(chunk_id)] = elapsed
-    supabase.table("jobs").update({"timing_json": json.dumps(timings)}).eq("id", job_id).execute()
+            supabase.table("jobs").update(
+                {
+                    "status": "failed",
+                    "error": error_message,
+                    "finished_at": datetime.utcnow().isoformat() + "Z",
+                }
+            ).eq("id", job_id).execute()
+        except Exception as update_exc:
+            print(f"[Worker] Failed to mark job {job_id} as failed: {update_exc}")
 
-    print(f"[Worker] Finished chunk {chunk_id}/{len(rows)} for job {job_id}")
-    return storage_path
+        refund_job_credits(job_id, user_id, "chunk error")
+        raise
 
 
 def finalize_job(job_id: str, user_id: str, total_chunks: int):
@@ -312,7 +394,7 @@ def finalize_job(job_id: str, user_id: str, total_chunks: int):
 
         storage_path = f"{user_id}/{job_id}/result.xlsx"
         with open(out_xlsx, "rb") as f:
-            supabase.storage.from_("outputs").upload(storage_path, f)
+            _upload_to_storage(storage_path, f, f"final result for job {job_id}")
         timings["csv_to_xlsx"] = record_time("Final CSV→XLSX + upload", upload_start, job_id)
 
         timings["finalize_total"] = record_time("Finalize total", finalize_start, job_id)
