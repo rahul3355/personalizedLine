@@ -3,7 +3,7 @@ import csv
 import json
 import time
 import math
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Tuple
 import pandas as pd
 import traceback
 import tempfile
@@ -335,6 +335,62 @@ def _get_job_timeout():
     except (TypeError, ValueError):
         return 600
 
+
+def _update_job_progress(
+    job_id: str,
+    total_rows: int,
+    processed_in_chunk: int,
+    last_reported: int,
+    *,
+    supabase_client=supabase,
+    max_attempts: int = 5,
+    retry_delay: float = 0.05,
+) -> Tuple[int, Optional[dict]]:
+    """Attempt to update global job progress using optimistic concurrency control."""
+
+    delta = processed_in_chunk - last_reported
+    if delta <= 0:
+        return last_reported, None
+
+    attempts = 0
+    while attempts < max_attempts:
+        job_res = (
+            supabase_client.table("jobs")
+            .select("rows_processed")
+            .eq("id", job_id)
+            .limit(1)
+            .execute()
+        )
+        already_done = job_res.data[0]["rows_processed"] if job_res.data else 0
+        new_done = min(total_rows, already_done + delta)
+        percent = round((new_done / total_rows) * 100, 2) if total_rows else 0.0
+
+        update_res = (
+            supabase_client.table("jobs")
+            .update({"rows_processed": new_done, "progress_percent": percent})
+            .eq("id", job_id)
+            .eq("rows_processed", already_done)
+            .execute()
+        )
+
+        if getattr(update_res, "data", None):
+            return processed_in_chunk, {
+                "new_done": new_done,
+                "percent": percent,
+                "delta": delta,
+            }
+
+        attempts += 1
+        print(
+            f"[Worker] Job {job_id} progress update conflict (attempt {attempts}/{max_attempts}); retrying"
+        )
+        if retry_delay:
+            time.sleep(retry_delay)
+
+    raise RuntimeError(
+        f"Failed to update progress for job {job_id} after {max_attempts} attempts"
+    )
+
 # -----------------------------
 # Timing helper
 # -----------------------------
@@ -364,7 +420,8 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
     """Process a chunk of rows for a given job, with global progress logging."""
     sub_start = time.time()
     processed_in_chunk = 0
-    updates_since_last_log = 0
+    rows_since_last_report = 0
+    last_reported = 0
     chunk_input_path = _chunk_raw_local_path(job_id, chunk_id)
     downloaded_temp_dir = None
     cleanup_local_raw = False
@@ -431,35 +488,40 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                 writer.writerow(normalized_row)
 
                 processed_in_chunk += 1
-                updates_since_last_log += 1
+                rows_since_last_report += 1
 
                 is_last_row = processed_in_chunk == chunk_total_rows
-                if updates_since_last_log >= 5 or is_last_row:
-                    job_res = (
-                        supabase.table("jobs")
-                        .select("rows_processed")
-                        .eq("id", job_id)
-                        .limit(1)
-                        .execute()
-                    )
-                    already_done = job_res.data[0]["rows_processed"] if job_res.data else 0
-                    increment = updates_since_last_log
-                    updates_since_last_log = 0
-                    new_done = min(total_rows, already_done + increment)
-                    percent = round((new_done / total_rows) * 100, 2)
-
-                    supabase.table("jobs").update(
-                        {"rows_processed": new_done, "progress_percent": percent}
-                    ).eq("id", job_id).execute()
-
-                    supabase.table("job_logs").insert(
-                        {
-                            "job_id": job_id,
-                            "step": new_done,
-                            "total": total_rows,
-                            "message": f"Global progress: {new_done}/{total_rows} rows ({percent}%)",
-                        }
-                    ).execute()
+                if rows_since_last_report >= 5 or is_last_row:
+                    try:
+                        last_reported, progress_info = _update_job_progress(
+                            job_id,
+                            total_rows,
+                            processed_in_chunk,
+                            last_reported,
+                        )
+                    except RuntimeError as exc:
+                        print(
+                            f"[Worker] Job {job_id} | Chunk {chunk_id} | Progress update failed: {exc}"
+                        )
+                    else:
+                        rows_since_last_report = 0
+                        if progress_info:
+                            new_done = progress_info["new_done"]
+                            percent = progress_info["percent"]
+                            delta = progress_info["delta"]
+                            print(
+                                f"[Worker] Job {job_id} | Chunk {chunk_id} | Progress +{delta} -> {new_done}/{total_rows} rows ({percent}%)"
+                            )
+                            supabase.table("job_logs").insert(
+                                {
+                                    "job_id": job_id,
+                                    "step": new_done,
+                                    "total": total_rows,
+                                    "message": (
+                                        f"Global progress: +{delta} rows -> {new_done}/{total_rows} ({percent}%)"
+                                    ),
+                                }
+                            ).execute()
 
         print(f"[Worker] Saved local chunk {chunk_id} at {out_path}")
 
