@@ -436,6 +436,7 @@ def process_subjob(
 
         print(f"[Worker] Finished chunk {chunk_id}/{row_count} for job {job_id}")
 
+
         try:
             os.remove(chunk_path)
         except FileNotFoundError:
@@ -476,6 +477,15 @@ def process_subjob(
 
         refund_job_credits(job_id, user_id, "chunk error")
         raise
+    finally:
+        try:
+            os.remove(chunk_path)
+        except FileNotFoundError:
+            pass
+        except Exception as cleanup_exc:
+            print(
+                f"[Worker] Warning: failed to remove temporary chunk file {chunk_path}: {cleanup_exc}"
+            )
 
 
 def finalize_job(job_id: str, user_id: str, total_chunks: int):
