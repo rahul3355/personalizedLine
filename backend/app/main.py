@@ -403,17 +403,49 @@ async def parse_headers(
         try:
             if file_path.lower().endswith(".xlsx"):
                 headers = extract_xlsx_headers(temp_path)
+                row_count = count_xlsx_rows(temp_path)
             else:
                 headers = extract_csv_headers(temp_path)
+                row_count = count_csv_rows(temp_path)
         finally:
             try:
                 os.unlink(temp_path)
             except OSError:
                 pass
 
-        print(f"[ParseHeaders] Parsed headers for {file_path}: {headers}")
+        profile_res = (
+            supabase_client.table("profiles")
+            .select("credits_remaining")
+            .eq("id", current_user.user_id)
+            .single()
+            .execute()
+        )
+        profile_data = getattr(profile_res, "data", None)
+        if isinstance(profile_data, list):
+            profile_data = profile_data[0] if profile_data else None
+        credits_remaining = 0
+        if isinstance(profile_data, dict):
+            try:
+                credits_remaining = int(profile_data.get("credits_remaining") or 0)
+            except (TypeError, ValueError):
+                credits_remaining = 0
 
-        return {"headers": headers, "file_path": file_path}
+        has_enough_credits = credits_remaining >= row_count
+        missing_credits = max(0, row_count - credits_remaining)
+
+        print(
+            f"[ParseHeaders] Parsed headers for {file_path}: {headers} — rows={row_count} "
+            f"credits={credits_remaining} enough={has_enough_credits}"
+        )
+
+        return {
+            "headers": headers,
+            "file_path": file_path,
+            "row_count": row_count,
+            "credits_remaining": credits_remaining,
+            "has_enough_credits": has_enough_credits,
+            "missing_credits": missing_credits,
+        }
 
     except HTTPException:
         raise
@@ -592,6 +624,38 @@ async def create_job(
                 os.unlink(temp_path)
             except OSError:
                 pass
+
+        profile_res = (
+            supabase.table("profiles")
+            .select("credits_remaining")
+            .eq("id", current_user.user_id)
+            .single()
+            .execute()
+        )
+        profile_data = getattr(profile_res, "data", None)
+        if isinstance(profile_data, list):
+            profile_data = profile_data[0] if profile_data else None
+        credits_remaining = 0
+        if isinstance(profile_data, dict):
+            try:
+                credits_remaining = int(profile_data.get("credits_remaining") or 0)
+            except (TypeError, ValueError):
+                credits_remaining = 0
+
+        if credits_remaining < row_count:
+            missing = row_count - credits_remaining
+            print(
+                f"[Credits] User {current_user.user_id} lacks {missing} credits for file {file_path}"
+            )
+            raise HTTPException(
+                status_code=402,
+                detail={
+                    "error": "insufficient_credits",
+                    "row_count": row_count,
+                    "credits_remaining": credits_remaining,
+                    "missing_credits": missing,
+                },
+            )
 
         meta = {
             "file_path": file_path,

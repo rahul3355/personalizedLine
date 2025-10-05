@@ -73,9 +73,22 @@ class DummyTable:
         self.name = name
         self.supabase = supabase
         self._payload = None
+        self._filters = {}
+        self._single = False
 
     def insert(self, payload):
         self._payload = payload
+        return self
+
+    def select(self, _columns):
+        return self
+
+    def eq(self, column, value):
+        self._filters[column] = value
+        return self
+
+    def single(self):
+        self._single = True
         return self
 
     def execute(self):
@@ -84,6 +97,14 @@ class DummyTable:
             job.setdefault("id", "job-123")
             self.supabase.inserted_jobs.append(job)
             return SimpleNamespace(data=[job])
+
+        if self.name == "profiles":
+            user_id = self._filters.get("id")
+            profile = self.supabase.profiles.get(user_id)
+            if profile is None:
+                return SimpleNamespace(data=None)
+            return SimpleNamespace(data=dict(profile))
+
         return SimpleNamespace(data=[])
 
 
@@ -91,6 +112,7 @@ class DummySupabase:
     def __init__(self):
         self.storage = DummyStorage()
         self.inserted_jobs = []
+        self.profiles = {"user-123": {"credits_remaining": 10}}
 
     def table(self, name):
         return DummyTable(name, self)
@@ -148,6 +170,10 @@ def test_parse_headers_with_xlsx(client, patch_streaming):
     assert response.status_code == 200
     data = response.json()
     assert data["headers"] == ["company", "title"]
+    assert data["row_count"] == 2
+    assert data["credits_remaining"] == 10
+    assert data["has_enough_credits"] is True
+    assert data["missing_credits"] == 0
 
 
 def test_create_job_with_xlsx_counts_rows(client, patch_streaming):
@@ -168,3 +194,23 @@ def test_create_job_with_xlsx_counts_rows(client, patch_streaming):
     assert supabase.inserted_jobs
     assert supabase.inserted_jobs[0]["rows"] == 2
     assert supabase.inserted_jobs[0]["filename"] == "data.xlsx"
+
+
+def test_create_job_rejects_without_credits(client, patch_streaming):
+    patch_streaming.profiles["user-123"]["credits_remaining"] = 1
+    payload = {
+        "file_path": "user-123/uploads/data.xlsx",
+        "company_col": "company",
+        "desc_col": "title",
+        "industry_col": "company",
+        "title_col": "title",
+        "size_col": "company",
+        "service": "standard",
+    }
+    response = client.post("/jobs", json=payload)
+    assert response.status_code == 402
+    data = response.json()["detail"]
+    assert data["error"] == "insufficient_credits"
+    assert data["row_count"] == 2
+    assert data["credits_remaining"] == 1
+    assert data["missing_credits"] == 1
