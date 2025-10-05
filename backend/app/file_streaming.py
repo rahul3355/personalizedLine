@@ -52,7 +52,8 @@ async def stream_input_to_tempfile(
     if not signed_url:
         raise FileStreamingError("Failed to obtain signed URL for streaming")
 
-    tmp_file = tempfile.NamedTemporaryFile(delete=False)
+    suffix = os.path.splitext(file_path)[1]
+    tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             async with client.stream("GET", signed_url) as response:
