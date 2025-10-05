@@ -3,20 +3,27 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from dotenv import load_dotenv
-import uuid, shutil, os, tempfile, threading, pandas as pd, json, stripe, time
+import uuid, shutil, os, tempfile, threading, json, stripe, time
 from fastapi.responses import StreamingResponse
 import io
 from pydantic import BaseModel
 import os
 import logging
 from . import db, jobs
+from .file_streaming import (
+    FileStreamingError,
+    count_csv_rows,
+    count_xlsx_rows,
+    extract_csv_headers,
+    extract_xlsx_headers,
+    stream_input_to_tempfile,
+)
 from .supabase_client import supabase
 from supabase import create_client
 from fastapi import APIRouter, Body
 from io import BytesIO
 from datetime import datetime, timedelta
 import requests
-import httpx
 from fastapi import Query
 import redis
 from rq import Queue
@@ -389,36 +396,30 @@ async def parse_headers(
 
         file_path = assert_user_owns_path(file_path, current_user.user_id)
 
-        # --- Step 1: Generate signed URL from Supabase ---
+        supabase_client = get_supabase()
+        temp_path = await stream_input_to_tempfile(supabase_client, file_path)
+        print(f"[ParseHeaders] Streamed {file_path} to temporary file")
+
         try:
-            signed = supabase.storage.from_("inputs").create_signed_url(file_path, 60)
-            if not signed or "signedURL" not in signed:
-                raise HTTPException(status_code=500, detail="Failed to get signed URL")
-            signed_url = signed["signedURL"]
-            print(f"[ParseHeaders] Got signed URL for {file_path}")
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Signed URL error: {e}")
+            if file_path.lower().endswith(".xlsx"):
+                headers = extract_xlsx_headers(temp_path)
+            else:
+                headers = extract_csv_headers(temp_path)
+        finally:
+            try:
+                os.unlink(temp_path)
+            except OSError:
+                pass
 
-        # --- Step 2: Stream file from Supabase ---
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            resp = await client.get(signed_url)
-            if resp.status_code != 200:
-                raise HTTPException(status_code=500, detail=f"Download failed: {resp.status_code}")
-            contents = resp.content
-
-        # --- Step 3: Parse only headers (read small sample) ---
-        if file_path.endswith(".xlsx"):
-            df = pd.read_excel(BytesIO(contents), nrows=5)  # only first few rows
-        else:
-            df = pd.read_csv(BytesIO(contents), nrows=5)
-
-        headers = df.columns.tolist()
         print(f"[ParseHeaders] Parsed headers for {file_path}: {headers}")
 
         return {"headers": headers, "file_path": file_path}
 
     except HTTPException:
         raise
+    except FileStreamingError as exc:
+        print(f"[ParseHeaders] Streaming ERROR: {exc}")
+        raise HTTPException(status_code=500, detail=str(exc))
     except Exception as e:
         print(f"[ParseHeaders] ERROR: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -529,6 +530,8 @@ def get_me(current_user: AuthenticatedUser = Depends(get_current_user)):
         return res.data
     except HTTPException:
         raise
+    except FileStreamingError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     
@@ -577,19 +580,18 @@ async def create_job(
     try:
         file_path = assert_user_owns_path(req.file_path, current_user.user_id)
 
-        # Download file from Supabase storage
         supabase = get_supabase()
-        res = supabase.storage.from_("inputs").download(file_path)
-        if not res:
-            raise HTTPException(status_code=404, detail="File not found in storage")
-
-        contents = res
-        if file_path.endswith(".xlsx"):
-            df = pd.read_excel(BytesIO(contents))
-        else:
-            df = pd.read_csv(BytesIO(contents))
-
-        row_count = len(df)
+        temp_path = await stream_input_to_tempfile(supabase, file_path)
+        try:
+            if file_path.lower().endswith(".xlsx"):
+                row_count = count_xlsx_rows(temp_path)
+            else:
+                row_count = count_csv_rows(temp_path)
+        finally:
+            try:
+                os.unlink(temp_path)
+            except OSError:
+                pass
 
         meta = {
             "file_path": file_path,
@@ -625,6 +627,8 @@ async def create_job(
 
     except HTTPException:
         raise
+    except FileStreamingError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
