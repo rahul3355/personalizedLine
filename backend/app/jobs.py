@@ -329,6 +329,117 @@ def refund_job_credits(job_id: str, user_id: Optional[str], reason: str = "") ->
         print(f"[Credits] Failed to refund credits for job {job_id}: {exc}")
         return False
 
+def _deduct_job_credits(
+    job_id: str,
+    user_id: str,
+    total: int,
+    meta: dict,
+    *,
+    supabase_client=supabase,
+) -> bool:
+    """Deduct credits for a job if they have not already been charged."""
+
+    if total <= 0:
+        return True
+
+    if meta.get("credits_deducted"):
+        print(
+            f"[Credits] Job {job_id} already has credits deducted; skipping new deduction"
+        )
+        return False
+
+    deducted = False
+    previous_balance = 0
+
+    try:
+        max_attempts = 5
+        for _ in range(max_attempts):
+            profile_res = (
+                supabase_client.table("profiles")
+                .select("credits_remaining")
+                .eq("id", user_id)
+                .limit(1)
+                .execute()
+            )
+            previous_balance = (
+                profile_res.data[0]["credits_remaining"] if profile_res.data else 0
+            )
+
+            if previous_balance < total:
+                supabase_client.table("jobs").update(
+                    {
+                        "status": "failed",
+                        "finished_at": datetime.utcnow().isoformat() + "Z",
+                        "error": "Not enough credits",
+                    }
+                ).eq("id", job_id).execute()
+                print(
+                    f"[Credits] Job {job_id} has insufficient credits ({previous_balance} < {total})"
+                )
+                return False
+
+            update_res = (
+                supabase_client.table("profiles")
+                .update({"credits_remaining": previous_balance - total})
+                .eq("id", user_id)
+                .eq("credits_remaining", previous_balance)
+                .execute()
+            )
+
+            if getattr(update_res, "error", None):
+                raise RuntimeError(
+                    getattr(update_res, "error", "Failed to update credits")
+                )
+
+            updated_rows = getattr(update_res, "data", None) or []
+            if updated_rows:
+                deducted = True
+                break
+
+            time.sleep(0.1)
+
+        if not deducted:
+            raise RuntimeError("Failed to atomically deduct credits")
+
+        supabase_client.table("ledger").insert(
+            {
+                "user_id": user_id,
+                "change": -total,
+                "amount": 0.0,  # ensure non-null for deductions
+                "reason": f"job deduction: {job_id}",
+                "ts": datetime.utcnow().isoformat(),
+            }
+        ).execute()
+
+        meta["credit_cost"] = total
+        meta["credits_deducted"] = True
+        if "credits_refunded" not in meta:
+            meta["credits_refunded"] = False
+        supabase_client.table("jobs").update({"meta_json": meta}).eq("id", job_id).execute()
+
+        return True
+
+    except Exception as exc:
+        print(f"[Credits] Error while deducting for job {job_id}: {exc}")
+        if deducted:
+            try:
+                supabase_client.table("profiles").update(
+                    {"credits_remaining": previous_balance}
+                ).eq("id", user_id).execute()
+            except Exception as rollback_exc:
+                print(
+                    f"[Credits] Failed to rollback deduction for job {job_id}: {rollback_exc}"
+                )
+        supabase_client.table("jobs").update(
+            {
+                "status": "failed",
+                "finished_at": datetime.utcnow().isoformat() + "Z",
+                "error": "Unable to deduct credits",
+            }
+        ).eq("id", job_id).execute()
+        return False
+
+
 def _get_job_timeout():
     try:
         return int(os.getenv("SUBJOB_TIMEOUT", "600"))
@@ -767,98 +878,72 @@ def process_job(job_id: str):
 
         timings["download_input"] = record_time("Download input file", dl_start, job_id)
 
-        # --- Check credits ---
+        # --- Check credits and claim job ---
         setup_start = time.time()
         lock_name = f"credits_lock:{user_id}"
         lock = redis_conn.lock(lock_name, timeout=30, blocking_timeout=10)
         acquired = False
-        deducted = False
-        previous_balance = 0
         try:
             acquired = lock.acquire(blocking=True)
             if not acquired:
                 raise RuntimeError("Unable to acquire credit lock")
 
-            max_attempts = 5
-            for _ in range(max_attempts):
-                profile_res = (
-                    supabase.table("profiles")
-                    .select("credits_remaining")
-                    .eq("id", user_id)
-                    .limit(1)
-                    .execute()
+            refreshed_job = (
+                supabase.table("jobs")
+                .select("status, meta_json")
+                .eq("id", job_id)
+                .limit(1)
+                .execute()
+            )
+            if not refreshed_job.data:
+                print(f"[Worker] Job {job_id} disappeared before claiming; aborting")
+                return
+
+            current_row = refreshed_job.data[0]
+            current_status = current_row.get("status")
+            meta = _ensure_dict(current_row.get("meta_json"))
+            job["status"] = current_status
+            job["meta_json"] = meta
+
+            if current_status != "queued":
+                print(
+                    f"[Worker] Job {job_id} is already {current_status}; skipping claim"
                 )
-                previous_balance = (
-                    profile_res.data[0]["credits_remaining"] if profile_res.data else 0
-                )
+                return
 
-                if previous_balance < total:
-                    supabase.table("jobs").update(
-                        {
-                            "status": "failed",
-                            "finished_at": datetime.utcnow().isoformat() + "Z",
-                            "error": "Not enough credits",
-                        }
-                    ).eq("id", job_id).execute()
-                    return
+            should_continue = _deduct_job_credits(
+                job_id, user_id, total, meta, supabase_client=supabase
+            )
+            if not should_continue:
+                print(f"[Worker] Skipping job {job_id} after credit check")
+                return
 
-                update_res = (
-                    supabase.table("profiles")
-                    .update({"credits_remaining": previous_balance - total})
-                    .eq("id", user_id)
-                    .eq("credits_remaining", previous_balance)
-                    .execute()
-                )
+            claim_payload = {
+                "status": "in_progress",
+                "started_at": datetime.utcnow().isoformat() + "Z",
+                "rows_processed": 0,
+                "progress_percent": 0,
+            }
+            claim_res = (
+                supabase.table("jobs")
+                .update(claim_payload)
+                .eq("id", job_id)
+                .eq("status", "queued")
+                .execute()
+            )
+            updated_rows = getattr(claim_res, "data", None) or []
+            if not updated_rows:
+                print(f"[Worker] Failed to claim job {job_id}; refunding and aborting")
+                refund_job_credits(job_id, user_id, "claim failed")
+                return
 
-                if getattr(update_res, "error", None):
-                    raise RuntimeError(
-                        getattr(update_res, "error", "Failed to update credits")
-                    )
+            job.update(updated_rows[0])
+            job["status"] = claim_payload["status"]
+            job["started_at"] = claim_payload["started_at"]
+            job["rows_processed"] = claim_payload["rows_processed"]
+            job["progress_percent"] = claim_payload["progress_percent"]
+            job["meta_json"] = meta
 
-                updated_rows = getattr(update_res, "data", None) or []
-                if updated_rows:
-                    deducted = True
-                    break
-
-                # Retry if another concurrent update changed the balance
-                time.sleep(0.1)
-
-            if not deducted:
-                raise RuntimeError("Failed to atomically deduct credits")
-
-            supabase.table("ledger").insert(
-                {
-                    "user_id": user_id,
-                    "change": -total,
-                    "amount": 0.0,  # ensure non-null for deductions
-                    "reason": f"job deduction: {job_id}",
-                    "ts": datetime.utcnow().isoformat(),
-                }
-            ).execute()
-
-            meta["credit_cost"] = total
-            meta["credits_deducted"] = True
-            if "credits_refunded" not in meta:
-                meta["credits_refunded"] = False
-            supabase.table("jobs").update({"meta_json": meta}).eq("id", job_id).execute()
-
-        except Exception as exc:
-            print(f"[Credits] Error while deducting for job {job_id}: {exc}")
-            if deducted:
-                try:
-                    supabase.table("profiles").update(
-                        {"credits_remaining": previous_balance}
-                    ).eq("id", user_id).execute()
-                except Exception as rollback_exc:
-                    print(f"[Credits] Failed to rollback deduction for job {job_id}: {rollback_exc}")
-            supabase.table("jobs").update(
-                {
-                    "status": "failed",
-                    "finished_at": datetime.utcnow().isoformat() + "Z",
-                    "error": "Unable to deduct credits",
-                }
-            ).eq("id", job_id).execute()
-            return
         finally:
             if lock is not None and acquired:
                 try:
@@ -867,15 +952,6 @@ def process_job(job_id: str):
                     pass
 
         timings["setup"] = record_time("Setup (credits + DB updates)", setup_start, job_id)
-
-        supabase.table("jobs").update(
-            {
-                "status": "in_progress",
-                "started_at": datetime.utcnow().isoformat() + "Z",
-                "rows_processed": 0,
-                "progress_percent": 0,
-            }
-        ).eq("id", job_id).execute()
 
         # --- Chunking ---
         chunk_start = time.time()
