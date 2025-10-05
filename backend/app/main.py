@@ -20,6 +20,7 @@ from .file_streaming import (
 )
 from .supabase_client import supabase
 from supabase import create_client
+from postgrest.exceptions import APIError
 from fastapi import APIRouter, Body
 from io import BytesIO
 from datetime import datetime, timedelta
@@ -904,6 +905,20 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
         raise HTTPException(status_code=400, detail=f"Webhook error: {e}")
 
     event_type = event["type"]
+    event_id = event.get("id")
+
+    if event_id:
+        try:
+            supabase.table("stripe_webhook_events").insert(
+                {"event_id": event_id, "event_type": event_type}
+            ).execute()
+            print(f"[DB:insert_stripe_event] {event_id}")
+        except APIError as exc:
+            if exc.code == "23505":
+                print(f"[EVENT] {event_id} already processed; skipping")
+                print("========== END WEBHOOK ==========")
+                return {"status": "already_processed"}
+            raise
     obj = event["data"]["object"]
     print(f"[EVENT] {event_type} id={event['id']}")
 
