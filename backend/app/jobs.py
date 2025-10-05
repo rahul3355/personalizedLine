@@ -18,7 +18,8 @@ from rq import get_current_job
 # -----------------------------
 # Redis connection
 # -----------------------------
-redis_conn = redis.Redis(host="redis", port=6379, decode_responses=False)
+redis_url = os.getenv("REDIS_URL", "redis://redis:6379")
+redis_conn = redis.from_url(redis_url, decode_responses=False)
 queue = rq.Queue("default", connection=redis_conn)
 
 
