@@ -1,13 +1,14 @@
+import os
 import redis
 import rq
 import uuid
-import os
 from backend.app.jobs import process_job
 
 # -----------------------------
 # Redis connection
 # -----------------------------
-redis_conn = redis.Redis(host="redis", port=6379, decode_responses=True)
+redis_url = os.getenv("REDIS_URL", "redis://redis:6379")
+redis_conn = redis.from_url(redis_url, decode_responses=True)
 queue = rq.Queue("default", connection=redis_conn)
 
 # -----------------------------
