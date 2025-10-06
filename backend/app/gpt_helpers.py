@@ -2,6 +2,13 @@ import os
 from openai import OpenAI
 import json
 
+
+def _coalesce_text(value):
+    """Return a stripped string representation for prompt fields."""
+    if value is None:
+        return ""
+    return str(value).strip()
+
 # --- Client (DeepSeek API not OpenAI API) ---
 client = OpenAI(
     api_key=os.getenv("DEEPSEEK_API_KEY"),  # Use your DeepSeek key
@@ -76,3 +83,25 @@ def generate_opener(company, description, industry, role, size, service):
         opener = "[No opener generated]"
     usage = resp.usage
     return opener, usage.prompt_tokens, usage.completion_tokens, usage.total_tokens
+
+
+def generate_line(title, company, description, offer, persona, channel, max_words):
+    """Compatibility wrapper for legacy callers expecting generate_line."""
+    service_context = (
+        f"Offer: {_coalesce_text(offer)}\n"
+        f"Persona: {_coalesce_text(persona)}\n"
+        f"Channel: {_coalesce_text(channel)}\n"
+        f"Max words: {max_words}\n"
+        f"Title: {_coalesce_text(title)}"
+    )
+
+    opener, *_ = generate_opener(
+        _coalesce_text(company),
+        _coalesce_text(description),
+        "",  # industry (unused in legacy preview context)
+        _coalesce_text(title),
+        "",
+        service_context,
+    )
+
+    return opener
