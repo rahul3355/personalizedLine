@@ -194,7 +194,7 @@ function ProgressBar({ value }: { value: number }) {
   );
 }
 
-export default function JobsPage() {
+function JobsPage() {
   const router = useRouter();
   const { session } = useAuth();
 
@@ -577,7 +577,7 @@ export default function JobsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F6FB]">
+    <div className="min-h-screen bg-gradient-to-br from-[#F7F8FC] via-[#EEF1FA] to-[#E6E9F5]">
       <div className="relative mx-auto w-full max-w-6xl px-4 pb-16 pt-12 md:px-8">
         <div
           className={`transition-all duration-300 ${
@@ -935,3 +935,14 @@ function DetailRow({ icon, label, value }: { icon: ReactNode; label: string; val
     </div>
   );
 }
+
+const JobsPageWithLayout = JobsPage as typeof JobsPage & {
+  disableWhiteCard?: boolean;
+  backgroundClassName?: string;
+};
+
+JobsPageWithLayout.disableWhiteCard = true;
+JobsPageWithLayout.backgroundClassName =
+  "bg-gradient-to-br from-[#F7F8FC] via-[#EEF1FA] to-[#E6E9F5]";
+
+export default JobsPageWithLayout;
