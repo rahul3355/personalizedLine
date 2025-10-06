@@ -776,9 +776,9 @@ function JobsPage() {
                 exit={{ opacity: 0, x: 60 }}
                 transition={{ type: "spring", stiffness: 260, damping: 30 }}
                 className="pointer-events-none absolute right-0 hidden w-full max-w-xs md:flex md:max-w-sm lg:max-w-md"
-                style={{ top: drawerTop, height: drawerHeight ?? undefined }}
+                style={{ top: drawerTop, minHeight: drawerHeight ?? undefined }}
               >
-                <div className="pointer-events-auto h-full">
+                <div className="pointer-events-auto">
                   <DetailPanel
                     job={selectedJob}
                     isLoading={detailLoading && Boolean(selectedJobId)}
@@ -816,7 +816,7 @@ function DetailPanel({
 
   return (
     <div
-      className={`relative flex h-full flex-col ${radiusClass} bg-[#FCFCFC] shadow-[0_12px_30px_rgba(0,0,0,0.08)]`}
+      className={`relative flex min-h-full flex-col ${radiusClass} bg-[#FCFCFC] shadow-[0_12px_30px_rgba(0,0,0,0.08)]`}
     >
       {/* Floating close button (like Revolut, sitting a bit above the content) */}
       <button
