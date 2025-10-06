@@ -578,7 +578,7 @@ function JobsPage() {
 
   return (
     <div className="min-h-screen bg-[#F7F7F7] bg-none">
-      <div className="relative mx-auto w-full max-w-6xl px-4 pb-16 pt-12 md:px-8">
+      <div className="relative w-full px-6 pb-16 pt-12 sm:px-8 lg:px-10">
         <div
           className={`transition-all duration-300 ${
             selectedJobId ? "md:pr-[420px] lg:pr-[480px]" : ""
