@@ -7,8 +7,13 @@ import { useEffect, useState } from "react";
 import AuthorityPointLoader from "../components/AuthorityPointLoader";
 import InlineLoader from "@/components/InlineLoader";
 
+type AugmentedComponent = AppProps["Component"] & {
+  disableWhiteCard?: boolean;
+  backgroundClassName?: string;
+};
+
 interface LayoutProps {
-  Component: AppProps["Component"];
+  Component: AugmentedComponent;
   pageProps: AppProps["pageProps"];
 }
 
@@ -44,19 +49,38 @@ function Layout({ Component, pageProps }: LayoutProps) {
       <AuthorityPointLoader />
     );
   }
+  const backgroundClassName = Component.backgroundClassName ?? "bg-[#F7F7F7]";
+  const disableWhiteCard = Component.disableWhiteCard ?? false;
 
+  const renderPage = () => {
+    if (pageLoading) {
+      return (
+        <div className="flex flex-1 items-center justify-center px-6 py-8 sm:px-8 lg:px-10">
+          <InlineLoader />
+        </div>
+      );
+    }
+
+    return <Component {...pageProps} />;
+  };
 
   return (
-    <div className="min-h-screen flex bg-[#F7F7F7]">
+    <div className={`min-h-screen flex ${backgroundClassName}`}>
       {session && <Navbar />}
       <main
         className={`flex-1 flex flex-col transition-all duration-200 ${session ? "mt-16 px-0 pb-10" : ""
           }`}
       >
-<div className="flex min-h-0 flex-1 flex-col overflow-hidden 
-                rounded-[32px] bg-white shadow-sm 
-                ml-0 lg:ml-[108px] mr-4">
-          {pageLoading ? (
+        <div
+          className={`flex min-h-0 flex-1 flex-col ${
+            disableWhiteCard
+              ? "overflow-visible ml-0 mr-0 lg:ml-[108px]"
+              : "overflow-hidden rounded-[32px] bg-white shadow-sm ml-0 mr-4 lg:ml-[108px]"
+            }`}
+        >
+          {disableWhiteCard ? (
+            renderPage()
+          ) : pageLoading ? (
             <div className="flex flex-1 items-center justify-center px-6 py-8 sm:px-8 lg:px-10">
               <InlineLoader />
             </div>
@@ -74,7 +98,11 @@ function Layout({ Component, pageProps }: LayoutProps) {
 
 }
 
-export default function MyApp({ Component, pageProps }: AppProps) {
+interface MyAppProps extends AppProps {
+  Component: AugmentedComponent;
+}
+
+export default function MyApp({ Component, pageProps }: MyAppProps) {
   return (
     <AuthProvider>
       <Layout Component={Component} pageProps={pageProps} />
