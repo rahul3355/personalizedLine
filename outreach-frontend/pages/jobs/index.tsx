@@ -611,9 +611,9 @@ function JobsPage() {
     <div className="min-h-screen bg-[#F7F7F7] bg-none">
       <div ref={layoutRef} className="relative w-full px-6 pb-16 pt-12 sm:px-8 lg:px-10">
         <div
-          className={`transition-all duration-300 ${selectedJobId ? "md:pr-[420px] lg:pr-[480px]" : ""
-            }`}
-        >
+  className={`transition-all duration-300 ${selectedJobId ? "md:pr-[344px] lg:pr-[422px]" : ""}`}
+>
+
           <div className="space-y-10">
 
             {groupedJobs.length === 0 ? (
