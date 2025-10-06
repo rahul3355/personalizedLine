@@ -925,7 +925,7 @@ function DetailPanel({
                   type="button"
                   onClick={onDownload}
                   disabled={downloading}
-                  className="mt-5 inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_36px_rgba(79,85,241,0.4)] transition-transform hover:-translate-y-0.5 active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="mt-5 inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
                   style={{ background: "linear-gradient(135deg, #4F55F1 0%, #8186FF 100%)" }}
                 >
                   <Download className="h-4 w-4" />
