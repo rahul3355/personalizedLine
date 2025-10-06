@@ -22,6 +22,8 @@ body {
   --accent: #4f55f1;
   --hover: #e2e2e7;
   --icon: #717173;
+  --squircle-path: path("M50% 0% C 73.4202% 0% 85.3553% 0% 92.6777% 7.3223% C 100% 14.6447% 100% 26.5798% 100% 50% C 100% 73.4202% 100% 85.3553% 92.6777% 92.6777% C 85.3553% 100% 73.4202% 100% 50% 100% C 26.5798% 100% 14.6447% 100% 7.3223% 92.6777% C 0% 85.3553% 0% 73.4202% 0% 50% C 0% 26.5798% 0% 14.6447% 7.3223% 7.3223% C 14.6447% 0% 26.5798% 0% 50% 0% Z");
+  --squircle-mask: url("data:image/svg+xml;utf8,%3Csvg%20xmlns%3D'http%3A//www.w3.org/2000/svg'%20viewBox%3D'0%200%20100%20100'%3E%3Cpath%20fill%3D'white'%20d%3D'M50%200%20C73.4202%200%2085.3553%200%2092.6777%207.3223%20C100%2014.6447%20100%2026.5798%20100%2050%20C100%2073.4202%20100%2085.3553%2092.6777%2092.6777%20C85.3553%20100%2073.4202%20100%2050%20100%20C26.5798%20100%2014.6447%20100%207.3223%2092.6777%20C0%2085.3553%200%2073.4202%200%2050%20C0%2026.5798%200%2014.6447%207.3223%207.3223%20C14.6447%200%2026.5798%200%2050%200%20Z'/%3E%3C/svg%3E");
 }
 
 /* remove default click/tap highlight + focus rings + active flash */
@@ -53,4 +55,29 @@ a:active { background: transparent !important; }
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+.squircle-surface {
+  overflow: hidden;
+  border-radius: 0;
+  clip-path: var(--squircle-path);
+  -webkit-clip-path: var(--squircle-path);
+  -webkit-mask-image: var(--squircle-mask);
+  mask-image: var(--squircle-mask);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+}
+
+.squircle-shape {
+  border-radius: 0;
+  clip-path: var(--squircle-path);
+  -webkit-clip-path: var(--squircle-path);
+  -webkit-mask-image: var(--squircle-mask);
+  mask-image: var(--squircle-mask);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
 }
