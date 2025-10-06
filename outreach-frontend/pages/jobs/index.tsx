@@ -219,6 +219,10 @@ function JobsPage() {
 
   const jobsRef = useRef<Job[]>([]);
   const historyHasDrawer = useRef(false);
+  const layoutRef = useRef<HTMLDivElement | null>(null);
+  const firstGroupRef = useRef<HTMLUListElement | null>(null);
+  const [drawerTop, setDrawerTop] = useState<number>(96);
+  const [drawerHeight, setDrawerHeight] = useState<number | null>(null);
 
   useEffect(() => {
     jobsRef.current = jobs;
@@ -505,6 +509,29 @@ function JobsPage() {
       .sort((a, b) => b.sortKey - a.sortKey);
   }, [filteredJobs]);
 
+  useLayoutEffect(() => {
+    const update = () => {
+      if (!layoutRef.current || !firstGroupRef.current) {
+        setDrawerHeight(null);
+        return;
+      }
+      const layoutRect = layoutRef.current.getBoundingClientRect();
+      const groupRect = firstGroupRef.current.getBoundingClientRect();
+      const top = groupRect.top - layoutRect.top;
+      setDrawerTop(top);
+      setDrawerHeight(groupRect.height);
+    };
+
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, { passive: true });
+
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update);
+    };
+  }, [groupedJobs, selectedJobId]);
+
   const openJob = useCallback(
     (id: string) => {
       if (!router.isReady || id === selectedJobId) return;
@@ -582,7 +609,7 @@ function JobsPage() {
 
   return (
     <div className="min-h-screen bg-[#F7F7F7] bg-none">
-      <div className="relative w-full px-6 pb-16 pt-12 sm:px-8 lg:px-10">
+      <div ref={layoutRef} className="relative w-full px-6 pb-16 pt-12 sm:px-8 lg:px-10">
         <div
           className={`transition-all duration-300 ${selectedJobId ? "md:pr-[420px] lg:pr-[480px]" : ""
             }`}
@@ -599,7 +626,7 @@ function JobsPage() {
               </div>
             ) : (
               <div className="space-y-12">
-                {groupedJobs.map((group) => (
+                {groupedJobs.map((group, groupIdx) => (
                   <section key={group.key} className="space-y-3">
 
 
@@ -611,7 +638,10 @@ function JobsPage() {
                         {group.label}
                       </div>
 
-                      <ul className="rounded-[18px] bg-white ring-1 ring-[#E4E5F0] shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
+                      <ul
+                        ref={groupIdx === 0 ? firstGroupRef : undefined}
+                        className="rounded-[18px] bg-white ring-1 ring-[#E4E5F0] shadow-[0_12px_30px_rgba(15,23,42,0.08)]"
+                      >
                         {group.jobs.map((job, idx) => {
                           const isActive = job.id === selectedJobId;
                           const isFirst = idx === 0;
@@ -738,16 +768,17 @@ function JobsPage() {
         </motion.div>
       </motion.div>
 
-      {/* Desktop: floating card, NOT full-height */}
+      {/* Desktop: floating card aligned with first job card */}
       <motion.div
         key="drawer-desktop"
         initial={{ opacity: 0, x: 60 }}
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: 60 }}
         transition={{ type: "spring", stiffness: 260, damping: 30 }}
-        className="pointer-events-none absolute right-0 top-24 hidden w-full max-w-xs md:flex md:max-w-sm lg:max-w-md"
+        className="pointer-events-none absolute right-0 hidden w-full max-w-xs md:flex md:max-w-sm lg:max-w-md"
+        style={{ top: drawerTop, height: drawerHeight ?? undefined }}
       >
-        <div className="pointer-events-auto">
+        <div className="pointer-events-auto h-full">
           <DetailPanel
             job={selectedJob}
             isLoading={detailLoading && Boolean(selectedJobId)}
@@ -787,21 +818,18 @@ function DetailPanel({
     <div
       className={`flex h-full flex-col ${radiusClass} bg-white/90 shadow-[0_30px_60px_rgba(15,23,42,0.12)] backdrop-blur`}
     >
-      <div className="flex items-center justify-between border-b border-[#ECECF3] px-6 py-5">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[#717173]">Details</p>
-          <h2 className="text-lg font-semibold text-gray-900">Job overview</h2>
-        </div>
+      <div className="relative px-3 pt-3">
         <button
           type="button"
           onClick={onClose}
-          className="rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#717173] transition-colors hover:bg-[#E2E2E7]"
+          aria-label="Close"
+          className="absolute left-2 top-2 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#717173] shadow-md hover:bg-white/90"
         >
-          Close
+          <X className="h-4 w-4" />
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 pb-10 pt-6">
+      <div className="flex-1 overflow-y-auto px-6 pb-10 pt-4">
         {isLoading ? (
           <div className="flex justify-center pt-16">
             <InlineLoader />
