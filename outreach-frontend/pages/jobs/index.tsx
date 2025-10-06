@@ -584,134 +584,111 @@ function JobsPage() {
             selectedJobId ? "md:pr-[420px] lg:pr-[480px]" : ""
           }`}
         >
-          <div className="relative overflow-hidden rounded-[32px] border border-[#E4E6F2] bg-white/90 shadow-[0_32px_60px_rgba(15,23,42,0.1)] backdrop-blur">
-            <div className="border-b border-[#E4E6F2] px-6 py-6 md:px-10 md:py-8">
-              <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-                <div className="max-w-xl space-y-2">
-                  <span className="text-xs font-semibold uppercase tracking-[0.32em] text-[#8B8DA1]">
-                    Files
-                  </span>
-                  <h1 className="text-3xl font-semibold tracking-tight text-[#101225] md:text-[34px]">Transactions</h1>
-                  <p className="text-sm text-[#8B8DA1]">
-                    Browse every personalization job in a Revolut-inspired timeline.
-                  </p>
-                </div>
-                {monthTabs.length > 0 && (
-                  <div className="flex gap-2 overflow-x-auto rounded-full border border-[#ECEEF6] bg-[#F7F8FD] px-2 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[#8B8DA1]">
-                    {monthTabs.map((tab) => {
-                      const isActive = tab.value === activeMonth;
-                      return (
-                        <button
-                          key={tab.value}
-                          type="button"
-                          onClick={() => setActiveMonth(tab.value)}
-                          className={`whitespace-nowrap rounded-full px-4 py-2 transition-colors ${
-                            isActive
-                              ? "bg-white text-[#101225] shadow-[0_10px_20px_rgba(44,55,130,0.15)]"
-                              : "text-[#8B8DA1] hover:bg-white/60"
-                          }`}
-                        >
-                          {tab.label}
-                        </button>
-                      );
-                    })}
+          <div className="space-y-10">
+            {monthTabs.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto pb-1 text-xs font-semibold uppercase tracking-[0.2em] text-[#8B8DA1]">
+                {monthTabs.map((tab) => {
+                  const isActive = tab.value === activeMonth;
+                  return (
+                    <button
+                      key={tab.value}
+                      type="button"
+                      onClick={() => setActiveMonth(tab.value)}
+                      className={`whitespace-nowrap rounded-full px-4 py-2 transition-colors ${
+                        isActive
+                          ? "bg-white text-[#101225] shadow-[0_10px_20px_rgba(44,55,130,0.15)]"
+                          : "bg-white/40 text-[#8B8DA1] hover:bg-white/70"
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {groupedJobs.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-[28px] border border-dashed border-[#D8DAE6] bg-white/70 px-6 py-12 text-center shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
+                <FileText className="h-10 w-10 text-[#8B8DA1]" />
+                <h2 className="mt-4 text-lg font-semibold text-[#101225]">No jobs yet</h2>
+                <p className="mt-2 max-w-xs text-sm text-[#8B8DA1]">
+                  Upload a CSV to see your personalization jobs appear here in a Revolut-style timeline.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-12">
+                {groupedJobs.map((group) => (
+                  <section key={group.key} className="space-y-5">
+                    <div className="px-1 text-[15px] font-semibold tracking-[-0.01em] text-[#0E0F12]" style={{ fontFamily: '"Aeonik Pro", "Inter", sans-serif' }}>
+                      {group.label}
+                    </div>
+                    <div className="space-y-3">
+                      {group.jobs.map((job) => {
+                        const isActive = job.id === selectedJobId;
+                        return (
+                          <button
+                            key={job.id}
+                            type="button"
+                            onClick={() => openJob(job.id)}
+                            className={`group relative flex w-full items-center gap-5 rounded-[28px] border border-transparent px-6 py-[14px] text-left transition-all duration-200 ${
+                              isActive
+                                ? "z-[1] bg-white shadow-[0_24px_50px_rgba(79,85,241,0.18)] ring-1 ring-[#4F55F1]"
+                                : "bg-white/80 shadow-[0_8px_24px_rgba(15,23,42,0.08)] hover:bg-white"
+                            }`}
+                          >
+                            <StatusIcon status={job.status} />
+                            <div className="min-w-0 flex-1 space-y-2">
+                              <div className="flex items-center gap-3">
+                                <p className="flex-1 truncate text-[15px] font-semibold text-[#101225]">
+                                  {job.filename}
+                                </p>
+                                <span className="text-[12px] font-medium tracking-[-0.01em] text-[#0E0F12]" style={{ fontFamily: '"Aeonik Pro", "Inter", sans-serif' }}>
+                                  {formatTime(new Date(job.created_at))}
+                                </span>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#8B8DA1]">
+                                <StatusPill status={job.status} progress={job.progress} />
+                                <span>{job.rows.toLocaleString()} rows</span>
+                                {job.status === "failed" && job.error ? (
+                                  <span className="text-[#DC2F2F]">{job.error}</span>
+                                ) : null}
+                              </div>
+                              {job.message && job.status !== "failed" && (
+                                <p className="truncate text-xs text-[#8B8DA1]">{job.message}</p>
+                              )}
+                              {(job.status === "pending" || job.status === "in_progress") && (
+                                <div className="pt-1">
+                                  <ProgressBar value={job.progress ?? 0} />
+                                </div>
+                              )}
+                            </div>
+                            <ArrowRight
+                              className={`h-5 w-5 flex-shrink-0 transition-colors ${
+                                isActive ? "text-[#4F55F1]" : "text-[#C1C3D6] group-hover:text-[#4F55F1]"
+                              }`}
+                            />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+                ))}
+
+                {hasMore && (
+                  <div className="flex justify-center pt-2">
+                    <button
+                      type="button"
+                      onClick={handleLoadMore}
+                      disabled={loadingMore}
+                      className="rounded-full px-6 py-3 text-sm font-semibold text-white shadow-[0_18px_32px_rgba(79,85,241,0.35)] transition-transform hover:-translate-y-0.5 active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                      style={{ background: "linear-gradient(135deg, #4F55F1 0%, #8186FF 100%)" }}
+                    >
+                      {loadingMore ? "Loading…" : "Load more"}
+                    </button>
                   </div>
                 )}
               </div>
-            </div>
-
-            <div className="px-6 pb-10 pt-6 md:px-10">
-              {groupedJobs.length === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-[28px] border border-dashed border-[#D8DAE6] bg-[#F7F8FD] px-6 py-12 text-center">
-                  <FileText className="h-10 w-10 text-[#8B8DA1]" />
-                  <h2 className="mt-4 text-lg font-semibold text-[#101225]">No jobs yet</h2>
-                  <p className="mt-2 max-w-xs text-sm text-[#8B8DA1]">
-                    Upload a CSV to see your personalization jobs appear here in a Revolut-style timeline.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-12">
-                  {groupedJobs.map((group) => (
-                    <section key={group.key} className="space-y-5">
-                      <div className="px-1 text-[15px] font-semibold tracking-[-0.01em] text-[#0E0F12]" style={{ fontFamily: '"Aeonik Pro", "Inter", sans-serif' }}>
-                        {group.label}
-                      </div>
-                      <div className="overflow-hidden rounded-[28px] border border-[#E4E6F2] bg-white/90 shadow-[0_18px_36px_rgba(15,23,42,0.05)]">
-                        {group.jobs.map((job, jobIndex) => {
-                          const isActive = job.id === selectedJobId;
-                          const isFirst = jobIndex === 0;
-                          const isLast = jobIndex === group.jobs.length - 1;
-                          return (
-                            <button
-                              key={job.id}
-                              type="button"
-                              onClick={() => openJob(job.id)}
-                              className={`group relative flex w-full items-center gap-5 px-6 py-[14px] text-left transition-all duration-200 ${
-                                isActive
-                                  ? "z-[1] bg-white shadow-[0_24px_50px_rgba(79,85,241,0.18)] ring-1 ring-[#4F55F1]"
-                                  : "bg-white/70 hover:bg-[#F7F8FD]"
-                              } ${
-                                !isLast ? "border-b border-[#ECEEF6]" : ""
-                              } ${
-                                isFirst ? "rounded-t-[28px]" : ""
-                              } ${
-                                isLast ? "rounded-b-[28px]" : ""
-                              }`}
-                            >
-                              <StatusIcon status={job.status} />
-                              <div className="min-w-0 flex-1 space-y-2">
-                                <div className="flex items-center gap-3">
-                                  <p className="flex-1 truncate text-[15px] font-semibold text-[#101225]">
-                                    {job.filename}
-                                  </p>
-                                  <span className="text-[12px] font-medium tracking-[-0.01em] text-[#0E0F12]" style={{ fontFamily: '"Aeonik Pro", "Inter", sans-serif' }}>
-                                    {formatTime(new Date(job.created_at))}
-                                  </span>
-                                </div>
-                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#8B8DA1]">
-                                  <StatusPill status={job.status} progress={job.progress} />
-                                  <span>{job.rows.toLocaleString()} rows</span>
-                                  {job.status === "failed" && job.error ? (
-                                    <span className="text-[#DC2F2F]">{job.error}</span>
-                                  ) : null}
-                                </div>
-                                {job.message && job.status !== "failed" && (
-                                  <p className="truncate text-xs text-[#8B8DA1]">{job.message}</p>
-                                )}
-                                {(job.status === "pending" || job.status === "in_progress") && (
-                                  <div className="pt-1">
-                                    <ProgressBar value={job.progress ?? 0} />
-                                  </div>
-                                )}
-                              </div>
-                              <ArrowRight
-                                className={`h-5 w-5 flex-shrink-0 transition-colors ${
-                                  isActive ? "text-[#4F55F1]" : "text-[#C1C3D6] group-hover:text-[#4F55F1]"
-                                }`}
-                              />
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </section>
-                  ))}
-
-                  {hasMore && (
-                    <div className="flex justify-center pt-2">
-                      <button
-                        type="button"
-                        onClick={handleLoadMore}
-                        disabled={loadingMore}
-                        className="rounded-full px-6 py-3 text-sm font-semibold text-white shadow-[0_18px_32px_rgba(79,85,241,0.35)] transition-transform hover:-translate-y-0.5 active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
-                        style={{ background: "linear-gradient(135deg, #4F55F1 0%, #8186FF 100%)" }}
-                      >
-                        {loadingMore ? "Loading…" : "Load more"}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            )}
           </div>
         </div>
 
