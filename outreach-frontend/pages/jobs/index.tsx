@@ -200,7 +200,7 @@ function ProgressBar({ value }: { value: number }) {
 function JobsPage() {
   const router = useRouter();
   const { session } = useAuth();
-  
+
 
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -611,8 +611,8 @@ function JobsPage() {
     <div className="min-h-screen bg-[#F7F7F7] bg-none">
       <div ref={layoutRef} className="relative w-full px-6 pb-16 pt-12 sm:px-8 lg:px-10">
         <div
-  className={`transition-all duration-300 ${selectedJobId ? "md:pr-[344px] lg:pr-[422px]" : ""}`}
->
+          className={`transition-all duration-300 ${selectedJobId ? "md:pr-[344px] lg:pr-[422px]" : ""}`}
+        >
 
           <div className="space-y-10">
 
@@ -736,65 +736,65 @@ function JobsPage() {
         </div>
 
         <AnimatePresence>
-  {selectedJobId && (
-    <>
-      {/* Mobile: full-screen overlay + slide-in */}
-      <motion.div
-        key="drawer-mobile"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm md:hidden"
-        onClick={closeDrawer}
-      >
-        <motion.div
-          initial={{ x: "100%" }}
-          animate={{ x: 0 }}
-          exit={{ x: "100%" }}
-          transition={{ type: "spring", stiffness: 260, damping: 30 }}
-          className="absolute inset-y-0 right-0 w-full max-w-md bg-white"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <DetailPanel
-            job={selectedJob}
-            isLoading={detailLoading}
-            error={detailError}
-            onClose={closeDrawer}
-            onRetry={handleRetry}
-            onDownload={handleDownload}
-            downloading={downloading}
-            isMobile
-          />
-        </motion.div>
-      </motion.div>
+          {selectedJobId && (
+            <>
+              {/* Mobile: full-screen overlay + slide-in */}
+              <motion.div
+                key="drawer-mobile"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm md:hidden"
+                onClick={closeDrawer}
+              >
+                <motion.div
+                  initial={{ x: "100%" }}
+                  animate={{ x: 0 }}
+                  exit={{ x: "100%" }}
+                  transition={{ type: "spring", stiffness: 260, damping: 30 }}
+                  className="absolute inset-y-0 right-0 w-full max-w-md bg-white"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <DetailPanel
+                    job={selectedJob}
+                    isLoading={detailLoading}
+                    error={detailError}
+                    onClose={closeDrawer}
+                    onRetry={handleRetry}
+                    onDownload={handleDownload}
+                    downloading={downloading}
+                    isMobile
+                  />
+                </motion.div>
+              </motion.div>
 
-      {/* Desktop: floating card aligned with first job card */}
-      <motion.div
-        key="drawer-desktop"
-        initial={{ opacity: 0, x: 60 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: 60 }}
-        transition={{ type: "spring", stiffness: 260, damping: 30 }}
-        className="pointer-events-none absolute right-0 hidden w-full max-w-xs md:flex md:max-w-sm lg:max-w-md"
-        style={{ top: drawerTop, height: drawerHeight ?? undefined }}
-      >
-        <div className="pointer-events-auto h-full">
-          <DetailPanel
-            job={selectedJob}
-            isLoading={detailLoading && Boolean(selectedJobId)}
-            error={detailError}
-            onClose={closeDrawer}
-            onRetry={handleRetry}
-            onDownload={handleDownload}
-            downloading={downloading}
-          />
-        </div>
-      </motion.div>
-    </>
-  )}
-</AnimatePresence>
+              {/* Desktop: floating card aligned with first job card */}
+              <motion.div
+                key="drawer-desktop"
+                initial={{ opacity: 0, x: 60 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 60 }}
+                transition={{ type: "spring", stiffness: 260, damping: 30 }}
+                className="pointer-events-none absolute right-0 hidden w-full max-w-xs md:flex md:max-w-sm lg:max-w-md"
+                style={{ top: drawerTop, height: drawerHeight ?? undefined }}
+              >
+                <div className="pointer-events-auto h-full">
+                  <DetailPanel
+                    job={selectedJob}
+                    isLoading={detailLoading && Boolean(selectedJobId)}
+                    error={detailError}
+                    onClose={closeDrawer}
+                    onRetry={handleRetry}
+                    onDownload={handleDownload}
+                    downloading={downloading}
+                  />
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
 
-    </div>
+      </div>
     </div >
   );
 }
@@ -809,158 +809,142 @@ function DetailPanel({
   downloading,
   isMobile = false,
 }: DetailPanelProps) {
-  const radiusClass = isMobile ? "rounded-l-3xl" : "rounded-[18px]";
+  const radiusClass = isMobile ? "rounded-l-3xl" : "rounded-[24px]";
   const config = job ? getStatusVisuals(job.status) : null;
   const CreatedDate = job ? new Date(job.created_at) : null;
   const FinishedDate = job?.finished_at ? new Date(job.finished_at) : null;
 
   return (
     <div
-      className={`flex h-full flex-col ${radiusClass} bg-white/90 shadow-[0_30px_60px_rgba(15,23,42,0.12)] backdrop-blur`}
+      className={`relative flex h-full flex-col ${radiusClass} bg-[#FCFCFC] shadow-[0_12px_30px_rgba(0,0,0,0.08)]`}
     >
-      <div className="relative px-3 pt-3">
+      {/* Floating close button (like Revolut, sitting a bit above the content) */}
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Close"
+        className="absolute left-2 top-6 -translate-y-1/2 inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-100"
+      >
+        <X className="h-4 w-4" />
+      </button>
+      <br />
+
+      {/* Title + status icon */}
+      <div className="px-6 pt-8 pb-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="truncate text-2xl font-semibold leading-tight text-gray-900">
+              {job?.filename ?? "—"}
+            </h1>
+            <p className="mt-1 text-sm text-gray-500">
+              {job?.created_at ? `${getDayLabel(new Date(job.created_at))}, ${formatTime(new Date(job.created_at))}` : "—"}
+            </p>
+          </div>
+
+          <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${config?.iconBg ?? "bg-gray-100"}`}>
+            {config ? <config.icon className="h-6 w-6" style={{ color: config.iconColor }} /> : null}
+          </div>
+        </div>
+      </div>
+
+
+      {/* Info box (white card inside a light surface) */}
+      <div className="px-5 pb-4">
+        <div className="rounded-2xl bg-[#F6F7F9] p-1">
+          <div className="rounded-xl bg-white">
+            <InfoRow label="Status" value={config?.label ?? "—"} />
+            {typeof job?.rows === "number" && <InfoRow label="Rows" value={job.rows.toLocaleString()} />}
+            <InfoRow
+              label="Created"
+              value={CreatedDate ? `${getDayLabel(CreatedDate)} · ${formatTime(CreatedDate)}` : "—"}
+            />
+            <InfoRow
+              label="Finished"
+              value={FinishedDate ? `${getDayLabel(FinishedDate)} · ${formatTime(FinishedDate)}` : "—"}
+            />
+            <InfoRow label="Job ID" value={job?.id ?? "—"} mono />
+
+            {/* Statement / Download like Revolut */}
+            {job?.status === "succeeded" && (
+              <InfoRow
+                label="Statement"
+                value={
+                  <button
+                    type="button"
+                    onClick={onDownload}
+                    disabled={downloading}
+                    className="inline-flex items-center gap-1 font-medium text-[#4F55F1] hover:underline disabled:opacity-60"
+                  >
+                    <Download className="h-4 w-4" />
+                    {downloading ? "Preparing…" : "Download"}
+                  </button>
+                }
+              />
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom "Get help" card */}
+      <div className="px-5 pb-6">
         <button
           type="button"
-          onClick={onClose}
-          aria-label="Close"
-          className="absolute left-2 top-2 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#717173] shadow-md hover:bg-white/90"
+          className="flex w-full items-center justify-between rounded-xl bg-white px-4 py-3 text-[15px] font-medium text-gray-900 ring-1 ring-black/[0.06] hover:bg-gray-50"
         >
-          <X className="h-4 w-4" />
+          <span>Get help</span>
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+          </svg>
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 pb-10 pt-4">
-        {isLoading ? (
-          <div className="flex justify-center pt-16">
+      {/* Error / loading states (centered) */}
+      {!job && (isLoading || error) && (
+        <div className="flex flex-1 items-center justify-center px-6 pb-8">
+          {isLoading ? (
             <InlineLoader />
-          </div>
-        ) : error ? (
-          <div className="flex h-full flex-col items-center justify-center text-center">
-            <XCircle className="h-10 w-10 text-[#DC2F2F]" />
-            <h3 className="mt-4 text-lg font-semibold text-gray-900">Something went wrong</h3>
-            <p className="mt-2 max-w-sm text-sm text-[#717173]">{error}</p>
-            <button
-              type="button"
-              onClick={onRetry}
-              className="mt-6 rounded-full px-5 py-2 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(79,85,241,0.3)]"
-              style={{ background: "linear-gradient(135deg, #4F55F1 0%, #8186FF 100%)" }}
-            >
-              Try again
-            </button>
-          </div>
-        ) : job ? (
-          <div className="space-y-6">
-            <div className="flex items-start gap-4">
-              {config && (
-                <div className={`flex h-14 w-14 items-center justify-center rounded-[18px] ${config.iconBg}`}>
-                  <config.icon className="h-7 w-7" style={{ color: config.iconColor }} />
-                </div>
-              )}
-              <div className="min-w-0 flex-1">
-                <h3 className="text-xl font-semibold text-gray-900">{job.filename}</h3>
-                <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-[#717173]">
-                  {config && (
-                    <span
-                      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${config.pillBg} ${config.pillColor}`}
-                    >
-                      {config.label}
-                    </span>
-                  )}
-                  <span>{job.rows.toLocaleString()} rows</span>
-                </div>
-              </div>
+          ) : (
+            <div className="text-center">
+              <XCircle className="mx-auto h-10 w-10 text-red-500" />
+              <h3 className="mt-4 text-lg font-semibold text-gray-900">Something went wrong</h3>
+              <p className="mt-2 max-w-sm text-sm text-gray-500">{error}</p>
+              <button
+                type="button"
+                onClick={onRetry}
+                className="mt-6 rounded-full bg-[#4F55F1] px-5 py-2 text-sm font-semibold text-white"
+              >
+                Try again
+              </button>
             </div>
-
-            <div className="space-y-3 rounded-[18px] bg-[#F4F4F8] p-5">
-              <DetailRow
-                icon={<Calendar className="h-5 w-5 text-[#717173]" />}
-                label="Created"
-                value={
-                  CreatedDate
-                    ? `${getDayLabel(CreatedDate)} · ${formatTime(CreatedDate)}`
-                    : "—"
-                }
-              />
-              {FinishedDate && (
-                <DetailRow
-                  icon={<CheckCircle2 className="h-5 w-5 text-[#4F55F1]" />}
-                  label="Finished"
-                  value={`${getDayLabel(FinishedDate)} · ${formatTime(FinishedDate)}`}
-                />
-              )}
-              <DetailRow icon={<FileText className="h-5 w-5 text-[#717173]" />} label="Job ID" value={job.id} />
-            </div>
-
-            {(job.status === "pending" || job.status === "in_progress") && (
-              <div className="rounded-[18px] border border-[#E2E2E7] bg-white/80 p-5">
-                <h4 className="text-sm font-semibold text-gray-900">Generating your file</h4>
-                <p className="mt-1 text-xs text-[#717173]">
-                  {job.message || "We’re preparing your personalized lines."}
-                </p>
-                <div className="mt-4">
-                  <ProgressBar value={job.progress ?? 0} />
-                  <p className="mt-2 text-xs font-semibold text-[#4F55F1]">
-                    {Math.round(job.progress ?? 0)}% complete
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {job.status === "failed" && (
-              <div className="rounded-[18px] border border-red-200 bg-red-50/80 p-5 text-sm text-[#B42318]">
-                <h4 className="text-sm font-semibold text-[#B42318]">Job failed</h4>
-                <p className="mt-2 text-xs text-[#B42318]">
-                  {job.error || "Unknown error"}
-                </p>
-              </div>
-            )}
-
-            {job.status === "succeeded" && (
-              <div className="rounded-[18px] border border-[#E2E2E7] bg-white/90 p-5">
-                <h4 className="text-sm font-semibold text-gray-900">Ready to download</h4>
-                <p className="mt-1 text-xs text-[#717173]">
-                  Your personalized outreach file is ready to export.
-                </p>
-                <button
-                  type="button"
-                  onClick={onDownload}
-                  disabled={downloading}
-                  className="mt-5 inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
-                  style={{ background: "linear-gradient(135deg, #4F55F1 0%, #8186FF 100%)" }}
-                >
-                  <Download className="h-4 w-4" />
-                  {downloading ? "Preparing…" : "Download file"}
-                </button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="flex h-full flex-col items-center justify-center text-center">
-            <FileText className="h-12 w-12 text-[#717173]" />
-            <h3 className="mt-4 text-lg font-semibold text-gray-900">Pick a job</h3>
-            <p className="mt-2 max-w-xs text-sm text-[#717173]">
-              Select a job from the timeline to see its progress, metadata, and download options.
-            </p>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-function DetailRow({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+function InfoRow({
+  label,
+  value,
+  mono = false,
+}: {
+  label: string;
+  value: ReactNode;
+  mono?: boolean;
+}) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl bg-white/80 px-4 py-3">
-      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#F0F0F3]">
-        {icon}
-      </div>
-      <div className="min-w-0">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#717173]">{label}</p>
-        <p className="truncate text-sm font-medium text-gray-900">{value}</p>
+    <div className="flex items-center justify-between px-4 py-3">
+      <span className="text-[15px] text-gray-500">{label}</span>
+      <div
+        className={`ml-4 max-w-[60%] text-right text-[15px] text-gray-900 ${mono ? "font-mono break-all" : ""
+          }`}
+      >
+        {value}
       </div>
     </div>
   );
 }
+
 
 const JobsPageWithLayout = JobsPage as typeof JobsPage & {
   disableWhiteCard?: boolean;
