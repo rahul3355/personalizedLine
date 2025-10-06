@@ -5,7 +5,7 @@ import create_new, past_files
 st.set_page_config(page_title="Personalized Outreach Tool", layout="wide")
 
 # ---------- Init ----------
-init_db()
+db.init_db()
 
 # TEMP: hardcode current user until Next.js login is integrated
 current_user_id = "dev-user-123"
