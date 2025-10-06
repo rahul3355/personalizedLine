@@ -604,15 +604,131 @@ def list_jobs(current_user: AuthenticatedUser = Depends(get_current_user)):
     return jobs
 
 
+def _parse_profile_response(profile_res) -> Optional[Dict[str, Any]]:
+    profile_data = getattr(profile_res, "data", None)
+    if isinstance(profile_data, list):
+        return profile_data[0] if profile_data else None
+    if isinstance(profile_data, dict):
+        return profile_data
+    return None
+
+
+def _reserve_credits_for_job(
+    supabase_client,
+    user_id: str,
+    row_count: int,
+    job_id: str,
+    file_path: str,
+) -> Dict[str, int]:
+    max_attempts = 5
+    for attempt in range(max_attempts):
+        profile_res = (
+            supabase_client.table("profiles")
+            .select("credits_remaining")
+            .eq("id", user_id)
+            .limit(1)
+            .execute()
+        )
+        profile = _parse_profile_response(profile_res) or {}
+        try:
+            credits_remaining = int(profile.get("credits_remaining") or 0)
+        except (TypeError, ValueError):
+            credits_remaining = 0
+
+        if credits_remaining < row_count:
+            missing = row_count - credits_remaining
+            print(
+                f"[Credits] User {user_id} lacks {missing} credits for file {file_path}"
+            )
+            raise HTTPException(
+                status_code=402,
+                detail={
+                    "error": "insufficient_credits",
+                    "row_count": row_count,
+                    "credits_remaining": credits_remaining,
+                    "missing_credits": missing,
+                },
+            )
+
+        new_balance = credits_remaining - row_count
+        update_res = (
+            supabase_client.table("profiles")
+            .update({"credits_remaining": new_balance})
+            .eq("id", user_id)
+            .eq("credits_remaining", credits_remaining)
+            .execute()
+        )
+
+        if getattr(update_res, "error", None):
+            raise HTTPException(status_code=500, detail="Unable to reserve credits")
+
+        updated_rows = getattr(update_res, "data", None) or []
+        if updated_rows:
+            ledger_payload = {
+                "user_id": user_id,
+                "change": -row_count,
+                "amount": 0.0,
+                "reason": f"job deduction: {job_id}",
+                "ts": datetime.utcnow().isoformat(),
+            }
+            ledger_res = (
+                supabase_client.table("ledger").insert(ledger_payload).execute()
+            )
+            if getattr(ledger_res, "error", None):
+                supabase_client.table("profiles").update(
+                    {"credits_remaining": credits_remaining}
+                ).eq("id", user_id).execute()
+                raise HTTPException(
+                    status_code=500, detail="Unable to record credit deduction"
+                )
+
+            return {
+                "previous_balance": credits_remaining,
+                "new_balance": new_balance,
+                "cost": row_count,
+            }
+
+        time.sleep(0.1)
+
+    raise HTTPException(status_code=500, detail="Unable to reserve credits")
+
+
+def _rollback_credit_reservation(
+    supabase_client,
+    user_id: str,
+    reservation: Dict[str, int],
+    job_id: str,
+):
+    try:
+        supabase_client.table("profiles").update(
+            {"credits_remaining": reservation["previous_balance"]}
+        ).eq("id", user_id).eq("credits_remaining", reservation["new_balance"]).execute()
+        supabase_client.table("ledger").insert(
+            {
+                "user_id": user_id,
+                "change": reservation["cost"],
+                "amount": 0.0,
+                "reason": f"job rollback: {job_id}",
+                "ts": datetime.utcnow().isoformat(),
+            }
+        ).execute()
+    except Exception as exc:  # pragma: no cover - logging for rollback issues
+        print(f"[Credits] Failed to rollback reservation for job {job_id}: {exc}")
+
+
 @app.post("/jobs")
 async def create_job(
     req: JobRequest,
     current_user: AuthenticatedUser = Depends(get_current_user),
 ):
+    supabase = get_supabase()
+    reservation: Optional[Dict[str, int]] = None
+    lock = None
+    acquired = False
+
     try:
         file_path = assert_user_owns_path(req.file_path, current_user.user_id)
 
-        supabase = get_supabase()
         temp_path = await stream_input_to_tempfile(supabase, file_path)
         try:
             if file_path.lower().endswith(".xlsx"):
@@ -625,38 +741,7 @@ async def create_job(
             except OSError:
                 pass
 
-        profile_res = (
-            supabase.table("profiles")
-            .select("credits_remaining")
-            .eq("id", current_user.user_id)
-            .single()
-            .execute()
-        )
-        profile_data = getattr(profile_res, "data", None)
-        if isinstance(profile_data, list):
-            profile_data = profile_data[0] if profile_data else None
-        credits_remaining = 0
-        if isinstance(profile_data, dict):
-            try:
-                credits_remaining = int(profile_data.get("credits_remaining") or 0)
-            except (TypeError, ValueError):
-                credits_remaining = 0
-
-        if credits_remaining < row_count:
-            missing = row_count - credits_remaining
-            print(
-                f"[Credits] User {current_user.user_id} lacks {missing} credits for file {file_path}"
-            )
-            raise HTTPException(
-                status_code=402,
-                detail={
-                    "error": "insufficient_credits",
-                    "row_count": row_count,
-                    "credits_remaining": credits_remaining,
-                    "missing_credits": missing,
-                },
-            )
-
+        job_id = str(uuid.uuid4())
         meta = {
             "file_path": file_path,
             "company_col": req.company_col,
@@ -667,11 +752,33 @@ async def create_job(
             "service": req.service,
         }
 
-        # --- Step 1: insert into Supabase jobs table ---
+        lock_name = f"credits_lock:{current_user.user_id}"
+        lock = redis_conn.lock(lock_name, timeout=30, blocking_timeout=10)
+        acquired = lock.acquire(blocking=True)
+        if not acquired:
+            raise HTTPException(status_code=503, detail="Unable to reserve credits")
+
+        reservation = _reserve_credits_for_job(
+            supabase,
+            current_user.user_id,
+            row_count,
+            job_id,
+            file_path,
+        )
+
+        meta.update(
+            {
+                "credit_cost": row_count,
+                "credits_deducted": True,
+                "credits_refunded": False,
+            }
+        )
+
         result = (
             supabase.table("jobs")
             .insert(
                 {
+                    "id": job_id,
                     "user_id": current_user.user_id,
                     "status": "queued",
                     "filename": os.path.basename(file_path),
@@ -683,18 +790,36 @@ async def create_job(
         )
 
         if not result.data:
-            raise HTTPException(status_code=500, detail="Failed to insert job")
+            raise RuntimeError("Failed to insert job")
 
         job = result.data[0]
 
         return {"id": job["id"], "status": job["status"], "rows": row_count}
 
     except HTTPException:
+        if reservation is not None:
+            _rollback_credit_reservation(
+                supabase, current_user.user_id, reservation, job_id
+            )
         raise
     except FileStreamingError as exc:
+        if reservation is not None:
+            _rollback_credit_reservation(
+                supabase, current_user.user_id, reservation, job_id
+            )
         raise HTTPException(status_code=500, detail=str(exc))
     except Exception as e:
+        if reservation is not None:
+            _rollback_credit_reservation(
+                supabase, current_user.user_id, reservation, job_id
+            )
         raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        if lock is not None and acquired:
+            try:
+                lock.release()
+            except Exception:
+                pass
 
 
 
