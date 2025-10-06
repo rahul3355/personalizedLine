@@ -286,15 +286,21 @@ export default function Navbar() {
             {/* Avatar button */}
             <button
               onClick={() => setDropdownOpen(v => !v)}
-              className="flex items-center justify-center w-8 h-8 rounded-full overflow-hidden bg-[#EEF0F4] focus:outline-none"
+              className="flex items-center justify-center w-8 h-8 squircle-surface bg-[#EEF0F4] focus:outline-none"
               aria-haspopup="menu" aria-expanded={dropdownOpen}
             >
               {loading ? (
-                <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse" />
+                <div className="w-full h-full squircle-shape bg-gray-200 animate-pulse" />
               ) : avatarUrl ? (
-                <Image src={avatarUrl} alt={displayName} width={32} height={32} className="rounded-full object-cover" />
+                <Image
+                  src={avatarUrl}
+                  alt={displayName}
+                  width={32}
+                  height={32}
+                  className="squircle-shape object-cover"
+                />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-[12px] font-semibold text-gray-700">
+                <div className="w-full h-full squircle-shape bg-gray-200 flex items-center justify-center text-[12px] font-semibold text-gray-700">
                   {initials}
                 </div>
               )}
@@ -324,9 +330,15 @@ export default function Navbar() {
                       </div>
 
                     </div>
-                    <div className="w-10 h-10 rounded-full bg-[#EEF0F4] overflow-hidden flex items-center justify-center">
+                    <div className="w-10 h-10 squircle-surface bg-[#EEF0F4] flex items-center justify-center">
                       {avatarUrl ? (
-                        <Image src={avatarUrl} alt={displayName} width={40} height={40} className="rounded-full object-cover" />
+                        <Image
+                          src={avatarUrl}
+                          alt={displayName}
+                          width={40}
+                          height={40}
+                          className="squircle-shape object-cover"
+                        />
                       ) : (
                         <span className="text-[13px] font-semibold text-gray-700">{initials}</span>
                       )}
@@ -412,17 +424,17 @@ export default function Navbar() {
 
           <div className="flex items-center gap-3">
             {loading ? (
-              <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse" />
+              <div className="w-8 h-8 squircle-surface bg-gray-200 animate-pulse" />
             ) : avatarUrl ? (
               <Image
                 src={avatarUrl}
                 alt={userName}
                 width={32}
                 height={32}
-                className="rounded-full object-cover"
+                className="squircle-shape object-cover"
               />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center font-medium text-gray-700">
+              <div className="w-8 h-8 squircle-surface bg-gray-200 flex items-center justify-center font-medium text-gray-700">
                 {userName.charAt(0)}
               </div>
             )}

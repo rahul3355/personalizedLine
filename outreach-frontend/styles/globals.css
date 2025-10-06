@@ -22,6 +22,9 @@ body {
   --accent: #4f55f1;
   --hover: #e2e2e7;
   --icon: #717173;
+  --squircle-path: path(
+    "M50% 0% C 68% 0% 78% 0% 84% 3% C 90% 6% 94% 10% 97% 16% C 100% 22% 100% 32% 100% 50% C 100% 68% 100% 78% 97% 84% C 94% 90% 90% 94% 84% 97% C 78% 100% 68% 100% 50% 100% C 32% 100% 22% 100% 16% 97% C 10% 94% 6% 90% 3% 84% C 0% 78% 0% 68% 0% 50% C 0% 32% 0% 22% 3% 16% C 6% 10% 10% 6% 16% 3% C 22% 0% 32% 0% 50% 0% Z"
+  );
 }
 
 /* remove default click/tap highlight + focus rings + active flash */
@@ -53,4 +56,17 @@ a:active { background: transparent !important; }
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+.squircle-surface {
+  border-radius: 28%;
+  overflow: hidden;
+  clip-path: var(--squircle-path);
+  -webkit-clip-path: var(--squircle-path);
+}
+
+.squircle-shape {
+  border-radius: 28%;
+  clip-path: var(--squircle-path);
+  -webkit-clip-path: var(--squircle-path);
 }
