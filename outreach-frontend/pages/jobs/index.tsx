@@ -610,12 +610,16 @@ function JobsPage() {
 
   return (
     <div className="min-h-screen bg-[#F7F7F7] bg-none">
-      <div ref={layoutRef} className="relative w-full px-8 sm:px-10 lg:px-12 pt-6 pb-16">
+      <div className="w-full px-4 sm:px-6 md:px-8 lg:px-10">
         <div
-          className={`transition-all duration-300 ${selectedJobId ? "md:pr-[344px] lg:pr-[422px]" : ""}`}
+          ref={layoutRef}
+          className="relative mx-auto w-full max-w-[960px] pt-6 pb-16"
         >
+          <div
+            className={`transition-all duration-300 ${selectedJobId ? "md:pr-[344px] lg:pr-[422px]" : ""}`}
+          >
 
-          <div className="space-y-10">
+            <div className="space-y-10">
 
             {groupedJobs.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded-[18px] border border-dashed border-[#D8DAE6] bg-white/70 px-6 py-12 text-center shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
@@ -742,11 +746,11 @@ function JobsPage() {
               </div>
             )}
           </div>
-        </div>
+          </div>
 
-        <AnimatePresence>
-          {selectedJobId && (
-            <>
+          <AnimatePresence>
+            {selectedJobId && (
+              <>
               {/* Mobile: full-screen overlay + slide-in */}
               <motion.div
                 key="drawer-mobile"
@@ -800,11 +804,12 @@ function JobsPage() {
                 </div>
               </motion.div>
             </>
-          )}
-        </AnimatePresence>
+            )}
+          </AnimatePresence>
 
+        </div>
       </div>
-    </div >
+    </div>
   );
 }
 
