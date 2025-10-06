@@ -75,16 +75,27 @@ class DummyTable:
         self._payload = None
         self._filters = {}
         self._single = False
+        self._action = None
 
     def insert(self, payload):
+        self._action = "insert"
+        self._payload = payload
+        return self
+
+    def update(self, payload):
+        self._action = "update"
         self._payload = payload
         return self
 
     def select(self, _columns):
+        self._action = "select"
         return self
 
     def eq(self, column, value):
         self._filters[column] = value
+        return self
+
+    def limit(self, _value):
         return self
 
     def single(self):
@@ -92,7 +103,7 @@ class DummyTable:
         return self
 
     def execute(self):
-        if self.name == "jobs" and self._payload is not None:
+        if self.name == "jobs" and self._action == "insert":
             job = dict(self._payload)
             job.setdefault("id", "job-123")
             self.supabase.inserted_jobs.append(job)
@@ -101,9 +112,27 @@ class DummyTable:
         if self.name == "profiles":
             user_id = self._filters.get("id")
             profile = self.supabase.profiles.get(user_id)
-            if profile is None:
-                return SimpleNamespace(data=None)
-            return SimpleNamespace(data=dict(profile))
+
+            if self._action == "select":
+                if profile is None:
+                    return SimpleNamespace(data=None if self._single else [])
+                if self._single:
+                    return SimpleNamespace(data=dict(profile))
+                return SimpleNamespace(data=[dict(profile)])
+
+            if self._action == "update":
+                if profile is None:
+                    return SimpleNamespace(data=[])
+                expected = self._filters.get("credits_remaining")
+                if expected is not None and profile.get("credits_remaining") != expected:
+                    return SimpleNamespace(data=[])
+                profile.update(self._payload)
+                return SimpleNamespace(data=[dict(profile)])
+
+        if self.name == "ledger" and self._action == "insert":
+            entry = dict(self._payload)
+            self.supabase.ledger_entries.append(entry)
+            return SimpleNamespace(data=[entry])
 
         return SimpleNamespace(data=[])
 
@@ -113,9 +142,34 @@ class DummySupabase:
         self.storage = DummyStorage()
         self.inserted_jobs = []
         self.profiles = {"user-123": {"credits_remaining": 10}}
+        self.ledger_entries = []
 
     def table(self, name):
         return DummyTable(name, self)
+
+
+class DummyRedisLock:
+    def __init__(self):
+        self._locked = False
+
+    def acquire(self, blocking=True):
+        if self._locked:
+            return False
+        self._locked = True
+        return True
+
+    def release(self):
+        self._locked = False
+
+
+class DummyRedis:
+    def __init__(self):
+        self._locks = {}
+
+    def lock(self, name, timeout=None, blocking_timeout=None):
+        if name not in self._locks:
+            self._locks[name] = DummyRedisLock()
+        return self._locks[name]
 
 
 class DummyStream:
@@ -159,6 +213,7 @@ def patch_streaming(monkeypatch, xlsx_bytes):
     )
     supabase = DummySupabase()
     monkeypatch.setattr(main_module, "get_supabase", lambda: supabase)
+    monkeypatch.setattr(main_module, "redis_conn", DummyRedis())
     return supabase
 
 
@@ -194,6 +249,12 @@ def test_create_job_with_xlsx_counts_rows(client, patch_streaming):
     assert supabase.inserted_jobs
     assert supabase.inserted_jobs[0]["rows"] == 2
     assert supabase.inserted_jobs[0]["filename"] == "data.xlsx"
+    assert supabase.profiles["user-123"]["credits_remaining"] == 8
+    assert supabase.inserted_jobs[0]["meta_json"]["credits_deducted"] is True
+    assert supabase.inserted_jobs[0]["meta_json"]["credit_cost"] == 2
+    assert len(supabase.ledger_entries) == 1
+    assert supabase.ledger_entries[0]["change"] == -2
+    assert supabase.ledger_entries[0]["reason"].startswith("job deduction:")
 
 
 def test_create_job_rejects_without_credits(client, patch_streaming):
