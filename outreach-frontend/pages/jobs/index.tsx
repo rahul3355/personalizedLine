@@ -224,6 +224,7 @@ function JobsPage() {
   const [drawerTop, setDrawerTop] = useState<number>(96);
   const [drawerHeight, setDrawerHeight] = useState<number | null>(null);
 
+
   useEffect(() => {
     jobsRef.current = jobs;
   }, [jobs]);
@@ -609,7 +610,7 @@ function JobsPage() {
 
   return (
     <div className="min-h-screen bg-[#F7F7F7] bg-none">
-      <div ref={layoutRef} className="relative w-full px-6 pb-16 pt-12 sm:px-8 lg:px-10">
+      <div ref={layoutRef} className="relative w-full px-8 sm:px-10 lg:px-12 pt-6 pb-16">
         <div
           className={`transition-all duration-300 ${selectedJobId ? "md:pr-[344px] lg:pr-[422px]" : ""}`}
         >
@@ -626,96 +627,104 @@ function JobsPage() {
               </div>
             ) : (
               <div className="space-y-12">
-                {groupedJobs.map((group, groupIdx) => (
-                  <section key={group.key} className="space-y-3">
 
 
-                    <div className="space-y-3">
-                      <div
-                        className="px-1 text-[15px] font-semibold tracking-[-0.01em] text-[#0E0F12]"
-                        style={{ fontFamily: '"Aeonik Pro","Inter",sans-serif' }}
-                      >
-                        {group.label}
-                      </div>
+                {groupedJobs.map((group, groupIdx) => {
+                  const showHeader = group.label !== "Today";
+                  return (
+                    <section
+                      key={group.key}
+                      className={`space-y-3 ${groupIdx === 0 ? "mt-0" : ""}`}
+                    >
 
-                      <ul
-                        ref={groupIdx === 0 ? firstGroupRef : undefined}
-                        className="rounded-[18px] bg-white ring-1 ring-[#E4E5F0] shadow-[0_12px_30px_rgba(15,23,42,0.08)]"
-                      >
-                        {group.jobs.map((job, idx) => {
-                          const isActive = job.id === selectedJobId;
-                          const isFirst = idx === 0;
-                          const isLast = idx === group.jobs.length - 1;
-                          const radius =
-                            isFirst && isLast
-                              ? "rounded-[18px]"
-                              : isFirst
-                                ? "rounded-t-[18px]"
-                                : isLast
-                                  ? "rounded-b-[18px]"
-                                  : "";
+                      <div className={showHeader ? "space-y-3" : ""}>
+                        {showHeader && (
+                          <div
+                            className="px-1 text-[15px] font-semibold tracking-[-0.01em] text-[#0E0F12]"
+                            style={{ fontFamily: '"Aeonik Pro","Inter",sans-serif' }}
+                          >
+                            {group.label}
+                          </div>
+                        )}
 
-                          return (
-                            <li key={job.id} className={idx > 0 ? "border-t border-[#EFF0F6]" : ""}>
-                              <button
-                                type="button"
-                                onClick={() => openJob(job.id)}
-                                data-active={isActive}
-                                className={[
-                                  "group relative z-0 flex w-full items-center gap-5 px-6 py-[14px] text-left transition-colors",
-                                  "hover:bg-white/70",
-                                  radius,
-                                  // violet outline that follows the row’s rounded corners
-                                  "data-[active=true]:ring-1 data-[active=true]:ring-[#4F55F1] data-[active=true]:bg-white data-[active=true]:z-[1]"
-                                ].join(" ")}
-                              >
-                                <StatusIcon status={job.status} />
+                        <ul
+                          ref={groupIdx === 0 ? firstGroupRef : undefined}
+                          className="w-full max-w-none rounded-[18px] bg-white ring-1 ring-[#E4E5F0] shadow-[0_12px_30px_rgba(15,23,42,0.08)]"
+                        >
 
-                                <div className="min-w-0 flex-1 space-y-2">
-                                  <div className="flex items-center gap-3">
-                                    <p className="flex-1 truncate text-[15px] font-semibold text-[#101225]">
-                                      {job.filename}
-                                    </p>
-                                    <span
-                                      className="text-[12px] font-medium tracking-[-0.01em] text-[#0E0F12]"
-                                      style={{ fontFamily: '"Aeonik Pro","Inter",sans-serif' }}
-                                    >
-                                      {formatTime(new Date(job.created_at))}
-                                    </span>
-                                  </div>
+                          {group.jobs.map((job, idx) => {
+                            const isActive = job.id === selectedJobId;
+                            const isFirst = idx === 0;
+                            const isLast = idx === group.jobs.length - 1;
+                            const radius =
+                              isFirst && isLast
+                                ? "rounded-[18px]"
+                                : isFirst
+                                  ? "rounded-t-[18px]"
+                                  : isLast
+                                    ? "rounded-b-[18px]"
+                                    : "";
 
-                                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#8B8DA1]">
-                                    <StatusPill status={job.status} progress={job.progress} />
-                                    <span>{job.rows.toLocaleString()} rows</span>
-                                    {job.status === "failed" && job.error ? (
-                                      <span className="text-[#DC2F2F]">{job.error}</span>
-                                    ) : null}
-                                  </div>
+                            return (
+                              <li key={job.id} className={idx > 0 ? "border-t border-[#EFF0F6]" : ""}>
+                                <button
+                                  type="button"
+                                  onClick={() => openJob(job.id)}
+                                  data-active={isActive}
+                                  className={[
+                                    "group relative z-0 flex w-full items-center gap-5 px-6 py-[14px] text-left transition-colors",
+                                    "hover:bg-white/70",
+                                    radius,
+                                    "data-[active=true]:ring-1 data-[active=true]:ring-[#4F55F1] data-[active=true]:bg-white data-[active=true]:z-[1]"
+                                  ].join(" ")}
+                                >
+                                  <StatusIcon status={job.status} />
 
-                                  {job.message && job.status !== "failed" && (
-                                    <p className="truncate text-xs text-[#8B8DA1]">{job.message}</p>
-                                  )}
-
-                                  {(job.status === "pending" || job.status === "in_progress") && (
-                                    <div className="pt-1">
-                                      <ProgressBar value={job.progress ?? 0} />
+                                  <div className="min-w-0 flex-1 space-y-2">
+                                    <div className="flex items-center gap-3">
+                                      <p className="flex-1 truncate text-[15px] font-semibold text-[#101225]">
+                                        {job.filename}
+                                      </p>
+                                      <span
+                                        className="text-[12px] font-medium tracking-[-0.01em] text-[#0E0F12]"
+                                        style={{ fontFamily: '"Aeonik Pro","Inter",sans-serif' }}
+                                      >
+                                        {formatTime(new Date(job.created_at))}
+                                      </span>
                                     </div>
-                                  )}
-                                </div>
 
-                                <ArrowRight
-                                  className={`h-5 w-5 flex-shrink-0 transition-colors ${isActive ? "text-[#4F55F1]" : "text-[#C1C3D6] group-hover:text-[#4F55F1]"
-                                    }`}
-                                />
-                              </button>
-                            </li>
-                          );
-                        })}
-                      </ul>
+                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#8B8DA1]">
+                                      <StatusPill status={job.status} progress={job.progress} />
+                                      <span>{job.rows.toLocaleString()} rows</span>
+                                      {job.status === "failed" && job.error ? (
+                                        <span className="text-[#DC2F2F]">{job.error}</span>
+                                      ) : null}
+                                    </div>
 
-                    </div>
-                  </section>
-                ))}
+                                    {(job.status === "pending" || job.status === "in_progress") && job.message ? (
+                                      <p className="truncate text-xs text-[#8B8DA1]">{job.message}</p>
+                                    ) : null}
+
+                                    {(job.status === "pending" || job.status === "in_progress") && (
+                                      <div className="pt-1">
+                                        <ProgressBar value={job.progress ?? 0} />
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <ArrowRight
+                                    className={`h-5 w-5 flex-shrink-0 transition-colors ${isActive ? "text-[#4F55F1]" : "text-[#C1C3D6] group-hover:text-[#4F55F1]"
+                                      }`}
+                                  />
+                                </button>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    </section>
+                  );
+                })}
 
                 {hasMore && (
                   <div className="flex justify-center pt-2">
