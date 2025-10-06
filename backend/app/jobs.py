@@ -356,7 +356,7 @@ def _deduct_job_credits(
         print(
             f"[Credits] Job {job_id} already has credits deducted; skipping new deduction"
         )
-        return False
+        return True
 
     deducted = False
     previous_balance = 0

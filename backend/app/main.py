@@ -625,38 +625,6 @@ async def create_job(
             except OSError:
                 pass
 
-        profile_res = (
-            supabase.table("profiles")
-            .select("credits_remaining")
-            .eq("id", current_user.user_id)
-            .single()
-            .execute()
-        )
-        profile_data = getattr(profile_res, "data", None)
-        if isinstance(profile_data, list):
-            profile_data = profile_data[0] if profile_data else None
-        credits_remaining = 0
-        if isinstance(profile_data, dict):
-            try:
-                credits_remaining = int(profile_data.get("credits_remaining") or 0)
-            except (TypeError, ValueError):
-                credits_remaining = 0
-
-        if credits_remaining < row_count:
-            missing = row_count - credits_remaining
-            print(
-                f"[Credits] User {current_user.user_id} lacks {missing} credits for file {file_path}"
-            )
-            raise HTTPException(
-                status_code=402,
-                detail={
-                    "error": "insufficient_credits",
-                    "row_count": row_count,
-                    "credits_remaining": credits_remaining,
-                    "missing_credits": missing,
-                },
-            )
-
         meta = {
             "file_path": file_path,
             "company_col": req.company_col,
@@ -667,27 +635,129 @@ async def create_job(
             "service": req.service,
         }
 
-        # --- Step 1: insert into Supabase jobs table ---
-        result = (
-            supabase.table("jobs")
-            .insert(
-                {
-                    "user_id": current_user.user_id,
-                    "status": "queued",
-                    "filename": os.path.basename(file_path),
-                    "rows": row_count,
-                    "meta_json": meta,
-                }
+        lock_name = f"credits_lock:{current_user.user_id}"
+        lock = redis_conn.lock(lock_name, timeout=30, blocking_timeout=10)
+        acquired = False
+        try:
+            acquired = lock.acquire(blocking=True)
+            if not acquired:
+                raise HTTPException(
+                    status_code=503, detail="Unable to reserve credits; please retry"
+                )
+
+            profile_res = (
+                supabase.table("profiles")
+                .select("credits_remaining")
+                .eq("id", current_user.user_id)
+                .single()
+                .execute()
             )
-            .execute()
-        )
+            profile_data = getattr(profile_res, "data", None)
+            if isinstance(profile_data, list):
+                profile_data = profile_data[0] if profile_data else None
+            credits_remaining = 0
+            if isinstance(profile_data, dict):
+                try:
+                    credits_remaining = int(profile_data.get("credits_remaining") or 0)
+                except (TypeError, ValueError):
+                    credits_remaining = 0
 
-        if not result.data:
-            raise HTTPException(status_code=500, detail="Failed to insert job")
+            if credits_remaining < row_count:
+                missing = row_count - credits_remaining
+                print(
+                    f"[Credits] User {current_user.user_id} lacks {missing} credits for file {file_path}"
+                )
+                raise HTTPException(
+                    status_code=402,
+                    detail={
+                        "error": "insufficient_credits",
+                        "row_count": row_count,
+                        "credits_remaining": credits_remaining,
+                        "missing_credits": missing,
+                    },
+                )
 
-        job = result.data[0]
+            # --- Step 1: insert into Supabase jobs table ---
+            result = (
+                supabase.table("jobs")
+                .insert(
+                    {
+                        "user_id": current_user.user_id,
+                        "status": "queued",
+                        "filename": os.path.basename(file_path),
+                        "rows": row_count,
+                        "meta_json": meta,
+                    }
+                )
+                .execute()
+            )
 
-        return {"id": job["id"], "status": job["status"], "rows": row_count}
+            if not result.data:
+                raise HTTPException(status_code=500, detail="Failed to insert job")
+
+            job = result.data[0]
+
+            reserved = jobs._deduct_job_credits(
+                job["id"],
+                current_user.user_id,
+                row_count,
+                meta,
+                supabase_client=supabase,
+            )
+
+            if not reserved:
+                job_state = (
+                    supabase.table("jobs")
+                    .select("status,error")
+                    .eq("id", job["id"])
+                    .single()
+                    .execute()
+                )
+                job_error = (job_state.data or {}).get("error") if job_state else None
+
+                refreshed_profile = (
+                    supabase.table("profiles")
+                    .select("credits_remaining")
+                    .eq("id", current_user.user_id)
+                    .single()
+                    .execute()
+                )
+                refreshed_data = getattr(refreshed_profile, "data", None)
+                if isinstance(refreshed_data, list):
+                    refreshed_data = refreshed_data[0] if refreshed_data else None
+                refreshed_credits = 0
+                if isinstance(refreshed_data, dict):
+                    try:
+                        refreshed_credits = int(
+                            refreshed_data.get("credits_remaining") or 0
+                        )
+                    except (TypeError, ValueError):
+                        refreshed_credits = 0
+
+                missing = max(0, row_count - refreshed_credits)
+
+                if job_error == "Not enough credits" or missing > 0:
+                    raise HTTPException(
+                        status_code=402,
+                        detail={
+                            "error": "insufficient_credits",
+                            "row_count": row_count,
+                            "credits_remaining": refreshed_credits,
+                            "missing_credits": missing,
+                        },
+                    )
+
+                raise HTTPException(status_code=500, detail="Failed to reserve credits")
+
+            job["meta_json"] = meta
+
+            return {"id": job["id"], "status": job["status"], "rows": row_count}
+        finally:
+            if lock is not None and acquired:
+                try:
+                    lock.release()
+                except redis.exceptions.LockError:
+                    pass
 
     except HTTPException:
         raise

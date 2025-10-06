@@ -250,3 +250,25 @@ def test_process_job_only_one_worker_claims(monkeypatch):
     assert fake_supabase.profiles[fake_supabase.user_id]["credits_remaining"] == 9
     assert fake_supabase.jobs[fake_supabase.job_id]["status"] == "in_progress"
     assert fake_supabase.jobs[fake_supabase.job_id]["meta_json"].get("credits_deducted") is True
+
+
+def test_deduct_job_credits_noop_when_already_deducted():
+    fake_supabase = FakeSupabase()
+    job_id = fake_supabase.job_id
+    meta = {
+        "credits_deducted": True,
+        "credit_cost": 2,
+    }
+
+    result = jobs._deduct_job_credits(
+        job_id,
+        fake_supabase.user_id,
+        2,
+        meta,
+        supabase_client=fake_supabase,
+    )
+
+    assert result is True
+    assert fake_supabase.ledger_entries == []
+    assert fake_supabase.profiles[fake_supabase.user_id]["credits_remaining"] == 10
+    assert meta["credits_deducted"] is True
