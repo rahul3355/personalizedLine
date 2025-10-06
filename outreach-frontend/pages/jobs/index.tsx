@@ -942,6 +942,7 @@ const JobsPageWithLayout = JobsPage as typeof JobsPage & {
 };
 
 JobsPageWithLayout.disableWhiteCard = true;
+JobsPageWithLayout.backgroundClassName = "bg-[#F7F7F7]";
 JobsPageWithLayout.backgroundClassName =
   "bg-gradient-to-br from-[#F7F8FC] via-[#EEF1FA] to-[#E6E9F5]";
 
