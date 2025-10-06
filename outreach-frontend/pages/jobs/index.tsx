@@ -577,7 +577,7 @@ function JobsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F7F8FC] via-[#EEF1FA] to-[#E6E9F5]">
+    <div className="min-h-screen bg-[#F7F7F7] bg-none">
       <div className="relative mx-auto w-full max-w-6xl px-4 pb-16 pt-12 md:px-8">
         <div
           className={`transition-all duration-300 ${
