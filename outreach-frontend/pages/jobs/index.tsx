@@ -3,12 +3,12 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
   type ReactNode,
 } from "react";
-import { useRouter } from "next/router";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
@@ -17,11 +17,14 @@ import {
   Clock3,
   Download,
   FileText,
+  X,
   XCircle,
 } from "lucide-react";
+
 import InlineLoader from "../../components/InlineLoader";
 import { API_URL } from "../../lib/api";
 import { useAuth } from "../../lib/AuthProvider";
+import { useRouter } from "next/router";
 
 type JobStatus = "pending" | "in_progress" | "succeeded" | "failed";
 
@@ -197,6 +200,7 @@ function ProgressBar({ value }: { value: number }) {
 function JobsPage() {
   const router = useRouter();
   const { session } = useAuth();
+  
 
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -584,29 +588,9 @@ function JobsPage() {
             }`}
         >
           <div className="space-y-10">
-            {monthTabs.length > 0 && (
-              <div className="flex gap-2 overflow-x-auto pb-1 text-xs font-semibold uppercase tracking-[0.2em] text-[#8B8DA1]">
-                {monthTabs.map((tab) => {
-                  const isActive = tab.value === activeMonth;
-                  return (
-                    <button
-                      key={tab.value}
-                      type="button"
-                      onClick={() => setActiveMonth(tab.value)}
-                      className={`whitespace-nowrap rounded-full px-4 py-2 transition-colors ${isActive
-                        ? "bg-white text-[#101225] shadow-[0_10px_20px_rgba(44,55,130,0.15)]"
-                        : "bg-white/40 text-[#8B8DA1] hover:bg-white/70"
-                        }`}
-                    >
-                      {tab.label}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
 
             {groupedJobs.length === 0 ? (
-              <div className="flex flex-col items-center justify-center rounded-[28px] border border-dashed border-[#D8DAE6] bg-white/70 px-6 py-12 text-center shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
+              <div className="flex flex-col items-center justify-center rounded-[18px] border border-dashed border-[#D8DAE6] bg-white/70 px-6 py-12 text-center shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
                 <FileText className="h-10 w-10 text-[#8B8DA1]" />
                 <h2 className="mt-4 text-lg font-semibold text-[#101225]">No jobs yet</h2>
                 <p className="mt-2 max-w-xs text-sm text-[#8B8DA1]">
@@ -616,7 +600,7 @@ function JobsPage() {
             ) : (
               <div className="space-y-12">
                 {groupedJobs.map((group) => (
-                  <section key={group.key} className="space-y-5">
+                  <section key={group.key} className="space-y-3">
 
 
                     <div className="space-y-3">
@@ -627,17 +611,33 @@ function JobsPage() {
                         {group.label}
                       </div>
 
-                      <ul className="rounded-[28px] bg-white/90 ring-1 ring-[#E4E5F0] shadow-[0_12px_30px_rgba(15,23,42,0.08)] overflow-hidden">
+                      <ul className="rounded-[18px] bg-white ring-1 ring-[#E4E5F0] shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
                         {group.jobs.map((job, idx) => {
                           const isActive = job.id === selectedJobId;
+                          const isFirst = idx === 0;
+                          const isLast = idx === group.jobs.length - 1;
+                          const radius =
+                            isFirst && isLast
+                              ? "rounded-[18px]"
+                              : isFirst
+                                ? "rounded-t-[18px]"
+                                : isLast
+                                  ? "rounded-b-[18px]"
+                                  : "";
+
                           return (
                             <li key={job.id} className={idx > 0 ? "border-t border-[#EFF0F6]" : ""}>
                               <button
                                 type="button"
                                 onClick={() => openJob(job.id)}
                                 data-active={isActive}
-                                className={`group relative flex w-full items-center gap-5 px-6 py-[14px] text-left transition-colors
-            hover:bg-white/70 data-[active=true]:bg-white data-[active=true]:outline data-[active=true]:outline-1 data-[active=true]:outline-[#4F55F1] data-[active=true]:outline-offset-[-1px]`}
+                                className={[
+                                  "group relative z-0 flex w-full items-center gap-5 px-6 py-[14px] text-left transition-colors",
+                                  "hover:bg-white/70",
+                                  radius,
+                                  // violet outline that follows the row’s rounded corners
+                                  "data-[active=true]:ring-1 data-[active=true]:ring-[#4F55F1] data-[active=true]:bg-white data-[active=true]:z-[1]"
+                                ].join(" ")}
                               >
                                 <StatusIcon status={job.status} />
 
@@ -682,6 +682,7 @@ function JobsPage() {
                           );
                         })}
                       </ul>
+
                     </div>
                   </section>
                 ))}
@@ -705,62 +706,65 @@ function JobsPage() {
         </div>
 
         <AnimatePresence>
-          {selectedJobId && (
-            <>
-              <motion.div
-                key="drawer-mobile"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm md:hidden"
-                onClick={closeDrawer}
-              >
-                <motion.div
-                  initial={{ x: "100%" }}
-                  animate={{ x: 0 }}
-                  exit={{ x: "100%" }}
-                  transition={{ type: "spring", stiffness: 260, damping: 30 }}
-                  className="absolute inset-y-0 right-0 w-full max-w-md bg-white"
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  <DetailPanel
-                    job={selectedJob}
-                    isLoading={detailLoading}
-                    error={detailError}
-                    onClose={closeDrawer}
-                    onRetry={handleRetry}
-                    onDownload={handleDownload}
-                    downloading={downloading}
-                    isMobile
-                  />
-                </motion.div>
-              </motion.div>
+  {selectedJobId && (
+    <>
+      {/* Mobile: full-screen overlay + slide-in */}
+      <motion.div
+        key="drawer-mobile"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm md:hidden"
+        onClick={closeDrawer}
+      >
+        <motion.div
+          initial={{ x: "100%" }}
+          animate={{ x: 0 }}
+          exit={{ x: "100%" }}
+          transition={{ type: "spring", stiffness: 260, damping: 30 }}
+          className="absolute inset-y-0 right-0 w-full max-w-md bg-white"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <DetailPanel
+            job={selectedJob}
+            isLoading={detailLoading}
+            error={detailError}
+            onClose={closeDrawer}
+            onRetry={handleRetry}
+            onDownload={handleDownload}
+            downloading={downloading}
+            isMobile
+          />
+        </motion.div>
+      </motion.div>
 
-              <motion.div
-                key="drawer-desktop"
-                initial={{ opacity: 0, x: 60 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 60 }}
-                transition={{ type: "spring", stiffness: 260, damping: 30 }}
-                className="pointer-events-none absolute inset-y-0 right-0 hidden w-full max-w-xs md:flex md:max-w-sm lg:max-w-md"
-              >
-                <div className="pointer-events-auto h-full">
-                  <DetailPanel
-                    job={selectedJob}
-                    isLoading={detailLoading && Boolean(selectedJobId)}
-                    error={detailError}
-                    onClose={closeDrawer}
-                    onRetry={handleRetry}
-                    onDownload={handleDownload}
-                    downloading={downloading}
-                  />
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
-      </div>
+      {/* Desktop: floating card, NOT full-height */}
+      <motion.div
+        key="drawer-desktop"
+        initial={{ opacity: 0, x: 60 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: 60 }}
+        transition={{ type: "spring", stiffness: 260, damping: 30 }}
+        className="pointer-events-none absolute right-0 top-24 hidden w-full max-w-xs md:flex md:max-w-sm lg:max-w-md"
+      >
+        <div className="pointer-events-auto">
+          <DetailPanel
+            job={selectedJob}
+            isLoading={detailLoading && Boolean(selectedJobId)}
+            error={detailError}
+            onClose={closeDrawer}
+            onRetry={handleRetry}
+            onDownload={handleDownload}
+            downloading={downloading}
+          />
+        </div>
+      </motion.div>
+    </>
+  )}
+</AnimatePresence>
+
     </div>
+    </div >
   );
 }
 
@@ -774,7 +778,7 @@ function DetailPanel({
   downloading,
   isMobile = false,
 }: DetailPanelProps) {
-  const radiusClass = isMobile ? "rounded-l-3xl" : "rounded-3xl";
+  const radiusClass = isMobile ? "rounded-l-3xl" : "rounded-[18px]";
   const config = job ? getStatusVisuals(job.status) : null;
   const CreatedDate = job ? new Date(job.created_at) : null;
   const FinishedDate = job?.finished_at ? new Date(job.finished_at) : null;
@@ -820,7 +824,7 @@ function DetailPanel({
           <div className="space-y-6">
             <div className="flex items-start gap-4">
               {config && (
-                <div className={`flex h-14 w-14 items-center justify-center rounded-3xl ${config.iconBg}`}>
+                <div className={`flex h-14 w-14 items-center justify-center rounded-[18px] ${config.iconBg}`}>
                   <config.icon className="h-7 w-7" style={{ color: config.iconColor }} />
                 </div>
               )}
@@ -839,7 +843,7 @@ function DetailPanel({
               </div>
             </div>
 
-            <div className="space-y-3 rounded-3xl bg-[#F4F4F8] p-5">
+            <div className="space-y-3 rounded-[18px] bg-[#F4F4F8] p-5">
               <DetailRow
                 icon={<Calendar className="h-5 w-5 text-[#717173]" />}
                 label="Created"
@@ -860,7 +864,7 @@ function DetailPanel({
             </div>
 
             {(job.status === "pending" || job.status === "in_progress") && (
-              <div className="rounded-3xl border border-[#E2E2E7] bg-white/80 p-5">
+              <div className="rounded-[18px] border border-[#E2E2E7] bg-white/80 p-5">
                 <h4 className="text-sm font-semibold text-gray-900">Generating your file</h4>
                 <p className="mt-1 text-xs text-[#717173]">
                   {job.message || "We’re preparing your personalized lines."}
@@ -875,7 +879,7 @@ function DetailPanel({
             )}
 
             {job.status === "failed" && (
-              <div className="rounded-3xl border border-red-200 bg-red-50/80 p-5 text-sm text-[#B42318]">
+              <div className="rounded-[18px] border border-red-200 bg-red-50/80 p-5 text-sm text-[#B42318]">
                 <h4 className="text-sm font-semibold text-[#B42318]">Job failed</h4>
                 <p className="mt-2 text-xs text-[#B42318]">
                   {job.error || "Unknown error"}
@@ -884,7 +888,7 @@ function DetailPanel({
             )}
 
             {job.status === "succeeded" && (
-              <div className="rounded-3xl border border-[#E2E2E7] bg-white/90 p-5">
+              <div className="rounded-[18px] border border-[#E2E2E7] bg-white/90 p-5">
                 <h4 className="text-sm font-semibold text-gray-900">Ready to download</h4>
                 <p className="mt-1 text-xs text-[#717173]">
                   Your personalized outreach file is ready to export.
