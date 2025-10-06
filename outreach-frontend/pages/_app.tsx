@@ -47,28 +47,35 @@ function Layout({ Component, pageProps }: LayoutProps) {
 
 
   return (
-    <div className="min-h-screen flex bg-[#F7F7F7]">
+    <div className="flex min-h-screen bg-[#F7F7F7]">
       {session && <Navbar />}
       <main
-        className={`flex-1 flex flex-col transition-all duration-200 ${session ? "mt-16 px-0 pb-10" : ""
-          }`}
+        className={`flex-1 transition-all duration-200 ${
+          session ? "flex flex-col px-4 py-8 sm:px-10 lg:ml-[108px] lg:px-16" : "flex"
+        }`}
       >
-<div className="flex min-h-0 flex-1 flex-col overflow-hidden 
-                rounded-[32px] bg-white shadow-sm 
-                ml-0 lg:ml-[108px] mr-4">
-          {pageLoading ? (
-            <div className="flex flex-1 items-center justify-center px-6 py-8 sm:px-8 lg:px-10">
-              <InlineLoader />
+        {session ? (
+          <div className="mx-auto flex min-h-full w-full max-w-5xl flex-1 flex-col">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[32px] border border-[#E2E2E7] bg-white shadow-[0_32px_80px_rgba(15,23,42,0.08)]">
+              {pageLoading ? (
+                <div className="flex flex-1 items-center justify-center px-8 py-10">
+                  <InlineLoader />
+                </div>
+              ) : (
+                <div className="flex-1 px-6 py-8 sm:px-10 sm:py-10 lg:px-12">
+                  <Component {...pageProps} />
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="flex-1 px-6 py-8 sm:px-8 lg:px-10">
-              <Component {...pageProps} />
-            </div>
-          )}
-        </div>
+          </div>
+        ) : pageLoading ? (
+          <div className="flex flex-1 items-center justify-center">
+            <InlineLoader />
+          </div>
+        ) : (
+          <Component {...pageProps} />
+        )}
       </main>
-
-
     </div>
   );
 
