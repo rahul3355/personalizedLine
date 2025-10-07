@@ -42,6 +42,10 @@ function Layout({ Component, pageProps }: LayoutProps) {
       }
 
       setPageLoading(true);
+    const handleStart = (_url: string, { shallow } = { shallow: false }) => {
+      if (!shallow) {
+        setPageLoading(true);
+      }
     };
     const handleComplete = () => setPageLoading(false);
 
