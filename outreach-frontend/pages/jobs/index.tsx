@@ -649,7 +649,7 @@ function JobsPage() {
 
                         <ul
                           ref={groupIdx === 0 ? firstGroupRef : undefined}
-                          className="w-full max-w-none rounded-[18px] bg-white ring-1 ring-[#E4E5F0] shadow-[0_12px_30px_rgba(15,23,42,0.08)]"
+                          className="w-full max-w-none overflow-hidden rounded-[18px] bg-white shadow-none"
                         >
 
                           {group.jobs.map((job, idx) => {
