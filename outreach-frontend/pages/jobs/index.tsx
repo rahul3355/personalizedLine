@@ -583,10 +583,9 @@ function JobsPage() {
 
     if (historyHasDrawer.current) {
       historyHasDrawer.current = false;
-      router.back();
-    } else {
-      router.replace({ pathname: "/jobs", query }, undefined, { shallow: true });
+
     }
+    router.replace({ pathname: "/jobs", query }, undefined, { shallow: true });
   }, [router]);
 
   const handleRetry = useCallback(() => {
