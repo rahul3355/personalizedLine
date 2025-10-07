@@ -11,6 +11,9 @@ node_modules/
 venv/
 .env
 
+
+/backend/app/python_generation_to_test_new_features/
+
 # Ignore Python caches
 __pycache__/
 *.pyc
