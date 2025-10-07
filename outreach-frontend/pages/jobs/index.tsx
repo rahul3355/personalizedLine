@@ -614,9 +614,14 @@ function JobsPage() {
         ref={layoutRef}
         className="relative w-full px-4 sm:px-6 md:px-8 pt-6 pb-16"
       >
+      <div className="w-full px-4 sm:px-6 md:px-8 lg:px-10">
         <div
-          className={`transition-all duration-300 ${selectedJobId ? "md:pr-[344px] lg:pr-[422px]" : ""}`}
+          ref={layoutRef}
+          className="relative mx-auto w-full max-w-[960px] pt-6 pb-16"
         >
+          <div
+            className={`transition-all duration-300 ${selectedJobId ? "md:pr-[344px] lg:pr-[422px]" : ""}`}
+          >
 
             <div className="space-y-10">
 
