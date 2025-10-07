@@ -23,7 +23,11 @@ function Layout({ Component, pageProps }: LayoutProps) {
   const [pageLoading, setPageLoading] = useState(false);
 
   useEffect(() => {
-    const handleStart = () => setPageLoading(true);
+    const handleStart = (_url: string, { shallow } = { shallow: false }) => {
+      if (!shallow) {
+        setPageLoading(true);
+      }
+    };
     const handleComplete = () => setPageLoading(false);
 
     router.events.on("routeChangeStart", handleStart);
