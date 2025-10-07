@@ -32,6 +32,8 @@ function Layout({ Component, pageProps }: LayoutProps) {
       }
 
       if (url === router.asPath) {
+    const handleStart = (url: string, { shallow } = { shallow: false }) => {
+      if (shallow) {
         return;
       }
 
@@ -48,10 +50,22 @@ function Layout({ Component, pageProps }: LayoutProps) {
           }
         } catch {
           // If parsing fails, fall back to showing the loader.
+          const nextUrl = new URL(url, window.location.href);
+          const currentUrl = new URL(router.asPath, window.location.href);
+
+          if (nextUrl.pathname === currentUrl.pathname) {
+            return;
+          }
+        } catch {
+          // ignore malformed URLs and fall back to showing the loader
         }
       }
 
       setPageLoading(true);
+    const handleStart = (_url: string, { shallow } = { shallow: false }) => {
+      if (!shallow) {
+        setPageLoading(true);
+      }
     };
     const handleComplete = () => setPageLoading(false);
 
