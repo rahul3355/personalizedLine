@@ -23,7 +23,36 @@ function Layout({ Component, pageProps }: LayoutProps) {
   const [pageLoading, setPageLoading] = useState(false);
 
   useEffect(() => {
-    const handleStart = () => setPageLoading(true);
+    const handleStart: (url: string, options?: { shallow?: boolean }) => void = (
+      url,
+      options
+    ) => {
+      if (options?.shallow) {
+        return;
+      }
+
+      if (url === router.asPath) {
+        return;
+      }
+
+      if (typeof window !== "undefined") {
+        try {
+          const nextUrl = new URL(url, window.location.origin);
+          const currentUrl = new URL(router.asPath, window.location.origin);
+
+          if (
+            nextUrl.pathname === currentUrl.pathname ||
+            nextUrl.pathname === router.pathname
+          ) {
+            return;
+          }
+        } catch {
+          // If parsing fails, fall back to showing the loader.
+        }
+      }
+
+      setPageLoading(true);
+    };
     const handleComplete = () => setPageLoading(false);
 
     router.events.on("routeChangeStart", handleStart);
@@ -68,8 +97,9 @@ function Layout({ Component, pageProps }: LayoutProps) {
     <div className={`min-h-screen flex ${backgroundClassName}`}>
       {session && <Navbar />}
       <main
-        className={`flex-1 flex flex-col transition-all duration-200 ${session ? "mt-16 px-0 pb-10" : ""
-          }`}
+        className={`flex-1 flex flex-col transition-all duration-200 ${
+          session ? "mt-16 px-0 pb-10" : ""
+        }`}
       >
         <div
           className={`flex min-h-0 flex-1 flex-col ${

@@ -122,6 +122,13 @@ type StatusVisual = {
   pillColor: string;
 };
 
+function jobToDetail(job: Job): JobDetail {
+  return {
+    ...job,
+    result_path: null,
+  };
+}
+
 function getStatusVisuals(status: JobStatus): StatusVisual {
   switch (status) {
     case "succeeded":
@@ -535,16 +542,33 @@ function JobsPage() {
 
   const openJob = useCallback(
     (id: string) => {
-      if (!router.isReady || id === selectedJobId) return;
+      if (selectedJobIdRef.current === id) return;
+
+      const hadDrawerOpen = Boolean(selectedJobIdRef.current);
+
+      selectedJobIdRef.current = id;
+      setSelectedJobId(id);
+      setDetailError(null);
+      setDetailLoading(true);
+      setSelectedJob((prev) => {
+        if (prev?.id === id) {
+          return prev;
+        }
+        const preview = jobsRef.current.find((job) => job.id === id);
+        return preview ? jobToDetail(preview) : null;
+      });
+
+      if (!router.isReady) return;
+
       const query = { ...router.query, id };
-      if (selectedJobId) {
+      if (hadDrawerOpen) {
         router.replace({ pathname: "/jobs", query }, undefined, { shallow: true });
       } else {
         historyHasDrawer.current = true;
         router.push({ pathname: "/jobs", query }, undefined, { shallow: true });
       }
     },
-    [router, selectedJobId]
+    [router]
   );
 
   const closeDrawer = useCallback(() => {
@@ -553,6 +577,7 @@ function JobsPage() {
 
     setSelectedJob(null);
     setSelectedJobId(null);
+    selectedJobIdRef.current = null;
     setDetailError(null);
     setDetailLoading(false);
 
@@ -819,6 +844,7 @@ function DetailPanel({
   isMobile = false,
 }: DetailPanelProps) {
   const radiusClass = isMobile ? "rounded-l-3xl" : "rounded-[24px]";
+  const loadingBarRadius = isMobile ? "rounded-tl-3xl" : "rounded-t-[24px]";
   const config = job ? getStatusVisuals(job.status) : null;
   const CreatedDate = job ? new Date(job.created_at) : null;
   const FinishedDate = job?.finished_at ? new Date(job.finished_at) : null;
@@ -827,6 +853,19 @@ function DetailPanel({
     <div
       className={`relative flex min-h-full flex-col ${radiusClass} bg-[#FCFCFC] shadow-[0_12px_30px_rgba(0,0,0,0.08)]`}
     >
+      {isLoading ? (
+        <div
+          className={`pointer-events-none absolute left-0 right-0 top-0 h-1 overflow-hidden ${loadingBarRadius}`}
+        >
+          <motion.div
+            className="h-full w-1/2 bg-gradient-to-r from-[#4F55F1] via-[#8F94FF] to-[#4F55F1]"
+            initial={{ x: "-100%" }}
+            animate={{ x: "200%" }}
+            transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
+          />
+        </div>
+      ) : null}
+
       {/* Floating close button (like Revolut, sitting a bit above the content) */}
       <button
         type="button"
@@ -861,34 +900,40 @@ function DetailPanel({
       <div className="px-5 pb-4">
         <div className="rounded-2xl bg-[#F6F7F9] p-1">
           <div className="rounded-xl bg-white">
-            <InfoRow label="Status" value={config?.label ?? "—"} />
-            {typeof job?.rows === "number" && <InfoRow label="Rows" value={job.rows.toLocaleString()} />}
-            <InfoRow
-              label="Created"
-              value={CreatedDate ? `${getDayLabel(CreatedDate)} · ${formatTime(CreatedDate)}` : "—"}
-            />
-            <InfoRow
-              label="Finished"
-              value={FinishedDate ? `${getDayLabel(FinishedDate)} · ${formatTime(FinishedDate)}` : "—"}
-            />
-            <InfoRow label="Job ID" value={job?.id ?? "—"} mono />
+            {isLoading ? (
+              <DetailSkeleton />
+            ) : (
+              <>
+                <InfoRow label="Status" value={config?.label ?? "—"} />
+                {typeof job?.rows === "number" && <InfoRow label="Rows" value={job.rows.toLocaleString()} />}
+                <InfoRow
+                  label="Created"
+                  value={CreatedDate ? `${getDayLabel(CreatedDate)} · ${formatTime(CreatedDate)}` : "—"}
+                />
+                <InfoRow
+                  label="Finished"
+                  value={FinishedDate ? `${getDayLabel(FinishedDate)} · ${formatTime(FinishedDate)}` : "—"}
+                />
+                <InfoRow label="Job ID" value={job?.id ?? "—"} mono />
 
-            {/* Statement / Download like Revolut */}
-            {job?.status === "succeeded" && (
-              <InfoRow
-                label="Statement"
-                value={
-                  <button
-                    type="button"
-                    onClick={onDownload}
-                    disabled={downloading}
-                    className="inline-flex items-center gap-1 font-medium text-[#4F55F1] hover:underline disabled:opacity-60"
-                  >
-                    <Download className="h-4 w-4" />
-                    {downloading ? "Preparing…" : "Download"}
-                  </button>
-                }
-              />
+                {/* Statement / Download like Revolut */}
+                {job?.status === "succeeded" && (
+                  <InfoRow
+                    label="Statement"
+                    value={
+                      <button
+                        type="button"
+                        onClick={onDownload}
+                        disabled={downloading}
+                        className="inline-flex items-center gap-1 font-medium text-[#4F55F1] hover:underline disabled:opacity-60"
+                      >
+                        <Download className="h-4 w-4" />
+                        {downloading ? "Preparing…" : "Download"}
+                      </button>
+                    }
+                  />
+                )}
+              </>
             )}
           </div>
         </div>
@@ -950,6 +995,31 @@ function InfoRow({
       >
         {value}
       </div>
+    </div>
+  );
+}
+
+function SkeletonLine({ className }: { className?: string }) {
+  return <div className={`h-3 rounded-full bg-gray-200/80 ${className ?? ""}`} />;
+}
+
+function DetailSkeleton() {
+  const rows = [
+    { labelWidth: "w-16", valueWidth: "w-20" },
+    { labelWidth: "w-14", valueWidth: "w-16" },
+    { labelWidth: "w-20", valueWidth: "w-24" },
+    { labelWidth: "w-20", valueWidth: "w-24" },
+    { labelWidth: "w-14", valueWidth: "w-28" },
+  ];
+
+  return (
+    <div className="animate-pulse px-4 py-3">
+      {rows.map((row, index) => (
+        <div key={`detail-skeleton-${index}`} className="flex items-center justify-between py-2">
+          <SkeletonLine className={row.labelWidth} />
+          <SkeletonLine className={`ml-4 ${row.valueWidth}`} />
+        </div>
+      ))}
     </div>
   );
 }
