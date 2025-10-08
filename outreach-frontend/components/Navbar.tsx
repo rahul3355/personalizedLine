@@ -23,8 +23,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthProvider";
 import logo from "../pages/logo.png";
-import aplogo from "./aplogo.svg"
-
+import aplogo from "./ap-leaf-logo.svg"
 
 
 export default function Navbar() {
