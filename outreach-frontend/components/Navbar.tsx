@@ -23,8 +23,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthProvider";
 import logo from "../pages/logo.png";
-import aplogo from "./aplogo.svg"
-//import aplogo from "./ap-leaf-logo.svg"
+import siflogo from "./sif-logo.svg"
+//import siflogo from "./sif-logo-black.svg"
 
 
 export default function Navbar() {
@@ -146,7 +146,7 @@ export default function Navbar() {
         <div className="w-full flex items-center justify-center pt-4 pb-2">
           <div className="h-9 w-9 rounded-[14px] bg-white flex items-center justify-center">
             <Link href="/">
-              <Image src={aplogo} alt="AuthorityPoint" width={18} height={18} priority />
+              <Image src={siflogo} alt="AuthorityPoint" width={18} height={18} priority />
             </Link>
           </div>
         </div>
