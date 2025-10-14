@@ -449,6 +449,7 @@ def obtain_and_generate(
     emit_stdout: bool = True,
     emit_diagnostics: bool = True,
 ) -> Tuple[int, Optional[str]]:
+def obtain_and_generate(email: str, dry_run: bool = False, debug: bool = False) -> Tuple[int, Optional[str]]:
     if debug:
         logger.setLevel(logging.DEBUG)
     else:
@@ -487,6 +488,18 @@ def obtain_and_generate(
     if dry_run:
         if emit_stdout:
             print(prompt)
+    print("\n=== PERSONAL SUMMARY ===", file=sys.stderr)
+    print(personal_summary or "<none>", file=sys.stderr)
+    print("\n=== COMPANY SUMMARY ===", file=sys.stderr)
+    print(company_summary or "<none>", file=sys.stderr)
+    print("\n=== NEWS SUMMARY ===", file=sys.stderr)
+    print(news_summary or "<none>", file=sys.stderr)
+    print("", file=sys.stderr)
+
+    prompt = build_deepseek_prompt(SERVICE_CONTEXT, personal_summary, company_summary, news_summary)
+
+    if dry_run:
+        print(prompt)
         return 0, prompt
 
     last_output = ""
@@ -514,6 +527,7 @@ def obtain_and_generate(
             logger.info("Valid output length=%d words", word_count)
             if emit_stdout:
                 print(output)
+            print(output)
             return 0, output
         logger.warning(
             "Output word count %d outside %d-%d on attempt %d",
@@ -530,6 +544,7 @@ def obtain_and_generate(
         )
         if emit_stdout:
             print(last_output)
+        print(last_output)
         return 0, last_output
     logger.error("No usable output from model after %d attempts", MAX_ATTEMPTS)
     return 4, None
