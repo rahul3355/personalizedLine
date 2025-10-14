@@ -15,6 +15,7 @@ import {
   Upload as UploadIcon,
   Briefcase,
   Users,
+  Mail,
   Check,
   ArrowRight,
   ArrowLeft,
@@ -146,6 +147,7 @@ export default function UploadPage() {
   const [industryCol, setIndustryCol] = useState("");
   const [titleCol, setTitleCol] = useState("");
   const [sizeCol, setSizeCol] = useState("");
+  const [emailCol, setEmailCol] = useState("");
 
   const [service, setService] = useState("");
 
@@ -186,6 +188,7 @@ export default function UploadPage() {
       setIndustryCol("");
       setTitleCol("");
       setSizeCol("");
+      setEmailCol("");
       setRefreshingCredits(false);
     },
     []
@@ -303,6 +306,7 @@ export default function UploadPage() {
     setIndustryCol(findMatch(["industry", "sector", "field"]));
     setTitleCol(findMatch(["title", "seniority", "role", "position"]));
     setSizeCol(findMatch(["employee count", "size", "headcount", "staff"]));
+    setEmailCol(findMatch(["email", "e-mail", "mail"]));
   };
 
   const applyCreditPayload = (
@@ -517,7 +521,7 @@ export default function UploadPage() {
   };
 
   const handleConfirmHeaders = async (): Promise<boolean> => {
-    if (!companyCol || !descCol || !industryCol || !titleCol || !sizeCol) {
+    if (!companyCol || !descCol || !industryCol || !titleCol || !sizeCol || !emailCol) {
       setError("Please select all required columns");
       return false;
     }
@@ -543,6 +547,7 @@ export default function UploadPage() {
       !industryCol ||
       !titleCol ||
       !sizeCol ||
+      !emailCol ||
       !service
     ) {
       setError("Please complete all required fields");
@@ -565,6 +570,7 @@ export default function UploadPage() {
         industry_col: industryCol,
         title_col: titleCol,
         size_col: sizeCol,
+        email_col: emailCol,
         service: service.trim() || "email outreach",
       };
 
@@ -835,7 +841,7 @@ export default function UploadPage() {
                 <div className="space-y-5">
 
                   <div className="grid grid-cols-2 gap-5">
-                    {[
+                    {[ 
                       {
                         label: "Company Column",
                         value: companyCol,
@@ -865,6 +871,12 @@ export default function UploadPage() {
                         value: sizeCol,
                         setValue: setSizeCol,
                         icon: <Users className="h-4 w-4" style={{ color: BRAND }} />,
+                      },
+                      {
+                        label: "Email Column",
+                        value: emailCol,
+                        setValue: setEmailCol,
+                        icon: <Mail className="h-4 w-4" style={{ color: BRAND }} />,
                       },
                     ].map((field) => (
                       <div key={field.label} className="space-y-1.5">
@@ -1092,38 +1104,44 @@ export default function UploadPage() {
             <h2 className="text-lg font-semibold text-gray-900 text-center">Confirm Headers</h2>
             {renderCreditBanner(true)}
             <div className="rounded-xl border p-6 space-y-4" style={{ borderColor: "#E5E7EB" }}>
-              {[
-                {
-                  label: "Company Column",
-                  value: companyCol,
-                  setValue: setCompanyCol,
-                  icon: <Building2 className="h-4 w-4" style={{ color: BRAND }} />,
-                },
-                {
-                  label: "Description Column",
-                  value: descCol,
-                  setValue: setDescCol,
-                  icon: <FileText className="h-4 w-4" style={{ color: BRAND }} />,
-                },
-                {
-                  label: "Industry Column",
-                  value: industryCol,
-                  setValue: setIndustryCol,
-                  icon: <Briefcase className="h-4 w-4" style={{ color: BRAND }} />,
-                },
-                {
-                  label: "Title Column",
-                  value: titleCol,
-                  setValue: setTitleCol,
-                  icon: <Tag className="h-4 w-4" style={{ color: BRAND }} />,
-                },
-                {
-                  label: "Size Column",
-                  value: sizeCol,
-                  setValue: setSizeCol,
-                  icon: <Users className="h-4 w-4" style={{ color: BRAND }} />,
-                },
-              ].map((field) => (
+                {[
+                  {
+                    label: "Company Column",
+                    value: companyCol,
+                    setValue: setCompanyCol,
+                    icon: <Building2 className="h-4 w-4" style={{ color: BRAND }} />,
+                  },
+                  {
+                    label: "Description Column",
+                    value: descCol,
+                    setValue: setDescCol,
+                    icon: <FileText className="h-4 w-4" style={{ color: BRAND }} />,
+                  },
+                  {
+                    label: "Industry Column",
+                    value: industryCol,
+                    setValue: setIndustryCol,
+                    icon: <Briefcase className="h-4 w-4" style={{ color: BRAND }} />,
+                  },
+                  {
+                    label: "Title Column",
+                    value: titleCol,
+                    setValue: setTitleCol,
+                    icon: <Tag className="h-4 w-4" style={{ color: BRAND }} />,
+                  },
+                  {
+                    label: "Size Column",
+                    value: sizeCol,
+                    setValue: setSizeCol,
+                    icon: <Users className="h-4 w-4" style={{ color: BRAND }} />,
+                  },
+                  {
+                    label: "Email Column",
+                    value: emailCol,
+                    setValue: setEmailCol,
+                    icon: <Mail className="h-4 w-4" style={{ color: BRAND }} />,
+                  },
+                ].map((field) => (
                 <div key={field.label} className="space-y-1">
                   <label className="text-xs text-gray-500 block">{field.label}</label>
                   <div className="flex items-center gap-2">

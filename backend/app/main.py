@@ -468,6 +468,7 @@ class JobRequest(BaseModel):
     industry_col: str
     title_col: str
     size_col: str
+    email_col: str
     service: str
 
 
@@ -749,6 +750,7 @@ async def create_job(
             "industry_col": req.industry_col,
             "title_col": req.title_col,
             "size_col": req.size_col,
+            "email_col": req.email_col,
             "service": req.service,
         }
 

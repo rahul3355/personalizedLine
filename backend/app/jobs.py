@@ -8,7 +8,8 @@ import pandas as pd
 import traceback
 import tempfile
 import shutil
-from backend.app.gpt_helpers import generate_opener
+from backend.app.gpt_helpers import generate_opener as legacy_generate_opener
+from backend.app.personalized_line_generator import generate_personalized_opener
 from backend.app.supabase_client import supabase
 from datetime import datetime
 import redis
@@ -586,19 +587,38 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
             writer = csv.DictWriter(out_f, fieldnames=output_headers)
             writer.writeheader()
 
+            service_context = meta.get("service", "")
+            email_column = meta.get("email_col", "")
+
             for i, row in enumerate(reader, start=1):
                 try:
                     print(
                         f"[Worker] Job {job_id} | Chunk {chunk_id} | Row {i}/{chunk_total_rows} -> {row}"
                     )
-                    line, _, _, _ = generate_opener(
-                        company=row.get(meta.get("company_col", ""), ""),
-                        description=row.get(meta.get("desc_col", ""), ""),
-                        industry=row.get(meta.get("industry_col", ""), ""),
-                        role=row.get(meta.get("title_col", ""), ""),
-                        size=row.get(meta.get("size_col", ""), ""),
-                        service=meta.get("service", ""),
-                    )
+                    line = ""
+                    email_value = row.get(email_column, "") if email_column else ""
+
+                    if email_value:
+                        try:
+                            line = generate_personalized_opener(
+                                email_value,
+                                service_context=service_context or None,
+                            )
+                        except Exception as exc:
+                            print(
+                                f"[Worker] DeepSeek personalized generator failed for {email_value}: {exc}"
+                            )
+
+                    if not line:
+                        opener, _, _, _ = legacy_generate_opener(
+                            company=row.get(meta.get("company_col", ""), ""),
+                            description=row.get(meta.get("desc_col", ""), ""),
+                            industry=row.get(meta.get("industry_col", ""), ""),
+                            role=row.get(meta.get("title_col", ""), ""),
+                            size=row.get(meta.get("size_col", ""), ""),
+                            service=service_context,
+                        )
+                        line = opener
                 except Exception as e:
                     print(f"[Worker] ERROR row {i}: {e}")
                     traceback.print_exc()

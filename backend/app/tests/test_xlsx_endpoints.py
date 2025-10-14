@@ -41,9 +41,9 @@ def client():
 def xlsx_bytes():
     wb = Workbook()
     ws = wb.active
-    ws.append(["company", "title"])
-    ws.append(["ACME", "CEO"])
-    ws.append(["Globex", "CTO"])
+    ws.append(["company", "title", "email"])
+    ws.append(["ACME", "CEO", "ceo@acme.com"])
+    ws.append(["Globex", "CTO", "cto@globex.com"])
     buffer = BytesIO()
     wb.save(buffer)
     wb.close()
@@ -224,7 +224,7 @@ def test_parse_headers_with_xlsx(client, patch_streaming):
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["headers"] == ["company", "title"]
+    assert data["headers"] == ["company", "title", "email"]
     assert data["row_count"] == 2
     assert data["credits_remaining"] == 10
     assert data["has_enough_credits"] is True
@@ -239,6 +239,7 @@ def test_create_job_with_xlsx_counts_rows(client, patch_streaming):
         "industry_col": "company",
         "title_col": "title",
         "size_col": "company",
+        "email_col": "email",
         "service": "standard",
     }
     response = client.post("/jobs", json=payload)
@@ -266,6 +267,7 @@ def test_create_job_rejects_without_credits(client, patch_streaming):
         "industry_col": "company",
         "title_col": "title",
         "size_col": "company",
+        "email_col": "email",
         "service": "standard",
     }
     response = client.post("/jobs", json=payload)

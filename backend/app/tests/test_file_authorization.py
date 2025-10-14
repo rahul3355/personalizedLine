@@ -46,6 +46,7 @@ def test_create_job_rejects_mismatched_path(client):
         "industry_col": "industry",
         "title_col": "title",
         "size_col": "size",
+        "email_col": "email",
         "service": "service-name",
     }
     response = client.post("/jobs", json=payload)
