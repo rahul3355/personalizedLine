@@ -24,6 +24,7 @@ import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthProvider";
 import logo from "../pages/logo.png";
 import siflogo from "./sif-logo.svg"
+//import siflogo from "./sif-logo.svg"
 //import siflogo from "./sif-logo-black.svg"
 
 
