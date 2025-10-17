@@ -33,6 +33,17 @@ def client():
     return TestClient(app)
 
 
+@pytest.fixture(autouse=True)
+def _patch_personalization_keys(monkeypatch):
+    import backend.app.jobs as jobs_module
+
+    monkeypatch.setattr(
+        jobs_module,
+        "fetch_user_personalization_keys",
+        lambda user_id, supabase_client=None: ("test-groq", "test-serper"),
+    )
+
+
 def test_parse_headers_rejects_mismatched_path(client):
     response = client.post("/parse_headers", json={"file_path": "other-user/data.csv"})
     assert response.status_code == 403
@@ -41,11 +52,7 @@ def test_parse_headers_rejects_mismatched_path(client):
 def test_create_job_rejects_mismatched_path(client):
     payload = {
         "file_path": "other-user/data.csv",
-        "company_col": "company",
-        "desc_col": "description",
-        "industry_col": "industry",
-        "title_col": "title",
-        "size_col": "size",
+        "email_col": "email",
         "service": "service-name",
     }
     response = client.post("/jobs", json=payload)

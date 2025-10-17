@@ -29,6 +29,7 @@ export default function InlineLoader() {
           src={logo}
           alt="AuthorityPoint Logo"
           fill
+          sizes="160px"
           className="object-contain"
         />
         {/* Shimmer sweep */}

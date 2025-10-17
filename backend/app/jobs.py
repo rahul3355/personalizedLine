@@ -8,7 +8,11 @@ import pandas as pd
 import traceback
 import tempfile
 import shutil
-from backend.app.gpt_helpers import generate_opener
+from backend.app.personalized_line_pipeline import (
+    PersonalizedLineError,
+    extract_email_from_row,
+    get_personalized_line_generator,
+)
 from backend.app.supabase_client import supabase
 from datetime import datetime
 import redis
@@ -52,6 +56,34 @@ def _ensure_dict(value):
         except Exception:
             return {}
     return {}
+
+
+def fetch_user_personalization_keys(
+    user_id: str, *, supabase_client=supabase
+) -> Tuple[str, str]:
+    """Return the Groq and Serper API keys stored on the user's profile."""
+
+    try:
+        response = (
+            supabase_client.table("profiles")
+            .select("groq_api_key, serper_api_key")
+            .eq("id", user_id)
+            .limit(1)
+            .execute()
+        )
+    except Exception as exc:
+        raise RuntimeError(f"Failed to fetch personalization keys: {exc}") from exc
+
+    payload = getattr(response, "data", None)
+    record: Dict[str, str] = {}
+    if isinstance(payload, list):
+        record = payload[0] if payload else {}
+    elif isinstance(payload, dict):
+        record = payload
+
+    groq_key = (record or {}).get("groq_api_key") or ""
+    serper_key = (record or {}).get("serper_api_key") or ""
+    return groq_key, serper_key
 
 
 def _format_storage_error(error) -> str:
@@ -537,7 +569,16 @@ def next_queued_job():
     return res.data[0] if res.data else None
 
 
-def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: dict, user_id: str, total_rows: int):
+def process_subjob(
+    job_id: str,
+    chunk_id: int,
+    chunk_storage_path: str,
+    meta: dict,
+    user_id: str,
+    total_rows: int,
+    groq_api_key: str,
+    serper_api_key: str,
+):
     """Process a chunk of rows for a given job, with global progress logging."""
     sub_start = time.time()
     processed_in_chunk = 0
@@ -586,19 +627,33 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
             writer = csv.DictWriter(out_f, fieldnames=output_headers)
             writer.writeheader()
 
+            try:
+                line_generator = get_personalized_line_generator(
+                    groq_api_key, serper_api_key
+                )
+            except PersonalizedLineError as exc:
+                raise RuntimeError(
+                    f"Personalized line generator misconfigured: {exc}"
+                ) from exc
+
             for i, row in enumerate(reader, start=1):
                 try:
                     print(
                         f"[Worker] Job {job_id} | Chunk {chunk_id} | Row {i}/{chunk_total_rows} -> {row}"
                     )
-                    line, _, _, _ = generate_opener(
-                        company=row.get(meta.get("company_col", ""), ""),
-                        description=row.get(meta.get("desc_col", ""), ""),
-                        industry=row.get(meta.get("industry_col", ""), ""),
-                        role=row.get(meta.get("title_col", ""), ""),
-                        size=row.get(meta.get("size_col", ""), ""),
-                        service=meta.get("service", ""),
+                    email_value = extract_email_from_row(row)
+                    if not email_value:
+                        raise PersonalizedLineError("Email column missing or empty for this row")
+
+                    metrics = line_generator.generate(
+                        email_value,
+                        meta.get("service", ""),
                     )
+                    line = metrics.opening_line
+                except PersonalizedLineError as e:
+                    print(f"[Worker] Personalized line error row {i}: {e}")
+                    traceback.print_exc()
+                    line = f"[Personalization error: {e}]"
                 except Exception as e:
                     print(f"[Worker] ERROR row {i}: {e}")
                     traceback.print_exc()
@@ -886,6 +941,16 @@ def process_job(job_id: str):
 
         headers, total, row_iter = _input_iterator(local_path)
 
+        email_header = (meta.get("email_col") or "Email").strip() or "Email"
+        if not isinstance(email_header, str):
+            email_header = str(email_header)
+
+        # Ensure downstream chunk writers include a canonical "Email" column.
+        header_sequence = list(headers)
+        if "Email" not in header_sequence:
+            header_sequence.append("Email")
+        headers = list(dict.fromkeys(header_sequence))
+
         timings["download_input"] = record_time("Download input file", dl_start, job_id)
 
         # --- Check credits and claim job ---
@@ -965,6 +1030,11 @@ def process_job(job_id: str):
 
         # --- Chunking ---
         chunk_start = time.time()
+        groq_api_key, serper_api_key = fetch_user_personalization_keys(user_id)
+        if not groq_api_key or not serper_api_key:
+            raise RuntimeError(
+                "Missing Groq or Serper API key on profile; please update account settings"
+            )
         try:
             num_workers = int(os.getenv("WORKER_COUNT", "1"))
         except Exception:
@@ -980,6 +1050,10 @@ def process_job(job_id: str):
             num_chunks = min(total, num_workers) or 1
             chunk_size = max(1, math.ceil(total / num_chunks))
             for row in row_iter:
+                if email_header and email_header in row:
+                    row["Email"] = row.get(email_header, "")
+                else:
+                    row.setdefault("Email", "")
                 chunk_buffer.append(row)
                 if len(chunk_buffer) >= chunk_size:
                     chunk_count += 1
@@ -998,6 +1072,8 @@ def process_job(job_id: str):
                         meta,
                         user_id,
                         total,
+                        groq_api_key,
+                        serper_api_key,
                         job_timeout=job_timeout,
                     )
                     subjob_refs.append(job_ref)
@@ -1020,6 +1096,8 @@ def process_job(job_id: str):
                     meta,
                     user_id,
                     total,
+                    groq_api_key,
+                    serper_api_key,
                     job_timeout=job_timeout,
                 )
                 subjob_refs.append(job_ref)

@@ -29,6 +29,7 @@ export default function AuthorityPointLoader() {
           src="/authoritypoint-logo.png" // put your PNG in /public
           alt="AuthorityPoint Logo"
           fill
+          sizes="220px"
           className="object-contain"
         />
         {/* Mask shimmer */}

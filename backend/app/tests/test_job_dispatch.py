@@ -153,12 +153,18 @@ class FakeSupabase:
                 "id": job_id,
                 "user_id": user_id,
                 "status": "queued",
-                "meta_json": {"file_path": "inputs/file.csv"},
+                "meta_json": {"file_path": "inputs/file.csv", "email_col": "email"},
                 "rows_processed": 0,
                 "progress_percent": 0,
             }
         }
-        self.profiles = {user_id: {"credits_remaining": 10}}
+        self.profiles = {
+            user_id: {
+                "credits_remaining": 10,
+                "groq_api_key": "test-groq",
+                "serper_api_key": "test-serper",
+            }
+        }
         self.ledger_entries = []
         self.lock = threading.Lock()
         self.claim_updates = 0

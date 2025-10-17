@@ -141,7 +141,13 @@ class DummySupabase:
     def __init__(self):
         self.storage = DummyStorage()
         self.inserted_jobs = []
-        self.profiles = {"user-123": {"credits_remaining": 10}}
+        self.profiles = {
+            "user-123": {
+                "credits_remaining": 10,
+                "groq_api_key": "test-groq",
+                "serper_api_key": "test-serper",
+            }
+        }
         self.ledger_entries = []
 
     def table(self, name):
@@ -234,11 +240,7 @@ def test_parse_headers_with_xlsx(client, patch_streaming):
 def test_create_job_with_xlsx_counts_rows(client, patch_streaming):
     payload = {
         "file_path": "user-123/uploads/data.xlsx",
-        "company_col": "company",
-        "desc_col": "title",
-        "industry_col": "company",
-        "title_col": "title",
-        "size_col": "company",
+        "email_col": "company",
         "service": "standard",
     }
     response = client.post("/jobs", json=payload)
@@ -261,11 +263,7 @@ def test_create_job_rejects_without_credits(client, patch_streaming):
     patch_streaming.profiles["user-123"]["credits_remaining"] = 1
     payload = {
         "file_path": "user-123/uploads/data.xlsx",
-        "company_col": "company",
-        "desc_col": "title",
-        "industry_col": "company",
-        "title_col": "title",
-        "size_col": "company",
+        "email_col": "company",
         "service": "standard",
     }
     response = client.post("/jobs", json=payload)

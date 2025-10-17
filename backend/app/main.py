@@ -463,11 +463,7 @@ from pydantic import BaseModel
 
 class JobRequest(BaseModel):
     file_path: str
-    company_col: str
-    desc_col: str
-    industry_col: str
-    title_col: str
-    size_col: str
+    email_col: str
     service: str
 
 
@@ -741,14 +737,26 @@ async def create_job(
             except OSError:
                 pass
 
+        groq_key, serper_key = jobs.fetch_user_personalization_keys(
+            current_user.user_id, supabase_client=supabase
+        )
+        if not groq_key or not serper_key:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "error": "missing_api_keys",
+                    "message": "Add Groq and Serper API keys in your profile settings before running jobs.",
+                },
+            )
+
+        email_col = (req.email_col or "Email").strip()
+        if not email_col:
+            raise HTTPException(status_code=400, detail="email_col is required")
+
         job_id = str(uuid.uuid4())
         meta = {
             "file_path": file_path,
-            "company_col": req.company_col,
-            "desc_col": req.desc_col,
-            "industry_col": req.industry_col,
-            "title_col": req.title_col,
-            "size_col": req.size_col,
+            "email_col": email_col,
             "service": req.service,
         }
 
