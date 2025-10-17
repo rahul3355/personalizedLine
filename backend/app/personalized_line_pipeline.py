@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Dict, Iterable, List, Optional
 
+import re
+
 import requests
 import tiktoken
 from groq import Groq
@@ -45,6 +47,25 @@ class GenerationMetrics:
     elapsed_seconds: float
 
 
+EMAIL_PATTERN = re.compile(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", re.IGNORECASE)
+
+
+def extract_email_from_row(row: Dict[str, str]) -> Optional[str]:
+    """Return the first email-like value found in the row values."""
+    for value in row.values():
+        if value is None:
+            candidate = ""
+        elif isinstance(value, str):
+            candidate = value.strip()
+        else:
+            candidate = str(value).strip()
+
+        if not candidate:
+            continue
+
+        match = EMAIL_PATTERN.search(candidate)
+        if match:
+            return match.group(0)
 def _normalize_header(header: Optional[str]) -> str:
     if not header:
         return ""
