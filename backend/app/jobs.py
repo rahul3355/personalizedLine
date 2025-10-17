@@ -602,6 +602,7 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                     )
                     email_value = extract_email_from_row(row)
                     if not email_value:
+                        raise PersonalizedLineError("Email column missing or empty for this row")
                         raise PersonalizedLineError("No email column detected or email value missing")
 
                     metrics = line_generator.generate(

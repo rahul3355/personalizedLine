@@ -51,6 +51,16 @@ EMAIL_PATTERN = re.compile(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", re.IGNORECA
 
 
 def extract_email_from_row(row: Dict[str, str]) -> Optional[str]:
+    """Return the email value from the column labelled ``Email`` (case-insensitive)."""
+
+    for header, value in row.items():
+        if header is None:
+            continue
+
+        normalized_header = str(header).strip().casefold()
+        if normalized_header != "email":
+            continue
+
     """Return the first email-like value found in the row values."""
     for value in row.values():
         if value is None:
@@ -66,6 +76,7 @@ def extract_email_from_row(row: Dict[str, str]) -> Optional[str]:
         match = EMAIL_PATTERN.search(candidate)
         if match:
             return match.group(0)
+
 def _normalize_header(header: Optional[str]) -> str:
     if not header:
         return ""
