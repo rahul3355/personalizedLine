@@ -635,6 +635,9 @@ def process_subjob(
                 raise RuntimeError(
                     f"Personalized line generator misconfigured: {exc}"
                 ) from exc
+                line_generator = get_personalized_line_generator()
+            except PersonalizedLineError as exc:
+                raise RuntimeError(f"Personalized line generator misconfigured: {exc}") from exc
 
             for i, row in enumerate(reader, start=1):
                 try:
@@ -644,6 +647,7 @@ def process_subjob(
                     email_value = extract_email_from_row(row)
                     if not email_value:
                         raise PersonalizedLineError("Email column missing or empty for this row")
+                        raise PersonalizedLineError("No email column detected or email value missing")
 
                     metrics = line_generator.generate(
                         email_value,

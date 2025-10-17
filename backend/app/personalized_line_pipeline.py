@@ -7,6 +7,11 @@ import time
 from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Dict, Iterable, List, Optional, Tuple
+import os
+import time
+from dataclasses import dataclass
+from decimal import Decimal, ROUND_HALF_UP
+from typing import Dict, Iterable, List, Optional
 
 import re
 
@@ -24,6 +29,8 @@ if _tiktoken_spec is not None:
     _tiktoken = importlib.import_module("tiktoken")
 else:
     _tiktoken = None
+import tiktoken
+from groq import Groq
 
 SERPER_URL = "https://google.serper.dev/search"
 
@@ -33,6 +40,14 @@ LLM_PERSONALIZATION_MODEL = "openai/gpt-oss-120b"
 MODEL_PRICING: Dict[str, Dict[str, Decimal]] = {
     LLM_EXTRACTION_MODEL: {"input": Decimal("0.05"), "output": Decimal("0.08")},
     LLM_PERSONALIZATION_MODEL: {"input": Decimal("0.15"), "output": Decimal("0.75")},
+}
+
+EMAIL_HEADER_ALIASES = {
+    "email",
+    "emails",
+    "emailid",
+    "mail",
+    "mailid",
 }
 
 
@@ -77,6 +92,11 @@ def extract_email_from_row(row: Dict[str, str]) -> Optional[str]:
         if normalized_header not in EMAIL_HEADER_CANDIDATES:
             continue
 
+        if normalized_header != "email":
+            continue
+
+    """Return the first email-like value found in the row values."""
+    for value in row.values():
         if value is None:
             candidate = ""
         elif isinstance(value, str):
@@ -91,6 +111,27 @@ def extract_email_from_row(row: Dict[str, str]) -> Optional[str]:
         if match:
             return match.group(0)
 
+def _normalize_header(header: Optional[str]) -> str:
+    if not header:
+        return ""
+    cleaned = "".join(ch for ch in header.lower() if ch.isalnum())
+    return cleaned
+
+
+def extract_email_from_row(row: Dict[str, str]) -> Optional[str]:
+    """Return the first non-empty email value based on known header aliases."""
+    for key in row.keys():
+        normalized = _normalize_header(key)
+        if normalized in EMAIL_HEADER_ALIASES:
+            value = row.get(key)
+            if isinstance(value, str):
+                candidate = value.strip()
+            elif value is None:
+                candidate = ""
+            else:
+                candidate = str(value).strip()
+            if candidate:
+                return candidate
     return None
 
 
@@ -110,6 +151,12 @@ class _Tokenizer:
         if self._enc is None:
             # Rough heuristic: 4 characters per token fallback.
             return max(1, len(text or "") // 4) if text else 0
+        try:
+            self._enc = tiktoken.encoding_for_model("gpt-4")
+        except Exception:
+            self._enc = tiktoken.get_encoding("cl100k_base")
+
+    def count(self, text: str) -> int:
         return len(self._enc.encode(text or ""))
 
 
@@ -140,6 +187,20 @@ class PersonalizedLineGenerator:
         self._client = groq_client
 
         self._serper_api_key = serper_api_key
+        groq_client: Optional[Groq] = None,
+        serper_url: str = SERPER_URL,
+        http_client: Optional[requests.Session] = None,
+    ) -> None:
+        api_key = os.getenv("GROQ_API_KEY")
+        if groq_client is None:
+            if not api_key:
+                raise PersonalizedLineError("GROQ_API_KEY is not configured")
+            groq_client = Groq(api_key=api_key)
+        self._client = groq_client
+
+        self._serper_api_key = os.getenv("SERPER_API_KEY")
+        if not self._serper_api_key:
+            raise PersonalizedLineError("SERPER_API_KEY is not configured")
 
         self._serper_url = serper_url
         self._http = http_client or requests.Session()
@@ -281,3 +342,11 @@ def get_personalized_line_generator(
         )
         _generator_cache[cache_key] = generator
     return generator
+_generator: Optional[PersonalizedLineGenerator] = None
+
+
+def get_personalized_line_generator() -> PersonalizedLineGenerator:
+    global _generator
+    if _generator is None:
+        _generator = PersonalizedLineGenerator()
+    return _generator
