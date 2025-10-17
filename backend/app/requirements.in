@@ -28,6 +28,8 @@ stripe
 
 # AI / LLM
 openai
+groq
+tiktoken
 
 # Misc
 typing-extensions

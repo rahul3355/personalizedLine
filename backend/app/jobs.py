@@ -8,7 +8,11 @@ import pandas as pd
 import traceback
 import tempfile
 import shutil
-from backend.app.gpt_helpers import generate_opener
+from backend.app.personalized_line_pipeline import (
+    PersonalizedLineError,
+    extract_email_from_row,
+    get_personalized_line_generator,
+)
 from backend.app.supabase_client import supabase
 from datetime import datetime
 import redis
@@ -586,19 +590,29 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
             writer = csv.DictWriter(out_f, fieldnames=output_headers)
             writer.writeheader()
 
+            try:
+                line_generator = get_personalized_line_generator()
+            except PersonalizedLineError as exc:
+                raise RuntimeError(f"Personalized line generator misconfigured: {exc}") from exc
+
             for i, row in enumerate(reader, start=1):
                 try:
                     print(
                         f"[Worker] Job {job_id} | Chunk {chunk_id} | Row {i}/{chunk_total_rows} -> {row}"
                     )
-                    line, _, _, _ = generate_opener(
-                        company=row.get(meta.get("company_col", ""), ""),
-                        description=row.get(meta.get("desc_col", ""), ""),
-                        industry=row.get(meta.get("industry_col", ""), ""),
-                        role=row.get(meta.get("title_col", ""), ""),
-                        size=row.get(meta.get("size_col", ""), ""),
-                        service=meta.get("service", ""),
+                    email_value = extract_email_from_row(row)
+                    if not email_value:
+                        raise PersonalizedLineError("Email column missing or empty for this row")
+
+                    metrics = line_generator.generate(
+                        email_value,
+                        meta.get("service", ""),
                     )
+                    line = metrics.opening_line
+                except PersonalizedLineError as e:
+                    print(f"[Worker] Personalized line error row {i}: {e}")
+                    traceback.print_exc()
+                    line = f"[Personalization error: {e}]"
                 except Exception as e:
                     print(f"[Worker] ERROR row {i}: {e}")
                     traceback.print_exc()
