@@ -23,6 +23,14 @@ MODEL_PRICING: Dict[str, Dict[str, Decimal]] = {
     LLM_PERSONALIZATION_MODEL: {"input": Decimal("0.15"), "output": Decimal("0.75")},
 }
 
+EMAIL_HEADER_ALIASES = {
+    "email",
+    "emails",
+    "emailid",
+    "mail",
+    "mailid",
+}
+
 
 class PersonalizedLineError(RuntimeError):
     """Raised when the personalized line generation fails."""
@@ -58,6 +66,27 @@ def extract_email_from_row(row: Dict[str, str]) -> Optional[str]:
         match = EMAIL_PATTERN.search(candidate)
         if match:
             return match.group(0)
+def _normalize_header(header: Optional[str]) -> str:
+    if not header:
+        return ""
+    cleaned = "".join(ch for ch in header.lower() if ch.isalnum())
+    return cleaned
+
+
+def extract_email_from_row(row: Dict[str, str]) -> Optional[str]:
+    """Return the first non-empty email value based on known header aliases."""
+    for key in row.keys():
+        normalized = _normalize_header(key)
+        if normalized in EMAIL_HEADER_ALIASES:
+            value = row.get(key)
+            if isinstance(value, str):
+                candidate = value.strip()
+            elif value is None:
+                candidate = ""
+            else:
+                candidate = str(value).strip()
+            if candidate:
+                return candidate
     return None
 
 
