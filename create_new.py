@@ -1,42 +1,67 @@
-import os, pandas as pd, streamlit as st
+import os
+from typing import List
+
+import pandas as pd
+import streamlit as st
+
 from backend.app.db import enqueue_job
-from backend.app.jobs import process_job, EXEC
-from backend.app.gpt_helpers import generate_line
+from backend.app.jobs import EXEC, process_job
+from backend.app.groq_pipeline import (
+    ProspectResearchError,
+    SERVICE_CONTEXT_DEFAULT,
+    generate_opener_from_email,
+)
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+
+def _preview_lines(rows: pd.DataFrame, email_col: str, service_context: str) -> List[str]:
+    previews: List[str] = []
+    for _, row in rows.iterrows():
+        email = str(row.get(email_col, "") or "").strip()
+        if not email:
+            previews.append("[Missing email]")
+            continue
+        try:
+            result = generate_opener_from_email(email, service_context=service_context)
+            line = result.line
+            if result.fallback_reason:
+                line = f"[Fallback:{result.fallback_reason}] {line}"
+            previews.append(line)
+        except ProspectResearchError as exc:
+            previews.append(f"[Fallback] {exc}")
+        except Exception as exc:  # pragma: no cover - debugging helper only
+            previews.append(f"[Error generating line: {exc}]")
+    return previews
+
 
 def render(user_id: str):
     st.header("Step 1: Upload Your File")
     uploaded = st.file_uploader("Upload file", type=["csv", "xlsx"])
 
-    col1, col2, col3 = st.columns([2, 1, 1])
-    with col1:
-        offer = st.text_input("What are you offering?", "turning LinkedIn posts into calls")
-    with col2:
-        persona = st.text_input("Who are you targeting?", "Founders")
-    with col3:
-        channel = st.text_input("Channel?", "LinkedIn")
-
-    max_words = st.slider("Limit words", 18, 28, 24)
+    service_context = st.text_area(
+        "Service context passed to the model",
+        SERVICE_CONTEXT_DEFAULT,
+        height=160,
+    )
 
     if uploaded:
-        df = pd.read_csv(uploaded) if uploaded.name.endswith(".csv") else pd.read_excel(uploaded)
+        df = (
+            pd.read_csv(uploaded)
+            if uploaded.name.endswith(".csv")
+            else pd.read_excel(uploaded)
+        )
         df.columns = [c.strip() for c in df.columns]
 
-        title_col = st.selectbox("Job title column", options=df.columns)
-        company_col = st.selectbox("Company column", options=df.columns)
-        desc_col = st.selectbox("Description column", options=df.columns)
+        email_col = st.selectbox("Email column", options=df.columns)
 
         if st.button("Generate Preview"):
-            prev = df.head(3).copy()
-            lines = [
-                generate_line(row[title_col], row[company_col], row[desc_col],
-                              offer, persona, channel, max_words)
-                for _, row in prev.iterrows()
-            ]
-            prev["personalized_line"] = lines
-            st.dataframe(prev[[title_col, company_col, "personalized_line"]])
+            preview_df = df.head(3).copy()
+            preview_df["personalized_line"] = _preview_lines(
+                preview_df, email_col, service_context
+            )
+            st.dataframe(preview_df[[email_col, "personalized_line"]])
 
         if st.button("Start Full File Job"):
             if len(df) > 50:
@@ -47,10 +72,10 @@ def render(user_id: str):
                 f.write(uploaded.getbuffer())
 
             meta = {
-                "offer": offer, "persona": persona, "channel": channel,
-                "max_words": max_words, "title_col": title_col,
-                "company_col": company_col, "desc_col": desc_col,
-                "file_path": file_path
+                "file_path": file_path,
+                "email_col": email_col,
+                "service_context": service_context,
+                "pipeline": "groq",
             }
             job_id = enqueue_job(uploaded.name, len(df), meta, user_id)
             EXEC.submit(process_job, job_id)
