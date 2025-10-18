@@ -17,6 +17,7 @@ import {
   X as XIcon,
   Info,
   RefreshCcw,
+  FileText,
 } from "lucide-react";
 import { useAuth } from "../lib/AuthProvider";
 import { useRouter } from "next/router";
