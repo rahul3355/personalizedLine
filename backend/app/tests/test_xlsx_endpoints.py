@@ -229,17 +229,18 @@ def test_parse_headers_with_xlsx(client, patch_streaming):
     assert data["credits_remaining"] == 10
     assert data["has_enough_credits"] is True
     assert data["missing_credits"] == 0
+    assert data["email_sampled_rows"] == 2
+    assert data["email_column_suggestions"] == [
+        {"column": "company", "matches": 0, "sampled": 2, "confidence": 0.0},
+        {"column": "title", "matches": 0, "sampled": 2, "confidence": 0.0},
+    ]
 
 
 def test_create_job_with_xlsx_counts_rows(client, patch_streaming):
     payload = {
         "file_path": "user-123/uploads/data.xlsx",
-        "company_col": "company",
-        "desc_col": "title",
-        "industry_col": "company",
-        "title_col": "title",
-        "size_col": "company",
-        "service": "standard",
+        "email_col": "company",
+        "service_context": "fundraising",
     }
     response = client.post("/jobs", json=payload)
     assert response.status_code == 200
@@ -250,8 +251,12 @@ def test_create_job_with_xlsx_counts_rows(client, patch_streaming):
     assert supabase.inserted_jobs[0]["rows"] == 2
     assert supabase.inserted_jobs[0]["filename"] == "data.xlsx"
     assert supabase.profiles["user-123"]["credits_remaining"] == 8
-    assert supabase.inserted_jobs[0]["meta_json"]["credits_deducted"] is True
-    assert supabase.inserted_jobs[0]["meta_json"]["credit_cost"] == 2
+    meta = supabase.inserted_jobs[0]["meta_json"]
+    assert meta["credits_deducted"] is True
+    assert meta["credit_cost"] == 2
+    assert meta["email_col"] == "company"
+    assert meta["pipeline"] == "groq"
+    assert meta["service_context"] == "fundraising"
     assert len(supabase.ledger_entries) == 1
     assert supabase.ledger_entries[0]["change"] == -2
     assert supabase.ledger_entries[0]["reason"].startswith("job deduction:")
@@ -261,12 +266,7 @@ def test_create_job_rejects_without_credits(client, patch_streaming):
     patch_streaming.profiles["user-123"]["credits_remaining"] = 1
     payload = {
         "file_path": "user-123/uploads/data.xlsx",
-        "company_col": "company",
-        "desc_col": "title",
-        "industry_col": "company",
-        "title_col": "title",
-        "size_col": "company",
-        "service": "standard",
+        "email_col": "company",
     }
     response = client.post("/jobs", json=payload)
     assert response.status_code == 402
