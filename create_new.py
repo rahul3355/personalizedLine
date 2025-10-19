@@ -1,7 +1,7 @@
 import os, pandas as pd, streamlit as st
 from backend.app.db import enqueue_job
 from backend.app.jobs import process_job, EXEC
-from backend.app.gpt_helpers import generate_line
+from backend.app.gpt_helpers import generate_opener
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -24,19 +24,29 @@ def render(user_id: str):
         df = pd.read_csv(uploaded) if uploaded.name.endswith(".csv") else pd.read_excel(uploaded)
         df.columns = [c.strip() for c in df.columns]
 
-        title_col = st.selectbox("Job title column", options=df.columns)
-        company_col = st.selectbox("Company column", options=df.columns)
-        desc_col = st.selectbox("Description column", options=df.columns)
+        email_col = st.selectbox("Email column", options=df.columns)
+        service_context = (
+            f"Offer: {offer}\n"
+            f"Persona: {persona}\n"
+            f"Channel: {channel}\n"
+            f"Max words: {max_words}"
+        )
 
         if st.button("Generate Preview"):
             prev = df.head(3).copy()
-            lines = [
-                generate_line(row[title_col], row[company_col], row[desc_col],
-                              offer, persona, channel, max_words)
-                for _, row in prev.iterrows()
-            ]
+            lines = []
+            for _, row in prev.iterrows():
+                opener, *_ = generate_opener(
+                    company=row.get(email_col, ""),
+                    description="",
+                    industry="",
+                    role="",
+                    size="",
+                    service=service_context,
+                )
+                lines.append(opener)
             prev["personalized_line"] = lines
-            st.dataframe(prev[[title_col, company_col, "personalized_line"]])
+            st.dataframe(prev[[email_col, "personalized_line"]])
 
         if st.button("Start Full File Job"):
             if len(df) > 50:
@@ -47,10 +57,13 @@ def render(user_id: str):
                 f.write(uploaded.getbuffer())
 
             meta = {
-                "offer": offer, "persona": persona, "channel": channel,
-                "max_words": max_words, "title_col": title_col,
-                "company_col": company_col, "desc_col": desc_col,
-                "file_path": file_path
+                "offer": offer,
+                "persona": persona,
+                "channel": channel,
+                "max_words": max_words,
+                "email_col": email_col,
+                "service": service_context,
+                "file_path": file_path,
             }
             job_id = enqueue_job(uploaded.name, len(df), meta, user_id)
             EXEC.submit(process_job, job_id)
