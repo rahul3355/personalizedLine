@@ -3,21 +3,47 @@ import csv
 import json
 import time
 import math
+from decimal import Decimal
 from typing import Optional, List, Dict, Tuple
+
 import pandas as pd
 import traceback
 import tempfile
 import shutil
-from backend.app.gpt_helpers import generate_opener
-from backend.app.supabase_client import supabase
+import requests
 from datetime import datetime
+
 import redis
 import rq
-import requests
 from redis.exceptions import LockError
 from rq import get_current_job
 from supabase import StorageException
 from openpyxl import load_workbook
+
+from backend.app.groq_pipeline import (
+    PipelineResult,
+    ProspectResearchError,
+    SERVICE_CONTEXT_DEFAULT,
+    generate_opener_from_email,
+)
+from backend.app.supabase_client import supabase
+
+
+OUTPUT_ADDITIONAL_COLUMNS = [
+    "personalized_line",
+    "research_snippets",
+    "extraction_json",
+    "serper_payload",
+    "llama_prompt_tokens",
+    "llama_completion_tokens",
+    "gpt_prompt_tokens",
+    "gpt_completion_tokens",
+    "llama_cost_usd",
+    "gpt_cost_usd",
+    "total_cost_usd",
+    "generation_seconds",
+    "fallback_reason",
+]
 
 # -----------------------------
 # Redis connection
@@ -229,8 +255,9 @@ def _input_iterator(local_path: str):
 
 def _finalize_empty_job(job_id: str, user_id: str, headers: List[str], timings: dict, job_start: float):
     final_columns = list(headers)
-    if "personalized_line" not in final_columns:
-        final_columns.append("personalized_line")
+    for column in OUTPUT_ADDITIONAL_COLUMNS:
+        if column not in final_columns:
+            final_columns.append(column)
 
     empty_df = pd.DataFrame(columns=final_columns)
     local_dir = tempfile.mkdtemp()
@@ -575,41 +602,229 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
         os.makedirs(local_dir, exist_ok=True)
         out_path = os.path.join(local_dir, f"chunk_{chunk_id}.csv")
 
+        chunk_totals = {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "llama_cost": Decimal("0"),
+            "gpt_cost": Decimal("0"),
+            "elapsed_seconds": 0.0,
+            "fallbacks": 0,
+        }
+
         with open(chunk_input_path, newline="", encoding="utf-8-sig") as in_f, open(
             out_path, "w", newline="", encoding="utf-8"
         ) as out_f:
             reader = csv.DictReader(in_f)
             input_headers = reader.fieldnames or headers
             output_headers = list(input_headers)
-            if "personalized_line" not in output_headers:
-                output_headers.append("personalized_line")
+            for column in OUTPUT_ADDITIONAL_COLUMNS:
+                if column not in output_headers:
+                    output_headers.append(column)
             writer = csv.DictWriter(out_f, fieldnames=output_headers)
             writer.writeheader()
 
-            for i, row in enumerate(reader, start=1):
-                try:
-                    print(
-                        f"[Worker] Job {job_id} | Chunk {chunk_id} | Row {i}/{chunk_total_rows} -> {row}"
-                    )
-                    line, _, _, _ = generate_opener(
-                        company=row.get(meta.get("company_col", ""), ""),
-                        description=row.get(meta.get("desc_col", ""), ""),
-                        industry=row.get(meta.get("industry_col", ""), ""),
-                        role=row.get(meta.get("title_col", ""), ""),
-                        size=row.get(meta.get("size_col", ""), ""),
-                        service=meta.get("service", ""),
-                    )
-                except Exception as e:
-                    print(f"[Worker] ERROR row {i}: {e}")
-                    traceback.print_exc()
-                    line = f"[Error generating line: {e}]"
+            email_column = meta.get("email_col")
+            if not email_column:
+                raise RuntimeError("Job metadata is missing email_col")
+            service_context = meta.get("service_context") or SERVICE_CONTEXT_DEFAULT
+            session = requests.Session()
 
-                normalized_row = {header: row.get(header, "") for header in input_headers}
-                normalized_row["personalized_line"] = line
-                writer.writerow(normalized_row)
+            try:
+                for i, row in enumerate(reader, start=1):
+                    try:
+                        print(
+                            f"[Worker] Job {job_id} | Chunk {chunk_id} | Row {i}/{chunk_total_rows} -> {row}"
+                        )
+                        email_value = str(row.get(email_column, "") or "").strip()
+                        pipeline_result: Optional[PipelineResult] = None
+                        fallback_reason: Optional[str] = None
 
-                processed_in_chunk += 1
-                rows_since_last_report += 1
+                        if not email_value:
+                            fallback_reason = "missing_email"
+                            line = (
+                                "No email was provided for this contact, so we could not personalize the opener."
+                            )
+                            research_snippets = ""
+                            extraction_json = ""
+                            serper_payload = ""
+                            llama_prompt_tokens = 0
+                            llama_completion_tokens = 0
+                            gpt_prompt_tokens = 0
+                            gpt_completion_tokens = 0
+                            llama_cost_usd = 0.0
+                            gpt_cost_usd = 0.0
+                            total_cost_usd = 0.0
+                            generation_seconds = 0.0
+                        else:
+                            try:
+                                pipeline_result = generate_opener_from_email(
+                                    email_value,
+                                    service_context=service_context,
+                                    session=session,
+                                )
+                                line = pipeline_result.line
+                            except ProspectResearchError as exc:
+                                fallback_reason = str(exc)
+                                line = (
+                                    "We were unable to personalize this outreach because "
+                                    f"{exc}."
+                                )
+                            except Exception as exc:
+                                fallback_reason = f"unexpected_error: {exc}"
+                                print(
+                                    f"[Worker] Unexpected error generating opener for {email_value}: {exc}"
+                                )
+                                traceback.print_exc()
+                                line = (
+                                    "We encountered an unexpected issue while researching this contact."
+                                )
+
+                            if pipeline_result:
+                                research_snippets = pipeline_result.search_snippets
+                                extraction_json = (
+                                    pipeline_result.llama_run.raw_output
+                                    if pipeline_result.llama_run
+                                    else ""
+                                )
+                                serper_payload = pipeline_result.serper_payload
+                                llama_prompt_tokens = (
+                                    pipeline_result.llama_run.prompt_tokens
+                                    if pipeline_result.llama_run
+                                    else 0
+                                )
+                                llama_completion_tokens = (
+                                    pipeline_result.llama_run.completion_tokens
+                                    if pipeline_result.llama_run
+                                    else 0
+                                )
+                                gpt_prompt_tokens = (
+                                    pipeline_result.gpt_run.prompt_tokens
+                                    if pipeline_result.gpt_run
+                                    else 0
+                                )
+                                gpt_completion_tokens = (
+                                    pipeline_result.gpt_run.completion_tokens
+                                    if pipeline_result.gpt_run
+                                    else 0
+                                )
+                                llama_cost_usd = (
+                                    pipeline_result.llama_run.cost_usd
+                                    if pipeline_result.llama_run
+                                    else 0.0
+                                )
+                                gpt_cost_usd = (
+                                    pipeline_result.gpt_run.cost_usd
+                                    if pipeline_result.gpt_run
+                                    else 0.0
+                                )
+                                total_cost_usd = pipeline_result.total_cost
+                                generation_seconds = round(
+                                    pipeline_result.total_elapsed, 3
+                                )
+                            else:
+                                research_snippets = ""
+                                extraction_json = ""
+                                serper_payload = ""
+                                llama_prompt_tokens = 0
+                                llama_completion_tokens = 0
+                                gpt_prompt_tokens = 0
+                                gpt_completion_tokens = 0
+                                llama_cost_usd = 0.0
+                                gpt_cost_usd = 0.0
+                                total_cost_usd = 0.0
+                                generation_seconds = 0.0
+
+                        if pipeline_result and pipeline_result.fallback_reason:
+                            chunk_totals["fallbacks"] += 1
+                        elif not pipeline_result:
+                            chunk_totals["fallbacks"] += 1
+
+                        if pipeline_result:
+                            chunk_totals["input_tokens"] += pipeline_result.total_input_tokens
+                            chunk_totals["output_tokens"] += pipeline_result.total_output_tokens
+                            chunk_totals["elapsed_seconds"] += pipeline_result.total_elapsed
+                            if pipeline_result.llama_run:
+                                chunk_totals["llama_cost"] += Decimal(
+                                    str(pipeline_result.llama_run.cost_usd)
+                                )
+                            if pipeline_result.gpt_run:
+                                chunk_totals["gpt_cost"] += Decimal(
+                                    str(pipeline_result.gpt_run.cost_usd)
+                                )
+
+                    except Exception as e:
+                        print(f"[Worker] ERROR row {i}: {e}")
+                        traceback.print_exc()
+                        line = f"[Error generating line: {e}]"
+                        research_snippets = ""
+                        extraction_json = ""
+                        serper_payload = ""
+                        llama_prompt_tokens = 0
+                        llama_completion_tokens = 0
+                        gpt_prompt_tokens = 0
+                        gpt_completion_tokens = 0
+                        llama_cost_usd = 0.0
+                        gpt_cost_usd = 0.0
+                        total_cost_usd = 0.0
+                        generation_seconds = 0.0
+                        fallback_reason = "exception"
+                        chunk_totals["fallbacks"] += 1
+
+                    normalized_row = {header: row.get(header, "") for header in input_headers}
+                    normalized_row["personalized_line"] = line
+                    normalized_row["research_snippets"] = research_snippets
+                    normalized_row["extraction_json"] = extraction_json
+                    normalized_row["serper_payload"] = serper_payload
+                    normalized_row["llama_prompt_tokens"] = llama_prompt_tokens
+                    normalized_row["llama_completion_tokens"] = llama_completion_tokens
+                    normalized_row["gpt_prompt_tokens"] = gpt_prompt_tokens
+                    normalized_row["gpt_completion_tokens"] = gpt_completion_tokens
+                    normalized_row["llama_cost_usd"] = llama_cost_usd
+                    normalized_row["gpt_cost_usd"] = gpt_cost_usd
+                    normalized_row["total_cost_usd"] = total_cost_usd
+                    normalized_row["generation_seconds"] = generation_seconds
+                    normalized_row["fallback_reason"] = fallback_reason or ""
+                    writer.writerow(normalized_row)
+
+                    processed_in_chunk += 1
+                    rows_since_last_report += 1
+
+                    is_last_row = processed_in_chunk == chunk_total_rows
+                    if rows_since_last_report >= 5 or is_last_row:
+                        try:
+                            last_reported, progress_info = _update_job_progress(
+                                job_id,
+                                total_rows,
+                                processed_in_chunk,
+                                last_reported,
+                            )
+                        except RuntimeError as exc:
+                            print(
+                                f"[Worker] Job {job_id} | Chunk {chunk_id} | Progress update failed: {exc}"
+                            )
+                        else:
+                            rows_since_last_report = 0
+                            if progress_info:
+                                new_done = progress_info["new_done"]
+                                percent = progress_info["percent"]
+                                delta = progress_info["delta"]
+                                print(
+                                    f"[Worker] Job {job_id} | Chunk {chunk_id} | Progress +{delta} -> {new_done}/{total_rows} rows ({percent}%)"
+                                )
+                                supabase.table("job_logs").insert(
+                                    {
+                                        "job_id": job_id,
+                                        "step": new_done,
+                                        "total": total_rows,
+                                        "message": (
+                                            f"Global progress: +{delta} rows -> {new_done}/{total_rows} ({percent}%)"
+                                        ),
+                                    }
+                                ).execute()
+            finally:
+                session.close()
+
+        # record chunk metrics into timing_json after writing rows
 
                 is_last_row = processed_in_chunk == chunk_total_rows
                 if rows_since_last_report >= 5 or is_last_row:
@@ -672,6 +887,20 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
 
         elapsed = record_time(f"Chunk {chunk_id} row processing", sub_start, job_id)
 
+        chunk_metrics = {
+            "rows": processed_in_chunk,
+            "elapsed_seconds": elapsed,
+            "input_tokens": chunk_totals["input_tokens"],
+            "output_tokens": chunk_totals["output_tokens"],
+            "generation_seconds": round(chunk_totals["elapsed_seconds"], 3),
+            "llama_cost_usd": round(float(chunk_totals["llama_cost"]), 6),
+            "gpt_cost_usd": round(float(chunk_totals["gpt_cost"]), 6),
+            "total_cost_usd": round(
+                float(chunk_totals["llama_cost"] + chunk_totals["gpt_cost"]), 6
+            ),
+            "fallback_rows": chunk_totals["fallbacks"],
+        }
+
         job_record = (
             supabase.table("jobs").select("timing_json").eq("id", job_id).limit(1).execute()
         )
@@ -681,9 +910,31 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                 timings = json.loads(job_record.data[0]["timing_json"])
             except Exception:
                 timings = {}
-        if "chunks" not in timings:
-            timings["chunks"] = {}
-        timings["chunks"][str(chunk_id)] = elapsed
+        chunks_section = timings.setdefault("chunks", {})
+        chunks_section[str(chunk_id)] = chunk_metrics
+
+        totals_section = timings.setdefault(
+            "totals",
+            {
+                "rows": 0,
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "generation_seconds": 0.0,
+                "llama_cost_usd": 0.0,
+                "gpt_cost_usd": 0.0,
+                "total_cost_usd": 0.0,
+                "fallback_rows": 0,
+            },
+        )
+        totals_section["rows"] += chunk_metrics["rows"]
+        totals_section["input_tokens"] += chunk_metrics["input_tokens"]
+        totals_section["output_tokens"] += chunk_metrics["output_tokens"]
+        totals_section["generation_seconds"] += chunk_metrics["generation_seconds"]
+        totals_section["llama_cost_usd"] += chunk_metrics["llama_cost_usd"]
+        totals_section["gpt_cost_usd"] += chunk_metrics["gpt_cost_usd"]
+        totals_section["total_cost_usd"] += chunk_metrics["total_cost_usd"]
+        totals_section["fallback_rows"] += chunk_metrics["fallback_rows"]
+
         supabase.table("jobs").update({"timing_json": json.dumps(timings)}).eq("id", job_id).execute()
 
         print(f"[Worker] Finished chunk {chunk_id}/{chunk_total_rows} for job {job_id}")

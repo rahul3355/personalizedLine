@@ -5,6 +5,7 @@ from fastapi.responses import FileResponse
 from dotenv import load_dotenv
 import uuid, shutil, os, tempfile, threading, json, stripe, time
 from fastapi.responses import StreamingResponse
+import csv
 import io
 from pydantic import BaseModel
 import os
@@ -27,6 +28,8 @@ import requests
 from fastapi import Query
 import redis
 from rq import Queue
+from openpyxl import load_workbook
+from backend.app.groq_pipeline import EMAIL_REGEX
  # reuse the same function your workers use
 
 
@@ -76,6 +79,66 @@ class CheckoutRequest(BaseModel):
     plan: str
     addon: bool = False
     quantity: int = 1
+
+
+def _sample_email_columns(
+    temp_path: str,
+    headers: list[str],
+    original_path: str,
+    sample_limit: int = 50,
+):
+    suggestions = []
+    if not headers:
+        return suggestions, 0
+
+    counts = {header: 0 for header in headers}
+    samples = 0
+
+    ext = (original_path or temp_path).lower()
+    if ext.endswith(".xlsx") or ext.endswith(".xlsm"):
+        wb = load_workbook(temp_path, read_only=True, data_only=True)
+        try:
+            ws = wb.active
+            rows = ws.iter_rows(values_only=True)
+            next(rows, None)
+            for row in rows:
+                samples += 1
+                for idx, header in enumerate(headers):
+                    value = row[idx] if idx < len(row or []) else None
+                    text = str(value).strip() if value is not None else ""
+                    if EMAIL_REGEX.match(text):
+                        counts[header] += 1
+                if samples >= sample_limit:
+                    break
+        finally:
+            wb.close()
+    else:
+        with open(temp_path, newline="", encoding="utf-8-sig") as handle:
+            reader = csv.DictReader(handle)
+            for row in reader:
+                samples += 1
+                for header in headers:
+                    text = str(row.get(header, "") or "").strip()
+                    if EMAIL_REGEX.match(text):
+                        counts[header] += 1
+                if samples >= sample_limit:
+                    break
+
+    for header in headers:
+        matches = counts.get(header, 0)
+        confidence = (matches / samples) if samples else 0.0
+        suggestions.append(
+            {
+                "column": header,
+                "matches": matches,
+                "sampled": samples,
+                "confidence": round(confidence, 3),
+            }
+        )
+
+    suggestions.sort(key=lambda item: (item["matches"], item["confidence"]), reverse=True)
+    top_n = suggestions[: min(5, len(suggestions))]
+    return top_n, samples
 
 # Stripe Setup
 STRIPE_SECRET = os.getenv("STRIPE_SECRET_KEY", "")
@@ -400,6 +463,10 @@ async def parse_headers(
         temp_path = await stream_input_to_tempfile(supabase_client, file_path)
         print(f"[ParseHeaders] Streamed {file_path} to temporary file")
 
+        headers: list[str] = []
+        email_suggestions = []
+        email_sample_size = 0
+
         try:
             if file_path.lower().endswith(".xlsx"):
                 headers = extract_xlsx_headers(temp_path)
@@ -407,6 +474,10 @@ async def parse_headers(
             else:
                 headers = extract_csv_headers(temp_path)
                 row_count = count_csv_rows(temp_path)
+
+            email_suggestions, email_sample_size = _sample_email_columns(
+                temp_path, headers, file_path
+            )
         finally:
             try:
                 os.unlink(temp_path)
@@ -445,6 +516,8 @@ async def parse_headers(
             "credits_remaining": credits_remaining,
             "has_enough_credits": has_enough_credits,
             "missing_credits": missing_credits,
+            "email_column_suggestions": email_suggestions,
+            "email_sampled_rows": email_sample_size,
         }
 
     except HTTPException:
@@ -461,14 +534,10 @@ async def parse_headers(
 # ✅ Step 2 — Create job
 from pydantic import BaseModel
 
-class JobRequest(BaseModel):
+class EmailJobRequest(BaseModel):
     file_path: str
-    company_col: str
-    desc_col: str
-    industry_col: str
-    title_col: str
-    size_col: str
-    service: str
+    email_col: str
+    service_context: Optional[str] = None
 
 
 @app.get("/jobs")
@@ -718,7 +787,7 @@ def _rollback_credit_reservation(
 
 @app.post("/jobs")
 async def create_job(
-    req: JobRequest,
+    req: EmailJobRequest,
     current_user: AuthenticatedUser = Depends(get_current_user),
 ):
     supabase = get_supabase()
@@ -732,8 +801,10 @@ async def create_job(
         temp_path = await stream_input_to_tempfile(supabase, file_path)
         try:
             if file_path.lower().endswith(".xlsx"):
+                headers = extract_xlsx_headers(temp_path)
                 row_count = count_xlsx_rows(temp_path)
             else:
+                headers = extract_csv_headers(temp_path)
                 row_count = count_csv_rows(temp_path)
         finally:
             try:
@@ -741,15 +812,18 @@ async def create_job(
             except OSError:
                 pass
 
+        if req.email_col not in headers:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Column '{req.email_col}' not found in uploaded file",
+            )
+
         job_id = str(uuid.uuid4())
         meta = {
             "file_path": file_path,
-            "company_col": req.company_col,
-            "desc_col": req.desc_col,
-            "industry_col": req.industry_col,
-            "title_col": req.title_col,
-            "size_col": req.size_col,
-            "service": req.service,
+            "email_col": req.email_col,
+            "service_context": req.service_context,
+            "pipeline": "groq",
         }
 
         lock_name = f"credits_lock:{current_user.user_id}"

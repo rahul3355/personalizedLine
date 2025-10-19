@@ -41,12 +41,7 @@ def test_parse_headers_rejects_mismatched_path(client):
 def test_create_job_rejects_mismatched_path(client):
     payload = {
         "file_path": "other-user/data.csv",
-        "company_col": "company",
-        "desc_col": "description",
-        "industry_col": "industry",
-        "title_col": "title",
-        "size_col": "size",
-        "service": "service-name",
+        "email_col": "email",
     }
     response = client.post("/jobs", json=payload)
     assert response.status_code == 403
