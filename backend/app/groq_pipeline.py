@@ -133,16 +133,47 @@ def _build_tokenizer():
     try:
         return tiktoken.encoding_for_model("gpt-4")
     except Exception:
+        try:
+            return tiktoken.get_encoding("cl100k_base")
+        except Exception:  # pragma: no cover - network failures in CI
+            class _FallbackTokenizer:
+                def encode(self, text: str):
+                    return text.split()
+
+            return _FallbackTokenizer()
         return tiktoken.get_encoding("cl100k_base")
 
 
 ENCODER = _build_tokenizer()
 
 
+def _require_env(name: str) -> str:
+    value = os.getenv(name)
+    if not value:
+        raise ProspectResearchError(f"{name} is not configured")
+    return value
+
+
+def _load_groq_class():  # pragma: no cover - thin import shim
+    global Groq  # type: ignore
+    if Groq is not None:
+        return Groq
+    try:
+        from groq import Groq as _Groq  # type: ignore
+    except ModuleNotFoundError as exc:  # pragma: no cover - handled upstream
+        raise ProspectResearchError("groq SDK is not installed") from exc
+    Groq = _Groq  # type: ignore
+    return Groq
+
+
 def count_tokens(text: Optional[str]) -> int:
     return len(ENCODER.encode(text or ""))
 
 
+def _get_groq_client() -> "Groq":
+    groq_cls = _load_groq_class()
+    api_key = _require_env("GROQ_API_KEY")
+    return groq_cls(api_key=api_key)
 def _get_groq_client() -> Groq:
     if Groq is None:
         raise ProspectResearchError("groq SDK is not installed")
@@ -156,6 +187,7 @@ def _ensure_session(session: Optional[requests.Session] = None) -> requests.Sess
 
 def _serper_search(email: str, session: Optional[requests.Session] = None) -> Dict[str, Any]:
     api_key = _require_env("SERPER_API_KEY")
+
     sess = _ensure_session(session)
     username, domain = email.split("@", 1)
     payload = [{"q": f"{username} {domain}"}, {"q": domain}]
