@@ -22,8 +22,13 @@ except ModuleNotFoundError:  # pragma: no cover - fallback tokenizer
     tiktoken = None  # type: ignore
 
 SERPER_URL = os.getenv("SERPER_URL", "https://google.serper.dev/search")
-SERPER_API_KEY = os.getenv("SERPER_API_KEY", "")
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+
+
+def _require_env(name: str) -> str:
+    value = os.getenv(name, "")
+    if not value:
+        raise ProspectResearchError(f"{name} is not configured")
+    return value
 
 SERVICE_CONTEXT_DEFAULT = os.getenv(
     "SERVICE_CONTEXT",
@@ -141,9 +146,8 @@ def count_tokens(text: Optional[str]) -> int:
 def _get_groq_client() -> Groq:
     if Groq is None:
         raise ProspectResearchError("groq SDK is not installed")
-    if not GROQ_API_KEY:
-        raise ProspectResearchError("GROQ_API_KEY is not configured")
-    return Groq(api_key=GROQ_API_KEY)
+    api_key = _require_env("GROQ_API_KEY")
+    return Groq(api_key=api_key)
 
 
 def _ensure_session(session: Optional[requests.Session] = None) -> requests.Session:
@@ -151,13 +155,11 @@ def _ensure_session(session: Optional[requests.Session] = None) -> requests.Sess
 
 
 def _serper_search(email: str, session: Optional[requests.Session] = None) -> Dict[str, Any]:
-    if not SERPER_API_KEY:
-        raise ProspectResearchError("SERPER_API_KEY is not configured")
-
+    api_key = _require_env("SERPER_API_KEY")
     sess = _ensure_session(session)
     username, domain = email.split("@", 1)
     payload = [{"q": f"{username} {domain}"}, {"q": domain}]
-    headers = {"X-API-KEY": SERPER_API_KEY, "Content-Type": "application/json"}
+    headers = {"X-API-KEY": api_key, "Content-Type": "application/json"}
 
     resp = sess.post(SERPER_URL, headers=headers, json=payload, timeout=30)
     resp.raise_for_status()
