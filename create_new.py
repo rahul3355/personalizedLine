@@ -1,7 +1,7 @@
 import os, pandas as pd, streamlit as st
 from backend.app.db import enqueue_job
 from backend.app.jobs import process_job, EXEC
-from backend.app.gpt_helpers import generate_opener
+from backend.app.personalization_pipeline import run_personalization_pipeline
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -35,14 +35,21 @@ def render(user_id: str):
         if st.button("Generate Preview"):
             prev = df.head(3).copy()
             lines = []
+            infos = []
             for _, row in prev.iterrows():
-                opener, *_ = generate_opener(
-                    email=row.get(email_col, ""),
-                    service=service_context,
-                )
-                lines.append(opener)
+                try:
+                    result = run_personalization_pipeline(
+                        email=row.get(email_col, ""),
+                        service=service_context,
+                    )
+                    infos.append(result.user_info)
+                    lines.append(result.personalized_line)
+                except Exception as exc:
+                    infos.append(f"[Preview error collecting user info: {exc}]")
+                    lines.append(f"[Preview error generating line: {exc}]")
             prev["personalized_line"] = lines
-            st.dataframe(prev[[email_col, "personalized_line"]])
+            prev["user_info"] = infos
+            st.dataframe(prev[[email_col, "user_info", "personalized_line"]])
 
         if st.button("Start Full File Job"):
             if len(df) > 50:
