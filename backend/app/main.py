@@ -371,6 +371,8 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
 def get_supabase():
     url = os.getenv("SUPABASE_URL")
     key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    if not url or not key:
+        raise HTTPException(status_code=500, detail="Supabase credentials are not configured")
     return create_client(url, key)
 
 

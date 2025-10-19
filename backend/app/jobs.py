@@ -8,7 +8,7 @@ import pandas as pd
 import traceback
 import tempfile
 import shutil
-from backend.app.gpt_helpers import generate_opener
+from backend.app.personalization_pipeline import run_personalization_pipeline
 from backend.app.supabase_client import supabase
 from datetime import datetime
 import redis
@@ -229,6 +229,8 @@ def _input_iterator(local_path: str):
 
 def _finalize_empty_job(job_id: str, user_id: str, headers: List[str], timings: dict, job_start: float):
     final_columns = list(headers)
+    if "user_info" not in final_columns:
+        final_columns.append("user_info")
     if "personalized_line" not in final_columns:
         final_columns.append("personalized_line")
 
@@ -581,6 +583,8 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
             reader = csv.DictReader(in_f)
             input_headers = reader.fieldnames or headers
             output_headers = list(input_headers)
+            if "user_info" not in output_headers:
+                output_headers.append("user_info")
             if "personalized_line" not in output_headers:
                 output_headers.append("personalized_line")
             writer = csv.DictWriter(out_f, fieldnames=output_headers)
@@ -592,16 +596,20 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                         f"[Worker] Job {job_id} | Chunk {chunk_id} | Row {i}/{chunk_total_rows} -> {row}"
                     )
                     email_value = row.get(meta.get("email_col", ""), "")
-                    line, _, _, _ = generate_opener(
+                    result = run_personalization_pipeline(
                         email=email_value,
                         service=meta.get("service", ""),
                     )
+                    line = result.personalized_line or ""
+                    user_info = result.user_info or ""
                 except Exception as e:
                     print(f"[Worker] ERROR row {i}: {e}")
                     traceback.print_exc()
                     line = f"[Error generating line: {e}]"
+                    user_info = f"[Error collecting user info: {e}]"
 
                 normalized_row = {header: row.get(header, "") for header in input_headers}
+                normalized_row["user_info"] = user_info
                 normalized_row["personalized_line"] = line
                 writer.writerow(normalized_row)
 
@@ -786,6 +794,16 @@ def finalize_job(job_id: str, user_id: str, total_chunks: int):
         # --- Final CSV → XLSX ---
         upload_start = time.time()
         final_df = pd.concat(frames, ignore_index=True)
+        if "user_info" not in final_df.columns:
+            final_df["user_info"] = ""
+        if "personalized_line" not in final_df.columns:
+            final_df["personalized_line"] = ""
+        ordered_columns = [
+            col
+            for col in final_df.columns
+            if col not in {"user_info", "personalized_line"}
+        ] + ["user_info", "personalized_line"]
+        final_df = final_df[ordered_columns]
         local_dir = tempfile.mkdtemp()
         out_csv = os.path.join(local_dir, f"{job_id}_final.csv")
         out_xlsx = os.path.join(local_dir, f"{job_id}_final.xlsx")

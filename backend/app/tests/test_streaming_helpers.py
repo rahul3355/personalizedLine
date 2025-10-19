@@ -120,6 +120,8 @@ def test_stream_input_to_tempfile_preserves_suffix(monkeypatch):
         file_streaming_module.httpx, "AsyncClient", DummyAsyncClient
     )
 
+    monkeypatch.setenv("SUPABASE_URL", "https://project.supabase.co")
+
     supabase = DummySupabase()
     temp_path = asyncio.run(
         file_streaming_module.stream_input_to_tempfile(
@@ -139,3 +141,107 @@ def test_stream_input_to_tempfile_preserves_suffix(monkeypatch):
             workbook.close()
     finally:
         os.unlink(temp_path)
+
+
+def test_stream_input_to_tempfile_handles_relative_signed_url(monkeypatch):
+    payload = b"test"
+
+    class DummyBucket:
+        def create_signed_url(self, file_path, expires_in):
+            return {"signedURL": "/storage/v1/object/sign/inputs/data.csv"}
+
+    class DummyStorage:
+        def from_(self, name):
+            return DummyBucket()
+
+    class DummySupabase:
+        def __init__(self):
+            self.storage = DummyStorage()
+
+    class DummyStream:
+        status_code = 200
+
+        def __init__(self, data):
+            self._data = data
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def aiter_bytes(self, chunk_size):
+            yield self._data
+
+    class DummyAsyncClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        def stream(self, method, url):
+            assert url == "https://project.supabase.co/storage/v1/object/sign/inputs/data.csv"
+            return DummyStream(payload)
+
+    monkeypatch.setattr(
+        file_streaming_module.httpx, "AsyncClient", DummyAsyncClient
+    )
+    monkeypatch.setenv("SUPABASE_URL", "https://project.supabase.co")
+
+    supabase = DummySupabase()
+    temp_path = asyncio.run(
+        file_streaming_module.stream_input_to_tempfile(supabase, "user/data.csv")
+    )
+
+    try:
+        with open(temp_path, "rb") as handle:
+            assert handle.read() == payload
+    finally:
+        os.unlink(temp_path)
+
+
+def test_stream_input_to_tempfile_requires_supabase_url(monkeypatch):
+    class DummyBucket:
+        def create_signed_url(self, file_path, expires_in):
+            return {"signedURL": "/relative"}
+
+    class DummyStorage:
+        def from_(self, name):
+            return DummyBucket()
+
+    class DummySupabase:
+        def __init__(self):
+            self.storage = DummyStorage()
+
+    class DummyAsyncClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        def stream(self, method, url):
+            raise AssertionError("Should not be called")
+
+    monkeypatch.setattr(
+        file_streaming_module.httpx, "AsyncClient", DummyAsyncClient
+    )
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+
+    supabase = DummySupabase()
+
+    with pytest.raises(file_streaming_module.FileStreamingError) as exc:
+        asyncio.run(
+            file_streaming_module.stream_input_to_tempfile(
+                supabase, "user/data.csv"
+            )
+        )
+
+    assert "SUPABASE_URL" in str(exc.value)

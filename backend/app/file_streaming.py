@@ -48,9 +48,24 @@ async def stream_input_to_tempfile(
     except Exception as exc:  # pragma: no cover - network/SDK errors
         raise FileStreamingError(f"Signed URL error: {exc}") from exc
 
-    signed_url = (signed or {}).get("signedURL")
+    signed_payload = signed or {}
+    signed_url = (
+        signed_payload.get("signedURL")
+        or signed_payload.get("signed_url")
+        or signed_payload.get("signedUrl")
+    )
+
     if not signed_url:
-        raise FileStreamingError("Failed to obtain signed URL for streaming")
+        error_detail = signed_payload.get("error") or "Failed to obtain signed URL for streaming"
+        raise FileStreamingError(str(error_detail))
+
+    if not signed_url.lower().startswith("http"):
+        base_url = os.getenv("SUPABASE_URL", "").rstrip("/")
+        if not base_url:
+            raise FileStreamingError(
+                "Signed URL missing scheme and SUPABASE_URL is not configured"
+            )
+        signed_url = f"{base_url}/{signed_url.lstrip('/')}"
 
     suffix = os.path.splitext(file_path)[1]
     tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
