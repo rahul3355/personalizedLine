@@ -37,11 +37,7 @@ def render(user_id: str):
             lines = []
             for _, row in prev.iterrows():
                 opener, *_ = generate_opener(
-                    company=row.get(email_col, ""),
-                    description="",
-                    industry="",
-                    role="",
-                    size="",
+                    email=row.get(email_col, ""),
                     service=service_context,
                 )
                 lines.append(opener)

@@ -593,11 +593,7 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                     )
                     email_value = row.get(meta.get("email_col", ""), "")
                     line, _, _, _ = generate_opener(
-                        company=email_value,
-                        description="",
-                        industry="",
-                        role="",
-                        size="",
+                        email=email_value,
                         service=meta.get("service", ""),
                     )
                 except Exception as e:
