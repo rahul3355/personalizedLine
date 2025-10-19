@@ -112,7 +112,12 @@ FRONTEND_BASE_URLS = os.getenv(
     "http://localhost:3000,http://127.0.0.1:3000",
 )
 
-ALLOWED_ORIGINS = [url.strip() for url in FRONTEND_BASE_URLS.split(",") if url.strip()]
+DEFAULT_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+ALLOWED_ORIGINS = [url.strip().rstrip("/") for url in FRONTEND_BASE_URLS.split(",") if url.strip()]
 
 if not ALLOWED_ORIGINS:
     env_value = os.getenv("ENV", "").lower()
@@ -121,6 +126,9 @@ if not ALLOWED_ORIGINS:
         logging.warning(
             "FRONTEND_BASE_URLS resolved to an empty list in a production-like environment."
         )
+
+    # Always fall back to localhost origins for development if no explicit list was provided.
+    ALLOWED_ORIGINS = DEFAULT_ALLOWED_ORIGINS
 
 APP_BASE_URL = os.getenv("APP_BASE_URL", "http://localhost:3000").rstrip("/")
 SUCCESS_RETURN_PATH = os.getenv("STRIPE_SUCCESS_PATH", "/billing/success")
