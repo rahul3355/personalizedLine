@@ -229,16 +229,13 @@ def test_parse_headers_with_xlsx(client, patch_streaming):
     assert data["credits_remaining"] == 10
     assert data["has_enough_credits"] is True
     assert data["missing_credits"] == 0
+    assert data["email_header_guess"] == ""
 
 
 def test_create_job_with_xlsx_counts_rows(client, patch_streaming):
     payload = {
         "file_path": "user-123/uploads/data.xlsx",
-        "company_col": "company",
-        "desc_col": "title",
-        "industry_col": "company",
-        "title_col": "title",
-        "size_col": "company",
+        "email_col": "company",
         "service": "standard",
     }
     response = client.post("/jobs", json=payload)
@@ -261,11 +258,7 @@ def test_create_job_rejects_without_credits(client, patch_streaming):
     patch_streaming.profiles["user-123"]["credits_remaining"] = 1
     payload = {
         "file_path": "user-123/uploads/data.xlsx",
-        "company_col": "company",
-        "desc_col": "title",
-        "industry_col": "company",
-        "title_col": "title",
-        "size_col": "company",
+        "email_col": "company",
         "service": "standard",
     }
     response = client.post("/jobs", json=payload)

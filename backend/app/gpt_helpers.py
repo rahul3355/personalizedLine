@@ -19,32 +19,36 @@ client = OpenAI(
 ONE_PROMPT_RULES = (
     "You are writing the first sentence of a cold email.\n"
     "Steps (do this internally, do not show):\n"
-    "1. Skim the company details and service context.\n"
-    "2. Identify one specific pain they likely face that connects directly to the service context.\n"
+    "1. Skim the recipient email address and the service context.\n"
+    "2. Infer one likely angle or challenge worth mentioning based only on the email address and service context.\n"
     "3. Write exactly one natural, conversational sentence (18–25 words).\n\n"
     "Rules:\n"
-    "- Mention the company name naturally.\n"
-    "- Human-written tone, plain language, no headlines.\n"
+    "- Keep the tone human and observational.\n"
     "- Do not pitch, do not compliment, do not ask questions.\n"
     "- Do not explain your reasoning, only output the sentence.\n"
 )
 
-USER_TEMPLATE = """Company: {company}
-Description: {description}
-Industry: {industry}
-Role: {role}
-Size: {size}
+USER_TEMPLATE = """Recipient email: {email}
 Service context: {service}"""
 
 # --- Core function ---
-def generate_opener(company, description, industry, role, size, service):
+def generate_opener(
+    company: str = "",
+    description: str = "",
+    industry: str = "",
+    role: str = "",
+    size: str = "",
+    service: str = "",
+    *,
+    email: str = "",
+):
+    """Generate an opener using only the provided email and service context."""
+    email_value = _coalesce_text(email or company)
+    service_value = _coalesce_text(service)
+
     user_prompt = USER_TEMPLATE.format(
-        company=company or "",
-        description=description or "",
-        industry=industry or "",
-        role=role or "",
-        size=str(size or ""),
-        service=service or ""
+        email=email_value,
+        service=service_value,
     )
     messages = [
         {"role": "user", "content": ONE_PROMPT_RULES + "\n\n" + user_prompt}
@@ -96,12 +100,8 @@ def generate_line(title, company, description, offer, persona, channel, max_word
     )
 
     opener, *_ = generate_opener(
-        _coalesce_text(company),
-        _coalesce_text(description),
-        "",  # industry (unused in legacy preview context)
-        _coalesce_text(title),
-        "",
-        service_context,
+        email=_coalesce_text(company) or _coalesce_text(title),
+        service=service_context,
     )
 
     return opener
