@@ -23,6 +23,13 @@ except ModuleNotFoundError:  # pragma: no cover - fallback tokenizer
 
 SERPER_URL = os.getenv("SERPER_URL", "https://google.serper.dev/search")
 
+
+def _require_env(name: str) -> str:
+    value = os.getenv(name, "")
+    if not value:
+        raise ProspectResearchError(f"{name} is not configured")
+    return value
+
 SERVICE_CONTEXT_DEFAULT = os.getenv(
     "SERVICE_CONTEXT",
     (
@@ -134,6 +141,7 @@ def _build_tokenizer():
                     return text.split()
 
             return _FallbackTokenizer()
+        return tiktoken.get_encoding("cl100k_base")
 
 
 ENCODER = _build_tokenizer()
@@ -166,6 +174,11 @@ def _get_groq_client() -> "Groq":
     groq_cls = _load_groq_class()
     api_key = _require_env("GROQ_API_KEY")
     return groq_cls(api_key=api_key)
+def _get_groq_client() -> Groq:
+    if Groq is None:
+        raise ProspectResearchError("groq SDK is not installed")
+    api_key = _require_env("GROQ_API_KEY")
+    return Groq(api_key=api_key)
 
 
 def _ensure_session(session: Optional[requests.Session] = None) -> requests.Session:
