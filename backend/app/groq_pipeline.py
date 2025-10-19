@@ -24,12 +24,6 @@ except ModuleNotFoundError:  # pragma: no cover - fallback tokenizer
 SERPER_URL = os.getenv("SERPER_URL", "https://google.serper.dev/search")
 
 
-def _require_env(name: str) -> str:
-    value = os.getenv(name, "")
-    if not value:
-        raise ProspectResearchError(f"{name} is not configured")
-    return value
-
 SERVICE_CONTEXT_DEFAULT = os.getenv(
     "SERVICE_CONTEXT",
     (
@@ -114,6 +108,48 @@ class PipelineResult:
         return total
 
 
+@dataclass
+class ProspectBatchItem:
+    email: str
+    result: Optional[PipelineResult]
+    error: Optional[str]
+    elapsed_seconds: float
+
+    @property
+    def total_cost(self) -> float:
+        if not self.result:
+            return 0.0
+        return self.result.total_cost
+
+    @property
+    def input_tokens(self) -> int:
+        if not self.result:
+            return 0
+        return self.result.total_input_tokens
+
+    @property
+    def output_tokens(self) -> int:
+        if not self.result:
+            return 0
+        return self.result.total_output_tokens
+
+    @property
+    def model_time(self) -> float:
+        if not self.result:
+            return 0.0
+        return self.result.total_elapsed
+
+
+@dataclass
+class BatchRun:
+    items: list[ProspectBatchItem]
+    total_input_tokens: int
+    total_output_tokens: int
+    total_cost_usd: float
+    total_model_time_seconds: float
+    overall_elapsed_seconds: float
+
+
 def _calculate_cost(model_name: str, input_tokens: int, output_tokens: int) -> float:
     if model_name not in MODEL_PRICING:
         raise ProspectResearchError(f"Unknown model pricing for {model_name}")
@@ -148,10 +184,16 @@ ENCODER = _build_tokenizer()
 
 
 def _require_env(name: str) -> str:
-    value = os.getenv(name)
+    value = os.getenv(name, "")
     if not value:
         raise ProspectResearchError(f"{name} is not configured")
     return value
+
+
+def _resolve_api_key(name: str, override: Optional[str]) -> str:
+    if override:
+        return override
+    return _require_env(name)
 
 
 def _load_groq_class():  # pragma: no cover - thin import shim
@@ -170,28 +212,27 @@ def count_tokens(text: Optional[str]) -> int:
     return len(ENCODER.encode(text or ""))
 
 
-def _get_groq_client() -> "Groq":
+def _get_groq_client(*, api_key: Optional[str] = None) -> "Groq":
     groq_cls = _load_groq_class()
-    api_key = _require_env("GROQ_API_KEY")
-    return groq_cls(api_key=api_key)
-def _get_groq_client() -> Groq:
-    if Groq is None:
-        raise ProspectResearchError("groq SDK is not installed")
-    api_key = _require_env("GROQ_API_KEY")
-    return Groq(api_key=api_key)
+    key = _resolve_api_key("GROQ_API_KEY", api_key)
+    return groq_cls(api_key=key)
 
 
 def _ensure_session(session: Optional[requests.Session] = None) -> requests.Session:
     return session or requests.Session()
 
 
-def _serper_search(email: str, session: Optional[requests.Session] = None) -> Dict[str, Any]:
-    api_key = _require_env("SERPER_API_KEY")
-
+def _serper_search(
+    email: str,
+    *,
+    api_key: Optional[str] = None,
+    session: Optional[requests.Session] = None,
+) -> Dict[str, Any]:
+    key = _resolve_api_key("SERPER_API_KEY", api_key)
     sess = _ensure_session(session)
     username, domain = email.split("@", 1)
     payload = [{"q": f"{username} {domain}"}, {"q": domain}]
-    headers = {"X-API-KEY": api_key, "Content-Type": "application/json"}
+    headers = {"X-API-KEY": key, "Content-Type": "application/json"}
 
     resp = sess.post(SERPER_URL, headers=headers, json=payload, timeout=30)
     resp.raise_for_status()
@@ -213,6 +254,60 @@ def _collect_paragraphs(search_payload: Any) -> str:
             if title or snippet:
                 snippets.append("\n".join(filter(None, [title, snippet])))
     return "\n\n".join(snippets)
+
+
+def _summarize_service_context(service_context: Optional[str]) -> str:
+    text = (service_context or SERVICE_CONTEXT_DEFAULT or "").strip()
+    if not text:
+        return "help your team personalize every outreach email at scale with AI"
+    first_sentence = re.split(r"(?<=[.!?])\s+", text)[0].strip()
+    cleaned = re.sub(r"^I\s+have\s+a\s+saas\s+which\s+helps\s+you\s+", "", first_sentence, flags=re.IGNORECASE)
+    cleaned = cleaned.rstrip(". ")
+    if not cleaned:
+        return "help your team personalize every outreach email at scale with AI"
+    if re.match(r"^(help|support|drive|enable|improve|personalize)", cleaned, re.IGNORECASE):
+        return cleaned
+    return f"help with {cleaned}"
+
+
+def _select_highlight(snippets: str) -> str:
+    normalized = re.sub(r"\s+", " ", snippets or "").strip()
+    if not normalized:
+        return "the momentum your team is building right now"
+    sentences = re.split(r"(?<=[.!?])\s+", normalized)
+    for sentence in sentences:
+        candidate = sentence.strip()
+        if len(candidate) >= 40:
+            return candidate
+    return normalized[:160].rstrip(" ,;:")
+
+
+def _compose_simple_line(snippets: str, service_context: Optional[str]) -> str:
+    highlight = _select_highlight(snippets)
+    if highlight and highlight[-1] not in ".!?":
+        highlight = f"{highlight}."
+    context = _summarize_service_context(service_context)
+    return (
+        f"While digging into your work I noticed {highlight} "
+        f"It made me think about how we could {context}."
+    )
+
+
+def _fallback_result(
+    *,
+    line: str,
+    search_payload: Any,
+    snippets: str,
+    reason: str,
+) -> PipelineResult:
+    return PipelineResult(
+        line=line,
+        search_snippets=snippets,
+        serper_payload=json.dumps(search_payload, ensure_ascii=False),
+        llama_run=None,
+        gpt_run=None,
+        fallback_reason=reason,
+    )
 
 
 def _run_llama(snippets: str, client: Groq) -> ModelRun:
@@ -276,11 +371,17 @@ def generate_opener_from_email(
     service_context: Optional[str] = None,
     session: Optional[requests.Session] = None,
     client: Optional[Groq] = None,
+    serper_api_key: Optional[str] = None,
+    groq_api_key: Optional[str] = None,
 ) -> PipelineResult:
     if not email or not EMAIL_REGEX.match(email):
         raise ProspectResearchError("A valid email address is required")
 
-    search_payload = _serper_search(email, session=session)
+    try:
+        search_payload = _serper_search(email, api_key=serper_api_key, session=session)
+    except TypeError:
+        # Compatibility shim for existing monkeypatched stubs in tests.
+        search_payload = _serper_search(email, session=session)
     snippets = _collect_paragraphs(search_payload)
     if not snippets:
         return PipelineResult(
@@ -292,12 +393,21 @@ def generate_opener_from_email(
             fallback_reason="no_search_results",
         )
 
-    groq_client = client or _get_groq_client()
+    service_text = service_context or SERVICE_CONTEXT_DEFAULT
+
+    try:
+        groq_client = client or _get_groq_client(api_key=groq_api_key)
+    except ProspectResearchError as exc:
+        fallback_line = _compose_simple_line(snippets, service_text)
+        return _fallback_result(
+            line=fallback_line,
+            search_payload=search_payload,
+            snippets=snippets,
+            reason=str(exc),
+        )
 
     llama_run = _run_llama(snippets, groq_client)
     extraction_json = llama_run.raw_output
-
-    service_text = service_context or SERVICE_CONTEXT_DEFAULT
 
     try:
         json.loads(extraction_json)
@@ -318,5 +428,110 @@ def generate_opener_from_email(
         llama_run=llama_run,
         gpt_run=gpt_run,
         fallback_reason=None,
+    )
+
+
+def run_pipeline_for_emails(
+    emails: list[str],
+    *,
+    service_context: Optional[str] = None,
+    serper_api_key: Optional[str] = None,
+    groq_api_key: Optional[str] = None,
+    session: Optional[requests.Session] = None,
+    client: Optional[Groq] = None,
+    emit_logs: bool = False,
+) -> BatchRun:
+    """Process a batch of emails using the Groq + SERPER pipeline.
+
+    This mirrors the example script flow supplied by power users by tracking
+    aggregate cost, token, and timing statistics while optionally streaming
+    detailed logs to stdout.
+    """
+
+    start_wall = time.time()
+    items: list[ProspectBatchItem] = []
+    total_input = 0
+    total_output = 0
+    total_cost = Decimal("0")
+    total_model_time = 0.0
+
+    for email in emails:
+        if emit_logs:
+            print("\n" + "=" * 80)
+            print("Processing:", email)
+
+        item_start = time.time()
+        try:
+            result = generate_opener_from_email(
+                email,
+                service_context=service_context,
+                session=session,
+                client=client,
+                serper_api_key=serper_api_key,
+                groq_api_key=groq_api_key,
+            )
+            error = None
+        except ProspectResearchError as exc:
+            result = None
+            error = str(exc)
+
+        elapsed = round(time.time() - item_start, 3)
+        item = ProspectBatchItem(
+            email=email,
+            result=result,
+            error=error,
+            elapsed_seconds=elapsed,
+        )
+        items.append(item)
+
+        if result is not None:
+            total_input += result.total_input_tokens
+            total_output += result.total_output_tokens
+            total_model_time += result.total_elapsed
+            total_cost += Decimal(str(result.total_cost))
+
+        if emit_logs:
+            if error:
+                print("Error:", error)
+            else:
+                llama_cost = result.llama_run.cost_usd if result.llama_run else 0.0
+                gpt_cost = result.gpt_run.cost_usd if result.gpt_run else 0.0
+                snippets_preview = (result.search_snippets or "")[:400]
+                if snippets_preview:
+                    print("Search snippets preview:", snippets_preview)
+                print("Opening line:", result.line)
+                print(f"Time: {result.total_elapsed:.3f}s")
+                print(
+                    "Tokens → input: "
+                    f"{result.total_input_tokens}, output: {result.total_output_tokens}"
+                )
+                print(
+                    "Cost breakdown → "
+                    f"Llama8B ${llama_cost:.6f}, GPT120B ${gpt_cost:.6f}"
+                )
+                print(
+                    "Total email cost: $"
+                    f"{_round_money(Decimal(str(result.total_cost))):.6f}"
+                )
+            print(f"Overall email wall time: {elapsed:.3f}s")
+
+    total_elapsed = round(time.time() - start_wall, 4)
+
+    if emit_logs:
+        print("\n" + "=" * 80)
+        print("GRAND TOTALS")
+        print(f"Total time (s): {total_model_time:.3f}")
+        print(f"Total input tokens: {total_input}")
+        print(f"Total output tokens: {total_output}")
+        print(f"Total cost (USD): ${_round_money(total_cost):.6f}")
+        print(f"Overall script time (s): {total_elapsed:.4f} seconds")
+
+    return BatchRun(
+        items=items,
+        total_input_tokens=total_input,
+        total_output_tokens=total_output,
+        total_cost_usd=_round_money(total_cost),
+        total_model_time_seconds=round(total_model_time, 3),
+        overall_elapsed_seconds=total_elapsed,
     )
 
