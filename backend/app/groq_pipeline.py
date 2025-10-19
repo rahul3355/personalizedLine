@@ -216,6 +216,8 @@ def _get_groq_client(*, api_key: Optional[str] = None) -> "Groq":
     groq_cls = _load_groq_class()
     key = _resolve_api_key("GROQ_API_KEY", api_key)
     return groq_cls(api_key=key)
+    api_key = _require_env("GROQ_API_KEY")
+    return groq_cls(api_key=api_key)
 
 
 def _ensure_session(session: Optional[requests.Session] = None) -> requests.Session:
@@ -397,6 +399,7 @@ def generate_opener_from_email(
 
     try:
         groq_client = client or _get_groq_client(api_key=groq_api_key)
+        groq_client = client or _get_groq_client()
     except ProspectResearchError as exc:
         fallback_line = _compose_simple_line(snippets, service_text)
         return _fallback_result(
