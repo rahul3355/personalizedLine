@@ -9,18 +9,14 @@ import {
 } from "react";
 import { API_URL } from "../lib/api";
 import {
-  Tag,
-  Building2,
-  FileText,
   Upload as UploadIcon,
-  Briefcase,
-  Users,
   Check,
   ArrowRight,
   ArrowLeft,
   X as XIcon,
   Info,
   RefreshCcw,
+  Mail,
 } from "lucide-react";
 import { useAuth } from "../lib/AuthProvider";
 import { useRouter } from "next/router";
@@ -50,8 +46,8 @@ const STEP_META = [
     sub: "CSV or XLSX • up to 100k rows • header row required",
   },
   {
-    title: "Map columns",
-    sub: "Match your file headers to the correct fields.",
+    title: "Email column",
+    sub: "Choose which column contains the email address.",
   },
   {
     title: "Context",
@@ -77,7 +73,7 @@ const StepTracker = ({
   step: number;
   jobCreated: boolean;
 }) => {
-  const steps = ["Upload", "Map", "Context"];
+  const steps = ["Upload", "Email", "Context"];
 
   return (
     <div className="flex justify-center items-center mb-6">
@@ -141,11 +137,7 @@ export default function UploadPage() {
   const [headers, setHeaders] = useState<string[]>([]);
   const [tempPath, setTempPath] = useState<string | null>(null);
 
-  const [companyCol, setCompanyCol] = useState("");
-  const [descCol, setDescCol] = useState("");
-  const [industryCol, setIndustryCol] = useState("");
-  const [titleCol, setTitleCol] = useState("");
-  const [sizeCol, setSizeCol] = useState("");
+  const [emailCol, setEmailCol] = useState("");
 
   const [service, setService] = useState("");
 
@@ -181,11 +173,7 @@ export default function UploadPage() {
       setError(null);
       setJobCreated(false);
       setStep(0);
-      setCompanyCol("");
-      setDescCol("");
-      setIndustryCol("");
-      setTitleCol("");
-      setSizeCol("");
+      setEmailCol("");
       setRefreshingCredits(false);
     },
     []
@@ -285,24 +273,36 @@ export default function UploadPage() {
   }, []);
 
 
-  const autoMapHeaders = (headers: string[]) => {
-    const findMatch = (candidates: string[]) => {
-      return (
-        headers.find((h) =>
-          candidates.some((c) => h.toLowerCase().includes(c))
-        ) || ""
-      );
-    };
+  const autoMapHeaders = (headers: string[], guess?: string | null) => {
+    if (guess && headers.includes(guess)) {
+      setEmailCol(guess);
+      return;
+    }
 
-    setCompanyCol(
-      findMatch(["cleaned company name", "company name", "organization"])
-    );
-    setDescCol(
-      findMatch(["company short description", "description", "about"])
-    );
-    setIndustryCol(findMatch(["industry", "sector", "field"]));
-    setTitleCol(findMatch(["title", "seniority", "role", "position"]));
-    setSizeCol(findMatch(["employee count", "size", "headcount", "staff"]));
+    const normalize = (text: string) => text.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+    const targets = ["email", "emails", "e-mail", "e-mails", "mail", "mails"].map(normalize);
+
+    for (const header of headers) {
+      const normalizedHeader = normalize(header);
+      if (targets.includes(normalizedHeader)) {
+        setEmailCol(header);
+        return;
+      }
+    }
+
+    for (const header of headers) {
+      const parts = header
+        .trim()
+        .toLowerCase()
+        .split(/[^a-z0-9]+/)
+        .filter(Boolean);
+      if (parts.some((part) => part === "email" || part === "mail")) {
+        setEmailCol(header);
+        return;
+      }
+    }
+
+    setEmailCol((prev) => (prev && headers.includes(prev) ? prev : ""));
   };
 
   const applyCreditPayload = (
@@ -311,8 +311,22 @@ export default function UploadPage() {
   ) => {
     if (payload && Array.isArray(payload.headers)) {
       setHeaders(payload.headers);
+      const guess =
+        typeof payload.email_header_guess === "string"
+          ? payload.email_header_guess
+          : null;
       if (options.autoMap) {
-        autoMapHeaders(payload.headers);
+        autoMapHeaders(payload.headers, guess);
+      } else {
+        setEmailCol((prev) => {
+          if (prev && payload.headers.includes(prev)) {
+            return prev;
+          }
+          if (guess && payload.headers.includes(guess)) {
+            return guess;
+          }
+          return "";
+        });
       }
     }
 
@@ -517,8 +531,8 @@ export default function UploadPage() {
   };
 
   const handleConfirmHeaders = async (): Promise<boolean> => {
-    if (!companyCol || !descCol || !industryCol || !titleCol || !sizeCol) {
-      setError("Please select all required columns");
+    if (!emailCol) {
+      setError("Please select an email column");
       return false;
     }
 
@@ -536,15 +550,7 @@ export default function UploadPage() {
   };
 
   const handleCreateJob = async (): Promise<boolean> => {
-    if (
-      !tempPath ||
-      !companyCol ||
-      !descCol ||
-      !industryCol ||
-      !titleCol ||
-      !sizeCol ||
-      !service
-    ) {
+    if (!tempPath || !emailCol || !service) {
       setError("Please complete all required fields");
       return false;
     }
@@ -560,11 +566,7 @@ export default function UploadPage() {
       const payload = {
         user_id: session?.user.id || "",
         file_path: tempPath,
-        company_col: companyCol,
-        desc_col: descCol,
-        industry_col: industryCol,
-        title_col: titleCol,
-        size_col: sizeCol,
+        email_col: emailCol,
         service: service.trim() || "email outreach",
       };
 
@@ -834,72 +836,41 @@ export default function UploadPage() {
               <div className="flex flex-col">
                 <div className="space-y-5">
 
-                  <div className="grid grid-cols-2 gap-5">
-                    {[
-                      {
-                        label: "Company Column",
-                        value: companyCol,
-                        setValue: setCompanyCol,
-                        icon: <Building2 className="h-4 w-4" style={{ color: BRAND }} />,
-                      },
-                      {
-                        label: "Description Column",
-                        value: descCol,
-                        setValue: setDescCol,
-                        icon: <FileText className="h-4 w-4" style={{ color: BRAND }} />,
-                      },
-                      {
-                        label: "Industry Column",
-                        value: industryCol,
-                        setValue: setIndustryCol,
-                        icon: <Briefcase className="h-4 w-4" style={{ color: BRAND }} />,
-                      },
-                      {
-                        label: "Title Column",
-                        value: titleCol,
-                        setValue: setTitleCol,
-                        icon: <Tag className="h-4 w-4" style={{ color: BRAND }} />,
-                      },
-                      {
-                        label: "Size Column",
-                        value: sizeCol,
-                        setValue: setSizeCol,
-                        icon: <Users className="h-4 w-4" style={{ color: BRAND }} />,
-                      },
-                    ].map((field) => (
-                      <div key={field.label} className="space-y-1.5">
-                        <label className="text-xs text-gray-500 block">
-                          {field.label}
-                        </label>
-                        <div className="flex items-center gap-2">
-                          {field.icon}
-                          <select
-                            className="flex-1 rounded-md border bg-white px-3 py-2 text-sm focus:ring-2"
-                            style={{
-                              borderColor: "#E5E7EB",
-                              outline: "none",
-                              boxShadow: "none",
-                            }}
-                            value={field.value}
-                            onChange={(e) => field.setValue(e.target.value)}
-                            onFocus={(e) =>
-                            ((e.target as HTMLSelectElement).style.borderColor =
-                              BRAND)
-                            }
-                            onBlur={(e) =>
-                            ((e.target as HTMLSelectElement).style.borderColor =
-                              "#E5E7EB")
-                            }
-                          >
-                            {headers.map((h) => (
-                              <option key={h} value={h}>
-                                {h}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="space-y-2">
+                    <label className="text-xs text-gray-500 block">
+                      Email Column
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4" style={{ color: BRAND }} />
+                      <select
+                        className="flex-1 rounded-md border bg-white px-3 py-2 text-sm focus:ring-2"
+                        style={{
+                          borderColor: "#E5E7EB",
+                          outline: "none",
+                          boxShadow: "none",
+                        }}
+                        value={emailCol}
+                        onChange={(e) => setEmailCol(e.target.value)}
+                        onFocus={(e) =>
+                          ((e.target as HTMLSelectElement).style.borderColor = BRAND)
+                        }
+                        onBlur={(e) =>
+                          ((e.target as HTMLSelectElement).style.borderColor = "#E5E7EB")
+                        }
+                      >
+                        <option value="" disabled>
+                          Select a column
+                        </option>
+                        {headers.map((h) => (
+                          <option key={h} value={h}>
+                            {h}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      We&apos;ll only send the selected email column to generate your personalized lines.
+                    </p>
                   </div>
                   {error && (
                     <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm font-medium">
@@ -1089,60 +1060,31 @@ export default function UploadPage() {
       {step === 1 && !jobCreated && (
         <div className="block md:hidden w-full h-[calc(100vh-69px)] px-4 flex items-start justify-center overflow-hidden relative -mt-[64px] pt-[64px] bg-white">
           <div className="max-w-md w-full space-y-6" style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}>
-            <h2 className="text-lg font-semibold text-gray-900 text-center">Confirm Headers</h2>
+            <h2 className="text-lg font-semibold text-gray-900 text-center">Confirm Email Column</h2>
             {renderCreditBanner(true)}
-            <div className="rounded-xl border p-6 space-y-4" style={{ borderColor: "#E5E7EB" }}>
-              {[
-                {
-                  label: "Company Column",
-                  value: companyCol,
-                  setValue: setCompanyCol,
-                  icon: <Building2 className="h-4 w-4" style={{ color: BRAND }} />,
-                },
-                {
-                  label: "Description Column",
-                  value: descCol,
-                  setValue: setDescCol,
-                  icon: <FileText className="h-4 w-4" style={{ color: BRAND }} />,
-                },
-                {
-                  label: "Industry Column",
-                  value: industryCol,
-                  setValue: setIndustryCol,
-                  icon: <Briefcase className="h-4 w-4" style={{ color: BRAND }} />,
-                },
-                {
-                  label: "Title Column",
-                  value: titleCol,
-                  setValue: setTitleCol,
-                  icon: <Tag className="h-4 w-4" style={{ color: BRAND }} />,
-                },
-                {
-                  label: "Size Column",
-                  value: sizeCol,
-                  setValue: setSizeCol,
-                  icon: <Users className="h-4 w-4" style={{ color: BRAND }} />,
-                },
-              ].map((field) => (
-                <div key={field.label} className="space-y-1">
-                  <label className="text-xs text-gray-500 block">{field.label}</label>
-                  <div className="flex items-center gap-2">
-                    {field.icon}
-                    <select
-                      className="flex-1 rounded-md border bg-white px-3 py-2 text-sm"
-                      style={{ borderColor: "#E5E7EB" }}
-                      value={field.value}
-                      onChange={(e) => field.setValue(e.target.value)}
-                    >
-                      {headers.map((h) => (
-                        <option key={h} value={h}>
-                          {h}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              ))}
+            <div className="rounded-xl border p-6 space-y-3" style={{ borderColor: "#E5E7EB" }}>
+              <label className="text-xs text-gray-500 block">Email Column</label>
+              <div className="flex items-center gap-2">
+                <Mail className="h-4 w-4" style={{ color: BRAND }} />
+                <select
+                  className="flex-1 rounded-md border bg-white px-3 py-2 text-sm"
+                  style={{ borderColor: "#E5E7EB" }}
+                  value={emailCol}
+                  onChange={(e) => setEmailCol(e.target.value)}
+                >
+                  <option value="" disabled>
+                    Select a column
+                  </option>
+                  {headers.map((h) => (
+                    <option key={h} value={h}>
+                      {h}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <p className="text-xs text-gray-500">
+                Only the selected email column will be processed downstream.
+              </p>
             </div>
 
             <button
@@ -1152,7 +1094,7 @@ export default function UploadPage() {
               className="w-full py-3 rounded-md font-medium text-white text-[15px] tracking-tight disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ backgroundColor: BRAND }}
             >
-              {loading ? "Submitting..." : "Confirm Headers"}
+              {loading ? "Submitting..." : "Confirm Email Column"}
             </button>
           </div>
         </div>

@@ -3,7 +3,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from dotenv import load_dotenv
-import uuid, shutil, os, tempfile, threading, json, stripe, time
+import uuid, shutil, os, tempfile, threading, json, stripe, time, re
 from fastapi.responses import StreamingResponse
 import io
 from pydantic import BaseModel
@@ -441,9 +441,25 @@ async def parse_headers(
         has_enough_credits = credits_remaining >= row_count
         missing_credits = max(0, row_count - credits_remaining)
 
+        email_guess = ""
+        email_variants = {"email", "emails", "e-mail", "e-mails", "mail", "mails"}
+        for header in headers:
+            normalized = header.strip().lower()
+            normalized_simple = re.sub(r"[^a-z0-9]", "", normalized)
+            if normalized in email_variants or normalized_simple in email_variants:
+                email_guess = header
+                break
+
+        if not email_guess:
+            pattern = re.compile(r"\b(e-?mail|mail)s?\b", re.IGNORECASE)
+            for header in headers:
+                if pattern.search(header):
+                    email_guess = header
+                    break
+
         print(
             f"[ParseHeaders] Parsed headers for {file_path}: {headers} — rows={row_count} "
-            f"credits={credits_remaining} enough={has_enough_credits}"
+            f"credits={credits_remaining} enough={has_enough_credits} guess={email_guess!r}"
         )
 
         return {
@@ -453,6 +469,7 @@ async def parse_headers(
             "credits_remaining": credits_remaining,
             "has_enough_credits": has_enough_credits,
             "missing_credits": missing_credits,
+            "email_header_guess": email_guess,
         }
 
     except HTTPException:
@@ -471,11 +488,7 @@ from pydantic import BaseModel
 
 class JobRequest(BaseModel):
     file_path: str
-    company_col: str
-    desc_col: str
-    industry_col: str
-    title_col: str
-    size_col: str
+    email_col: str
     service: str
 
 
@@ -737,6 +750,10 @@ async def create_job(
     try:
         file_path = assert_user_owns_path(req.file_path, current_user.user_id)
 
+        email_col = (req.email_col or "").strip()
+        if not email_col:
+            raise HTTPException(status_code=400, detail="email_col required")
+
         temp_path = await stream_input_to_tempfile(supabase, file_path)
         try:
             if file_path.lower().endswith(".xlsx"):
@@ -752,11 +769,7 @@ async def create_job(
         job_id = str(uuid.uuid4())
         meta = {
             "file_path": file_path,
-            "company_col": req.company_col,
-            "desc_col": req.desc_col,
-            "industry_col": req.industry_col,
-            "title_col": req.title_col,
-            "size_col": req.size_col,
+            "email_col": email_col,
             "service": req.service,
         }
 

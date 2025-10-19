@@ -591,12 +591,13 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                     print(
                         f"[Worker] Job {job_id} | Chunk {chunk_id} | Row {i}/{chunk_total_rows} -> {row}"
                     )
+                    email_value = row.get(meta.get("email_col", ""), "")
                     line, _, _, _ = generate_opener(
-                        company=row.get(meta.get("company_col", ""), ""),
-                        description=row.get(meta.get("desc_col", ""), ""),
-                        industry=row.get(meta.get("industry_col", ""), ""),
-                        role=row.get(meta.get("title_col", ""), ""),
-                        size=row.get(meta.get("size_col", ""), ""),
+                        company=email_value,
+                        description="",
+                        industry="",
+                        role="",
+                        size="",
                         service=meta.get("service", ""),
                     )
                 except Exception as e:
