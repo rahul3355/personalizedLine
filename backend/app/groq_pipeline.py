@@ -24,12 +24,6 @@ except ModuleNotFoundError:  # pragma: no cover - fallback tokenizer
 SERPER_URL = os.getenv("SERPER_URL", "https://google.serper.dev/search")
 
 
-def _require_env(name: str) -> str:
-    value = os.getenv(name, "")
-    if not value:
-        raise ProspectResearchError(f"{name} is not configured")
-    return value
-
 SERVICE_CONTEXT_DEFAULT = os.getenv(
     "SERVICE_CONTEXT",
     (
@@ -148,7 +142,7 @@ ENCODER = _build_tokenizer()
 
 
 def _require_env(name: str) -> str:
-    value = os.getenv(name)
+    value = os.getenv(name, "")
     if not value:
         raise ProspectResearchError(f"{name} is not configured")
     return value
@@ -174,11 +168,6 @@ def _get_groq_client() -> "Groq":
     groq_cls = _load_groq_class()
     api_key = _require_env("GROQ_API_KEY")
     return groq_cls(api_key=api_key)
-def _get_groq_client() -> Groq:
-    if Groq is None:
-        raise ProspectResearchError("groq SDK is not installed")
-    api_key = _require_env("GROQ_API_KEY")
-    return Groq(api_key=api_key)
 
 
 def _ensure_session(session: Optional[requests.Session] = None) -> requests.Session:
@@ -213,6 +202,60 @@ def _collect_paragraphs(search_payload: Any) -> str:
             if title or snippet:
                 snippets.append("\n".join(filter(None, [title, snippet])))
     return "\n\n".join(snippets)
+
+
+def _summarize_service_context(service_context: Optional[str]) -> str:
+    text = (service_context or SERVICE_CONTEXT_DEFAULT or "").strip()
+    if not text:
+        return "help your team personalize every outreach email at scale with AI"
+    first_sentence = re.split(r"(?<=[.!?])\s+", text)[0].strip()
+    cleaned = re.sub(r"^I\s+have\s+a\s+saas\s+which\s+helps\s+you\s+", "", first_sentence, flags=re.IGNORECASE)
+    cleaned = cleaned.rstrip(". ")
+    if not cleaned:
+        return "help your team personalize every outreach email at scale with AI"
+    if re.match(r"^(help|support|drive|enable|improve|personalize)", cleaned, re.IGNORECASE):
+        return cleaned
+    return f"help with {cleaned}"
+
+
+def _select_highlight(snippets: str) -> str:
+    normalized = re.sub(r"\s+", " ", snippets or "").strip()
+    if not normalized:
+        return "the momentum your team is building right now"
+    sentences = re.split(r"(?<=[.!?])\s+", normalized)
+    for sentence in sentences:
+        candidate = sentence.strip()
+        if len(candidate) >= 40:
+            return candidate
+    return normalized[:160].rstrip(" ,;:")
+
+
+def _compose_simple_line(snippets: str, service_context: Optional[str]) -> str:
+    highlight = _select_highlight(snippets)
+    if highlight and highlight[-1] not in ".!?":
+        highlight = f"{highlight}."
+    context = _summarize_service_context(service_context)
+    return (
+        f"While digging into your work I noticed {highlight} "
+        f"It made me think about how we could {context}."
+    )
+
+
+def _fallback_result(
+    *,
+    line: str,
+    search_payload: Any,
+    snippets: str,
+    reason: str,
+) -> PipelineResult:
+    return PipelineResult(
+        line=line,
+        search_snippets=snippets,
+        serper_payload=json.dumps(search_payload, ensure_ascii=False),
+        llama_run=None,
+        gpt_run=None,
+        fallback_reason=reason,
+    )
 
 
 def _run_llama(snippets: str, client: Groq) -> ModelRun:
@@ -292,12 +335,21 @@ def generate_opener_from_email(
             fallback_reason="no_search_results",
         )
 
-    groq_client = client or _get_groq_client()
+    service_text = service_context or SERVICE_CONTEXT_DEFAULT
+
+    try:
+        groq_client = client or _get_groq_client()
+    except ProspectResearchError as exc:
+        fallback_line = _compose_simple_line(snippets, service_text)
+        return _fallback_result(
+            line=fallback_line,
+            search_payload=search_payload,
+            snippets=snippets,
+            reason=str(exc),
+        )
 
     llama_run = _run_llama(snippets, groq_client)
     extraction_json = llama_run.raw_output
-
-    service_text = service_context or SERVICE_CONTEXT_DEFAULT
 
     try:
         json.loads(extraction_json)
