@@ -1,0 +1,41 @@
+First Name,Last Name,Full Name,Title,Headline,Seniority,Email Status,LinkedIn Link,Is Likely To Engage,Lead City,Lead State,Lead Country,Company Name,Industry,Employee Count,Departments,Subdepartments,Functions,Cleaned Company Name,Company Website Full,Company Website Short,Company Blog Link,Company Twitter Link,Company Facebook Link,Company LinkedIn Link,Company Phone Number,Company Street,Company City,Company State,Company Country,Company Postal Code,Company Address,Company Annual Revenue,Company Market Cap,Company Total Funding,Company Latest Funding Type,Company Latest Funding Amount,Last Fund Raised At,Company Keywords,Company Technologies,Company Short Description,Company SEO Description,Number of Retail Locations,Company Founded Year,Email,sif_research,personalized_line
+Pip,Plah,Pip Plah,Vice President UK Sovereign Cloud,Vice President UK Sovereign Cloud,vp,verified,http://www.linkedin.com/in/pip-plah-9595021,,,,United Kingdom,Sap (Uk) Ltd,information technology & services,29,master_engineering_technical,cloud_mobility,,Sap,,,,,,http://www.linkedin.com/company/sap-uk-ltd,,,Feltham,England,United Kingdom,,Feltham,,,,,,,"software development, information technology & services",,,,0,1987,pip.plah@sap.com,"Here is the valid JSON output:
+
+```json
+{
+  ""person"": {
+    ""name"": ""Pip Plah"",
+    ""info"": [
+      ""Pip Plah is the Vice President UK Sovereign Cloud at Sap (Uk) Ltd."",
+      ""She is experienced in Vice President UK Sovereign Cloud, Security Officer, and Country Support Director roles.""
+    ]
+  },
+  ""company"": {
+    ""name"": ""Sap (Uk) Ltd"",
+    ""info"": [
+      ""Sap (Uk) Ltd is a global software company that is one of the largest vendors of ERP and other enterprise applications."",
+      ""The company is working on expanding its full-stack sovereign cloud capabilities with various innovative models such as the On-Site model.""
+    ],
+    ""moat"": ""Sap (Uk) Ltd has a moat in its unique On-Site model that gives customers the ability to host Sap's managed cloud infrastructure within their premises.""
+  }
+}
+```","Given your role at SAP, you've likely seen how effective tax management can directly influence a company's financial health."
+David,Rowlinson,David Rowlinson,Co-Founder,Co-Founder @ My Kind of Cruise | New Business Development,founder,verified,http://www.linkedin.com/in/david-rowlinson-673b6068,,Manchester,England,United Kingdom,My Kind of Cruise,online media,8,c_suite,founder,entrepreneurship,My Kind Of Cruise,http://www.mykindofcruise.com,http://www.mykindofcruise.com,,https://twitter.com/mykindofcruise,https://facebook.com/mykindofcruise,http://www.linkedin.com/company/my-kind,+44 808 502 1610,124 Finchley Road,London,England,United Kingdom,NW3 5JS,"Regina House 124 Finchley Rod, London, Greater London NW3 5JS, GB",,,,,,,"internet publishing, cruise booking app, best cruise deals, last minute cruises, cruise destinations, cabin categories, luxury cruises, family cruises, adventure cruises, cruise lines, shore excursions, onboard entertainment, dining packages, cruise itineraries, discounted cruises, sailing from uk, cruise reviews, cruise loyalty programs, all-inclusive cruises, cruise holiday packages, port cities, vacation planning, restoration credits, travel insurance, group cruises, solo cruises, no-fly cruising, cruise critic integration, royal caribbean, p&o cruises, princess cruises, carnival cruises, norwegian cruise line, celebrity cruises, azamara cruises, seabourn, virgin voyages, cunard line, fred olsen cruises, msc cruises, holland america line, sustainable cruising, eco-friendly cruising, new cruise ships, adult-only cruises, cultural excursions, health & wellness onboard, premium drink packages, budget cruises, value for money, cruise assistant app, online media, media","AppNexus, CloudFlare Hosting, Cloudflare DNS, Facebook Custom Audiences, Facebook Login (Connect), Facebook Widget, Flutter, Gmail, Google AdWords Conversion, Google Apps, Google Tag Manager, Hotjar, MailJet, Mobile Friendly, React Native, Remote, TikTok, Vercel, WordPress.org","Plan and book your perfect cruiseThe My Kind of Cruise app helps you find, compare and even book a cruise, all in one easy place.You are 100% financially protected, as we are part of The Travel Trust Association",,0,2020,david.rowlinson@mykindofcruise.com,"```json
+{
+  ""person"": {
+    ""name"": ""David Rowlinson"",
+    ""info"": [
+      ""I am the resident cruise expert at My Kind of Cruise, and if you need any help or inside info and Tips & tricks, reach out and I'll get back to you in no time"",
+      ""As a co-founder of My Kind of Cruise, I leverage my 30+ years of experience and expertise in the leisure, travel, and tourism industry to provide""
+    ]
+  },
+  ""company"": {
+    ""name"": ""My Kind of Cruise"",
+    ""info"": [
+      ""My Kind of Cruise is the world's first app where you can search, compare and book a cruise"",
+      ""The app allows you to easily search, compare, and book cruises with detailed itineraries, competitive pricing, and advanced search filters""
+    ],
+    ""moat"": ""Unique cruise app with instant customer service""
+  }
+}
+```","David, based on your role at mykindofcruise, I suspect tax efficiency could play a big part in your business's financial outcomes."

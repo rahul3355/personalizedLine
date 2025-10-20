@@ -1,0 +1,34 @@
+First Name,Last Name,Full Name,Title,Headline,Seniority,Email Status,LinkedIn Link,Is Likely To Engage,Lead City,Lead State,Lead Country,Company Name,Industry,Employee Count,Departments,Subdepartments,Functions,Cleaned Company Name,Company Website Full,Company Website Short,Company Blog Link,Company Twitter Link,Company Facebook Link,Company LinkedIn Link,Company Phone Number,Company Street,Company City,Company State,Company Country,Company Postal Code,Company Address,Company Annual Revenue,Company Market Cap,Company Total Funding,Company Latest Funding Type,Company Latest Funding Amount,Last Fund Raised At,Company Keywords,Company Technologies,Company Short Description,Company SEO Description,Number of Retail Locations,Company Founded Year,Email,sif_research,personalized_line
+Odhran,O'Donoghue,Odhran O'Donoghue,Co-Founder / CTO,Hiring! CTO@Magentic,founder,verified,http://www.linkedin.com/in/odhr,,London,,United Kingdom,Magentic,information technology & services,9,"c_suite, master_engineering_technical","founder, information_technology_executive, engineering_technical, technology_operations","information_technology, entrepreneurship",Magentic,http://www.magentic.com,http://www.magentic.com,,,,http://www.linkedin.com/company/magentic-inc,,,,,,,,,,,,,,"software development, information technology & services",,Magentic is building the AI Agent Platform for the worldâ€™s supply chains. Magentic AI teammates hunt down and deliver savings opportunities for global manufacturers and producers. | https://www.linkedin.com â€º company â€º magentic-inc | https://www.linkedin.com â€º company â€º magentic-inc,,0,,odhran@magentic.com,"```json
+{
+  ""person"": {
+    ""name"": ""Odhran O'Donoghue"",
+    ""info"": [
+      ""Odhran led a team to design a satellite-based system to plot the safest route between locations. The innovation was crowned the winner of the UK ActInSpace."",
+      ""Odhran previously worked at OpenAI as a Contract Researcher.""
+    ]
+  },
+  ""company"": {
+    ""name"": ""Magentic"",
+    ""info"": [
+      ""Magentic is an AI platform using AI teammates called 'Mages' to help manufacturers find savings in supply chains, tackling workflows end-to-end."",
+      ""Magentic has created AI agents they call “Mages,” which integrate into existing ERPs, partner seamlessly with procurement teams and immediately deliver cost savings for clients.""
+    ],
+    ""moat"": ""Magentic leverages AI teammates called 'Mages' to help manufacturers find savings in supply chains, which is both efficient and cost-effective.""
+  }
+}
+```","With the ongoing pressures in modern workplaces, finding effective ways to support staff well-being, like through music, can make a significant difference."
+Laura-Jayne,Wade,Laura-Jayne Wade,Co-Founder at Baby Chariots,Co-Founder at Baby Chariots of Colchester,founder,extrapolated,http://www.linkedin.com/in/laura-jayne-wade-b6197b38,,Colchester,England,United Kingdom,Colchester,information technology & services,8,c_suite,founder,entrepreneurship,Colchester,http://www.mysite.com,http://www.mysite.com,,,,http://www.linkedin.com/company/digital-ark---colchester,+44 800 396 1999,,,,United Kingdom,,GB,7000000,,,,,,"technology, information & internet, web hosting, domains, blogs, e-commerce, email services, vps hosting, free hosting, personal hosting, business hosting, starter hosting, wordpress hosting, free web space, website builder, online store, email accounts, ftp access, spam protection, virus protection, file sharing, ssl certificates, customer support, member login, e-mail login, paid email, shared calendaring, contact management, domain registration, no ads hosting, custom email addresses, affordable hosting, website packages, website management, disk space, mysql access, cgi access, perl, php, instant messaging, professional hosting, business solutions, site enhancements, online security, website promotions, zero tolerance policy, acceptable use guidelines, online customer service, hosting comparison, information technology & services, blogging, online media, media, consumer internet, consumers, internet","Apache, Google Analytics",A town based in Essex.  Was the capital of England when the Romans ruled Britain.  Wealth of history with castle and roman walls.  It is possible to tour the museum.  You can go down to the foundations that was built on a Roman temple destroyed by Boudica.,,0,,laura-jaynewade@mysite.com,"{
+  ""person"": {
+    ""name"": ""Anonymous"",
+    ""info"": [""The writer of the text appears to be an individual seeking help or assistance."", 
+             ""Their exact identity and motivations are unclear.""],
+    ""moat"": """"
+  },
+  ""company"": {
+    ""name"": ""MySite"",
+    ""info"": [""MySite provides free hosting and affordable premium web hosting services to over 100,000 satisfied customers."", 
+             ""MySite offers solutions for every kind of hosting and is a service of the South Orange County Community College District.""],
+    ""moat"": ""It appears MySite does not have a clear stated competitive moat, however, their affiliation with South Orange County Community College District may provide some unique business advantages.""
+  }
+}","Over time, the cumulative stress that staff experience can start to influence both morale and productivity in noticeable ways."

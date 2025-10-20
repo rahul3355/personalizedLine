@@ -1,0 +1,43 @@
+First Name,Last Name,Full Name,Title,Headline,Seniority,Email Status,LinkedIn Link,Is Likely To Engage,Lead City,Lead State,Lead Country,Company Name,Industry,Employee Count,Departments,Subdepartments,Functions,Cleaned Company Name,Company Website Full,Company Website Short,Company Blog Link,Company Twitter Link,Company Facebook Link,Company LinkedIn Link,Company Phone Number,Company Street,Company City,Company State,Company Country,Company Postal Code,Company Address,Company Annual Revenue,Company Market Cap,Company Total Funding,Company Latest Funding Type,Company Latest Funding Amount,Last Fund Raised At,Company Keywords,Company Technologies,Company Short Description,Company SEO Description,Number of Retail Locations,Company Founded Year,Email,sif_research,personalized_line
+Dan,Atkins,Dan Atkins,Principal Consultant,"Head of Business Growth & Development. Principal Consultant for Microsoft 365, Azure and SharePoint. A technical Mentor and 3D Designer/Maker.",entry,verified,http://www.linkedin.com/in/djatkins,,Brighton,England,United Kingdom,JFDI Consulting,information technology & services,16,consulting,consultant,"consulting, education",JFDI,http://www.jfdi.info,http://www.jfdi.info,,https://twitter.com/JFDIConsulting,https://facebook.com/JFDIConsulting,http://www.linkedin.com/company/jfdiconsulting,+44 127 335 8282,7 Great Portland Street,London,England,United Kingdom,W1W 8,"167-169 Great Portland Street, 5th Floor, London, W1W 5PF, GB",,,,,,,"sharepoint, sharepoint development, sharepoint administration, sharepoint training, middleware, systems integration, internet of things, gamified systems, automate everything, motivate everyone, microsoft 365, microsoft teams, microsoft teamwork, microsoft power platform, it services & it consulting, information technology & services","CloudFlare Hosting, Cloudflare DNS, Domo, Freshdesk, IoT, KNIME, MailChimp SPF, Microsoft Office 365, Mobile Friendly, Outlook, Python, Remote, Sisense, Splunk","We are a Microsoft Gold Certified Partner based in Brighton, UK, established in 2001. We specialise in SharePoint custom development & implementation, SharePoint consultancy and SharePoint training. We're sustainability-focused and have an ethical approach to consultancy, always acting in our clients' best interests.We create information systems that are agile enough to keep in step with our clients'â€‹ ever changing business processes. We embrace a wide range of contemporary technology platforms such as Microsoft SharePoint, Office 365 and Microsoft Azure to deliver measurable benefits to your bottom line as well as improving the working lives of your people. Where necessary we include AI and machine learning elements to reduce human workload and boost productivity.As a Microsoft Gold Certified Partner, our customers are assured of a proven track record providing technology solutions that work, and the very best technology expertise in the business. Take a look around our consultancy, development and training offerings on our web site and then get in touch.",,0,2001,da@jfdi.info,"```json
+{
+  ""person"": {
+    ""name"": ""Dan Atkins"",
+    ""info"": [
+      ""Dan Atkins is a Principal Consultant, Head of Business Development, Sales & Marketing at JFDI."",
+      ""He specializes in Microsoft Office 365 and SharePoint Server.""
+    ]
+  },
+  ""company"": {
+    ""name"": ""JFDI Consulting Ltd"",
+    ""info"": [
+      ""JFDI Consulting Ltd specializes in consultancy and software development for cloud-based business process automation systems."",
+      ""They focus on platforms such as Microsoft 365, Azure, and Appian.""
+    ],
+    ""moat"": ""Strong partnerships with major cloud-based platforms like Microsoft 365""
+  }
+}
+```","Given your likely focus on efficiency, strategic tax reductions can directly increase your take-home pay without changing your routine."
+Carly,Watson,Carly Watson,Co-Founder & CMO,Co-Founder at Aibly | Transforming Business Operations Through AI Agent Workforces | Managing Partner at Bareska | Content Strategy | Former Walt Disney Company Professional,founder,verified,http://www.linkedin.com/in/carly-watson-43842823,,London,England,United Kingdom,Aibly,information technology & services,5,"c_suite, master_marketing","founder, marketing_executive, marketing","marketing, entrepreneurship",Aibly,http://www.aibly.io,http://www.aibly.io,,,,http://www.linkedin.com/company/aibly,,45 Fitzroy Street,London,England,United Kingdom,W1T 5,"4th Floor, Silverstream House, 45 Fitzroy Street, Fitzrovia,, London, W1T 6EB, GB",,,,,,,"ai, automation, transformation, integrations, advisory, consultancy, artificial intelligence, technology, information & media, ai orchestration, agent integration, workflow automation, ai advisory services, customizable ai agents, drag-and-drop automation, enterprise ai platform, ai-enabled business growth, ai workforce management, intuitive workflow builder, ai readiness assessment, real-time ai insights, strategic roadmap development, seamless ai integration, enhanced operational efficiency, multi-agent systems, ai productivity tools, user-friendly interface, cloud-based ai solutions, data security & compliance, automated customer interactions, tailored ai solutions, 24/7 ai support, ai-driven decision making, personalized customer engagement, streamlined recruitment processes, resource optimization, business intelligence, cross-organizational ai, ai training & education, business transformation with ai, real-time data management, ai operational insights, scalable ai infrastructure, ai workforce deployment, strategic data utilization, no-code ai development, ai task orchestration, scalable automation solutions, compliance with data protection, ai-enhanced user experience, customer sentiment analysis, smart lead nurturing, ai consultancy, human-ai collaboration, strategic ai partnerships, agile deployment of ai solutions, competitive ai differentiation, consulting, management consulting, information technology & services, analytics","CloudFlare Hosting, Cloudflare DNS, Google Font API, Microsoft Office 365, Mobile Friendly, Outlook, WordPress.org","Aibly brings Ai Agent automation and project heavy lifting to ordinary businesses and teams. Built for non-technical minds, the Aibly platform doesn't need deep IT expertise to use. Recruit, train and deploy skilled Ai Agents to do your complex and repetitive tasks for you. We champion the enabled workplace and an up-skilled team - enabled to do more of the creative valuable stuff that grows your business.",,0,2024,carly@aibly.io,"Here is the response in exactly valid JSON format with two top-level keys: ""person"" and ""company"":
+
+```json
+{
+  ""person"": {
+    ""name"": ""Carly Watson"",
+    ""info"": [
+      ""Carly Watson's experience spans from leading franchise content strategy at The Walt Disney Company to other notable positions."",
+      ""She co-founded and leads Carly, a platform that allows users to buy domain names safely.""
+    ]
+  },
+  ""company"": {
+    ""name"": ""Aibly Ltd (Ably)"",
+    ""info"": [
+      ""Ably is a company that builds products that help solve specific business challenges in highly regulated industries."",
+      ""They empower teams in these industries to unlock efficiency, compliance, & growth with enterprise-grade multi-agent workflows.""
+    ],
+    ""moat"": ""Ably's moat is their ability to provide enterprise-grade multi-agent workflows that enable businesses to unlock efficiency, compliance, and growth in highly regulated industries.""
+  }
+}
+```
+
+Note: I used ""Carly Watson"" as the primary person and ""Aibly Ltd (Ably)"" as the primary company (note the company name was referenced as Aibly but more extensive data points showed Ably as the active name), and I based the company's moat on the provided information.",It's common for professionals to miss out on tax savings opportunities that could directly increase their take-home pay.
