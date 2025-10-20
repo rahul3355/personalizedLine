@@ -136,6 +136,7 @@ def _chunk_raw_local_path(job_id: str, chunk_id: int) -> str:
 
 def _collect_serp_paragraphs(payload: List[Dict[str, str]]) -> str:
     if not SERPER_API_KEY:
+        print("[Worker] SIF research skipped SERP fetch: SERPER_API_KEY missing")
         return ""
 
     headers = {"X-API-KEY": SERPER_API_KEY, "Content-Type": "application/json"}
@@ -169,9 +170,17 @@ def _collect_serp_paragraphs(payload: List[Dict[str, str]]) -> str:
 def _run_sif_research(email: str) -> str:
     email_value = (email or "").strip()
     if not email_value:
+        print("[Worker] SIF research skipped: empty email value")
         return ""
 
-    if not SERPER_API_KEY or GROQ_CLIENT is None:
+    if not SERPER_API_KEY:
+        print(
+            f"[Worker] SIF research skipped for {email_value}: SERPER_API_KEY missing"
+        )
+        return ""
+
+    if GROQ_CLIENT is None:
+        print(f"[Worker] SIF research skipped for {email_value}: Groq client unavailable")
         return ""
 
     try:
@@ -183,6 +192,9 @@ def _run_sif_research(email: str) -> str:
     payload = [{"q": f"{username} {domain}"}, {"q": domain}]
     concatenated_text = _collect_serp_paragraphs(payload)
     if not concatenated_text:
+        print(
+            f"[Worker] SIF research skipped for {email_value}: no SERP paragraphs collected"
+        )
         return ""
 
     prompt = (
@@ -201,6 +213,14 @@ def _run_sif_research(email: str) -> str:
             messages=[{"role": "user", "content": prompt}],
         )
         output = (response.choices[0].message.content or "").strip()
+        if not output:
+            print(
+                f"[Worker] SIF research Groq response empty for {email_value}"
+            )
+        else:
+            print(
+                f"[Worker] SIF research Groq response received for {email_value}: {output}"
+            )
         return output
     except Exception as exc:
         print(f"[Worker] SIF research Groq call failed for {email_value}: {exc}")
