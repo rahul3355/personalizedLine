@@ -580,7 +580,19 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
         ) as out_f:
             reader = csv.DictReader(in_f)
             input_headers = reader.fieldnames or headers
-            output_headers = list(input_headers)
+            email_header = (meta.get("email_col") or "").strip()
+
+            # Start from the original headers while keeping ordering predictable.
+            # We'll ensure the generated columns (email + personalized line) are
+            # appended to the end in the expected order.
+            output_headers = [h for h in input_headers if h != "personalized_line"]
+
+            if email_header:
+                # Remove the email column if it exists earlier so we can place it
+                # right before the personalized line output column.
+                output_headers = [h for h in output_headers if h != email_header]
+                output_headers.append(email_header)
+
             if "personalized_line" not in output_headers:
                 output_headers.append("personalized_line")
             writer = csv.DictWriter(out_f, fieldnames=output_headers)
@@ -602,6 +614,8 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                     line = f"[Error generating line: {e}]"
 
                 normalized_row = {header: row.get(header, "") for header in input_headers}
+                if email_header:
+                    normalized_row[email_header] = email_value
                 normalized_row["personalized_line"] = line
                 writer.writerow(normalized_row)
 
