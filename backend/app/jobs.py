@@ -14,6 +14,12 @@ from datetime import datetime
 import redis
 import rq
 import requests
+
+try:
+    from groq import Groq  # type: ignore
+except Exception as exc:  # pragma: no cover - fallback for optional dependency
+    Groq = None  # type: ignore
+    print(f"[Worker] Groq client import failed: {exc}")
 from redis.exceptions import LockError
 from rq import get_current_job
 from supabase import StorageException
@@ -24,6 +30,17 @@ from openpyxl import load_workbook
 # -----------------------------
 redis_conn = redis.Redis(host="redis", port=6379, decode_responses=False)
 queue = rq.Queue("default", connection=redis_conn)
+
+
+SERPER_API_KEY = (os.getenv("SERPER_API_KEY") or "").strip()
+SERPER_API_URL = os.getenv("SERPER_API_URL", "https://google.serper.dev/search")
+GROQ_API_KEY = (os.getenv("GROQ_API_KEY") or "").strip()
+
+try:
+    GROQ_CLIENT = Groq(api_key=GROQ_API_KEY) if (Groq and GROQ_API_KEY) else None
+except Exception as exc:
+    print(f"[Worker] Failed to initialize Groq client: {exc}")
+    GROQ_CLIENT = None
 
 
 class _RQExecutor:
@@ -115,6 +132,99 @@ def _chunk_raw_local_path(job_id: str, chunk_id: int) -> str:
     local_dir = os.path.join(RAW_CHUNK_BASE_DIR, job_id)
     os.makedirs(local_dir, exist_ok=True)
     return os.path.join(local_dir, f"chunk_{chunk_id}.csv")
+
+
+def _collect_serp_paragraphs(payload: List[Dict[str, str]]) -> str:
+    if not SERPER_API_KEY:
+        print("[Worker] SIF research skipped SERP fetch: SERPER_API_KEY missing")
+        return ""
+
+    headers = {"X-API-KEY": SERPER_API_KEY, "Content-Type": "application/json"}
+
+    try:
+        response = requests.post(
+            SERPER_API_URL, headers=headers, json=payload, timeout=15
+        )
+        response.raise_for_status()
+        data = response.json()
+    except Exception as exc:
+        print(f"[Worker] SIF research SERP fetch failed: {exc}")
+        return ""
+
+    blocks = data if isinstance(data, list) else [data]
+    paragraphs: List[str] = []
+    for block in blocks:
+        if not isinstance(block, dict):
+            continue
+        for entry in block.get("organic", []) or []:
+            if not isinstance(entry, dict):
+                continue
+            title = (entry.get("title") or "").strip()
+            snippet = (entry.get("snippet") or "").strip()
+            if title or snippet:
+                paragraphs.append("\n".join(part for part in [title, snippet] if part))
+
+    return "\n\n".join(paragraphs).strip()
+
+
+def _run_sif_research(email: str) -> str:
+    email_value = (email or "").strip()
+    if not email_value:
+        print("[Worker] SIF research skipped: empty email value")
+        return ""
+
+    if not SERPER_API_KEY:
+        print(
+            f"[Worker] SIF research skipped for {email_value}: SERPER_API_KEY missing"
+        )
+        return ""
+
+    if GROQ_CLIENT is None:
+        print(f"[Worker] SIF research skipped for {email_value}: Groq client unavailable")
+        return ""
+
+    try:
+        username, domain = email_value.split("@", 1)
+    except ValueError:
+        print(f"[Worker] SIF research skipped invalid email: {email_value}")
+        return ""
+
+    payload = [{"q": f"{username} {domain}"}, {"q": domain}]
+    concatenated_text = _collect_serp_paragraphs(payload)
+    if not concatenated_text:
+        print(
+            f"[Worker] SIF research skipped for {email_value}: no SERP paragraphs collected"
+        )
+        return ""
+
+    prompt = (
+        "From the text below identify the primary person and the primary company.\n"
+        "Return EXACTLY valid JSON with two top-level keys: \"person\" and \"company\".\n"
+        "Each value must have:\n"
+        "- \"name\": full name (string)\n"
+        "- \"info\": exactly two sentences about that person/company.\n"
+        "Also write the company's moat in one line.\n\nText:\n"
+        + concatenated_text
+    )
+
+    try:
+        response = GROQ_CLIENT.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{"role": "user", "content": prompt}],
+        )
+        output = (response.choices[0].message.content or "").strip()
+        if not output:
+            print(
+                f"[Worker] SIF research Groq response empty for {email_value}"
+            )
+        else:
+            print(
+                f"[Worker] SIF research Groq response received for {email_value}: {output}"
+            )
+        return output
+    except Exception as exc:
+        print(f"[Worker] SIF research Groq call failed for {email_value}: {exc}")
+        return ""
 
 
 def _persist_chunk_rows(job_id: str, chunk_id: int, headers: List[str], rows: List[Dict[str, str]], user_id: str) -> str:
@@ -580,7 +690,26 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
         ) as out_f:
             reader = csv.DictReader(in_f)
             input_headers = reader.fieldnames or headers
-            output_headers = list(input_headers)
+            email_header = (meta.get("email_col") or "").strip()
+
+            # Start from the original headers while keeping ordering predictable.
+            # We'll ensure the generated columns (email + personalized line) are
+            # appended to the end in the expected order.
+            output_headers = [
+                h
+                for h in input_headers
+                if h not in {"personalized_line", "sif_research"}
+            ]
+
+            if email_header:
+                # Remove the email column if it exists earlier so we can place it
+                # right before the generated output columns.
+                output_headers = [h for h in output_headers if h != email_header]
+                output_headers.append(email_header)
+
+            if "sif_research" not in output_headers:
+                output_headers.append("sif_research")
+
             if "personalized_line" not in output_headers:
                 output_headers.append("personalized_line")
             writer = csv.DictWriter(out_f, fieldnames=output_headers)
@@ -592,6 +721,7 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                         f"[Worker] Job {job_id} | Chunk {chunk_id} | Row {i}/{chunk_total_rows} -> {row}"
                     )
                     email_value = row.get(meta.get("email_col", ""), "")
+                    sif_research_value = _run_sif_research(email_value)
                     line, _, _, _ = generate_opener(
                         email=email_value,
                         service=meta.get("service", ""),
@@ -599,10 +729,19 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                 except Exception as e:
                     print(f"[Worker] ERROR row {i}: {e}")
                     traceback.print_exc()
+                    sif_research_value = ""
                     line = f"[Error generating line: {e}]"
 
-                normalized_row = {header: row.get(header, "") for header in input_headers}
-                normalized_row["personalized_line"] = line
+                normalized_row: Dict[str, str] = {}
+                for header in output_headers:
+                    if header == "personalized_line":
+                        normalized_row[header] = line
+                    elif header == "sif_research":
+                        normalized_row[header] = sif_research_value
+                    elif header == email_header:
+                        normalized_row[header] = email_value
+                    else:
+                        normalized_row[header] = row.get(header, "")
                 writer.writerow(normalized_row)
 
                 processed_in_chunk += 1
