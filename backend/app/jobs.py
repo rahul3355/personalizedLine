@@ -14,6 +14,12 @@ from datetime import datetime
 import redis
 import rq
 import requests
+
+try:
+    from groq import Groq  # type: ignore
+except Exception as exc:  # pragma: no cover - fallback for optional dependency
+    Groq = None  # type: ignore
+    print(f"[Worker] Groq client import failed: {exc}")
 from redis.exceptions import LockError
 from rq import get_current_job
 from supabase import StorageException
