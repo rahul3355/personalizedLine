@@ -28,6 +28,7 @@ stripe
 
 # AI / LLM
 openai
+groq
 
 # Misc
 typing-extensions
