@@ -56,8 +56,7 @@ def test_perform_research_passthrough(monkeypatch):
             "info": [
               "Runs enterprise marketing at Example Corp.",
               "Previously led demand gen at Beta Systems."
-            ],
-            "moat": "Connects community intel to pipeline planning."
+            ]
           },
           "company": {
             "name": "Example Corp",
@@ -90,7 +89,26 @@ def test_perform_research_passthrough(monkeypatch):
 
 
 def test_perform_research_invalid_json(monkeypatch):
-    malformed_payload = json.dumps({"summary": "Just a sentence."})
+    malformed_payload = textwrap.dedent(
+        """
+        {
+          "person": {
+            "name": "Bob Example",
+            "info": [
+              "Heads RevOps at Example Corp.",
+              "Previously managed global enablement at Gamma."
+            ]
+          },
+          "company": {
+            "name": "Example Corp",
+            "info": [
+              "Offers a unified analytics platform for marketing teams.",
+              "Recently launched an AI assistant for campaign planning."
+            ]
+          }
+        }
+        """
+    ).strip()
 
     _stub_research_calls(monkeypatch, malformed_payload)
 
