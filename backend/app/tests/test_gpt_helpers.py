@@ -66,8 +66,20 @@ def test_generate_sif_personalized_line_success(monkeypatch, sif_research_payloa
     assert result == "Hook line."
     assert captured["url"] == gpt_helpers.GROQ_CHAT_ENDPOINT
     assert captured["payload"]["model"] == gpt_helpers.GROQ_SIF_MODEL
+    assert captured["payload"]["messages"] == [
+        {"role": "system", "content": gpt_helpers.SIF_SYSTEM_PROMPT},
+        {
+            "role": "user",
+            "content": (
+                f"{gpt_helpers.SIF_SYSTEM_PROMPT}\n\n"
+                "Service context:\nService: onboarding accelerators\n\n"
+                f"Research JSON:\n{json.dumps(json.loads(sif_research_payload), ensure_ascii=False, indent=2)}"
+            ),
+        },
+    ]
     assert captured["payload"]["temperature"] == 0.6
     assert captured["payload"]["top_p"] == 0.95
+    assert captured["payload"]["max_completion_tokens"] == 3000
 
 
 def test_generate_sif_personalized_line_missing_key(monkeypatch, sif_research_payload):
@@ -78,6 +90,21 @@ def test_generate_sif_personalized_line_missing_key(monkeypatch, sif_research_pa
     )
 
     assert result == "SIF personalized line unavailable: missing Groq API key."
+
+
+def test_generate_sif_personalized_line_invalid_payload(monkeypatch, sif_research_payload):
+    monkeypatch.setenv("GROQ_API_KEY", "test-groq")
+
+    def fake_post(*_, **__):
+        return DummyResponse(["unexpected"])
+
+    monkeypatch.setattr(gpt_helpers.requests, "post", fake_post)
+
+    result = gpt_helpers.generate_sif_personalized_line(
+        sif_research_payload, "Service: onboarding accelerators"
+    )
+
+    assert result == "SIF personalized line unavailable: failed to generate personalization."
 
 
 def test_process_subjob_header_order(monkeypatch, tmp_path, sif_research_payload):
