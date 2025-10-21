@@ -31,6 +31,7 @@ stripe==12.5.0
 
 # AI / LLM
 openai==1.37.0
+groq
 
 # Misc
 typing-extensions==4.12.2
