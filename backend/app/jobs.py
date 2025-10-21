@@ -8,7 +8,7 @@ import pandas as pd
 import traceback
 import tempfile
 import shutil
-from backend.app.gpt_helpers import generate_opener
+from backend.app.gpt_helpers import generate_opener, generate_sif_personalized_line
 from backend.app.research import perform_research
 from backend.app.supabase_client import supabase
 from datetime import datetime
@@ -229,9 +229,15 @@ def _input_iterator(local_path: str):
 
 
 def _finalize_empty_job(job_id: str, user_id: str, headers: List[str], timings: dict, job_start: float):
-    final_columns = list(headers)
-    if "personalized_line" not in final_columns:
-        final_columns.append("personalized_line")
+    final_columns = [
+        header
+        for header in headers
+        if header not in {"personalized_line", "sif_research", "sif_personalized"}
+    ]
+
+    for generated in ("sif_personalized", "sif_research", "personalized_line"):
+        if generated not in final_columns:
+            final_columns.append(generated)
 
     empty_df = pd.DataFrame(columns=final_columns)
     local_dir = tempfile.mkdtemp()
@@ -587,7 +593,9 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
             # We'll ensure the generated columns (email + personalized line) are
             # appended to the end in the expected order.
             output_headers = [
-                h for h in input_headers if h not in {"personalized_line", "sif_research"}
+                h
+                for h in input_headers
+                if h not in {"personalized_line", "sif_research", "sif_personalized"}
             ]
 
             if email_header:
@@ -595,6 +603,9 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                 # right before the personalized line output column.
                 output_headers = [h for h in output_headers if h != email_header]
                 output_headers.append(email_header)
+
+            if "sif_personalized" not in output_headers:
+                output_headers.append("sif_personalized")
 
             if "sif_research" not in output_headers:
                 output_headers.append("sif_research")
@@ -620,6 +631,18 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                         traceback.print_exc()
                         research_output = "Research unavailable: unexpected error."
 
+                    try:
+                        sif_line = generate_sif_personalized_line(
+                            research_output,
+                            meta.get("service", ""),
+                        )
+                    except Exception as sif_exc:
+                        print(
+                            f"[Worker] SIF personalization error for job {job_id} | Chunk {chunk_id} | Row {i}: {sif_exc}"
+                        )
+                        traceback.print_exc()
+                        sif_line = "SIF personalized line unavailable: unexpected error."
+
                     line, _, _, _ = generate_opener(
                         email=email_value,
                         service=meta.get("service", ""),
@@ -628,14 +651,17 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                     print(f"[Worker] ERROR row {i}: {e}")
                     traceback.print_exc()
                     line = f"[Error generating line: {e}]"
+                    sif_line = "SIF personalized line unavailable: unexpected error."
 
                 normalized_row = {
                     header: row.get(header, "")
                     for header in input_headers
-                    if header not in {"personalized_line", "sif_research"}
+                    if header
+                    not in {"personalized_line", "sif_research", "sif_personalized"}
                 }
                 if email_header:
                     normalized_row[email_header] = email_value
+                normalized_row["sif_personalized"] = sif_line
                 normalized_row["sif_research"] = research_output
                 normalized_row["personalized_line"] = line
                 writer.writerow(normalized_row)
