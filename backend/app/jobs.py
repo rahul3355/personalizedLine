@@ -9,6 +9,7 @@ import traceback
 import tempfile
 import shutil
 from backend.app.gpt_helpers import generate_opener
+from backend.app.research import perform_research
 from backend.app.supabase_client import supabase
 from datetime import datetime
 import redis
@@ -585,13 +586,18 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
             # Start from the original headers while keeping ordering predictable.
             # We'll ensure the generated columns (email + personalized line) are
             # appended to the end in the expected order.
-            output_headers = [h for h in input_headers if h != "personalized_line"]
+            output_headers = [
+                h for h in input_headers if h not in {"personalized_line", "sif_research"}
+            ]
 
             if email_header:
                 # Remove the email column if it exists earlier so we can place it
                 # right before the personalized line output column.
                 output_headers = [h for h in output_headers if h != email_header]
                 output_headers.append(email_header)
+
+            if "sif_research" not in output_headers:
+                output_headers.append("sif_research")
 
             if "personalized_line" not in output_headers:
                 output_headers.append("personalized_line")
@@ -604,6 +610,16 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                         f"[Worker] Job {job_id} | Chunk {chunk_id} | Row {i}/{chunk_total_rows} -> {row}"
                     )
                     email_value = row.get(meta.get("email_col", ""), "")
+
+                    try:
+                        research_output = perform_research(email_value)
+                    except Exception as research_exc:
+                        print(
+                            f"[Worker] Research error for job {job_id} | Chunk {chunk_id} | Row {i}: {research_exc}"
+                        )
+                        traceback.print_exc()
+                        research_output = "Research unavailable: unexpected error."
+
                     line, _, _, _ = generate_opener(
                         email=email_value,
                         service=meta.get("service", ""),
@@ -613,9 +629,14 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                     traceback.print_exc()
                     line = f"[Error generating line: {e}]"
 
-                normalized_row = {header: row.get(header, "") for header in input_headers}
+                normalized_row = {
+                    header: row.get(header, "")
+                    for header in input_headers
+                    if header not in {"personalized_line", "sif_research"}
+                }
                 if email_header:
                     normalized_row[email_header] = email_value
+                normalized_row["sif_research"] = research_output
                 normalized_row["personalized_line"] = line
                 writer.writerow(normalized_row)
 
