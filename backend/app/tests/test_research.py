@@ -115,3 +115,34 @@ def test_perform_research_invalid_json(monkeypatch):
     result = research.perform_research("bob@example.com")
 
     assert result == "Research unavailable: Groq returned malformed JSON."
+
+
+def test_perform_research_rejects_person_moat(monkeypatch):
+    groq_payload = textwrap.dedent(
+        """
+        {
+          "person": {
+            "name": "Carol Example",
+            "info": [
+              "Oversees enterprise accounts at Example Corp.",
+              "Champions customer marketing partnerships."
+            ],
+            "moat": "Recognized thought leader in enterprise advocacy."
+          },
+          "company": {
+            "name": "Example Corp",
+            "info": [
+              "Recently expanded its analytics platform into APAC.",
+              "Investing in AI-assisted onboarding for partners."
+            ],
+            "moat": "Holds exclusive integrations with major CRM vendors."
+          }
+        }
+        """
+    ).strip()
+
+    _stub_research_calls(monkeypatch, groq_payload)
+
+    result = research.perform_research("carol@example.com")
+
+    assert result == "Research unavailable: Groq returned malformed JSON."
