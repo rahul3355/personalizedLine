@@ -24,10 +24,12 @@ LOGGER = logging.getLogger(__name__)
 GROQ_CHAT_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_SIF_MODEL = "openai/gpt-oss-120b"
 SIF_SYSTEM_PROMPT = (
-    "You are an SDR assistant. Write a cold email opener. "
-    "Requirements: 1–2 sentences; 14–40 words; conversational; natural tone; "
-    "mention the company name naturally; highlight the given pain; "
-    "do not pitch our service; do not ask questions."
+    "You are an SDR assistant crafting a human-written, well-researched, highly "
+    "personalized opening line for a cold email. Requirements: 1–2 sentences; "
+    "14–40 words; conversational; natural tone; mention the company name "
+    "naturally; highlight the provided pain; do not pitch our service; do not "
+    "ask questions. Ground every detail strictly in the provided research JSON "
+    "and service context; do not invent information beyond that material."
 )
 
 # --- Prompt rules ---
@@ -151,9 +153,8 @@ def generate_sif_personalized_line(sif_research: str, service_context: str) -> s
     research_text = json.dumps(parsed_research, ensure_ascii=False, indent=2)
 
     user_prompt = (
-        f"{SIF_SYSTEM_PROMPT}\n\n"
         f"Service context:\n{service_text}\n\n"
-        f"Research JSON:\n{research_text}"
+        f"Person info:\n{research_text}"
     )
 
     try:
