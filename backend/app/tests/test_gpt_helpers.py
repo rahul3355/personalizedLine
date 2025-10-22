@@ -190,8 +190,6 @@ def test_process_subjob_header_order(monkeypatch, tmp_path, sif_research_payload
     monkeypatch.setattr(jobs, "get_current_job", lambda: None)
     monkeypatch.setattr(jobs, "record_time", lambda *_, **__: 0.0)
     monkeypatch.setattr(jobs, "perform_research", lambda *_: sif_research_payload)
-    monkeypatch.setattr(jobs, "generate_opener", lambda **_: ("Legacy line", 0, 0, 0))
-
     def fake_post(url, *_, **__):
         return DummyResponse({"choices": [{"message": {"content": "SIF hook."}}]})
 
@@ -239,5 +237,5 @@ def test_process_subjob_header_order(monkeypatch, tmp_path, sif_research_payload
         headers = next(reader)
         row = next(reader)
 
-    assert headers[-3:] == ["sif_personalized", "sif_research", "personalized_line"]
-    assert row[-3:] == ["SIF hook.", sif_research_payload, "Legacy line"]
+    assert headers[-2:] == ["sif_research", "sif_personalized"]
+    assert row[-2:] == [sif_research_payload, "SIF hook."]
