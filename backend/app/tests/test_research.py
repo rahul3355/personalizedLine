@@ -1,6 +1,5 @@
 import json
 import sys
-import textwrap
 from pathlib import Path
 
 import pytest
@@ -48,27 +47,24 @@ def _stub_research_calls(monkeypatch, groq_payload):
 
 
 def test_perform_research_passthrough(monkeypatch):
-    structured_json = textwrap.dedent(
-        """
-        {
-          "person": {
+    structured_payload = {
+        "person": {
             "name": "Alice Example",
             "info": [
-              "Runs enterprise marketing at Example Corp.",
-              "Previously led demand gen at Beta Systems."
-            ]
-          },
-          "company": {
+                "Runs enterprise marketing at Example Corp.",
+                "Previously led demand gen at Beta Systems.",
+            ],
+        },
+        "company": {
             "name": "Example Corp",
             "info": [
-              "Scaling a partner ecosystem with regional specialists.",
-              "Investing in AI-assisted onboarding for faster time-to-value."
+                "Scaling a partner ecosystem with regional specialists.",
+                "Investing in AI-assisted onboarding for faster time-to-value.",
             ],
-            "moat": "Owns proprietary data across 40 integrations."
-          }
-        }
-        """
-    ).strip()
+            "moat": "Owns proprietary data across 40 integrations.",
+        },
+    }
+    structured_json = json.dumps(structured_payload, indent=2)
 
     _stub_research_calls(monkeypatch, structured_json)
 
@@ -89,26 +85,25 @@ def test_perform_research_passthrough(monkeypatch):
 
 
 def test_perform_research_invalid_json(monkeypatch):
-    malformed_payload = textwrap.dedent(
-        """
+    malformed_payload = json.dumps(
         {
-          "person": {
-            "name": "Bob Example",
-            "info": [
-              "Heads RevOps at Example Corp.",
-              "Previously managed global enablement at Gamma."
-            ]
-          },
-          "company": {
-            "name": "Example Corp",
-            "info": [
-              "Offers a unified analytics platform for marketing teams.",
-              "Recently launched an AI assistant for campaign planning."
-            ]
-          }
-        }
-        """
-    ).strip()
+            "person": {
+                "name": "Bob Example",
+                "info": [
+                    "Heads RevOps at Example Corp.",
+                ],
+            },
+            "company": {
+                "name": "Example Corp",
+                "info": [
+                    "Offers a unified analytics platform for marketing teams.",
+                    "Recently launched an AI assistant for campaign planning.",
+                ],
+                "moat": "Holds top-tier partnerships across CRM vendors.",
+            },
+        },
+        indent=2,
+    )
 
     _stub_research_calls(monkeypatch, malformed_payload)
 
@@ -117,32 +112,103 @@ def test_perform_research_invalid_json(monkeypatch):
     assert result == "Research unavailable: Groq returned malformed JSON."
 
 
-def test_perform_research_rejects_person_moat(monkeypatch):
-    groq_payload = textwrap.dedent(
-        """
+def test_perform_research_strips_person_moat(monkeypatch):
+    groq_payload = json.dumps(
         {
-          "person": {
-            "name": "Carol Example",
-            "info": [
-              "Oversees enterprise accounts at Example Corp.",
-              "Champions customer marketing partnerships."
-            ],
-            "moat": "Recognized thought leader in enterprise advocacy."
-          },
-          "company": {
-            "name": "Example Corp",
-            "info": [
-              "Recently expanded its analytics platform into APAC.",
-              "Investing in AI-assisted onboarding for partners."
-            ],
-            "moat": "Holds exclusive integrations with major CRM vendors."
-          }
-        }
-        """
-    ).strip()
+            "person": {
+                "name": "Carol Example",
+                "info": [
+                    "Oversees enterprise accounts at Example Corp.",
+                    "Champions customer marketing partnerships.",
+                ],
+                "moat": "Recognized thought leader in enterprise advocacy.",
+            },
+            "company": {
+                "name": "Example Corp",
+                "info": [
+                    "Recently expanded its analytics platform into APAC.",
+                    "Investing in AI-assisted onboarding for partners.",
+                ],
+                "moat": "Holds exclusive integrations with major CRM vendors.",
+            },
+        },
+        indent=2,
+    )
 
     _stub_research_calls(monkeypatch, groq_payload)
 
     result = research.perform_research("carol@example.com")
 
-    assert result == "Research unavailable: Groq returned malformed JSON."
+    expected = json.dumps(
+        {
+            "person": {
+                "name": "Carol Example",
+                "info": [
+                    "Oversees enterprise accounts at Example Corp.",
+                    "Champions customer marketing partnerships.",
+                ],
+            },
+            "company": {
+                "name": "Example Corp",
+                "info": [
+                    "Recently expanded its analytics platform into APAC.",
+                    "Investing in AI-assisted onboarding for partners.",
+                ],
+                "moat": "Holds exclusive integrations with major CRM vendors.",
+            },
+        },
+        indent=2,
+    )
+
+    assert result == expected
+    assert json.loads(result) == json.loads(expected)
+
+
+def test_perform_research_adds_missing_company_moat(monkeypatch):
+    groq_payload = json.dumps(
+        {
+            "person": {
+                "name": "Dana Example",
+                "info": [
+                    "Heads product-led growth at Example Corp.",
+                    "Launched the self-serve onboarding motion last quarter.",
+                ],
+            },
+            "company": {
+                "name": "Example Corp",
+                "info": [
+                    "Provides an analytics platform for lifecycle marketers.",
+                    "Recently partnered with global agencies for co-marketing.",
+                ],
+            },
+        },
+        indent=2,
+    )
+
+    _stub_research_calls(monkeypatch, groq_payload)
+
+    result = research.perform_research("dana@example.com")
+
+    expected = json.dumps(
+        {
+            "person": {
+                "name": "Dana Example",
+                "info": [
+                    "Heads product-led growth at Example Corp.",
+                    "Launched the self-serve onboarding motion last quarter.",
+                ],
+            },
+            "company": {
+                "name": "Example Corp",
+                "info": [
+                    "Provides an analytics platform for lifecycle marketers.",
+                    "Recently partnered with global agencies for co-marketing.",
+                ],
+                "moat": "",
+            },
+        },
+        indent=2,
+    )
+
+    assert result == expected
+    assert json.loads(result) == json.loads(expected)
