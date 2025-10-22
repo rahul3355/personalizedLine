@@ -24,12 +24,12 @@ LOGGER = logging.getLogger(__name__)
 GROQ_CHAT_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_SIF_MODEL = "openai/gpt-oss-120b"
 SIF_SYSTEM_PROMPT = (
-    "You are an SDR assistant crafting a human-written, well-researched, highly "
-    "personalized opening line for a cold email. Requirements: 1–2 sentences; "
-    "14–40 words; conversational; natural tone; mention the company name "
-    "naturally; highlight the provided pain; do not pitch our service; do not "
-    "ask questions. Ground every detail strictly in the provided research JSON "
-    "and service context; do not invent information beyond that material."
+    "Generate a human-written, well-researched, highly personalized opening line "
+    "for a cold email. Requirements: 1–2 sentences; 14–40 words; conversational; "
+    "natural tone; mention the company name naturally; highlight the provided "
+    "pain; do not pitch our service; do not ask questions. Ground every detail "
+    "strictly in the provided research JSON and service context; do not invent "
+    "information beyond that material."
 )
 
 # --- Prompt rules ---
@@ -149,13 +149,19 @@ def generate_sif_personalized_line(sif_research: str, service_context: str) -> s
         LOGGER.warning("GROQ_API_KEY not configured; skipping SIF personalization")
         return "SIF personalized line unavailable: missing Groq API key."
 
-    service_text = (service_context or "").strip() or "Service context unavailable."
+    service_text = (service_context or "").strip()
     research_text = json.dumps(parsed_research, ensure_ascii=False, indent=2)
 
-    user_prompt = (
-        f"Service context:\n{service_text}\n\n"
-        f"Person info:\n{research_text}"
-    )
+    message_parts = [
+        SIF_SYSTEM_PROMPT,
+        "",
+        "Person info:",
+        research_text,
+    ]
+    if service_text:
+        message_parts.extend(["", "Service context:", service_text])
+
+    user_prompt = "\n".join(message_parts)
 
     try:
         response = requests.post(
@@ -167,7 +173,6 @@ def generate_sif_personalized_line(sif_research: str, service_context: str) -> s
             json={
                 "model": GROQ_SIF_MODEL,
                 "messages": [
-                    {"role": "system", "content": SIF_SYSTEM_PROMPT},
                     {"role": "user", "content": user_prompt},
                 ],
                 "temperature": 0.6,

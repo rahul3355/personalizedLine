@@ -69,15 +69,13 @@ def test_generate_sif_personalized_line_success(monkeypatch, sif_research_payloa
     expected_research = json.dumps(
         json.loads(sif_research_payload), ensure_ascii=False, indent=2
     )
+    expected_user_prompt = (
+        f"{gpt_helpers.SIF_SYSTEM_PROMPT}\n\n"
+        f"Person info:\n{expected_research}\n\n"
+        "Service context:\nService: onboarding accelerators"
+    )
     assert captured["payload"]["messages"] == [
-        {"role": "system", "content": gpt_helpers.SIF_SYSTEM_PROMPT},
-        {
-            "role": "user",
-            "content": (
-                "Service context:\nService: onboarding accelerators\n\n"
-                f"Person info:\n{expected_research}"
-            ),
-        },
+        {"role": "user", "content": expected_user_prompt},
     ]
     assert captured["payload"]["temperature"] == 0.6
     assert captured["payload"]["top_p"] == 0.95
@@ -102,15 +100,16 @@ def test_generate_sif_personalized_line_includes_research_block(
     )
 
     messages = captured["payload"]["messages"]
-    assert len(messages) == 2
-    user_message = messages[1]["content"]
+    assert len(messages) == 1
+    user_message = messages[0]["content"]
     expected_research = json.dumps(
         json.loads(sif_research_payload), ensure_ascii=False, indent=2
     )
 
-    assert user_message.startswith("Service context:\nService: onboarding accelerators\n\n")
-    assert "Person info:\n" in user_message
+    assert user_message.startswith(gpt_helpers.SIF_SYSTEM_PROMPT)
+    assert "\n\nPerson info:\n" in user_message
     assert expected_research in user_message
+    assert user_message.endswith("Service context:\nService: onboarding accelerators")
 
 
 def test_generate_sif_personalized_line_missing_key(monkeypatch, sif_research_payload):
