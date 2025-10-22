@@ -72,12 +72,12 @@ def test_perform_research_passthrough(monkeypatch):
 
     assert result == structured_json
 
-    input_headers = ["email", "sif_personalized", "sif_research", "personalized_line"]
+    input_headers = ["email", "sif_personalized", "sif_research"]
     row = {"email": "alice@example.com"}
     normalized_row = {
         header: row.get(header, "")
         for header in input_headers
-        if header not in {"personalized_line", "sif_research", "sif_personalized"}
+        if header not in {"sif_research", "sif_personalized"}
     }
     normalized_row["sif_research"] = result
 

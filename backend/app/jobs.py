@@ -8,7 +8,7 @@ import pandas as pd
 import traceback
 import tempfile
 import shutil
-from backend.app.gpt_helpers import generate_opener, generate_sif_personalized_line
+from backend.app.gpt_helpers import generate_sif_personalized_line
 from backend.app.research import perform_research
 from backend.app.supabase_client import supabase
 from datetime import datetime
@@ -222,10 +222,10 @@ def _finalize_empty_job(job_id: str, user_id: str, headers: List[str], timings: 
     final_columns = [
         header
         for header in headers
-        if header not in {"personalized_line", "sif_research", "sif_personalized"}
+        if header not in {"sif_research", "sif_personalized"}
     ]
 
-    for generated in ("sif_personalized", "sif_research", "personalized_line"):
+    for generated in ("sif_research", "sif_personalized"):
         if generated not in final_columns:
             final_columns.append(generated)
 
@@ -580,28 +580,25 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
             email_header = (meta.get("email_col") or "").strip()
 
             # Start from the original headers while keeping ordering predictable.
-            # We'll ensure the generated columns (email + personalized line) are
+            # We'll ensure the generated columns (email + SIF outputs) are
             # appended to the end in the expected order.
             output_headers = [
                 h
                 for h in input_headers
-                if h not in {"personalized_line", "sif_research", "sif_personalized"}
+                if h not in {"sif_research", "sif_personalized"}
             ]
 
             if email_header:
                 # Remove the email column if it exists earlier so we can place it
-                # right before the personalized line output column.
+                # immediately before the generated SIF output columns.
                 output_headers = [h for h in output_headers if h != email_header]
                 output_headers.append(email_header)
-
-            if "sif_personalized" not in output_headers:
-                output_headers.append("sif_personalized")
 
             if "sif_research" not in output_headers:
                 output_headers.append("sif_research")
 
-            if "personalized_line" not in output_headers:
-                output_headers.append("personalized_line")
+            if "sif_personalized" not in output_headers:
+                output_headers.append("sif_personalized")
             writer = csv.DictWriter(out_f, fieldnames=output_headers)
             writer.writeheader()
 
@@ -612,6 +609,9 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                     )
                     email_value = row.get(meta.get("email_col", ""), "")
 
+                    research_output = "Research unavailable: unexpected error."
+                    sif_line = "SIF personalized line unavailable: unexpected error."
+
                     try:
                         research_output = perform_research(email_value)
                     except Exception as research_exc:
@@ -619,7 +619,6 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                             f"[Worker] Research error for job {job_id} | Chunk {chunk_id} | Row {i}: {research_exc}"
                         )
                         traceback.print_exc()
-                        research_output = "Research unavailable: unexpected error."
 
                     try:
                         sif_line = generate_sif_personalized_line(
@@ -631,29 +630,20 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                             f"[Worker] SIF personalization error for job {job_id} | Chunk {chunk_id} | Row {i}: {sif_exc}"
                         )
                         traceback.print_exc()
-                        sif_line = "SIF personalized line unavailable: unexpected error."
-
-                    line, _, _, _ = generate_opener(
-                        email=email_value,
-                        service=meta.get("service", ""),
-                    )
                 except Exception as e:
                     print(f"[Worker] ERROR row {i}: {e}")
                     traceback.print_exc()
-                    line = f"[Error generating line: {e}]"
-                    sif_line = "SIF personalized line unavailable: unexpected error."
 
                 normalized_row = {
                     header: row.get(header, "")
                     for header in input_headers
                     if header
-                    not in {"personalized_line", "sif_research", "sif_personalized"}
+                    not in {"sif_research", "sif_personalized"}
                 }
                 if email_header:
                     normalized_row[email_header] = email_value
-                normalized_row["sif_personalized"] = sif_line
                 normalized_row["sif_research"] = research_output
-                normalized_row["personalized_line"] = line
+                normalized_row["sif_personalized"] = sif_line
                 writer.writerow(normalized_row)
 
                 processed_in_chunk += 1
