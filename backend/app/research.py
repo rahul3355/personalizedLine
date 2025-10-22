@@ -38,39 +38,57 @@ def _clean_response_content(content: str) -> str:
     return stripped
 
 
-def _is_valid_research_payload(content: str) -> bool:
-    """Return True if the JSON string matches the expected research schema."""
+def _is_valid_research_payload(content: str) -> tuple[bool, dict | None]:
+    """Validate and normalize the expected research payload JSON."""
 
     try:
         payload = json.loads(content)
     except json.JSONDecodeError:
-        return False
+        return False, None
 
     if not isinstance(payload, dict):
-        return False
+        return False, None
 
-    for section_name in ("person", "company"):
-        section = payload.get(section_name)
-        if not isinstance(section, dict):
-            return False
+    cleaned_payload: dict[str, dict[str, object]] = {}
 
+    person_section = payload.get("person")
+    if not isinstance(person_section, dict):
+        return False, None
+
+    person_cleaned = {
+        "name": person_section.get("name"),
+        "info": person_section.get("info"),
+    }
+
+    company_section = payload.get("company")
+    if not isinstance(company_section, dict):
+        return False, None
+
+    company_cleaned = {
+        "name": company_section.get("name"),
+        "info": company_section.get("info"),
+        "moat": company_section.get("moat", ""),
+    }
+
+    for section_name, section in ("person", person_cleaned), ("company", company_cleaned):
         name = section.get("name")
         info = section.get("info")
+
         if not isinstance(name, str):
-            return False
+            return False, None
 
         if not (isinstance(info, list) and len(info) == 2 and all(isinstance(item, str) for item in info)):
-            return False
+            return False, None
 
         if section_name == "company":
             moat = section.get("moat")
             if not isinstance(moat, str):
-                return False
-        else:
-            if set(section.keys()) != {"name", "info"}:
-                return False
+                return False, None
 
-    return True
+    cleaned_payload["person"] = person_cleaned
+    cleaned_payload["company"] = company_cleaned
+
+    return True, cleaned_payload
 
 
 def _build_prompt(email: str, findings: List[str]) -> str:
@@ -79,11 +97,12 @@ def _build_prompt(email: str, findings: List[str]) -> str:
         "You are assisting a sales researcher in preparing a personalized cold outreach email.\n"
         "Using the search findings below, identify relevant insights about the prospect or their company.\n"
         "Return valid JSON with exactly two top-level keys: 'person' and 'company'.\n"
-        "Each of those keys must map to an object containing:\n"
-        "- 'name': the person's full name or the company's full name as a string (empty string if unknown).\n"
-        "- 'info': an array of exactly two standalone sentences, each string capturing a distinct insight to use in outreach.\n"
-        "- Company 'moat': a single-string description of the company's unique advantage or defensible edge (use an empty string if unavailable).\n"
-        "Do not include any other keys or commentary.\n"
+        "Person object: keys 'name' and 'info' only.\n"
+        "Company object: keys 'name', 'info', 'moat'. No other keys allowed.\n"
+        "The 'name' fields must be strings (empty string if unknown).\n"
+        "The 'info' fields must be arrays of exactly two standalone sentence strings highlighting distinct insights.\n"
+        "The company 'moat' must be a single string describing the company's unique advantage (empty string if unavailable).\n"
+        "Do not include commentary outside of the JSON.\n"
         f"Prospect email: {email}\n"
         "Search findings:\n"
         f"{findings_text}\n"
@@ -183,11 +202,12 @@ def perform_research(email: str) -> str:
         if not cleaned:
             raise ValueError("Groq response empty after cleaning")
 
-        if not _is_valid_research_payload(cleaned):
+        is_valid, normalized_payload = _is_valid_research_payload(cleaned)
+        if not is_valid or normalized_payload is None:
             LOGGER.warning("Groq returned invalid research JSON for %s: %s", email, cleaned)
             return "Research unavailable: Groq returned malformed JSON."
 
-        return cleaned
+        return json.dumps(normalized_payload, ensure_ascii=False, indent=2)
     except Exception as exc:
         LOGGER.exception("Groq request failed for %s: %s", email, exc)
         return "Research unavailable: failed to generate Groq summary."
