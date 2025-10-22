@@ -31,6 +31,9 @@ RAW_CHUNK_BASE_DIR = "/data/raw_chunks"
 RAW_CHUNK_BUCKET = "inputs"
 
 
+GENERATED_OUTPUT_COLUMNS = ("sif_research", "sif_personalized")
+
+
 def _ensure_dict(value):
     if not value:
         return {}
@@ -43,6 +46,69 @@ def _ensure_dict(value):
         except Exception:
             return {}
     return {}
+
+
+def _parse_output_column_filter(meta: Optional[dict]) -> Optional[List[str]]:
+    meta = _ensure_dict(meta)
+    columns = meta.get("output_columns")
+    if not columns:
+        return None
+    if isinstance(columns, str):
+        try:
+            parsed = json.loads(columns)
+        except Exception:
+            return None
+        if isinstance(parsed, list):
+            columns = parsed
+        else:
+            return None
+    if isinstance(columns, list):
+        filtered = [str(col).strip() for col in columns if isinstance(col, (str, int))]
+        filtered = [col for col in filtered if col]
+        return filtered or None
+    return None
+
+
+def _resolve_output_header_order(
+    input_headers: List[str], meta: Optional[dict]
+) -> Tuple[List[str], Optional[str], List[str], List[str]]:
+    meta = _ensure_dict(meta)
+    allowed_columns = _parse_output_column_filter(meta)
+    email_header = (meta.get("email_col") or "").strip()
+
+    base_headers = []
+    for header in input_headers:
+        if header in GENERATED_OUTPUT_COLUMNS:
+            continue
+        if not header:
+            continue
+        base_headers.append(header)
+
+    if allowed_columns:
+        allowed_set = set(allowed_columns)
+        base_headers = [header for header in base_headers if header in allowed_set]
+
+    row_headers = base_headers
+    if email_header:
+        row_headers = [header for header in base_headers if header != email_header]
+
+    final_headers = list(row_headers)
+    if email_header:
+        final_headers.append(email_header)
+    for generated in GENERATED_OUTPUT_COLUMNS:
+        if generated not in final_headers:
+            final_headers.append(generated)
+
+    if allowed_columns:
+        persist_headers = list(row_headers)
+        if email_header and email_header not in persist_headers:
+            persist_headers.append(email_header)
+    else:
+        persist_headers = list(base_headers)
+        if email_header and email_header not in persist_headers:
+            persist_headers.append(email_header)
+
+    return row_headers, email_header or None, final_headers, persist_headers
 
 
 def _format_storage_error(error) -> str:
@@ -109,6 +175,7 @@ def _chunk_raw_local_path(job_id: str, chunk_id: int) -> str:
 
 
 def _persist_chunk_rows(job_id: str, chunk_id: int, headers: List[str], rows: List[Dict[str, str]], user_id: str) -> str:
+    headers = list(headers or [])
     local_path = _chunk_raw_local_path(job_id, chunk_id)
     with open(local_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=headers)
@@ -218,18 +285,31 @@ def _input_iterator(local_path: str):
     raise RuntimeError(f"Unsupported file type: {ext}")
 
 
-def _finalize_empty_job(job_id: str, user_id: str, headers: List[str], timings: dict, job_start: float):
-    final_columns = [
-        header
-        for header in headers
-        if header not in {"sif_research", "sif_personalized"}
-    ]
+def _finalize_empty_job(
+    job_id: str,
+    user_id: str,
+    final_headers: Optional[List[str]],
+    timings: dict,
+    job_start: float,
+):
+    columns: List[str] = []
+    seen = set()
 
-    for generated in ("sif_research", "sif_personalized"):
-        if generated not in final_columns:
-            final_columns.append(generated)
+    for header in list(final_headers or []):
+        if not header or header in seen:
+            continue
+        columns.append(header)
+        seen.add(header)
 
-    empty_df = pd.DataFrame(columns=final_columns)
+    for generated in GENERATED_OUTPUT_COLUMNS:
+        if generated not in seen:
+            columns.append(generated)
+            seen.add(generated)
+
+    if not columns:
+        columns = list(GENERATED_OUTPUT_COLUMNS)
+
+    empty_df = pd.DataFrame(columns=columns)
     local_dir = tempfile.mkdtemp()
     out_csv = os.path.join(local_dir, f"{job_id}_final.csv")
     out_xlsx = os.path.join(local_dir, f"{job_id}_final.xlsx")
@@ -577,28 +657,10 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
         ) as out_f:
             reader = csv.DictReader(in_f)
             input_headers = reader.fieldnames or headers
-            email_header = (meta.get("email_col") or "").strip()
-
-            # Start from the original headers while keeping ordering predictable.
-            # We'll ensure the generated columns (email + SIF outputs) are
-            # appended to the end in the expected order.
-            output_headers = [
-                h
-                for h in input_headers
-                if h not in {"sif_research", "sif_personalized"}
-            ]
-
-            if email_header:
-                # Remove the email column if it exists earlier so we can place it
-                # immediately before the generated SIF output columns.
-                output_headers = [h for h in output_headers if h != email_header]
-                output_headers.append(email_header)
-
-            if "sif_research" not in output_headers:
-                output_headers.append("sif_research")
-
-            if "sif_personalized" not in output_headers:
-                output_headers.append("sif_personalized")
+            meta = _ensure_dict(meta)
+            row_headers, email_header, output_headers, _ = _resolve_output_header_order(
+                input_headers, meta
+            )
             writer = csv.DictWriter(out_f, fieldnames=output_headers)
             writer.writeheader()
 
@@ -607,7 +669,7 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                     print(
                         f"[Worker] Job {job_id} | Chunk {chunk_id} | Row {i}/{chunk_total_rows} -> {row}"
                     )
-                    email_value = row.get(meta.get("email_col", ""), "")
+                    email_value = row.get(email_header, "") if email_header else ""
 
                     research_output = "Research unavailable: unexpected error."
                     sif_line = "SIF personalized line unavailable: unexpected error."
@@ -634,14 +696,12 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                     print(f"[Worker] ERROR row {i}: {e}")
                     traceback.print_exc()
 
-                normalized_row = {
-                    header: row.get(header, "")
-                    for header in input_headers
-                    if header
-                    not in {"sif_research", "sif_personalized"}
-                }
+                normalized_row = {}
+                for header in row_headers:
+                    value = row.get(header, "")
+                    normalized_row[header] = "" if value is None else value
                 if email_header:
-                    normalized_row[email_header] = email_value
+                    normalized_row[email_header] = "" if email_value is None else email_value
                 normalized_row["sif_research"] = research_output
                 normalized_row["sif_personalized"] = sif_line
                 writer.writerow(normalized_row)
@@ -779,7 +839,12 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                 )
 
 
-def finalize_job(job_id: str, user_id: str, total_chunks: int):
+def finalize_job(
+    job_id: str,
+    user_id: str,
+    total_chunks: int,
+    final_headers: Optional[List[str]] = None,
+):
     """Merge all partial CSV files into one final result and update job status."""
     finalize_start = time.time()
     try:
@@ -827,6 +892,20 @@ def finalize_job(job_id: str, user_id: str, total_chunks: int):
         # --- Final CSV → XLSX ---
         upload_start = time.time()
         final_df = pd.concat(frames, ignore_index=True)
+        if final_headers:
+            ordered_headers: List[str] = []
+            seen_headers = set()
+            for header in final_headers:
+                if not header or header in seen_headers:
+                    continue
+                ordered_headers.append(header)
+                seen_headers.add(header)
+            for header in ordered_headers:
+                if header not in final_df.columns:
+                    final_df[header] = ""
+            ordered_in_df = [header for header in ordered_headers if header in final_df.columns]
+            extra_headers = [header for header in final_df.columns if header not in ordered_in_df]
+            final_df = final_df[ordered_in_df + extra_headers]
         local_dir = tempfile.mkdtemp()
         out_csv = os.path.join(local_dir, f"{job_id}_final.csv")
         out_xlsx = os.path.join(local_dir, f"{job_id}_final.xlsx")
@@ -923,6 +1002,9 @@ def process_job(job_id: str):
             f.write(resp.content)
 
         headers, total, row_iter = _input_iterator(local_path)
+        _, _, final_output_headers, chunk_headers = _resolve_output_header_order(
+            headers, meta
+        )
 
         timings["download_input"] = record_time("Download input file", dl_start, job_id)
 
@@ -1024,7 +1106,7 @@ def process_job(job_id: str):
                     storage_chunk_path = _persist_chunk_rows(
                         job_id,
                         chunk_count,
-                        headers,
+                        chunk_headers,
                         chunk_buffer,
                         user_id,
                     )
@@ -1046,7 +1128,7 @@ def process_job(job_id: str):
                 storage_chunk_path = _persist_chunk_rows(
                     job_id,
                     chunk_count,
-                    headers,
+                    chunk_headers,
                     chunk_buffer,
                     user_id,
                 )
@@ -1071,11 +1153,18 @@ def process_job(job_id: str):
                 job_id,
                 user_id,
                 chunk_count,
+                final_output_headers,
                 depends_on=subjob_refs,
                 job_timeout=job_timeout,
             )
         else:
-            _finalize_empty_job(job_id, user_id, headers, timings, job_start)
+            _finalize_empty_job(
+                job_id,
+                user_id,
+                final_output_headers,
+                timings,
+                job_start,
+            )
             return
 
         timings["process_job_total"] = record_time("process_job total", job_start, job_id)
