@@ -67,7 +67,7 @@ def _is_valid_research_payload(content: str) -> bool:
             if not isinstance(moat, str):
                 return False
         else:
-            if "moat" in section and not isinstance(section.get("moat"), str):
+            if set(section.keys()) != {"name", "info"}:
                 return False
 
     return True
@@ -83,7 +83,6 @@ def _build_prompt(email: str, findings: List[str]) -> str:
         "- 'name': the person's full name or the company's full name as a string (empty string if unknown).\n"
         "- 'info': an array of exactly two standalone sentences, each string capturing a distinct insight to use in outreach.\n"
         "- Company 'moat': a single-string description of the company's unique advantage or defensible edge (use an empty string if unavailable).\n"
-        "- Person 'moat': include a single-string description if available; it may be an empty string or omitted entirely.\n"
         "Do not include any other keys or commentary.\n"
         f"Prospect email: {email}\n"
         "Search findings:\n"
