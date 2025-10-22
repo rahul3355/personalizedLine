@@ -27,16 +27,6 @@ redis_conn = redis.Redis(host="redis", port=6379, decode_responses=False)
 queue = rq.Queue("default", connection=redis_conn)
 
 
-class _RQExecutor:
-    """Minimal executor interface for legacy Streamlit UI."""
-
-    def submit(self, func, *args, **kwargs):
-        return queue.enqueue(func, *args, **kwargs)
-
-
-EXEC = _RQExecutor()
-
-
 RAW_CHUNK_BASE_DIR = "/data/raw_chunks"
 RAW_CHUNK_BUCKET = "inputs"
 

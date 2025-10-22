@@ -9,7 +9,7 @@ import io
 from pydantic import BaseModel
 import os
 import logging
-from . import db, jobs
+from . import jobs
 from .file_streaming import (
     FileStreamingError,
     count_csv_rows,
@@ -310,7 +310,6 @@ def start_worker():
 @app.on_event("startup")
 async def startup_event():
     print("[Main] Running startup_event")
-    db.init_db()
     start_worker()
     print("[Main] Worker started")
 
