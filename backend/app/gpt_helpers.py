@@ -42,18 +42,13 @@ def generate_sif_personalized_line(sif_research: str, service_context: str) -> s
         return "SIF personalized line unavailable: missing Groq API key."
 
     service_text = (service_context or "").strip()
-    research_text = json.dumps(parsed_research, ensure_ascii=False, indent=2)
+    research_text = cleaned_research
 
-    message_parts = [
-        SIF_SYSTEM_PROMPT,
-        "",
-        "Person info:",
-        research_text,
-    ]
-    if service_text:
-        message_parts.extend(["", "Service context:", service_text])
-
-    user_prompt = "\n".join(message_parts)
+    user_prompt = (
+        f"{SIF_SYSTEM_PROMPT}\n\n"
+        f"Person info:\n{research_text}\n\n"
+        f"Service context:\n{service_text}"
+    )
 
     try:
         response = requests.post(
