@@ -66,9 +66,7 @@ def test_generate_sif_personalized_line_success(monkeypatch, sif_research_payloa
     assert result == "Hook line."
     assert captured["url"] == gpt_helpers.GROQ_CHAT_ENDPOINT
     assert captured["payload"]["model"] == gpt_helpers.GROQ_SIF_MODEL
-    expected_research = json.dumps(
-        json.loads(sif_research_payload), ensure_ascii=False, indent=2
-    )
+    expected_research = sif_research_payload.strip()
     expected_user_prompt = (
         f"{gpt_helpers.SIF_SYSTEM_PROMPT}\n\n"
         f"Person info:\n{expected_research}\n\n"
@@ -102,10 +100,7 @@ def test_generate_sif_personalized_line_includes_research_block(
     messages = captured["payload"]["messages"]
     assert len(messages) == 1
     user_message = messages[0]["content"]
-    expected_research = json.dumps(
-        json.loads(sif_research_payload), ensure_ascii=False, indent=2
-    )
-
+    expected_research = sif_research_payload.strip()
     assert user_message.startswith(gpt_helpers.SIF_SYSTEM_PROMPT)
     assert "\n\nPerson info:\n" in user_message
     assert expected_research in user_message

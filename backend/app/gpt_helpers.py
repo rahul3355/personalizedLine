@@ -10,12 +10,10 @@ LOGGER = logging.getLogger(__name__)
 GROQ_CHAT_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_SIF_MODEL = "openai/gpt-oss-120b"
 SIF_SYSTEM_PROMPT = (
-    "Generate a human-written, well-researched, highly personalized opening line "
-    "for a cold email. Requirements: 1–2 sentences; 14–40 words; conversational; "
-    "natural tone; mention the company name naturally; highlight the provided "
-    "pain; do not pitch our service; do not ask questions. Ground every detail "
-    "strictly in the provided research JSON and service context; do not invent "
-    "information beyond that material."
+    "Generate a human-written, well-researched, conversational, highly personalized "
+    "opening line for email after 'Hi _name_' (don’t include 'Hi name'). Write one "
+    "or two sentences. Don’t pitch. Focus on a pain this person/company might face. "
+    "Output only the line in plain English."
 )
 
 def generate_sif_personalized_line(sif_research: str, service_context: str) -> str:
@@ -44,18 +42,13 @@ def generate_sif_personalized_line(sif_research: str, service_context: str) -> s
         return "SIF personalized line unavailable: missing Groq API key."
 
     service_text = (service_context or "").strip()
-    research_text = json.dumps(parsed_research, ensure_ascii=False, indent=2)
+    research_text = cleaned_research
 
-    message_parts = [
-        SIF_SYSTEM_PROMPT,
-        "",
-        "Person info:",
-        research_text,
-    ]
-    if service_text:
-        message_parts.extend(["", "Service context:", service_text])
-
-    user_prompt = "\n".join(message_parts)
+    user_prompt = (
+        f"{SIF_SYSTEM_PROMPT}\n\n"
+        f"Person info:\n{research_text}\n\n"
+        f"Service context:\n{service_text}"
+    )
 
     try:
         response = requests.post(
