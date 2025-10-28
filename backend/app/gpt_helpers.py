@@ -10,12 +10,10 @@ LOGGER = logging.getLogger(__name__)
 GROQ_CHAT_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_SIF_MODEL = "openai/gpt-oss-120b"
 SIF_SYSTEM_PROMPT = (
-    "Generate a human-written, well-researched, highly personalized opening line "
-    "for a cold email. Requirements: 1–2 sentences; 14–40 words; conversational; "
-    "natural tone; mention the company name naturally; highlight the provided "
-    "pain; do not pitch our service; do not ask questions. Ground every detail "
-    "strictly in the provided research JSON and service context; do not invent "
-    "information beyond that material."
+    "Generate a human-written, well-researched, conversational, highly personalized "
+    "opening line for email after 'Hi _name_' (don’t include 'Hi name'). Write one "
+    "or two sentences. Don’t pitch. Focus on a pain this person/company might face. "
+    "Output only the line in plain English."
 )
 
 def generate_sif_personalized_line(sif_research: str, service_context: str) -> str:
