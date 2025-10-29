@@ -104,6 +104,10 @@ def test_generate_sif_personalized_line_includes_research_block(
     assert user_message.startswith(gpt_helpers.SIF_SYSTEM_PROMPT)
     assert "\n\nPerson info:\n" in user_message
     assert expected_research in user_message
+    assert "Keep every sentence short (25 words or fewer) and easy to read." in user_message
+    assert (
+        "the message directly references how our service context relates to that pain" in user_message
+    )
     assert user_message.endswith("Service context:\nService: onboarding accelerators")
 
 

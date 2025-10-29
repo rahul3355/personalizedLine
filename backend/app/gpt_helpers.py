@@ -12,8 +12,10 @@ GROQ_SIF_MODEL = "openai/gpt-oss-120b"
 SIF_SYSTEM_PROMPT = (
     "Generate a human-written, well-researched, conversational, highly personalized "
     "opening line for email after 'Hi _name_' (don’t include 'Hi name'). Write one "
-    "or two sentences. Don’t pitch. Focus on a pain this person/company might face. "
-    "Output only the line in plain English."
+    "or two sentences. Keep every sentence short (25 words or fewer) and easy to read. "
+    "Do not use metaphors. Focus on a pain this person/company might face and make sure "
+    "the message directly references how our service context relates to that pain. Output "
+    "only the line in plain English."
 )
 
 def generate_sif_personalized_line(sif_research: str, service_context: str) -> str:
