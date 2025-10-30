@@ -178,3 +178,68 @@ flowchart TD
 ```
 
 The diagram captures how authenticated clients drive FastAPI endpoints, how those endpoints manage credits and jobs through Supabase, how background workers orchestrate chunked processing with Redis/RQ, and how external providers (Stripe, Serper, Groq) participate in the data flow.
+
+## Security Assessment by Flow
+
+### Authentication Guard
+- **Entry point**: Every user-initiated endpoint invokes `get_current_user` before touching application state. The guard must validate the JWT signature, issuer, and expiration and enforce revocation lists where applicable. Failure points include unsigned/forged tokens, replay attacks, and privilege escalation if the guard does not reject downgraded scopes. Pairing the guard with per-request rate limits mitigates brute-force attempts.
+
+### Parse Headers Flow (`POST /parse_headers`)
+- **Data path**: Browser → FastAPI → Supabase storage (inputs bucket) and temporary local files → helper utilities → Browser response.
+- **Risks**:
+  - Unsanitized filenames or content in uploaded CSVs could trigger path traversal when persisted to `/tmp` or `/data`. Enforce strict filename normalization and store uploads with generated UUIDs.
+  - Temporary files remain on disk until cleanup; sensitive data could leak if the container crashes. Enable automatic deletion on success/failure and run the worker with minimal filesystem permissions.
+  - Signed URL generation for Supabase storage must expire quickly and be scoped to the exact object to avoid lateral movement. Monitor for abuse by correlating URL issuance with download logs.
+  - Credits selection touches the `profiles` table; verify authorization checks ensure a user can only debit their own credits to prevent enumeration attacks.
+
+### Job Creation Flow (`POST /jobs`)
+- **Data path**: Browser → FastAPI → Supabase storage (inputs), Redis lock, `profiles`, `ledger`, and `jobs` tables.
+- **Risks**:
+  - The Redis `credits_lock:<user>` should be namespaced and configured with a TTL to avoid deadlocks that prevent legitimate credit usage.
+  - Credit reservation and ledger writes must be transactional. If Supabase operations are not wrapped atomically, an attacker could force inconsistencies (e.g., double spending) by racing requests. Use database transactions or compensating rollback logic.
+  - Uploaded input files should be scanned for malware before workers download them. Integrating an antivirus step (e.g., ClamAV) reduces propagation risks.
+  - User-provided metadata in job creation should be validated to prevent SQL injection or logging-based attacks.
+
+### Read-Only Job Queries (`GET /jobs`, `GET /jobs/{id}`, downloads)
+- **Data path**: Browser → FastAPI → Supabase tables/storage → Browser.
+- **Risks**:
+  - Ensure row-level security on Supabase tables so users cannot access other users’ jobs via ID guessing.
+  - Download endpoints should enforce ownership checks before streaming from `storageOutputs`. Consider streaming through the backend instead of returning signed URLs to limit exposure windows.
+  - Progress logs might contain sensitive personalization data; apply output filtering or redaction before responding to avoid leaking data across tenants.
+
+### Worker Processing (`worker_loop`, `process_job`)
+- **Data path**: Workers poll Supabase, claim jobs, download inputs, and enqueue subjobs.
+- **Risks**:
+  - Workers require a service account with elevated Supabase privileges; scope credentials to the minimal set of tables/buckets. Rotate keys regularly.
+  - When writing raw chunk CSVs to the local filesystem, restrict POSIX permissions (e.g., `chmod 600`) to prevent other processes from reading intermediate data.
+  - Deducting credits and updating ledgers must be idempotent. Network retries could double-charge if not guarded by unique constraints.
+  - Enqueueing RQ tasks should use signed payloads or at least validate task parameters to prevent malicious job injections if Redis is compromised.
+
+### Subjob Processing (`process_subjob`)
+- **Data path**: RQ → Worker → Supabase storage/files → External APIs (Serper, Groq) → Supabase tables and storage.
+- **Risks**:
+  - External API calls expose user-provided data. Review privacy agreements and encrypt PII when possible. Consider hashing sensitive identifiers before transmission.
+  - Rate limiting and error handling should prevent partial failures from leaving orphaned chunks or unlogged credits. Implement retry policies with exponential backoff and circuit breakers to mitigate API abuse.
+  - Each chunk write to `filesTable` and `jobLogs` should include per-user ownership metadata. Without it, an attacker who gains Supabase read access might correlate data across tenants.
+  - After deleting raw chunks, verify the deletion succeeded to avoid residual sensitive data in `storageRawChunks`.
+
+### Finalization (`finalize_job`)
+- **Data path**: RQ → Worker → chunk outputs → Supabase storage (`outputs`) → jobs table.
+- **Risks**:
+  - When downloading missing chunks, validate checksums to detect tampering or corruption before merging into the final artifact.
+  - The final result persisted in Supabase storage should be encrypted at rest (Supabase manages this) and optionally encrypted per tenant for defense in depth.
+  - Marking jobs succeeded should only occur after verifying that all subjobs completed and no errors remain in the logs; otherwise, users could download incomplete data.
+
+### Stripe and Billing Flows
+- **Data path**: Browser → FastAPI → Stripe API/Webhooks → Supabase (`profiles`, `ledger`).
+- **Risks**:
+  - Webhook endpoint must verify Stripe signatures and reject replays using `idempotency` keys or event log deduplication.
+  - Plan metadata from Stripe should be sanitized to avoid injecting unexpected state into Supabase records.
+  - If webhook processing fails mid-flight, credits might be partially updated. Implement idempotent handlers and reconcile against Stripe’s canonical state on a schedule.
+  - Stripe Checkout sessions must bind the current user ID in metadata; otherwise, a malicious user could pay for another user’s account to gain credit.
+
+### Cross-Cutting Concerns
+- **Secrets management**: API keys for Supabase, Stripe, Groq, Serper, and Redis should reside in a centralized secret manager with periodic rotation. Never log secrets during debug output from workers or FastAPI.
+- **Observability**: Instrument logs with trace IDs spanning frontend requests, FastAPI handlers, and RQ jobs to audit data flow. Ensure logs redact PII before shipping to external systems.
+- **Network controls**: Restrict outbound egress for worker containers to only the required external APIs to reduce exfiltration channels.
+- **Incident response**: Implement anomaly detection on credit usage, job volume, and external API call rates to surface compromised accounts quickly.
