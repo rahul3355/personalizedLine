@@ -32,6 +32,52 @@ const BRAND_HOVER = "#3D42D8";
 const BRAND_TINT = "rgba(79,85,241,0.12)";
 const BRAND_SOFT = "rgba(79,85,241,0.22)";
 
+const DEFAULT_SERVICE_COMPONENTS = {
+  core_offer: "AI-powered personalized email outreach at scale",
+  key_differentiator:
+    "Researches prospect data in depth, writes human-sounding emails",
+  cta: "Demo invitation",
+  timeline: "Next Thursday at 2pm or 5pm",
+  goal: "Get meeting OR forward to right person",
+  fallback_action: "Forward if not right person",
+} as const;
+
+type ServiceFieldKey = keyof typeof DEFAULT_SERVICE_COMPONENTS;
+type ServiceComponents = Record<ServiceFieldKey, string>;
+
+const SERVICE_FIELDS: { key: ServiceFieldKey; label: string; placeholder: string }[] = [
+  {
+    key: "core_offer",
+    label: "Core Offer",
+    placeholder: DEFAULT_SERVICE_COMPONENTS.core_offer,
+  },
+  {
+    key: "key_differentiator",
+    label: "Key Differentiator",
+    placeholder: DEFAULT_SERVICE_COMPONENTS.key_differentiator,
+  },
+  {
+    key: "cta",
+    label: "Call to Action",
+    placeholder: DEFAULT_SERVICE_COMPONENTS.cta,
+  },
+  {
+    key: "timeline",
+    label: "Timeline",
+    placeholder: DEFAULT_SERVICE_COMPONENTS.timeline,
+  },
+  {
+    key: "goal",
+    label: "Primary Goal",
+    placeholder: DEFAULT_SERVICE_COMPONENTS.goal,
+  },
+  {
+    key: "fallback_action",
+    label: "Fallback Action",
+    placeholder: DEFAULT_SERVICE_COMPONENTS.fallback_action,
+  },
+];
+
 const COPY = {
   title: "Upload prospects",
   sub: "CSV or XLSX • up to 100k rows • header row required",
@@ -140,7 +186,9 @@ export default function UploadPage() {
 
   const [emailCol, setEmailCol] = useState("");
 
-  const [service, setService] = useState("");
+  const [serviceComponents, setServiceComponents] = useState<ServiceComponents>(
+    () => ({ ...DEFAULT_SERVICE_COMPONENTS })
+  );
 
   const [loading, setLoading] = useState(false);
   const [jobCreated, setJobCreated] = useState(false);
@@ -165,6 +213,33 @@ export default function UploadPage() {
     if (replaceInputRef.current) replaceInputRef.current.value = "";
   };
 
+  const updateServiceComponent = (key: ServiceFieldKey, value: string) => {
+    setServiceComponents((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const isServiceContextComplete = () =>
+    Object.values(serviceComponents).every((value) => value.trim().length > 0);
+
+  const renderServiceInputs = (gridClass = "grid-cols-1 md:grid-cols-2") => (
+    <div className={`grid ${gridClass} gap-4`}>
+      {SERVICE_FIELDS.map((field) => (
+        <div key={field.key} className="flex flex-col gap-2">
+          <label className="text-xs font-medium uppercase tracking-wide text-gray-500">
+            {field.label}
+          </label>
+          <textarea
+            autoFocus={field.key === "core_offer"}
+            value={serviceComponents[field.key]}
+            onChange={(e) => updateServiceComponent(field.key, e.target.value)}
+            placeholder={field.placeholder}
+            className="w-full rounded-md border border-gray-200 bg-white px-3 py-3 text-sm text-gray-900 shadow-sm transition focus:border-[#4F55F1] focus:ring-2 focus:ring-[#4F55F1]"
+            rows={3}
+          />
+        </div>
+      ))}
+    </div>
+  );
+
   const handleFileSelection = useCallback(
     (next: File | null) => {
       setFile(next);
@@ -175,6 +250,7 @@ export default function UploadPage() {
       setJobCreated(false);
       setStep(0);
       setEmailCol("");
+      setServiceComponents({ ...DEFAULT_SERVICE_COMPONENTS });
       setRefreshingCredits(false);
     },
     []
@@ -551,7 +627,7 @@ export default function UploadPage() {
   };
 
   const handleCreateJob = async (): Promise<boolean> => {
-    if (!tempPath || !emailCol || !service) {
+    if (!tempPath || !emailCol || !isServiceContextComplete()) {
       setError("Please complete all required fields");
       return false;
     }
@@ -568,7 +644,7 @@ export default function UploadPage() {
         user_id: session?.user.id || "",
         file_path: tempPath,
         email_col: emailCol,
-        service: service.trim() || "email outreach",
+        service: JSON.stringify(serviceComponents),
       };
 
       const res = await fetch(`${API_URL}/jobs`, {
@@ -918,21 +994,7 @@ export default function UploadPage() {
               <div className="flex flex-col">
                 <div className="space-y-4">
 
-                  <textarea
-                    autoFocus
-                    value={service}
-                    onChange={(e) => setService(e.target.value)}
-                    placeholder="e.g. Lead generation services (appointment setting, outbound campaigns)"
-                    className="w-full rounded-md border bg-white px-3 py-3 text-sm focus:ring-2"
-                    style={{ borderColor: "#E5E7EB" }}
-                    onFocus={(e) =>
-                      ((e.target as HTMLTextAreaElement).style.borderColor = BRAND)
-                    }
-                    onBlur={(e) =>
-                    ((e.target as HTMLTextAreaElement).style.borderColor =
-                      "#E5E7EB")
-                    }
-                  />
+                  {renderServiceInputs()}
                   {error && (
                     <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm font-medium">
                       {error}
@@ -1106,14 +1168,7 @@ export default function UploadPage() {
           <div className="max-w-md w-full space-y-6" style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}>
             <h2 className="text-lg font-semibold text-gray-900 text-center">Describe Your Service</h2>
             {renderCreditBanner(true)}
-            <textarea
-              value={service}
-              onChange={(e) => setService(e.target.value)}
-              placeholder="e.g. Lead generation services (appointment setting, outbound campaigns)"
-              className="w-full rounded-md border bg-white text-gray-900 text-[15px] px-4 py-3 resize-none"
-              style={{ borderColor: "#E5E7EB" }}
-              rows={6}
-            />
+            {renderServiceInputs("grid-cols-1")}
             <button
               onClick={handleCreateJob}
               disabled={loading || hasCreditShortage}
