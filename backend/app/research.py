@@ -49,44 +49,40 @@ def _is_valid_research_payload(content: str) -> tuple[bool, dict | None]:
     if not isinstance(payload, dict):
         return False, None
 
-    cleaned_payload: dict[str, dict[str, object]] = {}
-
-    person_section = payload.get("person")
-    if not isinstance(person_section, dict):
+    prospect_info = payload.get("prospect_info")
+    if not isinstance(prospect_info, dict):
         return False, None
 
-    person_cleaned = {
-        "name": person_section.get("name"),
-        "info": person_section.get("info"),
-    }
-
-    company_section = payload.get("company")
-    if not isinstance(company_section, dict):
+    # Validate required fields
+    name = prospect_info.get("name")
+    if not isinstance(name, str):
         return False, None
 
-    company_cleaned = {
-        "name": company_section.get("name"),
-        "info": company_section.get("info"),
-        "moat": company_section.get("moat", ""),
+    title = prospect_info.get("title")
+    if not isinstance(title, str):
+        return False, None
+
+    company = prospect_info.get("company")
+    if not isinstance(company, str):
+        return False, None
+
+    recent_activity = prospect_info.get("recent_activity")
+    if not isinstance(recent_activity, list):
+        return False, None
+
+    relevance_signals = prospect_info.get("relevance_signals")
+    if not isinstance(relevance_signals, list):
+        return False, None
+
+    cleaned_payload = {
+        "prospect_info": {
+            "name": name,
+            "title": title,
+            "company": company,
+            "recent_activity": recent_activity,
+            "relevance_signals": relevance_signals,
+        }
     }
-
-    for section_name, section in ("person", person_cleaned), ("company", company_cleaned):
-        name = section.get("name")
-        info = section.get("info")
-
-        if not isinstance(name, str):
-            return False, None
-
-        if not (isinstance(info, list) and len(info) == 2 and all(isinstance(item, str) for item in info)):
-            return False, None
-
-        if section_name == "company":
-            moat = section.get("moat")
-            if not isinstance(moat, str):
-                return False, None
-
-    cleaned_payload["person"] = person_cleaned
-    cleaned_payload["company"] = company_cleaned
 
     return True, cleaned_payload
 
@@ -94,19 +90,19 @@ def _is_valid_research_payload(content: str) -> tuple[bool, dict | None]:
 def _build_prompt(email: str, findings: List[str]) -> str:
     findings_text = "\n\n".join(findings) if findings else "No findings available."
     prompt = (
-        "You are assisting a sales researcher in preparing a personalized cold outreach email.\n"
-        "Using the search findings below, identify relevant insights about the prospect or their company.\n"
-        "Return valid JSON with exactly two top-level keys: 'person' and 'company'.\n"
-        "Person object: keys 'name' and 'info' only.\n"
-        "Company object: keys 'name', 'info', 'moat'. No other keys allowed.\n"
-        "The 'name' fields must be strings (empty string if unknown).\n"
-        "The 'info' fields must be arrays of exactly two standalone sentence strings highlighting distinct insights.\n"
-        "The company 'moat' must be a single string describing the company's unique advantage (empty string if unavailable).\n"
-        "Do not include commentary outside of the JSON.\n"
-        f"Prospect email: {email}\n"
-        "Search findings:\n"
-        f"{findings_text}\n"
-        "Ensure the response is valid JSON and avoid additional commentary."
+        "Extract structured information from this research data and return ONLY valid JSON.\n\n"
+        f"RESEARCH DATA:\n{findings_text}\n\n"
+        "Extract into this exact structure:\n"
+        "{\n"
+        '    "prospect_info": {\n'
+        '        "name": "Full name",\n'
+        '        "title": "Current job title",\n'
+        '        "company": "Company name",\n'
+        '        "recent_activity": ["Recent thing 1", "Recent thing 2"],\n'
+        '        "relevance_signals": ["Major signal"]\n'
+        "    }\n"
+        "}\n\n"
+        "Return ONLY the JSON, no explanation."
     )
     return prompt
 
@@ -184,7 +180,8 @@ def perform_research(email: str) -> str:
                     },
                     {"role": "user", "content": prompt},
                 ],
-                "temperature": 0.2,
+                "temperature": 0.3,
+                "max_completion_tokens": 11500,
             },
             timeout=30,
         )

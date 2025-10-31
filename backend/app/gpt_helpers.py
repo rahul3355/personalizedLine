@@ -9,47 +9,53 @@ LOGGER = logging.getLogger(__name__)
 
 GROQ_CHAT_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_SIF_MODEL = "openai/gpt-oss-120b"
-SIF_SYSTEM_PROMPT = (
-    "Generate a human-written, well-researched, conversational, highly personalized "
-    "opening line for email after 'Hi _name_' (don’t include 'Hi name'). Write one "
-    "or two sentences. Keep every sentence short (25 words or fewer) and easy to read. "
-    "Do not use metaphors. Focus on a pain this person/company might face and make sure "
-    "the message directly references how our service context relates to that pain. Output "
-    "only the line in plain English."
-)
 
-def generate_sif_personalized_line(sif_research: str, service_context: str) -> str:
-    """Generate a SIF personalized opener using Groq with structured research."""
+def generate_full_email_body(research_components: str, service_context: str) -> str:
+    """Generate a full email body using Groq with structured research."""
 
-    if not sif_research or not sif_research.strip():
-        return "SIF personalized line unavailable: missing research."
+    if not research_components or not research_components.strip():
+        return "Email body unavailable: missing research."
 
-    cleaned_research = sif_research.strip()
+    cleaned_research = research_components.strip()
     if cleaned_research.lower().startswith("research unavailable"):
-        return "SIF personalized line unavailable: research unavailable."
+        return "Email body unavailable: research unavailable."
 
     try:
         parsed_research = json.loads(cleaned_research)
     except json.JSONDecodeError:
-        LOGGER.warning("SIF research JSON could not be parsed: %s", cleaned_research)
-        return "SIF personalized line unavailable: invalid research JSON."
+        LOGGER.warning("Research JSON could not be parsed: %s", cleaned_research)
+        return "Email body unavailable: invalid research JSON."
 
     if not isinstance(parsed_research, dict):
-        LOGGER.warning("SIF research payload is not a JSON object: %s", cleaned_research)
-        return "SIF personalized line unavailable: invalid research JSON."
+        LOGGER.warning("Research payload is not a JSON object: %s", cleaned_research)
+        return "Email body unavailable: invalid research JSON."
 
     groq_key = os.getenv("GROQ_API_KEY")
     if not groq_key:
-        LOGGER.warning("GROQ_API_KEY not configured; skipping SIF personalization")
-        return "SIF personalized line unavailable: missing Groq API key."
+        LOGGER.warning("GROQ_API_KEY not configured; skipping email generation")
+        return "Email body unavailable: missing Groq API key."
 
-    service_text = (service_context or "").strip()
-    research_text = cleaned_research
+    # Parse service context as JSON
+    try:
+        service_components = json.loads(service_context) if service_context else {}
+    except json.JSONDecodeError:
+        LOGGER.warning("Service context JSON could not be parsed: %s", service_context)
+        service_components = {}
 
     user_prompt = (
-        f"{SIF_SYSTEM_PROMPT}\n\n"
-        f"Person info:\n{research_text}\n\n"
-        f"Service context:\n{service_text}"
+        "Write a cold email body based on these components. DO NOT include greetings, footers, or signatures.\n\n"
+        f"RESEARCH COMPONENTS:\n{json.dumps(parsed_research, indent=2)}\n\n"
+        f"SERVICE COMPONENTS:\n{json.dumps(service_components, indent=2)}\n\n"
+        "CRITICAL RULES:\n"
+        "- Use conversational tone with contractions\n"
+        "- NO em dashes or hyphens, jargon\n"
+        "- Reference specific research findings naturally (don't list facts)\n"
+        "- Connect their world to the service value or product value\n"
+        "- Include self-awareness when appropriate\n"
+        "- Clear CTA with specific times\n"
+        "- Always include forward option\n"
+        "- Sound like a human wrote this, not an AI. Write for easy readability.\n\n"
+        "Write ONLY the email body (no \"Hi\", no \"Best\", no signature)."
     )
 
     try:
@@ -64,9 +70,8 @@ def generate_sif_personalized_line(sif_research: str, service_context: str) -> s
                 "messages": [
                     {"role": "user", "content": user_prompt},
                 ],
-                "temperature": 0.6,
-                "top_p": 0.95,
-                "max_completion_tokens": 3000,
+                "temperature": 0.7,
+                "max_completion_tokens": 11200,
             },
             timeout=30,
         )
@@ -88,5 +93,5 @@ def generate_sif_personalized_line(sif_research: str, service_context: str) -> s
             raise ValueError("Groq response missing message content")
         return content
     except Exception as exc:
-        LOGGER.exception("Groq personalization request failed: %s", exc)
-        return "SIF personalized line unavailable: failed to generate personalization."
+        LOGGER.exception("Groq email generation request failed: %s", exc)
+        return "Email body unavailable: failed to generate email body."

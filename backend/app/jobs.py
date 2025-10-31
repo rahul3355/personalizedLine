@@ -8,7 +8,7 @@ import pandas as pd
 import traceback
 import tempfile
 import shutil
-from backend.app.gpt_helpers import generate_sif_personalized_line
+from backend.app.gpt_helpers import generate_full_email_body
 from backend.app.research import perform_research
 from backend.app.supabase_client import supabase
 from datetime import datetime
@@ -31,7 +31,7 @@ RAW_CHUNK_BASE_DIR = "/data/raw_chunks"
 RAW_CHUNK_BUCKET = "inputs"
 
 
-GENERATED_OUTPUT_COLUMNS = ("sif_research", "sif_personalized")
+GENERATED_OUTPUT_COLUMNS = ("research_components", "email_body")
 
 
 def _ensure_dict(value):
@@ -671,11 +671,13 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                     )
                     email_value = row.get(email_header, "") if email_header else ""
 
-                    research_output = "Research unavailable: unexpected error."
-                    sif_line = "SIF personalized line unavailable: unexpected error."
+                    research_components = "Research unavailable: unexpected error."
+                    email_body = "Email body unavailable: unexpected error."
 
                     try:
-                        research_output = perform_research(email_value)
+                        research_components = perform_research(email_value)
+                        print(f"\n📋 RESEARCH COMPONENTS:")
+                        print(research_components)
                     except Exception as research_exc:
                         print(
                             f"[Worker] Research error for job {job_id} | Chunk {chunk_id} | Row {i}: {research_exc}"
@@ -683,13 +685,20 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                         traceback.print_exc()
 
                     try:
-                        sif_line = generate_sif_personalized_line(
-                            research_output,
-                            meta.get("service", ""),
+                        # Get service components from meta
+                        service_context = meta.get("service", "{}")
+                        print(f"\n📧 SERVICE COMPONENTS:")
+                        print(service_context)
+
+                        email_body = generate_full_email_body(
+                            research_components,
+                            service_context,
                         )
-                    except Exception as sif_exc:
+                        print(f"\n✉️  FINAL EMAIL BODY:")
+                        print(email_body)
+                    except Exception as email_exc:
                         print(
-                            f"[Worker] SIF personalization error for job {job_id} | Chunk {chunk_id} | Row {i}: {sif_exc}"
+                            f"[Worker] Email generation error for job {job_id} | Chunk {chunk_id} | Row {i}: {email_exc}"
                         )
                         traceback.print_exc()
                 except Exception as e:
@@ -702,8 +711,8 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                     normalized_row[header] = "" if value is None else value
                 if email_header:
                     normalized_row[email_header] = "" if email_value is None else email_value
-                normalized_row["sif_research"] = research_output
-                normalized_row["sif_personalized"] = sif_line
+                normalized_row["research_components"] = research_components
+                normalized_row["email_body"] = email_body
                 writer.writerow(normalized_row)
 
                 processed_in_chunk += 1
