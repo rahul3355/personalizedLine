@@ -3,6 +3,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from dotenv import load_dotenv
+from typing import Union, Optional, Dict
 import uuid, shutil, os, tempfile, threading, json, stripe, time, re
 from fastapi.responses import StreamingResponse
 import io
@@ -485,10 +486,19 @@ async def parse_headers(
 # ✅ Step 2 — Create job
 from pydantic import BaseModel
 
+class ServiceComponents(BaseModel):
+    core_offer: str
+    key_differentiator: str
+    cta: str
+    timeline: str
+    goal: str
+    fallback_action: str
+
+
 class JobRequest(BaseModel):
     file_path: str
     email_col: str
-    service: str
+    service: Union[str, ServiceComponents]  # Accept either string (legacy) or structured components
 
 
 @app.get("/jobs")
@@ -766,10 +776,25 @@ async def create_job(
                 pass
 
         job_id = str(uuid.uuid4())
+
+        # Convert service to JSON string if it's a ServiceComponents object
+        if isinstance(req.service, ServiceComponents):
+            service_str = req.service.model_dump_json()
+        elif isinstance(req.service, str):
+            # Try to parse as JSON to validate structure, or keep as plain string
+            try:
+                json.loads(req.service)
+                service_str = req.service
+            except json.JSONDecodeError:
+                # Legacy plain string - keep as is
+                service_str = req.service
+        else:
+            service_str = json.dumps(req.service)
+
         meta = {
             "file_path": file_path,
             "email_col": email_col,
-            "service": req.service,
+            "service": service_str,
         }
 
         lock_name = f"credits_lock:{current_user.user_id}"
