@@ -169,10 +169,6 @@ def perform_research(email: str) -> str:
             json={
                 "model": MODEL_NAME,
                 "messages": [
-                    {
-                        "role": "system",
-                        "content": "You are a precise assistant that only responds with JSON.",
-                    },
                     {"role": "user", "content": prompt},
                 ],
                 "temperature": 0.3,
@@ -194,12 +190,14 @@ def perform_research(email: str) -> str:
         if not cleaned:
             raise ValueError("Groq response empty after cleaning")
 
-        is_valid, normalized_payload = _is_valid_research_payload(cleaned)
-        if not is_valid or normalized_payload is None:
-            LOGGER.warning("Groq returned invalid research JSON for %s: %s", email, cleaned)
+        # Return raw LLM output without validation (matches Python script behavior)
+        # Try to parse as JSON to ensure it's valid, but don't validate structure
+        try:
+            parsed = json.loads(cleaned)
+            return json.dumps(parsed, ensure_ascii=False, indent=2)
+        except json.JSONDecodeError:
+            LOGGER.warning("Groq returned invalid JSON for %s: %s", email, cleaned)
             return "Research unavailable: Groq returned malformed JSON."
-
-        return json.dumps(normalized_payload, ensure_ascii=False, indent=2)
     except Exception as exc:
         LOGGER.exception("Groq request failed for %s: %s", email, exc)
         return "Research unavailable: failed to generate Groq summary."
