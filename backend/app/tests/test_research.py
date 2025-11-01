@@ -71,7 +71,26 @@ def test_perform_research_normalizes_valid_payload(monkeypatch):
     assert json.loads(result) == expected_payload
 
 
-def test_perform_research_rejects_array_payload(monkeypatch):
+def test_perform_research_accepts_single_item_array_payload(monkeypatch):
+    expected_payload = {
+        "prospect_info": {
+            "name": "Bob Example",
+            "title": "Head of Ops",
+            "company": "Example Corp",
+            "recent_activity": [],
+            "relevance_signals": [],
+        }
+    }
+    groq_payload = json.dumps([expected_payload])
+
+    _stub_research_calls(monkeypatch, groq_payload)
+
+    result = research.perform_research("bob@example.com")
+
+    assert json.loads(result) == expected_payload
+
+
+def test_perform_research_rejects_multi_item_array_payload(monkeypatch):
     groq_payload = json.dumps([
         {
             "prospect_info": {
@@ -81,8 +100,27 @@ def test_perform_research_rejects_array_payload(monkeypatch):
                 "recent_activity": [],
                 "relevance_signals": [],
             }
-        }
+        },
+        {
+            "prospect_info": {
+                "name": "Duplicate",
+                "title": "Another Title",
+                "company": "Example Corp",
+                "recent_activity": [],
+                "relevance_signals": [],
+            }
+        },
     ])
+
+    _stub_research_calls(monkeypatch, groq_payload)
+
+    result = research.perform_research("bob@example.com")
+
+    assert result == research.FALLBACK_MALFORMED_JSON
+
+
+def test_perform_research_rejects_non_dict_array_payload(monkeypatch):
+    groq_payload = json.dumps([["not", "a", "dict"]])
 
     _stub_research_calls(monkeypatch, groq_payload)
 
