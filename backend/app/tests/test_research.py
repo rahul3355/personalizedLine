@@ -71,13 +71,41 @@ def test_perform_research_normalizes_valid_payload(monkeypatch):
     assert json.loads(result) == expected_payload
 
 
-def test_perform_research_rejects_array_payload(monkeypatch):
+def test_perform_research_accepts_single_element_array(monkeypatch):
+    expected_payload = {
+        "prospect_info": {
+            "name": "Bob Example",
+            "title": "Head of Ops",
+            "company": "Example Corp",
+            "recent_activity": [],
+            "relevance_signals": [],
+        }
+    }
+    groq_payload = json.dumps([expected_payload])
+
+    _stub_research_calls(monkeypatch, groq_payload)
+
+    result = research.perform_research("bob@example.com")
+
+    assert json.loads(result) == expected_payload
+
+
+def test_perform_research_rejects_multi_element_array(monkeypatch):
     groq_payload = json.dumps([
         {
             "prospect_info": {
                 "name": "Bob Example",
                 "title": "Head of Ops",
                 "company": "Example Corp",
+                "recent_activity": [],
+                "relevance_signals": [],
+            }
+        },
+        {
+            "prospect_info": {
+                "name": "Charlie Example",
+                "title": "VP Sales",
+                "company": "Another Corp",
                 "recent_activity": [],
                 "relevance_signals": [],
             }

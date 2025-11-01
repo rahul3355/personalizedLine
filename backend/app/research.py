@@ -64,6 +64,13 @@ def _normalize_groq_payload(raw_content: str) -> Dict[str, Any]:
     except json.JSONDecodeError as exc:  # pragma: no cover - covered via fallback test
         raise ValueError("Groq response was not valid JSON") from exc
 
+    # Unwrap single-element arrays that contain the expected structure
+    if isinstance(payload, list):
+        if len(payload) == 1 and isinstance(payload[0], dict):
+            payload = payload[0]
+        else:
+            raise ValueError("Groq response was not a JSON object")
+
     if not isinstance(payload, dict):
         raise ValueError("Groq response was not a JSON object")
 
