@@ -28,7 +28,7 @@ def ensure_keys(monkeypatch):
     monkeypatch.setenv("GROQ_API_KEY", "test-groq")
 
 
-def _stub_research_calls(monkeypatch, groq_payload):
+def _stub_research_calls(monkeypatch, groq_payload: str):
     serper_payloads = iter(
         [
             {"organic": [{"title": "Result A", "snippet": "Snippet A."}]},
@@ -46,169 +46,56 @@ def _stub_research_calls(monkeypatch, groq_payload):
     monkeypatch.setattr(research.requests, "post", fake_post)
 
 
-def test_perform_research_passthrough(monkeypatch):
-    structured_payload = {
-        "person": {
+def test_perform_research_normalizes_valid_payload(monkeypatch):
+    expected_payload = {
+        "prospect_info": {
             "name": "Alice Example",
-            "info": [
-                "Runs enterprise marketing at Example Corp.",
-                "Previously led demand gen at Beta Systems.",
+            "title": "Director of Growth",
+            "company": "Example Corp",
+            "recent_activity": [
+                "Presented at the 2024 Customer Success Summit.",
+                "Published a case study on AI-driven onboarding.",
             ],
-        },
-        "company": {
-            "name": "Example Corp",
-            "info": [
-                "Scaling a partner ecosystem with regional specialists.",
-                "Investing in AI-assisted onboarding for faster time-to-value.",
+            "relevance_signals": [
+                "Evaluating AI personalization tools",
+                "Hiring lifecycle marketing managers",
             ],
-            "moat": "Owns proprietary data across 40 integrations.",
-        },
+        }
     }
-    structured_json = json.dumps(structured_payload, indent=2)
+    groq_payload = """```json\n{\n  \"prospect_info\": {\n    \"name\": \"Alice Example\",\n    \"title\": \"Director of Growth\",\n    \"company\": \"Example Corp\",\n    \"recent_activity\": [\n      \"Presented at the 2024 Customer Success Summit.\",\n      \"Published a case study on AI-driven onboarding.\"\n    ],\n    \"relevance_signals\": [\n      \"Evaluating AI personalization tools\",\n      \"Hiring lifecycle marketing managers\"\n    ]\n  }\n}\n```"""
 
-    _stub_research_calls(monkeypatch, structured_json)
+    _stub_research_calls(monkeypatch, groq_payload)
 
     result = research.perform_research("alice@example.com")
 
-    assert result == structured_json
-
-    input_headers = ["email", "sif_personalized", "sif_research"]
-    row = {"email": "alice@example.com"}
-    normalized_row = {
-        header: row.get(header, "")
-        for header in input_headers
-        if header not in {"sif_research", "sif_personalized"}
-    }
-    normalized_row["sif_research"] = result
-
-    assert normalized_row["sif_research"] == structured_json
+    assert json.loads(result) == expected_payload
 
 
-def test_perform_research_invalid_json(monkeypatch):
-    malformed_payload = json.dumps(
+def test_perform_research_rejects_array_payload(monkeypatch):
+    groq_payload = json.dumps([
         {
-            "person": {
+            "prospect_info": {
                 "name": "Bob Example",
-                "info": [
-                    "Heads RevOps at Example Corp.",
-                ],
-            },
-            "company": {
-                "name": "Example Corp",
-                "info": [
-                    "Offers a unified analytics platform for marketing teams.",
-                    "Recently launched an AI assistant for campaign planning.",
-                ],
-                "moat": "Holds top-tier partnerships across CRM vendors.",
-            },
-        },
-        indent=2,
-    )
+                "title": "Head of Ops",
+                "company": "Example Corp",
+                "recent_activity": [],
+                "relevance_signals": [],
+            }
+        }
+    ])
 
-    _stub_research_calls(monkeypatch, malformed_payload)
+    _stub_research_calls(monkeypatch, groq_payload)
 
     result = research.perform_research("bob@example.com")
 
-    assert result == "Research unavailable: Groq returned malformed JSON."
+    assert result == research.FALLBACK_MALFORMED_JSON
 
 
-def test_perform_research_strips_person_moat(monkeypatch):
-    groq_payload = json.dumps(
-        {
-            "person": {
-                "name": "Carol Example",
-                "info": [
-                    "Oversees enterprise accounts at Example Corp.",
-                    "Champions customer marketing partnerships.",
-                ],
-                "moat": "Recognized thought leader in enterprise advocacy.",
-            },
-            "company": {
-                "name": "Example Corp",
-                "info": [
-                    "Recently expanded its analytics platform into APAC.",
-                    "Investing in AI-assisted onboarding for partners.",
-                ],
-                "moat": "Holds exclusive integrations with major CRM vendors.",
-            },
-        },
-        indent=2,
-    )
+def test_perform_research_handles_malformed_json(monkeypatch):
+    groq_payload = "{\"prospect_info\": {\"name\": \"Carol Example\""
 
     _stub_research_calls(monkeypatch, groq_payload)
 
     result = research.perform_research("carol@example.com")
 
-    expected = json.dumps(
-        {
-            "person": {
-                "name": "Carol Example",
-                "info": [
-                    "Oversees enterprise accounts at Example Corp.",
-                    "Champions customer marketing partnerships.",
-                ],
-            },
-            "company": {
-                "name": "Example Corp",
-                "info": [
-                    "Recently expanded its analytics platform into APAC.",
-                    "Investing in AI-assisted onboarding for partners.",
-                ],
-                "moat": "Holds exclusive integrations with major CRM vendors.",
-            },
-        },
-        indent=2,
-    )
-
-    assert result == expected
-    assert json.loads(result) == json.loads(expected)
-
-
-def test_perform_research_adds_missing_company_moat(monkeypatch):
-    groq_payload = json.dumps(
-        {
-            "person": {
-                "name": "Dana Example",
-                "info": [
-                    "Heads product-led growth at Example Corp.",
-                    "Launched the self-serve onboarding motion last quarter.",
-                ],
-            },
-            "company": {
-                "name": "Example Corp",
-                "info": [
-                    "Provides an analytics platform for lifecycle marketers.",
-                    "Recently partnered with global agencies for co-marketing.",
-                ],
-            },
-        },
-        indent=2,
-    )
-
-    _stub_research_calls(monkeypatch, groq_payload)
-
-    result = research.perform_research("dana@example.com")
-
-    expected = json.dumps(
-        {
-            "person": {
-                "name": "Dana Example",
-                "info": [
-                    "Heads product-led growth at Example Corp.",
-                    "Launched the self-serve onboarding motion last quarter.",
-                ],
-            },
-            "company": {
-                "name": "Example Corp",
-                "info": [
-                    "Provides an analytics platform for lifecycle marketers.",
-                    "Recently partnered with global agencies for co-marketing.",
-                ],
-                "moat": "",
-            },
-        },
-        indent=2,
-    )
-
-    assert result == expected
-    assert json.loads(result) == json.loads(expected)
+    assert result == research.FALLBACK_MALFORMED_JSON

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import os
-from typing import List
+from typing import Any, Dict, List
 
 import requests
 
@@ -33,6 +33,59 @@ def _build_prompt(email: str, search_data: List[dict]) -> str:
         "Return ONLY the JSON, no explanation."
     )
     return prompt
+
+
+FALLBACK_MALFORMED_JSON = "Research unavailable: Groq returned malformed JSON."
+
+
+def _strip_code_fences(content: str) -> str:
+    """Remove optional Markdown code fences from the Groq response."""
+
+    stripped = content.strip()
+    if not stripped.startswith("```"):
+        return stripped
+
+    lines = stripped.splitlines()
+    # Drop the opening fence
+    lines = lines[1:]
+
+    if lines and lines[-1].strip() == "```":
+        lines = lines[:-1]
+
+    return "\n".join(lines).strip()
+
+
+def _normalize_groq_payload(raw_content: str) -> Dict[str, Any]:
+    """Parse and validate Groq content into a normalized payload."""
+
+    cleaned_content = _strip_code_fences(raw_content)
+    try:
+        payload = json.loads(cleaned_content)
+    except json.JSONDecodeError as exc:  # pragma: no cover - covered via fallback test
+        raise ValueError("Groq response was not valid JSON") from exc
+
+    if not isinstance(payload, dict):
+        raise ValueError("Groq response was not a JSON object")
+
+    prospect_info = payload.get("prospect_info")
+    if not isinstance(prospect_info, dict):
+        raise ValueError("Groq response missing 'prospect_info' object")
+
+    required_string_fields = ["name", "title", "company"]
+    for field in required_string_fields:
+        value = prospect_info.get(field)
+        if not isinstance(value, str):
+            raise ValueError(f"Groq response field 'prospect_info.{field}' must be a string")
+
+    list_fields = ["recent_activity", "relevance_signals"]
+    for field in list_fields:
+        value = prospect_info.get(field)
+        if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+            raise ValueError(
+                f"Groq response field 'prospect_info.{field}' must be a list of strings"
+            )
+
+    return payload
 
 
 def perform_research(email: str) -> str:
@@ -98,6 +151,10 @@ def perform_research(email: str) -> str:
             json={
                 "model": MODEL_NAME,
                 "messages": [
+                    {
+                        "role": "system",
+                        "content": "You are a precise assistant that only responds with JSON.",
+                    },
                     {"role": "user", "content": prompt},
                 ],
                 "temperature": 0.3,
@@ -114,8 +171,13 @@ def perform_research(email: str) -> str:
         content = message.get("content")
         if not content:
             raise ValueError("Groq response missing message content")
+        try:
+            normalized_payload = _normalize_groq_payload(content)
+        except ValueError as exc:
+            LOGGER.warning("Groq response validation failed for %s: %s", email, exc)
+            return FALLBACK_MALFORMED_JSON
 
-        return content.strip()
+        return json.dumps(normalized_payload, indent=2)
     except Exception as exc:
         LOGGER.exception("Groq request failed for %s: %s", email, exc)
         return "Research unavailable: failed to generate Groq summary."
