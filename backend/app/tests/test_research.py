@@ -212,3 +212,36 @@ def test_perform_research_adds_missing_company_moat(monkeypatch):
 
     assert result == expected
     assert json.loads(result) == json.loads(expected)
+
+
+def test_valid_research_payload_handles_array(monkeypatch):
+    """Test that _is_valid_research_payload handles arrays returned by Groq."""
+    # Simulate Groq returning an array with multiple objects
+    array_payload = json.dumps([
+        {
+            "prospect_info": {
+                "name": "David Rowlinson",
+                "title": "Co-Founder",
+                "company": "My Kind of Cruise",
+                "recent_activity": ["Activity 1", "Activity 2"],
+                "relevance_signals": ["Signal 1"]
+            }
+        },
+        {
+            "prospect_info": {
+                "name": "My Kind of Cruise",
+                "title": "Co-Founder",
+                "company": "My Kind of Cruise",
+                "recent_activity": ["Company Activity"],
+                "relevance_signals": ["Company Signal"]
+            }
+        }
+    ])
+
+    is_valid, normalized = research._is_valid_research_payload(array_payload)
+
+    assert is_valid is True
+    assert normalized is not None
+    assert normalized["prospect_info"]["name"] == "David Rowlinson"
+    assert normalized["prospect_info"]["title"] == "Co-Founder"
+    assert normalized["prospect_info"]["company"] == "My Kind of Cruise"
