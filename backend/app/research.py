@@ -87,11 +87,10 @@ def _is_valid_research_payload(content: str) -> tuple[bool, dict | None]:
     return True, cleaned_payload
 
 
-def _build_prompt(email: str, findings: List[str]) -> str:
-    findings_text = "\n\n".join(findings) if findings else "No findings available."
+def _build_prompt(email: str, search_data: List[dict]) -> str:
     prompt = (
         "Extract structured information from this research data and return ONLY valid JSON.\n\n"
-        f"RESEARCH DATA:\n{findings_text}\n\n"
+        f"RESEARCH DATA:\n{json.dumps(search_data, indent=2)}\n\n"
         "Extract into this exact structure:\n"
         "{\n"
         '    "prospect_info": {\n'
@@ -129,7 +128,7 @@ def perform_research(email: str) -> str:
     username, domain = email.split("@", 1)
     queries = [f"{username} {domain}".strip(), domain]
 
-    findings: List[str] = []
+    search_data: List[dict] = []
     headers = {
         "X-API-KEY": serper_key,
         "Content-Type": "application/json",
@@ -147,22 +146,18 @@ def perform_research(email: str) -> str:
             )
             response.raise_for_status()
             payload = response.json()
+            search_data.append(payload)
         except Exception as exc:
             LOGGER.exception("Serper request failed for query '%s': %s", query, exc)
             continue
 
-        organic_results = payload.get("organic") or []
-        for result in organic_results:
-            title = result.get("title") or ""
-            snippet = result.get("snippet") or ""
-            if not (title or snippet):
-                continue
-            findings.append(f"Title: {title}\nSnippet: {snippet}")
+    if not search_data or not any(d.get("organic") for d in search_data):
+        return "Research unavailable: no search results from Serper."
 
-    if not findings:
-        findings.append("No search results were retrieved from Serper.")
+    print("\n📊 RAW RESEARCH DATA:")
+    print(json.dumps(search_data, indent=2))
 
-    prompt = _build_prompt(email, findings)
+    prompt = _build_prompt(email, search_data)
 
     try:
         response = requests.post(
