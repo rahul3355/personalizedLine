@@ -46,6 +46,13 @@ def _is_valid_research_payload(content: str) -> tuple[bool, dict | None]:
     except json.JSONDecodeError:
         return False, None
 
+    # Handle case where Groq returns an array instead of a single object
+    if isinstance(payload, list):
+        if not payload:
+            return False, None
+        # Take the first element
+        payload = payload[0]
+
     if not isinstance(payload, dict):
         return False, None
 
@@ -91,7 +98,7 @@ def _build_prompt(email: str, search_data: List[dict]) -> str:
     prompt = (
         "Extract structured information from this research data and return ONLY valid JSON.\n\n"
         f"RESEARCH DATA:\n{json.dumps(search_data, indent=2)}\n\n"
-        "Extract into this exact structure:\n"
+        "Extract into this exact structure (a SINGLE JSON OBJECT, NOT an array):\n"
         "{\n"
         '    "prospect_info": {\n'
         '        "name": "Full name",\n'
@@ -101,7 +108,7 @@ def _build_prompt(email: str, search_data: List[dict]) -> str:
         '        "relevance_signals": ["Major signal"]\n'
         "    }\n"
         "}\n\n"
-        "Return ONLY the JSON, no explanation."
+        "CRITICAL: Return a SINGLE JSON object (not an array). Return ONLY the JSON, no explanation."
     )
     return prompt
 
