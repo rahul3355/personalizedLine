@@ -36,11 +36,21 @@ def generate_full_email_body(research_components: str, service_context: str) -> 
         return "Email body unavailable: missing Groq API key."
 
     # Parse service context as JSON
-    try:
-        service_components = json.loads(service_context) if service_context else {}
-    except json.JSONDecodeError:
-        LOGGER.warning("Service context JSON could not be parsed: %s", service_context)
-        service_components = {}
+    service_components = {}
+    if service_context and service_context.strip():
+        try:
+            service_components = json.loads(service_context)
+        except json.JSONDecodeError:
+            LOGGER.warning("Service context JSON could not be parsed, using as plain text: %s", service_context)
+            # If it's a plain string, create a basic structure
+            service_components = {
+                "core_offer": service_context,
+                "key_differentiator": "",
+                "cta": "Demo invitation",
+                "timeline": "Next Thursday at 2pm or 5pm",
+                "goal": "Get meeting OR forward to right person",
+                "fallback_action": "Forward if not right person"
+            }
 
     user_prompt = (
         "Write a cold email body based on these components. DO NOT include greetings, footers, or signatures.\n\n"
