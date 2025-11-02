@@ -10,6 +10,7 @@ import tempfile
 import shutil
 from backend.app.gpt_helpers import generate_full_email_body
 from backend.app.research import perform_research
+from backend.app.email_cleaning import clean_email_body
 from backend.app.supabase_client import supabase
 from datetime import datetime
 import redis
@@ -694,7 +695,12 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                             research_components,
                             service_context,
                         )
-                        print(f"\n✉️  FINAL EMAIL BODY:")
+                        print(f"\n✉️  FINAL EMAIL BODY (before cleaning):")
+                        print(email_body)
+
+                        # Apply cleaning pipeline
+                        email_body = clean_email_body(email_body)
+                        print(f"\n🧹 CLEANED EMAIL BODY:")
                         print(email_body)
                     except Exception as email_exc:
                         print(
