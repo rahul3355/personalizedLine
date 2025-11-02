@@ -320,3 +320,30 @@ def test_perform_research_handles_new_schema(monkeypatch):
             "relevance_signals": ["Hiring enablement", "Adopting PLG"],
         }
     }
+
+
+def test_perform_research_handles_null_title(monkeypatch):
+    """Test that null/None title is converted to empty string."""
+    groq_payload = json.dumps(
+        {
+            "prospect_info": {
+                "name": "Dutch Digital Systems",
+                "title": None,
+                "company": "Dutch Digital Systems Limited",
+                "recent_activity": ["Heads RevOps at Example Corp."],
+                "relevance_signals": ["insurance industry", "software suite"],
+            }
+        },
+        indent=2,
+    )
+
+    _stub_research_calls(monkeypatch, groq_payload)
+
+    result = research.perform_research("info@dutchdigital.systems")
+
+    parsed = json.loads(result)
+    assert parsed["prospect_info"]["name"] == "Dutch Digital Systems"
+    assert parsed["prospect_info"]["title"] == ""  # null converted to empty string
+    assert parsed["prospect_info"]["company"] == "Dutch Digital Systems Limited"
+    assert len(parsed["prospect_info"]["recent_activity"]) == 1
+    assert len(parsed["prospect_info"]["relevance_signals"]) == 2

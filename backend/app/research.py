@@ -72,8 +72,13 @@ def _is_valid_research_payload(content: str) -> tuple[bool, dict | None]:
         title = prospect_info.get("title")
         company = prospect_info.get("company")
 
-        if not all(isinstance(field, str) for field in (name, title, company)):
+        # Validate required fields: name and company must be strings
+        if not isinstance(name, str) or not isinstance(company, str):
             return False, None
+
+        # Title can be None, null, or empty - convert to empty string
+        if title is None or not isinstance(title, str):
+            title = ""
 
         recent_activity = _coerce_string_list(prospect_info.get("recent_activity"))
         relevance_signals = _coerce_string_list(prospect_info.get("relevance_signals"))
@@ -128,13 +133,17 @@ def _build_prompt(email: str, search_data: List[dict]) -> str:
         "{\n"
         '    "prospect_info": {\n'
         '        "name": "Full name",\n'
-        '        "title": "Current job title",\n'
+        '        "title": "Current job title or empty string if not found",\n'
         '        "company": "Company name",\n'
         '        "recent_activity": ["Recent thing 1", "Recent thing 2"],\n'
         '        "relevance_signals": ["Major signal"]\n'
         "    }\n"
         "}\n\n"
-        "CRITICAL: Return a SINGLE JSON object (not an array). Return ONLY the JSON, no explanation."
+        "IMPORTANT:\n"
+        "- If title is not available, use empty string \"\" (NOT null)\n"
+        "- All string fields must be strings, never null\n"
+        "- Return a SINGLE JSON object (not an array)\n"
+        "- Return ONLY the JSON, no explanation"
     )
     return prompt
 
