@@ -38,6 +38,16 @@ def _clean_response_content(content: str) -> str:
     return stripped
 
 
+def _coerce_string_list(value: object) -> list[str]:
+    """Normalize a value into a list of strings."""
+
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, list):
+        return [item for item in value if isinstance(item, str)]
+    return []
+
+
 def _is_valid_research_payload(content: str) -> tuple[bool, dict | None]:
     """Validate and normalize the expected research payload JSON."""
 
@@ -57,41 +67,57 @@ def _is_valid_research_payload(content: str) -> tuple[bool, dict | None]:
         return False, None
 
     prospect_info = payload.get("prospect_info")
-    if not isinstance(prospect_info, dict):
-        return False, None
+    if isinstance(prospect_info, dict):
+        name = prospect_info.get("name")
+        title = prospect_info.get("title")
+        company = prospect_info.get("company")
 
-    # Validate required fields
-    name = prospect_info.get("name")
-    if not isinstance(name, str):
-        return False, None
+        if not all(isinstance(field, str) for field in (name, title, company)):
+            return False, None
 
-    title = prospect_info.get("title")
-    if not isinstance(title, str):
-        return False, None
+        recent_activity = _coerce_string_list(prospect_info.get("recent_activity"))
+        relevance_signals = _coerce_string_list(prospect_info.get("relevance_signals"))
 
-    company = prospect_info.get("company")
-    if not isinstance(company, str):
-        return False, None
-
-    recent_activity = prospect_info.get("recent_activity")
-    if not isinstance(recent_activity, list):
-        return False, None
-
-    relevance_signals = prospect_info.get("relevance_signals")
-    if not isinstance(relevance_signals, list):
-        return False, None
-
-    cleaned_payload = {
-        "prospect_info": {
-            "name": name,
-            "title": title,
-            "company": company,
-            "recent_activity": recent_activity,
-            "relevance_signals": relevance_signals,
+        cleaned_payload = {
+            "prospect_info": {
+                "name": name,
+                "title": title,
+                "company": company,
+                "recent_activity": recent_activity,
+                "relevance_signals": relevance_signals,
+            }
         }
-    }
 
-    return True, cleaned_payload
+        return True, cleaned_payload
+
+    person = payload.get("person")
+    company = payload.get("company")
+
+    if isinstance(person, dict) and isinstance(company, dict):
+        person_name = person.get("name")
+        company_name = company.get("name")
+
+        if not isinstance(person_name, str) or not isinstance(company_name, str):
+            return False, None
+
+        person_info = _coerce_string_list(person.get("info"))
+        company_info = _coerce_string_list(company.get("info"))
+
+        normalized_payload: dict[str, dict[str, object]] = {
+            "person": {
+                "name": person_name,
+                "info": person_info,
+            },
+            "company": {
+                "name": company_name,
+                "info": company_info,
+                "moat": company.get("moat") if isinstance(company.get("moat"), str) else "",
+            },
+        }
+
+        return True, normalized_payload
+
+    return False, None
 
 
 def _build_prompt(email: str, search_data: List[dict]) -> str:
