@@ -87,20 +87,12 @@ def test_perform_research_passthrough(monkeypatch):
 def test_perform_research_invalid_json(monkeypatch):
     malformed_payload = json.dumps(
         {
-            "person": {
-                "name": "Bob Example",
-                "info": [
-                    "Heads RevOps at Example Corp.",
-                ],
-            },
-            "company": {
-                "name": "Example Corp",
-                "info": [
-                    "Offers a unified analytics platform for marketing teams.",
-                    "Recently launched an AI assistant for campaign planning.",
-                ],
-                "moat": "Holds top-tier partnerships across CRM vendors.",
-            },
+            "prospect_info": {
+                "name": None,
+                "title": "VP of Revenue",
+                "company": "Example Corp",
+                "recent_activity": ["Heads RevOps at Example Corp."],
+            }
         },
         indent=2,
     )
@@ -245,3 +237,86 @@ def test_valid_research_payload_handles_array(monkeypatch):
     assert normalized["prospect_info"]["name"] == "David Rowlinson"
     assert normalized["prospect_info"]["title"] == "Co-Founder"
     assert normalized["prospect_info"]["company"] == "My Kind of Cruise"
+
+
+def test_is_valid_research_payload_accepts_prospect_info_schema():
+    payload = {
+        "prospect_info": {
+            "name": "Evan Example",
+            "title": "Head of Enablement",
+            "company": "Example Corp",
+            "recent_activity": ["Launched a new onboarding track"],
+            "relevance_signals": ["Hiring RevOps leaders"],
+        }
+    }
+
+    is_valid, normalized = research._is_valid_research_payload(json.dumps(payload))
+
+    assert is_valid is True
+    assert normalized == payload
+
+
+def test_is_valid_research_payload_coerces_string_lists():
+    payload = {
+        "prospect_info": {
+            "name": "Frankie Example",
+            "title": "VP Marketing",
+            "company": "Acme Co",
+            "recent_activity": "Hosted a partner summit",
+            "relevance_signals": ["Raised Series C", 123, None, "Expanding to EMEA"],
+        }
+    }
+
+    is_valid, normalized = research._is_valid_research_payload(json.dumps(payload))
+
+    assert is_valid is True
+    assert normalized["prospect_info"]["recent_activity"] == ["Hosted a partner summit"]
+    assert normalized["prospect_info"]["relevance_signals"] == [
+        "Raised Series C",
+        "Expanding to EMEA",
+    ]
+
+
+def test_is_valid_research_payload_defaults_missing_lists():
+    payload = {
+        "prospect_info": {
+            "name": "Grace Example",
+            "title": "Founder",
+            "company": "Builder Labs",
+        }
+    }
+
+    is_valid, normalized = research._is_valid_research_payload(json.dumps(payload))
+
+    assert is_valid is True
+    assert normalized["prospect_info"]["recent_activity"] == []
+    assert normalized["prospect_info"]["relevance_signals"] == []
+
+
+def test_perform_research_handles_new_schema(monkeypatch):
+    groq_payload = json.dumps(
+        {
+            "prospect_info": {
+                "name": "Harper Example",
+                "title": "Director of Sales",
+                "company": "Northwind",
+                "recent_activity": "Opened a new Austin office",
+                "relevance_signals": ["Hiring enablement", {"note": "ignore"}, "Adopting PLG"],
+            }
+        },
+        indent=2,
+    )
+
+    _stub_research_calls(monkeypatch, groq_payload)
+
+    result = research.perform_research("harper@example.com")
+
+    assert json.loads(result) == {
+        "prospect_info": {
+            "name": "Harper Example",
+            "title": "Director of Sales",
+            "company": "Northwind",
+            "recent_activity": ["Opened a new Austin office"],
+            "relevance_signals": ["Hiring enablement", "Adopting PLG"],
+        }
+    }
