@@ -64,7 +64,11 @@ def generate_full_email_body(research_components: str, service_context: str) -> 
         "- Include self-awareness when appropriate\n"
         "- Clear CTA with specific times\n"
         "- Always include forward option\n"
-        "- Sound like a human wrote this, not an AI. Write for easy readability.\n\n"
+        "- Sound like a human wrote this, not an AI. Write for easy readability.\n"
+        "- FORMATTING: Break the email into 3 clear paragraphs separated by blank lines:\n"
+        "  1. First paragraph: Research/context about their business\n"
+        "  2. Second paragraph: Your value proposition\n"
+        "  3. Third paragraph: Call-to-action and forward option\n\n"
         "Write ONLY the email body (no \"Hi\", no \"Best\", no signature)."
     )
 
