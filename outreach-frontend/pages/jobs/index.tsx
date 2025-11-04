@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   Clock3,
   Download,
+  FileSpreadsheet,
   FileText,
   X,
   XCircle,
@@ -69,6 +70,7 @@ interface DetailPanelProps {
   onClose: () => void;
   onRetry: () => void;
   onDownload: () => void;
+  onOpenInSheets: () => void;
   downloading: boolean;
   isMobile?: boolean;
 }
@@ -619,6 +621,32 @@ function JobsPage() {
     }
   }, [session, selectedJob, downloading]);
 
+  const handleOpenInSheets = useCallback(async () => {
+    if (!session || !selectedJob) return;
+    try {
+      // First trigger the download
+      const res = await fetch(`${API_URL}/jobs/${selectedJob.id}/download`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (!res.ok) {
+        throw new Error("Download failed");
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = selectedJob.filename || "result.xlsx";
+      a.click();
+      window.URL.revokeObjectURL(url);
+
+      // Then open Google Sheets in a new tab
+      window.open("https://sheets.new", "_blank");
+    } catch (error) {
+      console.error("Error opening in Google Sheets:", error);
+      alert("Failed to prepare file for Google Sheets");
+    }
+  }, [session, selectedJob]);
+
   const handleLoadMore = useCallback(() => {
     if (!hasMore || loadingMore) return;
     fetchJobs(offset, { limit: PAGE_SIZE });
@@ -795,6 +823,7 @@ function JobsPage() {
                     onClose={closeDrawer}
                     onRetry={handleRetry}
                     onDownload={handleDownload}
+                    onOpenInSheets={handleOpenInSheets}
                     downloading={downloading}
                     isMobile
                   />
@@ -819,6 +848,7 @@ function JobsPage() {
                     onClose={closeDrawer}
                     onRetry={handleRetry}
                     onDownload={handleDownload}
+                    onOpenInSheets={handleOpenInSheets}
                     downloading={downloading}
                   />
                 </div>
@@ -839,6 +869,7 @@ function DetailPanel({
   onClose,
   onRetry,
   onDownload,
+  onOpenInSheets,
   downloading,
   isMobile = false,
 }: DetailPanelProps) {
@@ -917,20 +948,35 @@ function DetailPanel({
 
                 {/* Statement / Download like Revolut */}
                 {job?.status === "succeeded" && (
-                  <InfoRow
-                    label="Statement"
-                    value={
-                      <button
-                        type="button"
-                        onClick={onDownload}
-                        disabled={downloading}
-                        className="inline-flex items-center gap-1 font-medium text-[#4F55F1] hover:underline disabled:opacity-60"
-                      >
-                        <Download className="h-4 w-4" />
-                        {downloading ? "Preparing…" : "Download"}
-                      </button>
-                    }
-                  />
+                  <>
+                    <InfoRow
+                      label="Statement"
+                      value={
+                        <button
+                          type="button"
+                          onClick={onDownload}
+                          disabled={downloading}
+                          className="inline-flex items-center gap-1 font-medium text-[#4F55F1] hover:underline disabled:opacity-60"
+                        >
+                          <Download className="h-4 w-4" />
+                          {downloading ? "Preparing…" : "Download"}
+                        </button>
+                      }
+                    />
+                    <InfoRow
+                      label="Google Sheets"
+                      value={
+                        <button
+                          type="button"
+                          onClick={onOpenInSheets}
+                          className="inline-flex items-center gap-1 font-medium text-[#34A853] hover:underline"
+                        >
+                          <FileSpreadsheet className="h-4 w-4" />
+                          Open in Sheets
+                        </button>
+                      }
+                    />
+                  </>
                 )}
               </>
             )}
