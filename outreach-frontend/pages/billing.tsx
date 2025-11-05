@@ -471,7 +471,7 @@ export default function BillingPage() {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -4 }}
                         transition={{ duration: 0.2 }}
-                        className="mt-3 inline-flex items-center rounded-full bg-neutral-900 px-3 py-1 text-xs font-semibold text-white"
+                        className="mt-4 inline-flex items-center rounded-full border border-[#e4ded1] bg-[#f6f1e7] px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-900"
                       >
                         {plan.yearlySavings}
                       </motion.div>
