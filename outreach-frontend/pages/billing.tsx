@@ -405,7 +405,7 @@ export default function BillingPage() {
               return (
                 <article
                   key={`${activeSegment}-${plan.id}`}
-                  className={`flex h-full min-h-[480px] flex-col rounded-3xl border bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)] ${
+                  className={`flex h-full min-h-[380px] flex-col rounded-3xl border bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)] ${
                     plan.popular ? "border-black md:scale-[1.02]" : "border-neutral-200"
                   }`}
                 >
