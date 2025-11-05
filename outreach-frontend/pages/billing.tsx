@@ -1,10 +1,181 @@
 "use client";
 
-import { useAuth } from "../lib/AuthProvider";
-import AddonSection from "./AddonSection";
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
+import {
+  ArrowLeft,
+  BarChart3,
+  Brain,
+  Check,
+  Globe2,
+  Handshake,
+  LineChart,
+  MessageCircle,
+  Plus,
+  Settings,
+  ShieldCheck,
+  Sparkles,
+  X,
+} from "lucide-react";
+import { Switch } from "@headlessui/react";
+import type { LucideIcon } from "lucide-react";
+
+import { useAuth } from "../lib/AuthProvider";
+
+type BillingCycle = "monthly" | "yearly";
+type AudienceSegment = "individual" | "business";
+
+type PlanConfig = {
+  id: string;
+  name: string;
+  tagline: string;
+  monthlyPrice: number;
+  yearlyPrice: number;
+  yearlySavings?: string;
+  currency?: string;
+  badge?: string;
+  popular?: boolean;
+  ctaLabel: string;
+  features: string[];
+  includes?: string;
+};
+
+const planConfigurations: Record<AudienceSegment, PlanConfig[]> = {
+  individual: [
+    {
+      id: "starter",
+      name: "Starter",
+      tagline: "Launch personalized outreach with confident basics.",
+      monthlyPrice: 10,
+      yearlyPrice: 96,
+      yearlySavings: "Save 20%",
+      currency: "USD",
+      ctaLabel: "Upgrade to Starter",
+      features: [
+        "2,000 outreach lines each month",
+        "Dynamic inbox personalization",
+        "Live deliverability checks",
+        "2 team seats included",
+        "Email + chat support",
+      ],
+      includes: "Everything in Free",
+    },
+    {
+      id: "growth",
+      name: "Growth",
+      tagline: "Scale campaigns with advanced automations and insights.",
+      monthlyPrice: 50,
+      yearlyPrice: 528,
+      yearlySavings: "Save 12%",
+      currency: "USD",
+      badge: "Popular",
+      popular: true,
+      ctaLabel: "Upgrade to Growth",
+      features: [
+        "10,000 outreach lines each month",
+        "AI-assisted brief builder",
+        "Shared template library",
+        "Advanced analytics dashboard",
+        "Priority support",
+      ],
+      includes: "Everything in Starter",
+    },
+    {
+      id: "pro",
+      name: "Pro",
+      tagline: "Heavy-duty capacity for agencies running nonstop outreach.",
+      monthlyPrice: 100,
+      yearlyPrice: 1056,
+      yearlySavings: "Save 12%",
+      currency: "USD",
+      ctaLabel: "Upgrade to Pro",
+      features: [
+        "25,000 outreach lines each month",
+        "Dedicated success manager",
+        "Multi-workspace administration",
+        "Custom API access",
+        "Quarterly strategy reviews",
+      ],
+      includes: "Everything in Growth",
+    },
+  ],
+  business: [
+    {
+      id: "starter",
+      name: "Starter Business",
+      tagline: "Onboard teams fast with guided setup and governance.",
+      monthlyPrice: 150,
+      yearlyPrice: 1620,
+      yearlySavings: "Save 10%",
+      currency: "USD",
+      ctaLabel: "Talk to sales",
+      features: [
+        "Team-wide onboarding concierge",
+        "Centralized billing and admin controls",
+        "Shared template permissions",
+        "Role-based access controls",
+        "Standard SLA support",
+      ],
+      includes: "Everything in Individual Pro",
+    },
+    {
+      id: "growth",
+      name: "Growth Business",
+      tagline: "Layer personalization across multiple brands at scale.",
+      monthlyPrice: 320,
+      yearlyPrice: 3400,
+      yearlySavings: "Save 11%",
+      currency: "USD",
+      badge: "Popular",
+      popular: true,
+      ctaLabel: "Chat with sales",
+      features: [
+        "Unlimited workspaces and seats",
+        "Realtime performance benchmarks",
+        "Salesforce + HubSpot integrations",
+        "Single sign-on (SAML)",
+        "24/5 priority support",
+      ],
+      includes: "Everything in Starter Business",
+    },
+    {
+      id: "pro",
+      name: "Enterprise",
+      tagline: "Personalized go-to-market operations for global orgs.",
+      monthlyPrice: 520,
+      yearlyPrice: 5500,
+      yearlySavings: "Save 12%",
+      currency: "USD",
+      ctaLabel: "Book enterprise demo",
+      features: [
+        "Unlimited outreach volume",
+        "Custom security reviews & DPA",
+        "Dedicated solutions architect",
+        "Advanced governance reporting",
+        "24/7 white-glove support",
+      ],
+      includes: "Everything in Growth Business",
+    },
+  ],
+};
+
+const formatCurrencyParts = (amount: number, currency = "USD") => {
+  const formatter = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  });
+
+  const parts = formatter.formatToParts(amount);
+  const currencySymbol = parts.find((part) => part.type === "currency")?.value ?? "";
+  const number = parts
+    .filter((part) => part.type === "integer" || part.type === "group")
+    .map((part) => part.value)
+    .join("");
+
+  return { currencySymbol, number };
+};
 
 // ✅ Initialize Stripe with publishable key from env
 const stripePromise = loadStripe(
@@ -12,113 +183,113 @@ const stripePromise = loadStripe(
 );
 
 export default function BillingPage() {
-  const { session, userInfo, refreshUserInfo } = useAuth();
+  const { session, userInfo } = useAuth();
+  const router = useRouter();
+  const dialogRef = useRef<HTMLDivElement>(null);
   const [addonCount, setAddonCount] = useState(1);
+  const [activeSegment, setActiveSegment] = useState<AudienceSegment>("individual");
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-  // ✅ Plans displayed in UI
-  const plans = [
-    {
-      name: "Starter",
-      price: "$10",
-      period: "/month",
-      quota: "2,000 lines / month",
-      description:
-        "Effortless start for professionals running consistent outreach.",
-      additional: "$8 per additional 1000 lines",
-      popular: true,
-    },
-    {
-      name: "Growth",
-      price: "$50",
-      period: "/month",
-      quota: "10,000 lines / month",
-      description:
-        "Scale with confidence. Built for growing teams accelerating campaigns.",
-      additional: "$6 per additional 1000 lines",
-    },
-    {
-      name: "Pro",
-      price: "$100",
-      period: "/month",
-      quota: "25,000 lines / month",
-      description:
-        "Power at full scale. For agencies and heavy users managing serious volume.",
-      additional: "$5 per additional 1000 lines",
-    },
-  ];
+  const currentPlan = useMemo(
+    () => userInfo?.user?.plan_type || userInfo?.plan_type || "free",
+    [userInfo?.plan_type, userInfo?.user?.plan_type]
+  );
 
-// ✅ Handle Add-ons
-const handleBuyAddons = async () => {
-  if (!session || !userInfo?.id) return;
-  try {
-    const res = await fetch(`${API_URL}/create_checkout_session`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${session.access_token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        plan: currentPlan.toLowerCase(), // important for price map
-        addon: true,
-        quantity: addonCount,
-        user_id: userInfo.id,
-      }),
-    });
-
-    const data = await res.json();
-    if (data.id) {
-      const stripe = await stripePromise;
-      if (!stripe) throw new Error("Stripe failed to initialize");
-      await stripe.redirectToCheckout({ sessionId: data.id });
+  const closeBilling = () => {
+    if (window.history.length > 1) {
+      router.back();
     } else {
-      console.error("Add-on checkout error", data);
-      alert("Failed to start add-on purchase");
+      router.push("/");
     }
-  } catch (err) {
-    console.error("Add-on purchase error", err);
-    alert("Something went wrong");
-  }
-};
+  };
 
-// ✅ Handle Plan Checkout
-const handleCheckout = async (plan: string) => {
-  if (!session || !userInfo?.id) return;
-  try {
-    const res = await fetch(`${API_URL}/create_checkout_session`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${session.access_token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        plan: plan.toLowerCase(),
-        addon: false,       // always explicit
-        quantity: 1,        // always explicit
-        user_id: userInfo.id,
-      }),
-    });
+  useEffect(() => {
+    const { body } = document;
+    const originalOverflow = body.style.overflow;
+    body.style.overflow = "hidden";
 
-    const data = await res.json();
-    if (data.id) {
-      const stripe = await stripePromise;
-      if (!stripe) throw new Error("Stripe failed to initialize");
-      await stripe.redirectToCheckout({ sessionId: data.id });
-    } else {
-      console.error("Plan checkout error", data);
-      alert("Failed to create checkout session");
+    dialogRef.current?.focus();
+
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeBilling();
+      }
+    };
+
+    document.addEventListener("keydown", handleKey);
+
+    return () => {
+      body.style.overflow = originalOverflow;
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, []);
+
+  const handleBuyAddons = async () => {
+    if (!session || !userInfo?.id) return;
+    try {
+      const res = await fetch(`${API_URL}/create_checkout_session`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          plan: currentPlan.toLowerCase(),
+          addon: true,
+          quantity: addonCount,
+          user_id: userInfo.id,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.id) {
+        const stripe = await stripePromise;
+        if (!stripe) throw new Error("Stripe failed to initialize");
+        await stripe.redirectToCheckout({ sessionId: data.id });
+      } else {
+        console.error("Add-on checkout error", data);
+        alert("Failed to start add-on purchase");
+      }
+    } catch (err) {
+      console.error("Add-on purchase error", err);
+      alert("Something went wrong");
     }
-  } catch (err) {
-    console.error("Checkout error", err);
-    alert("Something went wrong starting checkout");
-  }
-};
+  };
 
+  const handleCheckout = async (planId: string) => {
+    if (!session || !userInfo?.id) return;
+    try {
+      const res = await fetch(`${API_URL}/create_checkout_session`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          plan: planId.toLowerCase(),
+          addon: false,
+          quantity: 1,
+          user_id: userInfo.id,
+        }),
+      });
 
-  // ✅ Refresh user info after successful Stripe checkout
-  // ✅ Current Plan Info
-  const currentPlan =
-    userInfo?.user?.plan_type || userInfo?.plan_type || "free";
+      const data = await res.json();
+      if (data.id) {
+        const stripe = await stripePromise;
+        if (!stripe) throw new Error("Stripe failed to initialize");
+        await stripe.redirectToCheckout({ sessionId: data.id });
+      } else {
+        console.error("Plan checkout error", data);
+        alert("Failed to create checkout session");
+      }
+    } catch (err) {
+      console.error("Checkout error", err);
+      alert("Something went wrong starting checkout");
+    }
+  };
+
   const credits = userInfo?.credits_remaining ?? 0;
   const maxCredits = userInfo?.max_credits ?? 25000;
   const renewalTimestamp = userInfo?.next_renewal;
@@ -130,262 +301,271 @@ const handleCheckout = async (plan: string) => {
       })
     : null;
 
+  const plans = planConfigurations[activeSegment];
+  const isYearly = billingCycle === "yearly";
+
+  const featureIcons: LucideIcon[] = [
+    Check,
+    Sparkles,
+    BarChart3,
+    ShieldCheck,
+    Handshake,
+    Settings,
+    Brain,
+    Globe2,
+    LineChart,
+    MessageCircle,
+  ];
+
   return (
-    <>
-      {/* ---------------- Desktop Billing Page ---------------- */}
-      <div className="hidden md:block px-8 py-12">
-        {/* Hero Section */}
-        <div className="text-center max-w-3xl mx-auto mb-12">
-          <h1 className="text-4xl font-bold tracking-tight text-gray-900">
-            Choose your plan
-          </h1>
-          <p className="mt-3 text-lg text-gray-600">
-            Upgrade your workflow with simple, scalable plans. Designed for
-            professionals, teams, and agencies.
-          </p>
-        </div>
-
-        {/* Pricing Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {plans.map((plan) => (
-            <div
-              key={plan.name}
-              className="relative rounded-2xl border border-gray-200 bg-white/70 p-8 shadow-sm backdrop-blur-sm transition-all"
-            >
-              {plan.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 text-xs font-medium rounded-full bg-gray-900 text-white shadow-sm">
-                  Most Popular
-                </div>
-              )}
-
-              <h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
-
-              <div className="mt-4 flex items-baseline gap-x-1">
-                <span className="text-3xl font-bold text-gray-900">
-                  {plan.price}
-                </span>
-                <span className="text-sm font-medium text-gray-500">
-                  {plan.period}
-                </span>
-              </div>
-
-              <p className="mt-3 text-sm font-medium text-gray-900">
-                {plan.quota}
-              </p>
-              <p className="mt-2 text-sm text-gray-600">{plan.description}</p>
-              <p className="mt-4 text-xs text-gray-500">{plan.additional}</p>
-
-              <button
-                onClick={() => handleCheckout(plan.name)}
-                className="mt-8 w-full px-6 py-3 rounded-md bg-gradient-to-b from-[#3a3a3a] to-[#1f1f1f] text-white font-medium shadow-sm transition-all duration-300 hover:shadow-lg hover:shadow-[rgba(0,0,0,0.25)] active:scale-[0.99]"
-              >
-                Get {plan.name}
-              </button>
-            </div>
-          ))}
-        </div>
-
-        {/* Current Plan */}
-        <div className="mt-16 max-w-3xl mx-auto rounded-2xl border border-gray-200 bg-white/70 p-8 text-center shadow-sm backdrop-blur-sm">
-          <h3 className="text-lg font-semibold text-gray-900">
-            You’re on the{" "}
-            {currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)} Plan
-          </h3>
-          <p className="mt-2 text-sm text-gray-600">
-            This plan includes {maxCredits.toLocaleString()} lines each month.
-          </p>
-          <p className="mt-2 text-xs text-gray-500">
-            {credits.toLocaleString()} lines remaining
-          </p>
-          {renewalDate && (
-            <p className="mt-2 text-xs text-gray-500">Renews on {renewalDate}</p>
-          )}
-          <button
-            disabled
-            className="mt-6 px-6 py-3 rounded-md bg-gray-200 text-gray-600 font-medium cursor-not-allowed"
-          >
-            Current Plan
-          </button>
-        </div>
-
-        {/* Add-ons */}
-        <div className="relative mt-10 border border-gray-200 bg-white p-6 shadow-md rounded-lg z-10">
-          <h3 className="text-lg font-semibold text-gray-900 text-center">
-            Add-on Pricing
-          </h3>
-          <p className="mt-1 text-sm text-gray-500 text-center">
-            For <span className="font-medium text-gray-700">{currentPlan} Plan</span> —{" "}
-            <span className="text-green-600 font-medium">
-              ${userInfo?.addon_price || 5}
-            </span>{" "}
-            per 1000 lines
-          </p>
-
-          <div className="mt-6 text-center">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select additional packs
-            </label>
-            <select
-              className="w-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-black transition"
-              onChange={(e) => setAddonCount(Number(e.target.value))}
-              value={addonCount}
-            >
-              {Array.from({ length: 100 }, (_, i) => i + 1).map((n) => (
-                <option key={n} value={n}>
-                  {n} × 1000 lines
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="mt-4 text-center">
-            <p className="text-sm font-medium text-gray-700">
-              ={" "}
-              <span className="font-semibold text-gray-900">
-                {(addonCount * 1000).toLocaleString()}
-              </span>{" "}
-              lines
-            </p>
-            <p className="mt-1 text-sm text-gray-700">
-              Total:{" "}
-              <span className="font-bold text-green-600">
-                ${(addonCount * (userInfo?.addon_price || 5)).toLocaleString()}
-              </span>
-            </p>
-          </div>
-
-          <button
-            onClick={handleBuyAddons}
-            className="mt-6 w-full py-3 font-semibold text-white bg-black border border-black text-[15px] tracking-tight rounded-lg relative overflow-hidden transition-transform duration-150 active:scale-95 hover:shadow-lg"
-          >
-            <span className="relative z-10">Buy Add-ons</span>
-            <span className="absolute inset-0 bg-white/20 opacity-0 active:opacity-100 transition-opacity duration-150"></span>
-          </button>
-        </div>
-      
-
-        
-
-        
-      </div>
-
-      {/* ---------------- Mobile Billing Page ---------------- */}
-      <div className="block md:hidden px-5 pt-6 pb-12 font-sans">
-        {/* Hero */}
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-            Choose your plan
-          </h1>
-          <p className="mt-2 text-sm text-gray-500">
-            Simple, scalable plans designed for professionals, teams, and agencies.
-          </p>
-        </div>
-
-        {/* Plans */}
-        <div className="space-y-6">
-          {plans.map((plan, i) => (
-            <motion.div
-              key={plan.name}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: i * 0.1 }}
-              className="relative rounded-3xl border border-gray-200 bg-white/90 backdrop-blur-md shadow-sm p-6 text-center"
-            >
-              <h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
-
-              <div className="mt-3 flex items-baseline justify-center gap-x-1">
-                <span className="text-4xl font-bold text-gray-900">{plan.price}</span>
-                <span className="text-sm font-medium text-gray-500">{plan.period}</span>
-              </div>
-              <br />
-
-              <p className="mt-3 text-sm font-medium text-gray-900">{plan.quota}</p>
-              <p className="mt-1 text-xs text-gray-500">+ {plan.additional}</p>
-
-              <button
-                onClick={() => handleCheckout(plan.name)}
-                className="mt-6 w-full py-3 rounded-xl font-medium text-white text-[15px] tracking-tight bg-gradient-to-b from-[#3a3a3a] to-[#1f1f1f] relative overflow-hidden transition-transform duration-150 active:scale-95 hover:shadow-lg"
-              >
-                <span className="relative z-10">Get {plan.name}</span>
-                <span className="absolute inset-0 bg-white/10 opacity-0 active:opacity-100 transition-opacity duration-150"></span>
-              </button>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Current Plan */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.3 }}
-          className="mt-10 rounded-2xl border border-gray-200 bg-gray-50 p-6 text-center"
+    <div className="fixed inset-0 z-50 bg-white">
+      <div className="h-full overflow-y-auto">
+        <div
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          tabIndex={-1}
+          className="relative mx-auto flex min-h-full w-full max-w-[1120px] flex-col px-6 pt-16 pb-24 text-center md:px-12 md:pt-24"
         >
-          <h3 className="text-sm font-semibold text-gray-800">
-            You’re on the {currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)} Plan
-          </h3>
-          <p className="mt-2 text-xs text-gray-500">
-            {maxCredits.toLocaleString()} lines each month · {credits.toLocaleString()} remaining
-          </p>
-          {renewalDate && (
-            <p className="mt-1 text-xs text-gray-400">Renews on {renewalDate}</p>
-          )}
-        </motion.div>
-
-        {/* Add-ons */}
-        <div className="relative mt-10 border border-gray-200 bg-white p-6 shadow-md rounded-lg z-10">
-          <h3 className="text-lg font-semibold text-gray-900 text-center">
-            Add-on Pricing
-          </h3>
-          <p className="mt-1 text-sm text-gray-500 text-center">
-            For <span className="font-medium text-gray-700">{currentPlan} Plan</span> —{" "}
-            <span className="text-green-600 font-medium">
-              ${userInfo?.addon_price || 5}
-            </span>{" "}
-            per 1000 lines
-          </p>
-
-          <div className="mt-6 text-center">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select additional packs
-            </label>
-            <select
-              className="w-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-black transition"
-              onChange={(e) => setAddonCount(Number(e.target.value))}
-              value={addonCount}
-            >
-              {Array.from({ length: 100 }, (_, i) => i + 1).map((n) => (
-                <option key={n} value={n}>
-                  {n} × 1000 lines
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="mt-4 text-center">
-            <p className="text-sm font-medium text-gray-700">
-              ={" "}
-              <span className="font-semibold text-gray-900">
-                {(addonCount * 1000).toLocaleString()}
-              </span>{" "}
-              lines
-            </p>
-            <p className="mt-1 text-sm text-gray-700">
-              Total:{" "}
-              <span className="font-bold text-green-600">
-                ${(addonCount * (userInfo?.addon_price || 5)).toLocaleString()}
-              </span>
-            </p>
-          </div>
+          <button
+            type="button"
+            onClick={closeBilling}
+            aria-label="Go back"
+            className="fixed top-6 left-6 flex items-center gap-2 text-sm font-semibold text-black transition hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
+          >
+            <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+            Back
+          </button>
 
           <button
-            onClick={handleBuyAddons}
-            className="mt-6 w-full py-3 font-semibold text-white bg-black border border-black text-[15px] tracking-tight rounded-lg relative overflow-hidden transition-transform duration-150 active:scale-95 hover:shadow-lg"
+            type="button"
+            onClick={closeBilling}
+            aria-label="Close"
+            className="fixed top-6 right-6 flex h-10 w-10 items-center justify-center rounded-full bg-white text-neutral-500 transition hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
           >
-            <span className="relative z-10">Buy Add-ons</span>
-            <span className="absolute inset-0 bg-white/20 opacity-0 active:opacity-100 transition-opacity duration-150"></span>
+            <X className="h-4 w-4" aria-hidden="true" />
           </button>
+
+          <div className="mx-auto max-w-xl">
+            <h1 className="text-4xl font-bold tracking-tight text-neutral-900 sm:text-5xl md:text-6xl">
+              Prices at a glance
+            </h1>
+          </div>
+
+          <div className="mt-12 flex justify-center">
+            <div className="inline-flex items-center gap-1 rounded-full border border-neutral-200 bg-white p-1 text-sm font-medium text-neutral-600">
+              {["individual", "business"].map((segment) => {
+                const isActive = activeSegment === segment;
+                return (
+                  <button
+                    key={segment}
+                    type="button"
+                    onClick={() => setActiveSegment(segment as AudienceSegment)}
+                    className={`rounded-full px-5 py-2 transition ${
+                      isActive ? "bg-black text-white" : "text-neutral-600 hover:text-neutral-900"
+                    }`}
+                  >
+                    {segment === "individual" ? "Individual" : "Business"}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3 text-sm text-neutral-600">
+            <span>Save with yearly billing</span>
+            <Switch
+              checked={isYearly}
+              onChange={(value: boolean) => setBillingCycle(value ? "yearly" : "monthly")}
+              className={`${
+                isYearly ? "bg-black" : "bg-neutral-200"
+              } relative inline-flex h-7 w-12 items-center rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-black`}
+            >
+              <span className="sr-only">Save with yearly billing</span>
+              <span
+                aria-hidden="true"
+                className={`${
+                  isYearly ? "translate-x-6" : "translate-x-1"
+                } inline-block h-5 w-5 transform rounded-full bg-white transition`}
+              />
+            </Switch>
+            {isYearly && (
+              <span className="inline-flex items-center rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-600">
+                Showing yearly pricing
+              </span>
+            )}
+          </div>
+
+          <div className="mt-12 grid grid-cols-1 gap-6 text-left md:grid-cols-2 xl:grid-cols-3 md:gap-8">
+            {plans.map((plan) => {
+              const price = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
+              const cadence = isYearly ? "/year" : "/month";
+              const { currencySymbol, number } = formatCurrencyParts(
+                price,
+                plan.currency
+              );
+
+              return (
+                <article
+                  key={`${activeSegment}-${plan.id}`}
+                  className={`flex h-full flex-col rounded-3xl border bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)] ${
+                    plan.popular ? "border-black md:scale-[1.02]" : "border-neutral-200"
+                  }`}
+                >
+                  <header className="flex items-start gap-3">
+                    <div>
+                      <p className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+                        {plan.name}
+                      </p>
+                      <p className="mt-1 text-base text-neutral-600">
+                        {plan.tagline}
+                      </p>
+                    </div>
+                    {plan.badge && (
+                      <span className="ml-auto inline-flex items-center rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-neutral-600">
+                        {plan.badge}
+                      </span>
+                    )}
+                  </header>
+
+                  <div className="mt-6 flex items-end gap-1">
+                    <span className="text-lg text-neutral-500">{currencySymbol}</span>
+                    <span className="text-5xl font-semibold leading-none text-neutral-900">
+                      {number}
+                    </span>
+                    <span className="mb-1 text-sm text-neutral-500">{cadence}</span>
+                  </div>
+                  {isYearly && plan.yearlySavings && (
+                    <div className="mt-3 inline-flex items-center rounded-full bg-neutral-900 px-3 py-1 text-xs font-semibold text-white">
+                      {plan.yearlySavings}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => handleCheckout(plan.id)}
+                    className={`mt-6 w-full rounded-full px-6 py-3 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-black ${
+                      plan.popular
+                        ? "bg-black text-white hover:bg-neutral-900"
+                        : "bg-neutral-900 text-white hover:bg-black"
+                    }`}
+                  >
+                    {plan.ctaLabel}
+                  </button>
+
+                  <ul className="mt-6 space-y-3 text-sm text-neutral-700">
+                    {plan.features.map((feature, index) => {
+                      const Icon = featureIcons[index % featureIcons.length];
+                      return (
+                        <li key={feature} className="flex items-start gap-2">
+                          <Icon aria-hidden="true" className="mt-0.5 h-4 w-4 text-neutral-500" />
+                          <span>{feature}</span>
+                        </li>
+                      );
+                    })}
+                    {plan.includes && (
+                      <li className="flex items-start gap-2 text-neutral-500">
+                        <Plus aria-hidden="true" className="mt-0.5 h-4 w-4" />
+                        <span>{plan.includes}</span>
+                      </li>
+                    )}
+                  </ul>
+                </article>
+              );
+            })}
+          </div>
+
+          <div className="mt-16 grid grid-cols-1 gap-6 text-left md:grid-cols-2">
+            <section className="rounded-3xl border border-neutral-200 bg-white p-7 text-left shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
+              <h2 className="text-base font-semibold text-neutral-900">
+                Current plan overview
+              </h2>
+              <p className="mt-2 text-sm text-neutral-600">
+                You’re on the {currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)} plan.
+              </p>
+              <dl className="mt-6 space-y-3 text-sm text-neutral-700">
+                <div className="flex items-center justify-between">
+                  <dt>Included monthly lines</dt>
+                  <dd className="font-semibold text-neutral-900">
+                    {maxCredits.toLocaleString()}
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <dt>Lines remaining</dt>
+                  <dd className="font-semibold text-neutral-900">
+                    {credits.toLocaleString()}
+                  </dd>
+                </div>
+                {renewalDate && (
+                  <div className="flex items-center justify-between">
+                    <dt>Renews on</dt>
+                    <dd className="font-semibold text-neutral-900">{renewalDate}</dd>
+                  </div>
+                )}
+              </dl>
+              <button
+                type="button"
+                disabled
+                className="mt-6 w-full cursor-not-allowed rounded-full border border-neutral-200 bg-neutral-100 px-6 py-3 text-sm font-semibold text-neutral-500"
+              >
+                Current plan
+              </button>
+            </section>
+
+            <section className="rounded-3xl border border-neutral-200 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
+              <h2 className="text-base font-semibold text-neutral-900">
+                Add more outreach lines
+              </h2>
+              <p className="mt-2 text-sm text-neutral-600">
+                For the {currentPlan} plan —
+                <span className="ml-1 font-semibold text-neutral-900">
+                  ${userInfo?.addon_price || 5}
+                </span>{" "}
+                per additional 1,000 lines.
+              </p>
+
+              <label className="mt-6 block text-sm font-medium text-neutral-700" htmlFor="addon-select">
+                Select add-on packs
+              </label>
+              <select
+                id="addon-select"
+                className="mt-2 w-full rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm font-medium text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                onChange={(event) => setAddonCount(Number(event.target.value))}
+                value={addonCount}
+              >
+                {Array.from({ length: 50 }, (_, i) => i + 1).map((n) => (
+                  <option key={n} value={n}>
+                    {n} × 1,000 lines
+                  </option>
+                ))}
+              </select>
+
+              <div className="mt-4 rounded-2xl bg-neutral-50 px-4 py-3 text-sm text-neutral-700">
+                <div className="flex items-center justify-between">
+                  <span>Total lines</span>
+                  <span className="font-semibold text-neutral-900">
+                    {(addonCount * 1000).toLocaleString()}
+                  </span>
+                </div>
+                <div className="mt-2 flex items-center justify-between">
+                  <span>One-time total</span>
+                  <span className="font-semibold text-neutral-900">
+                    ${(addonCount * (userInfo?.addon_price || 5)).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleBuyAddons}
+                className="mt-6 w-full rounded-full bg-black px-6 py-3 text-sm font-semibold text-white transition hover:bg-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
+              >
+                Purchase add-ons
+              </button>
+            </section>
+          </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
