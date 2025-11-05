@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion, useSpring } from "framer-motion";
+import { AnimatePresence, LayoutGroup, motion, useSpring } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
 import { ArrowLeft, X, Coins, Plus } from "lucide-react";
@@ -129,31 +129,16 @@ function AnimatedNumber({ value, className }: { value: number; className?: strin
 function AnimatedText({ text, className }: { text: string; className?: string }) {
   return (
     <span className={className}>
-      <AnimatePresence mode="wait" initial={false}>
+      <AnimatePresence mode="sync" initial={false}>
         <motion.span
           key={text}
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 8 }}
-          transition={{ duration: 0.3, ease: "easeInOut" }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.12, ease: "easeInOut" }}
           className="inline-block"
         >
-          {text.split('').map((char, index) => (
-            <motion.span
-              key={`${text}-${index}`}
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 4 }}
-              transition={{
-                duration: 0.2,
-                delay: index * 0.03,
-                ease: "easeOut"
-              }}
-              className="inline-block"
-            >
-              {char}
-            </motion.span>
-          ))}
+          {text}
         </motion.span>
       </AnimatePresence>
     </span>
@@ -172,6 +157,9 @@ export default function BillingPage() {
   const [addonCount, setAddonCount] = useState(1);
   const [activeSegment, setActiveSegment] = useState<AudienceSegment>("individual");
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
+  const [selectedPlanId, setSelectedPlanId] = useState<string>(
+    () => planConfigurations.find((plan) => plan.popular)?.id ?? planConfigurations[0]?.id ?? ""
+  );
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
   const currentPlan = useMemo(
@@ -343,72 +331,94 @@ export default function BillingPage() {
           
           </div>
 
-          <div className="mt-12 grid grid-cols-1 gap-6 text-left md:grid-cols-2 xl:grid-cols-3 md:gap-8">
-            {plans.map((plan) => {
-              const price = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
-              const cadence = isYearly ? "/year" : "/month";
-              const { currencySymbol } = formatCurrencyParts(price, plan.currency);
+          <LayoutGroup>
+            <div className="mt-12 grid grid-cols-1 gap-6 text-left md:grid-cols-2 xl:grid-cols-3 md:gap-8">
+              {plans.map((plan) => {
+                const price = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
+                const cadence = isYearly ? "/year" : "/month";
+                const { currencySymbol } = formatCurrencyParts(price, plan.currency);
+                const isSelected = plan.id === selectedPlanId;
 
-              return (
-                <article
-                  key={plan.id}
-                  className={`flex h-full min-h-[290px] flex-col rounded-3xl border-2 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)] ${
-                    plan.popular ? "border-black md:scale-[1.02]" : "border-neutral-200"
-                  }`}
-                >
-                  <header className="flex items-start gap-3">
-                    <div>
-                      <p className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
-                        {plan.name}
-                      </p>
-                      <p className="mt-1 text-base text-neutral-600">
-                        {plan.tagline}
-                      </p>
-                    </div>
-                    {plan.badge && (
-                      <span className="ml-auto inline-flex items-center rounded-full bg-white border-2 border-yellow-500 px-2.5 py-1 text-[11px] font-bold text-neutral-900">
-                        {plan.badge}
-                      </span>
-                    )}
-                  </header>
-
-                  <div className="mt-6">
-                    <div className="flex items-end justify-between">
-                      <div className="flex items-end gap-1">
-                        <AnimatePresence mode="wait" initial={false}>
-                          <motion.span
-                            key={currencySymbol}
-                            initial={{ opacity: 0, y: -4 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 4 }}
-                            transition={{ duration: 0.2 }}
-                            className="text-5xl font-bold text-neutral-900"
-                          >
-                            {currencySymbol}
-                          </motion.span>
-                        </AnimatePresence>
-                        <AnimatedNumber value={price} className="text-5xl font-semibold leading-none text-neutral-900" />
-                        <AnimatedText text={cadence} className="text-sm font-bold text-neutral-600" />
-                      </div>
-                      {isYearly && plan.yearlySavings && (
-                        <span className="text-sm font-medium text-[#ff7a00]">
-                          saving {plan.yearlySavings.replace('Save ', '').toLowerCase()}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <br />
-                  <button
-                    type="button"
-                    onClick={() => handleCheckout(plan.id)}
-                    className={`mt-auto w-full rounded-full px-6 py-3 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-black ${
-                      plan.popular
-                        ? "bg-black text-white hover:bg-neutral-800 active:bg-neutral-700"
-                        : "bg-neutral-900 text-white hover:bg-neutral-800 active:bg-neutral-700"
+                return (
+                  <article
+                    key={plan.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setSelectedPlanId(plan.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        setSelectedPlanId(plan.id);
+                      }
+                    }}
+                    aria-pressed={isSelected}
+                    className={`relative flex h-full min-h-[290px] cursor-pointer flex-col rounded-3xl bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-black ${
+                      isSelected
+                        ? "border border-transparent md:scale-[1.02]"
+                        : "border-[0.5px] border-neutral-200/60"
                     }`}
                   >
-                    {plan.ctaLabel}
-                  </button>
+                    {isSelected && (
+                      <motion.div
+                        layoutId="planHighlight"
+                        className="pointer-events-none absolute inset-0 rounded-[inherit] border-[3px] border-black"
+                        transition={{ type: "spring", stiffness: 320, damping: 28 }}
+                      />
+                    )}
+                    <header className="relative flex items-start gap-3">
+                      <div>
+                        <p className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+                          {plan.name}
+                        </p>
+                        <p className="mt-1 text-base text-neutral-600">
+                          {plan.tagline}
+                        </p>
+                      </div>
+                      {plan.badge && (
+                        <span className="ml-auto inline-flex items-center rounded-full border border-yellow-500 bg-white px-2.5 py-1 text-[11px] font-bold text-neutral-900">
+                          {plan.badge}
+                        </span>
+                      )}
+                    </header>
+
+                    <div className="mt-6">
+                      <div className="flex items-end justify-between">
+                        <div className="flex items-end gap-1">
+                          <AnimatePresence mode="wait" initial={false}>
+                            <motion.span
+                              key={currencySymbol}
+                              initial={{ opacity: 0, y: -4 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: 4 }}
+                              transition={{ duration: 0.2 }}
+                              className="text-5xl font-semibold text-neutral-900 font-['Nunito',_'Aeonik_Pro',_sans-serif]"
+                            >
+                              {currencySymbol}
+                            </motion.span>
+                          </AnimatePresence>
+                          <AnimatedNumber
+                            value={price}
+                            className="text-5xl font-semibold leading-none text-neutral-900 font-['Nunito',_'Aeonik_Pro',_sans-serif]"
+                          />
+                          <AnimatedText text={cadence} className="text-sm font-medium text-neutral-400" />
+                        </div>
+                        {isYearly && plan.yearlySavings && (
+                          <span className="text-sm font-medium text-[#ff7a00]">
+                            saving {plan.yearlySavings.replace('Save ', '').toLowerCase()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <br />
+                    <button
+                      type="button"
+                      onClick={() => handleCheckout(plan.id)}
+                      className={`mt-auto w-full rounded-full px-6 py-3 text-sm font-semibold text-white transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-black hover:scale-105 hover:bg-neutral-700 active:bg-neutral-600 ${
+                        plan.popular ? "bg-black" : "bg-neutral-900"
+                      }`}
+                    >
+                      {plan.ctaLabel}
+                    </button>
 
                   <ul className="mt-6 space-y-3 text-left text-sm text-neutral-700">
                     {plan.features.map((feature, index) => (
@@ -425,10 +435,11 @@ export default function BillingPage() {
                   <br /><br />
 
                   
-                </article>
-              );
-            })}
-          </div>
+                  </article>
+                );
+              })}
+            </div>
+          </LayoutGroup>
 
           <div className="mt-16 grid grid-cols-1 gap-6 text-left md:grid-cols-2">
             <section className="rounded-3xl border border-neutral-200 bg-white p-7 text-left shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
