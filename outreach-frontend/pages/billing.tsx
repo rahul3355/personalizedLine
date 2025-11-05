@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, LayoutGroup, motion, useSpring } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
@@ -99,7 +99,16 @@ function formatCurrencyParts(amount: number, currency = "USD"): CurrencyParts {
   return { currencySymbol, number };
 }
 
-function AnimatedNumber({ value, className }: { value: number; className?: string }) {
+const AEONIK_FONT_FAMILY =
+  '"Aeonik Pro","Aeonik",-apple-system,BlinkMacSystemFont,"Segoe UI","Roboto","Helvetica Neue",Arial,sans-serif';
+
+type AnimatedNumberProps = {
+  value: number;
+  className?: string;
+  style?: CSSProperties;
+};
+
+function AnimatedNumber({ value, className, style }: AnimatedNumberProps) {
   const springValue = useSpring(value, {
     stiffness: 140,
     damping: 18,
@@ -120,15 +129,23 @@ function AnimatedNumber({ value, className }: { value: number; className?: strin
   }, [springValue]);
 
   return (
-    <span className={className} aria-live="polite">
+    <span className={className} style={style} aria-live="polite">
       {displayValue}
     </span>
   );
 }
 
-function AnimatedText({ text, className }: { text: string; className?: string }) {
+function AnimatedText({
+  text,
+  className,
+  style,
+}: {
+  text: string;
+  className?: string;
+  style?: CSSProperties;
+}) {
   return (
-    <span className={className}>
+    <span className={className} style={style}>
       <AnimatePresence mode="sync" initial={false}>
         <motion.span
           key={text}
@@ -276,7 +293,7 @@ export default function BillingPage() {
   const isYearly = billingCycle === "yearly";
 
   return (
-    <div className="fixed inset-0 z-50 bg-white">
+    <div className="fixed inset-0 z-50 bg-white" style={{ fontFamily: AEONIK_FONT_FAMILY }}>
       <div className="h-full overflow-y-auto">
         <div
           ref={dialogRef}
@@ -391,16 +408,22 @@ export default function BillingPage() {
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: 4 }}
                               transition={{ duration: 0.2 }}
-                              className="text-5xl font-semibold text-neutral-900 font-['Nunito',_'Aeonik_Pro',_sans-serif]"
+                              className="text-5xl font-semibold text-neutral-900"
+                              style={{ fontFamily: AEONIK_FONT_FAMILY }}
                             >
                               {currencySymbol}
                             </motion.span>
                           </AnimatePresence>
                           <AnimatedNumber
                             value={price}
-                            className="text-5xl font-semibold leading-none text-neutral-900 font-['Nunito',_'Aeonik_Pro',_sans-serif]"
+                            className="text-5xl font-semibold leading-none text-neutral-900"
+                            style={{ fontFamily: AEONIK_FONT_FAMILY }}
                           />
-                          <AnimatedText text={cadence} className="text-sm font-medium text-neutral-400" />
+                          <AnimatedText
+                            text={cadence}
+                            className="text-sm font-medium text-neutral-400"
+                            style={{ fontFamily: AEONIK_FONT_FAMILY }}
+                          />
                         </div>
                         {isYearly && plan.yearlySavings && (
                           <span className="text-sm font-medium text-[#ff7a00]">

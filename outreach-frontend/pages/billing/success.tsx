@@ -4,6 +4,9 @@ import { useAuth } from "../../lib/AuthProvider";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
+const AEONIK_FONT_FAMILY =
+  '"Aeonik Pro","Aeonik",-apple-system,BlinkMacSystemFont,"Segoe UI","Roboto","Helvetica Neue",Arial,sans-serif';
+
 export default function BillingSuccessPage() {
   const { session, refreshUserInfo } = useAuth();
   const router = useRouter();
@@ -53,7 +56,10 @@ export default function BillingSuccessPage() {
   }, [API_URL, refreshUserInfo, router, session]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div
+      className="min-h-screen flex items-center justify-center bg-gray-50 px-4"
+      style={{ fontFamily: AEONIK_FONT_FAMILY }}
+    >
       <div className="max-w-md w-full text-center">
         <div className="animate-spin h-12 w-12 border-4 border-gray-300 border-t-gray-900 rounded-full mx-auto mb-6" />
         <h1 className="text-xl font-semibold text-gray-900">Finalizing your subscription…</h1>
