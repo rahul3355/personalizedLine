@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion, useSpring } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
 import { ArrowLeft, X } from "lucide-react";
@@ -165,6 +166,33 @@ function formatCurrencyParts(amount: number, currency = "USD"): CurrencyParts {
     .join("");
 
   return { currencySymbol, number };
+}
+
+function AnimatedNumber({ value, className }: { value: number; className?: string }) {
+  const springValue = useSpring(value, {
+    stiffness: 140,
+    damping: 18,
+    mass: 0.6,
+  });
+  const [displayValue, setDisplayValue] = useState(value.toLocaleString());
+
+  useEffect(() => {
+    springValue.set(value);
+  }, [springValue, value]);
+
+  useEffect(() => {
+    const unsubscribe = springValue.on("change", (latest) => {
+      setDisplayValue(Math.round(latest).toLocaleString());
+    });
+
+    return () => unsubscribe();
+  }, [springValue]);
+
+  return (
+    <span className={className} aria-live="polite">
+      {displayValue}
+    </span>
+  );
 }
 
 // Initialize Stripe with publishable key from env
@@ -383,7 +411,7 @@ export default function BillingPage() {
             {plans.map((plan) => {
               const price = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
               const cadence = isYearly ? "/year" : "/month";
-              const { currencySymbol, number } = formatCurrencyParts(price, plan.currency);
+              const { currencySymbol } = formatCurrencyParts(price, plan.currency);
 
               return (
                 <article
@@ -409,17 +437,46 @@ export default function BillingPage() {
                   </header>
 
                   <div className="mt-6 flex items-end gap-1">
-                    <span className="text-lg text-neutral-500">{currencySymbol}</span>
-                    <span className="text-5xl font-semibold leading-none text-neutral-900">
-                      {number}
-                    </span>
-                    <span className="mb-1 text-sm text-neutral-500">{cadence}</span>
+                    <AnimatePresence mode="wait" initial={false}>
+                      <motion.span
+                        key={currencySymbol}
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 4 }}
+                        transition={{ duration: 0.2 }}
+                        className="text-lg text-neutral-500"
+                      >
+                        {currencySymbol}
+                      </motion.span>
+                    </AnimatePresence>
+                    <AnimatedNumber value={price} className="text-5xl font-semibold leading-none text-neutral-900" />
+                    <AnimatePresence mode="wait" initial={false}>
+                      <motion.span
+                        key={cadence}
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 4 }}
+                        transition={{ duration: 0.2 }}
+                        className="mb-1 text-sm text-neutral-500"
+                      >
+                        {cadence}
+                      </motion.span>
+                    </AnimatePresence>
                   </div>
-                  {isYearly && plan.yearlySavings && (
-                    <div className="mt-3 inline-flex items-center rounded-full bg-neutral-900 px-3 py-1 text-xs font-semibold text-white">
-                      {plan.yearlySavings}
-                    </div>
-                  )}
+                  <AnimatePresence initial={false}>
+                    {isYearly && plan.yearlySavings && (
+                      <motion.div
+                        key="yearly-savings"
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        transition={{ duration: 0.2 }}
+                        className="mt-3 inline-flex items-center rounded-full bg-neutral-900 px-3 py-1 text-xs font-semibold text-white"
+                      >
+                        {plan.yearlySavings}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                   <br />
                   <button
                     type="button"
