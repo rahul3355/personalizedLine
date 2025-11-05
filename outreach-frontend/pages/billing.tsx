@@ -330,10 +330,10 @@ export default function BillingPage() {
               Billing
             </p>
             <h1 className="text-4xl font-semibold tracking-tight text-neutral-900 sm:text-5xl md:text-6xl">
-              Outreach plans built for serious senders
+              Prices at a glance
             </h1>
             <p className="mx-auto max-w-2xl text-base text-neutral-600 sm:text-lg">
-              Choose the capacity that matches your pipeline. Switch between individual and business tiers, then toggle monthly or yearly billing to see the best fit.
+              Prices at a glance
             </p>
           </div>
 
