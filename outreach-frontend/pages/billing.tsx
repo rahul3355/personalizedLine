@@ -376,24 +376,6 @@ export default function BillingPage() {
                 } inline-block h-5 w-5 transform rounded-full bg-white transition`}
               />
             </Switch>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={isYearly}
-              onClick={() => setBillingCycle(isYearly ? "monthly" : "yearly")}
-              className={`relative h-6 w-11 rounded-full border transition ${
-                isYearly ? "border-black bg-black" : "border-neutral-300 bg-neutral-200"
-              }`}
-            >
-              <span
-                className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-white transition ${
-                  isYearly ? "translate-x-[22px]" : "translate-x-[6px]"
-                }`}
-              />
-              <span className="sr-only">
-                Toggle {isYearly ? "monthly" : "yearly"} billing
-              </span>
-            </button>
             {isYearly && (
               <span className="inline-flex items-center rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-600">
                 Showing yearly pricing
