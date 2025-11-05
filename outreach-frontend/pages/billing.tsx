@@ -31,8 +31,8 @@ const planConfigurations: Record<AudienceSegment, PlanConfig[]> = {
     {
       id: "starter",
       name: "Starter",
-      tagline: "Launch personalized outreach with confident basics.",
-      monthlyPrice: 10,
+      tagline: "",
+      monthlyPrice: 44,
       yearlyPrice: 96,
       yearlySavings: "Save 20%",
       currency: "USD",
@@ -49,8 +49,8 @@ const planConfigurations: Record<AudienceSegment, PlanConfig[]> = {
     {
       id: "growth",
       name: "Growth",
-      tagline: "Scale campaigns with advanced automations and insights.",
-      monthlyPrice: 50,
+      tagline: "",
+      monthlyPrice: 84,
       yearlyPrice: 528,
       yearlySavings: "Save 12%",
       currency: "USD",
@@ -69,8 +69,8 @@ const planConfigurations: Record<AudienceSegment, PlanConfig[]> = {
     {
       id: "pro",
       name: "Pro",
-      tagline: "Heavy-duty capacity for agencies running nonstop outreach.",
-      monthlyPrice: 100,
+      tagline: "",
+      monthlyPrice: 264,
       yearlyPrice: 1056,
       yearlySavings: "Save 12%",
       currency: "USD",
@@ -420,6 +420,18 @@ export default function BillingPage() {
                       {plan.yearlySavings}
                     </div>
                   )}
+                  <br />
+                  <button
+                    type="button"
+                    onClick={() => handleCheckout(plan.id)}
+                    className={`mt-auto w-full rounded-full px-6 py-3 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-black ${
+                      plan.popular
+                        ? "bg-black text-white hover:bg-neutral-900"
+                        : "bg-neutral-900 text-white hover:bg-black"
+                    }`}
+                  >
+                    {plan.ctaLabel}
+                  </button>
 
                   <ul className="mt-6 space-y-3 text-left text-sm text-neutral-700">
                     {plan.features.map((feature, index) => (
@@ -440,17 +452,7 @@ export default function BillingPage() {
                     )}
                   </ul>
 
-                  <button
-                    type="button"
-                    onClick={() => handleCheckout(plan.id)}
-                    className={`mt-auto w-full rounded-full px-6 py-3 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-black ${
-                      plan.popular
-                        ? "bg-black text-white hover:bg-neutral-900"
-                        : "bg-neutral-900 text-white hover:bg-black"
-                    }`}
-                  >
-                    {plan.ctaLabel}
-                  </button>
+                  
                 </article>
               );
             })}
