@@ -338,7 +338,13 @@ export default function BillingPage() {
           </div>
 
           <div className="mt-12 flex justify-center">
-            <div className="inline-flex items-center gap-1 rounded-full border border-neutral-200 bg-white p-1 text-sm font-medium text-neutral-600">
+            <div className="relative flex w-fit items-center overflow-hidden rounded-full bg-neutral-900/5 p-1 text-sm font-medium">
+              <span
+                aria-hidden="true"
+                className={`absolute inset-y-0 left-0 h-full w-1/2 rounded-full bg-black transition-transform duration-200 ease-out ${
+                  activeSegment === "individual" ? "translate-x-0" : "translate-x-full"
+                }`}
+              />
               {["individual", "business"].map((segment) => {
                 const isActive = activeSegment === segment;
                 return (
@@ -346,9 +352,10 @@ export default function BillingPage() {
                     key={segment}
                     type="button"
                     onClick={() => setActiveSegment(segment as AudienceSegment)}
-                    className={`rounded-full px-5 py-2 transition ${
-                      isActive ? "bg-black text-white" : "text-neutral-600 hover:text-neutral-900"
+                    className={`relative z-10 w-1/2 rounded-full px-5 py-2 text-center transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black ${
+                      isActive ? "text-white" : "text-neutral-600 hover:text-neutral-900"
                     }`}
+                    aria-pressed={isActive}
                   >
                     {segment === "individual" ? "Individual" : "Business"}
                   </button>
