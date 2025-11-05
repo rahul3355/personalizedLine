@@ -27,115 +27,55 @@ type PlanConfig = {
   includes?: string;
 };
 
-const planConfigurations: Record<AudienceSegment, PlanConfig[]> = {
-  individual: [
-    {
-      id: "starter",
-      name: "Starter",
-      tagline: "",
-      monthlyPrice: 44,
-      yearlyPrice: 96,
-      yearlySavings: "Save 20%",
-      currency: "USD",
-      ctaLabel: "Upgrade to Starter",
-      features: [
-        "2000 credits/month",
-        "$11 per 1000 credits",
-      ],
-      includes: "Everything in Free",
-    },
-    {
-      id: "growth",
-      name: "Growth",
-      tagline: "",
-      monthlyPrice: 84,
-      yearlyPrice: 528,
-      yearlySavings: "Save 12%",
-      currency: "USD",
-      badge: "Popular",
-      popular: true,
-      ctaLabel: "Upgrade to Growth",
-      features: [
-        "10000 credits/month",
-        "$9 per 1000 credits",
-      ],
-      includes: "Everything in Starter",
-    },
-    {
-      id: "pro",
-      name: "Pro",
-      tagline: "",
-      monthlyPrice: 264,
-      yearlyPrice: 1056,
-      yearlySavings: "Save 12%",
-      currency: "USD",
-      ctaLabel: "Upgrade to Pro",
-      features: [
-        "25000 credits/month",
-        "$7 per 1000 credits",
-      ],
-      includes: "Everything in Growth",
-    },
-  ],
-  business: [
-    {
-      id: "starter",
-      name: "Starter Business",
-      tagline: "Onboard teams fast with guided setup and governance.",
-      monthlyPrice: 150,
-      yearlyPrice: 1620,
-      yearlySavings: "Save 10%",
-      currency: "USD",
-      ctaLabel: "Talk to sales",
-      features: [
-        "Team-wide onboarding concierge",
-        "Centralized billing and admin controls",
-        "Shared template permissions",
-        "Role-based access controls",
-        "Standard SLA support",
-      ],
-      includes: "Everything in Individual Pro",
-    },
-    {
-      id: "growth",
-      name: "Growth Business",
-      tagline: "Layer personalization across multiple brands at scale.",
-      monthlyPrice: 320,
-      yearlyPrice: 3400,
-      yearlySavings: "Save 11%",
-      currency: "USD",
-      badge: "Popular",
-      popular: true,
-      ctaLabel: "Chat with sales",
-      features: [
-        "Unlimited workspaces and seats",
-        "Realtime performance benchmarks",
-        "Salesforce + HubSpot integrations",
-        "Single sign-on (SAML)",
-        "24/5 priority support",
-      ],
-      includes: "Everything in Starter Business",
-    },
-    {
-      id: "pro",
-      name: "Enterprise",
-      tagline: "Personalized go-to-market operations for global orgs.",
-      monthlyPrice: 520,
-      yearlyPrice: 5500,
-      yearlySavings: "Save 12%",
-      currency: "USD",
-      ctaLabel: "Book enterprise demo",
-      features: [
-        "Unlimited outreach volume",
-        "Custom security reviews & DPA",
-        "Dedicated solutions architect",
-        "Advanced governance reporting",
-        "24/7 white-glove support",
-      ],
-      includes: "Everything in Growth Business",
-    },
-  ],
-};
+const planConfigurations: PlanConfig[] = [
+  {
+    id: "starter",
+    name: "Starter",
+    tagline: "",
+    monthlyPrice: 44,
+    yearlyPrice: 96,
+    yearlySavings: "Save 20%",
+    currency: "USD",
+    ctaLabel: "Upgrade to Starter",
+    features: [
+      "2000 credits/month",
+      "$11 per 1000 credits",
+    ],
+    includes: "Everything in Free",
+  },
+  {
+    id: "growth",
+    name: "Growth",
+    tagline: "",
+    monthlyPrice: 84,
+    yearlyPrice: 528,
+    yearlySavings: "Save 12%",
+    currency: "USD",
+    badge: "Popular",
+    popular: true,
+    ctaLabel: "Upgrade to Growth",
+    features: [
+      "10000 credits/month",
+      "$9 per 1000 credits",
+    ],
+    includes: "Everything in Starter",
+  },
+  {
+    id: "pro",
+    name: "Pro",
+    tagline: "",
+    monthlyPrice: 264,
+    yearlyPrice: 1056,
+    yearlySavings: "Save 12%",
+    currency: "USD",
+    ctaLabel: "Upgrade to Pro",
+    features: [
+      "25000 credits/month",
+      "$7 per 1000 credits",
+    ],
+    includes: "Everything in Growth",
+  },
+];
 
 type CurrencyParts = {
   currencySymbol: string;
@@ -182,6 +122,40 @@ function AnimatedNumber({ value, className }: { value: number; className?: strin
   return (
     <span className={className} aria-live="polite">
       {displayValue}
+    </span>
+  );
+}
+
+function AnimatedText({ text, className }: { text: string; className?: string }) {
+  return (
+    <span className={className}>
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.span
+          key={text}
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 8 }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+          className="inline-block"
+        >
+          {text.split('').map((char, index) => (
+            <motion.span
+              key={`${text}-${index}`}
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 4 }}
+              transition={{
+                duration: 0.2,
+                delay: index * 0.03,
+                ease: "easeOut"
+              }}
+              className="inline-block"
+            >
+              {char}
+            </motion.span>
+          ))}
+        </motion.span>
+      </AnimatePresence>
     </span>
   );
 }
@@ -310,7 +284,7 @@ export default function BillingPage() {
       })
     : null;
 
-  const plans = planConfigurations[activeSegment];
+  const plans = planConfigurations;
   const isYearly = billingCycle === "yearly";
 
   return (
@@ -349,34 +323,7 @@ export default function BillingPage() {
 
           </div>
 
-          <div className="mt-12 flex justify-center">
-            <div className="relative flex w-fit items-center overflow-hidden rounded-full bg-neutral-900/5 p-1 text-sm font-medium">
-              <span
-                aria-hidden="true"
-                className={`absolute inset-y-0 left-0 h-full w-1/2 rounded-full bg-black transition-transform duration-200 ease-out ${
-                  activeSegment === "individual" ? "translate-x-0" : "translate-x-full"
-                }`}
-              />
-              {["individual", "business"].map((segment) => {
-                const isActive = activeSegment === segment;
-                return (
-                  <button
-                    key={segment}
-                    type="button"
-                    onClick={() => setActiveSegment(segment as AudienceSegment)}
-                    className={`relative z-10 w-1/2 rounded-full px-5 py-2 text-center transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black ${
-                      isActive ? "text-white" : "text-neutral-600 hover:text-neutral-900"
-                    }`}
-                    aria-pressed={isActive}
-                  >
-                    {segment === "individual" ? "Individual" : "Business"}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-3 text-sm text-neutral-600">
+          <div className="mt-12 flex flex-wrap items-center justify-center gap-3 text-sm text-neutral-600">
             <span>Save with yearly billing</span>
             <Switch
               checked={isYearly}
@@ -404,8 +351,8 @@ export default function BillingPage() {
 
               return (
                 <article
-                  key={`${activeSegment}-${plan.id}`}
-                  className={`flex h-full min-h-[290px] flex-col rounded-3xl border bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)] ${
+                  key={plan.id}
+                  className={`flex h-full min-h-[290px] flex-col rounded-3xl border-2 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)] ${
                     plan.popular ? "border-black md:scale-[1.02]" : "border-neutral-200"
                   }`}
                 >
@@ -419,7 +366,7 @@ export default function BillingPage() {
                       </p>
                     </div>
                     {plan.badge && (
-                      <span className="ml-auto inline-flex items-center rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-neutral-600">
+                      <span className="ml-auto inline-flex items-center rounded-full bg-white border-2 border-yellow-500 px-2.5 py-1 text-[11px] font-bold text-neutral-900">
                         {plan.badge}
                       </span>
                     )}
@@ -435,24 +382,13 @@ export default function BillingPage() {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 4 }}
                             transition={{ duration: 0.2 }}
-                            className="text-lg text-neutral-500"
+                            className="text-5xl font-bold text-neutral-900"
                           >
                             {currencySymbol}
                           </motion.span>
                         </AnimatePresence>
                         <AnimatedNumber value={price} className="text-5xl font-semibold leading-none text-neutral-900" />
-                        <AnimatePresence mode="wait" initial={false}>
-                          <motion.span
-                            key={cadence}
-                            initial={{ opacity: 0, y: -4 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 4 }}
-                            transition={{ duration: 0.2 }}
-                            className="text-sm text-neutral-500"
-                          >
-                            {cadence}
-                          </motion.span>
-                        </AnimatePresence>
+                        <AnimatedText text={cadence} className="text-sm font-bold text-neutral-600" />
                       </div>
                       {isYearly && plan.yearlySavings && (
                         <span className="text-sm font-medium text-[#ff7a00]">
@@ -467,8 +403,8 @@ export default function BillingPage() {
                     onClick={() => handleCheckout(plan.id)}
                     className={`mt-auto w-full rounded-full px-6 py-3 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-black ${
                       plan.popular
-                        ? "bg-black text-white hover:bg-neutral-900 active:bg-neutral-700"
-                        : "bg-neutral-900 text-white hover:bg-black active:bg-neutral-700"
+                        ? "bg-black text-white hover:bg-neutral-800 active:bg-neutral-700"
+                        : "bg-neutral-900 text-white hover:bg-neutral-800 active:bg-neutral-700"
                     }`}
                   >
                     {plan.ctaLabel}
@@ -477,15 +413,11 @@ export default function BillingPage() {
                   <ul className="mt-6 space-y-3 text-left text-sm text-neutral-700">
                     {plan.features.map((feature, index) => (
                       <li key={feature} className="flex items-start gap-2">
-                        {activeSegment === "individual" && (
-                          <>
-                            {index === 0 ? (
-                              <Coins className="h-4 w-4 mt-0.5 text-neutral-600" />
-                            ) : index === 1 ? (
-                              <Plus className="h-4 w-4 mt-0.5 text-neutral-600" />
-                            ) : null}
-                          </>
-                        )}
+                        {index === 0 ? (
+                          <Coins className="h-4 w-4 mt-0.5 text-neutral-600" />
+                        ) : index === 1 ? (
+                          <Plus className="h-4 w-4 mt-0.5 text-neutral-600" />
+                        ) : null}
                         <span>{feature}</span>
                       </li>
                     ))}
