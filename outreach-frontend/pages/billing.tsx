@@ -436,20 +436,38 @@ export default function BillingPage() {
                     )}
                   </header>
 
-                  <div className="mt-6 flex items-end gap-1">
-                    <AnimatePresence mode="wait" initial={false}>
-                      <motion.span
-                        key={currencySymbol}
-                        initial={{ opacity: 0, y: -4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 4 }}
-                        transition={{ duration: 0.2 }}
-                        className="text-lg text-neutral-500"
-                      >
-                        {currencySymbol}
-                      </motion.span>
-                    </AnimatePresence>
-                    <AnimatedNumber value={price} className="text-5xl font-semibold leading-none text-neutral-900" />
+                  <div className="mt-6">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-end gap-1">
+                        <AnimatePresence mode="wait" initial={false}>
+                          <motion.span
+                            key={currencySymbol}
+                            initial={{ opacity: 0, y: -4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 4 }}
+                            transition={{ duration: 0.2 }}
+                            className="text-lg text-neutral-500"
+                          >
+                            {currencySymbol}
+                          </motion.span>
+                        </AnimatePresence>
+                        <AnimatedNumber value={price} className="text-5xl font-semibold leading-none text-neutral-900" />
+                      </div>
+                      <AnimatePresence initial={false}>
+                        {isYearly && plan.yearlySavings && (
+                          <motion.span
+                            key="yearly-savings"
+                            initial={{ opacity: 0, y: -4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -4 }}
+                            transition={{ duration: 0.2 }}
+                            className="text-xs font-semibold uppercase tracking-[0.24em] text-[#ff7a00]"
+                          >
+                            {plan.yearlySavings}
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
+                    </div>
                     <AnimatePresence mode="wait" initial={false}>
                       <motion.span
                         key={cadence}
@@ -457,26 +475,12 @@ export default function BillingPage() {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 4 }}
                         transition={{ duration: 0.2 }}
-                        className="mb-1 text-sm text-neutral-500"
+                        className="mt-1 block text-sm text-neutral-500"
                       >
                         {cadence}
                       </motion.span>
                     </AnimatePresence>
                   </div>
-                  <AnimatePresence initial={false}>
-                    {isYearly && plan.yearlySavings && (
-                      <motion.div
-                        key="yearly-savings"
-                        initial={{ opacity: 0, y: -4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -4 }}
-                        transition={{ duration: 0.2 }}
-                        className="mt-4 inline-flex items-center rounded-full border border-[#e4ded1] bg-[#f6f1e7] px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-900"
-                      >
-                        {plan.yearlySavings}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
                   <br />
                   <button
                     type="button"
