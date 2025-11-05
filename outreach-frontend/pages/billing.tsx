@@ -169,26 +169,6 @@ type CurrencyParts = {
 };
 
 function formatCurrencyParts(amount: number, currency = "USD"): CurrencyParts {
-const formatCurrencyParts = (amount: number, currency = "USD") => {
-  const formatter = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  });
-
-  const parts = formatter.formatToParts(amount);
-  const currencySymbol = parts.find((part) => part.type === "currency")?.value ?? "";
-  const number = parts
-    .filter((part) => part.type === "integer" || part.type === "group")
-    .map((part) => part.value)
-    .join("");
-
-  return { currencySymbol, number };
-};
-
-};
-
-const formatCurrencyParts = (amount: number, currency = "USD") => {
   const formatter = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,
@@ -206,9 +186,6 @@ const formatCurrencyParts = (amount: number, currency = "USD") => {
 }
 
 // Initialize Stripe with publishable key from env
-};
-
-// ✅ Initialize Stripe with publishable key from env
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 );
