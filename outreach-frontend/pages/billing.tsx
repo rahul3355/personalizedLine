@@ -39,11 +39,8 @@ const planConfigurations: Record<AudienceSegment, PlanConfig[]> = {
       currency: "USD",
       ctaLabel: "Upgrade to Starter",
       features: [
-        "2,000 outreach lines each month",
-        "Dynamic inbox personalization",
-        "Live deliverability checks",
-        "2 team seats included",
-        "Email + chat support",
+        "2000 credits/month",
+        "Add-on $11 per 1000 credits",
       ],
       includes: "Everything in Free",
     },
@@ -59,11 +56,8 @@ const planConfigurations: Record<AudienceSegment, PlanConfig[]> = {
       popular: true,
       ctaLabel: "Upgrade to Growth",
       features: [
-        "10,000 outreach lines each month",
-        "AI-assisted brief builder",
-        "Shared template library",
-        "Advanced analytics dashboard",
-        "Priority support",
+        "10000 credits/month",
+        "Add-on $9 per 1000 credits",
       ],
       includes: "Everything in Starter",
     },
@@ -77,11 +71,8 @@ const planConfigurations: Record<AudienceSegment, PlanConfig[]> = {
       currency: "USD",
       ctaLabel: "Upgrade to Pro",
       features: [
-        "25,000 outreach lines each month",
-        "Dedicated success manager",
-        "Multi-workspace administration",
-        "Custom API access",
-        "Quarterly strategy reviews",
+        "25000 credits/month",
+        "Add-on $7 per 1000 credits",
       ],
       includes: "Everything in Growth",
     },
@@ -322,8 +313,6 @@ export default function BillingPage() {
   const plans = planConfigurations[activeSegment];
   const isYearly = billingCycle === "yearly";
 
-  const featureEmojis = ["🚀", "✨", "📈", "🛡️", "🤝", "⚙️", "🧠", "🌐", "📊", "💬"];
-
   return (
     <div className="fixed inset-0 z-50 bg-white">
       <div className="h-full overflow-y-auto">
@@ -488,20 +477,9 @@ export default function BillingPage() {
                   <ul className="mt-6 space-y-3 text-left text-sm text-neutral-700">
                     {plan.features.map((feature, index) => (
                       <li key={feature} className="flex items-start gap-2">
-                        <span aria-hidden="true" className="mt-0.5 text-base">
-                          {featureEmojis[index % featureEmojis.length]}
-                        </span>
                         <span>{feature}</span>
                       </li>
                     ))}
-                    {plan.includes && (
-                      <li className="flex items-start gap-2 text-neutral-500">
-                        <span aria-hidden="true" className="mt-0.5 text-base">
-                          ➕
-                        </span>
-                        <span>{plan.includes}</span>
-                      </li>
-                    )}
                   </ul>
 
                   
