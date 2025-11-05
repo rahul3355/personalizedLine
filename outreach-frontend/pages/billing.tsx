@@ -376,11 +376,7 @@ export default function BillingPage() {
                 } inline-block h-5 w-5 transform rounded-full bg-white transition`}
               />
             </Switch>
-            {isYearly && (
-              <span className="inline-flex items-center rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-600">
-                Showing yearly pricing
-              </span>
-            )}
+          
           </div>
 
           <div className="mt-12 grid grid-cols-1 gap-6 text-left md:grid-cols-2 xl:grid-cols-3 md:gap-8">
