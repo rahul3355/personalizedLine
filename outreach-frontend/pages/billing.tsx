@@ -361,7 +361,7 @@ export default function BillingPage() {
                     {isSelected && (
                       <motion.div
                         layoutId="planHighlight"
-                        className="pointer-events-none absolute inset-0 rounded-[inherit] border-[3px] border-black"
+                        className="pointer-events-none absolute inset-0 rounded-[inherit] border-[3px] border-black z-10"
                         transition={{ type: "spring", stiffness: 320, damping: 28 }}
                       />
                     )}
