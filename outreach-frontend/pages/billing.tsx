@@ -99,8 +99,8 @@ function formatCurrencyParts(amount: number, currency = "USD"): CurrencyParts {
   return { currencySymbol, number };
 }
 
-const AEONIK_FONT_FAMILY =
-  '"Aeonik Pro","Aeonik",-apple-system,BlinkMacSystemFont,"Segoe UI","Roboto","Helvetica Neue",Arial,sans-serif';
+const SF_PRO_FONT_FAMILY =
+  '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 
 type AnimatedNumberProps = {
   value: number;
@@ -293,7 +293,7 @@ export default function BillingPage() {
   const isYearly = billingCycle === "yearly";
 
   return (
-    <div className="fixed inset-0 z-50 bg-white" style={{ fontFamily: AEONIK_FONT_FAMILY }}>
+    <div className="fixed inset-0 z-50 bg-[#fafafa]" style={{ fontFamily: SF_PRO_FONT_FAMILY }}>
       <div className="h-full overflow-y-auto">
         <div
           ref={dialogRef}
@@ -322,34 +322,34 @@ export default function BillingPage() {
           </button>
 
           <div className="mx-auto max-w-xl space-y-4">
-            <h1 className="text-4xl font-semibold tracking-tight text-neutral-900 sm:text-5xl md:text-6xl">
+            <h1 className="text-5xl font-bold tracking-tight text-neutral-900 sm:text-6xl md:text-7xl" style={{ letterSpacing: '-0.8px', fontWeight: 700 }}>
               Prices at a glance
             </h1>
 
           </div>
 
-          <div className="mt-12 flex flex-wrap items-center justify-center gap-3 text-sm text-neutral-600">
-            <span>Save with yearly billing</span>
+          <div className="mt-12 flex flex-wrap items-center justify-center gap-4 text-base text-neutral-600">
+            <span style={{ fontWeight: 500 }}>Save with yearly billing</span>
             <Switch
               checked={isYearly}
               onChange={(value: boolean) => setBillingCycle(value ? "yearly" : "monthly")}
               className={`${
-                isYearly ? "bg-black" : "bg-neutral-200"
-              } relative inline-flex h-7 w-12 items-center rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-black`}
+                isYearly ? "bg-blue-500" : "bg-neutral-300"
+              } relative inline-flex h-8 w-[52px] items-center rounded-full transition-all duration-300 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2`}
             >
               <span className="sr-only">Save with yearly billing</span>
               <span
                 aria-hidden="true"
                 className={`${
-                  isYearly ? "translate-x-6" : "translate-x-1"
-                } inline-block h-5 w-5 transform rounded-full bg-white transition`}
+                  isYearly ? "translate-x-[26px]" : "translate-x-1"
+                } inline-block h-6 w-6 transform rounded-full bg-white shadow-md transition-transform duration-300 ease-in-out`}
               />
             </Switch>
-          
+
           </div>
 
           <LayoutGroup>
-            <div className="mt-12 grid grid-cols-1 gap-6 text-left md:grid-cols-2 xl:grid-cols-3 md:gap-8">
+            <div className="mt-16 grid grid-cols-1 gap-8 text-left md:grid-cols-2 xl:grid-cols-3 md:gap-8">
               {plans.map((plan) => {
                 const price = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
                 const cadence = isYearly ? "/year" : "/month";
@@ -369,16 +369,16 @@ export default function BillingPage() {
                       }
                     }}
                     aria-pressed={isSelected}
-                    className={`relative flex h-full min-h-[290px] cursor-pointer flex-col rounded-3xl border bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-black ${
+                    className={`relative flex h-full min-h-[380px] cursor-pointer flex-col rounded-[24px] border bg-[#f5f5f7] px-8 py-12 shadow-[0_4px_16px_rgba(0,0,0,0.08)] transition-all duration-300 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(0,0,0,0.12)] ${
                       isSelected
                         ? "border-transparent"
-                        : "border-neutral-200/60"
+                        : "border-transparent"
                     }`}
                   >
                     {isSelected && (
                       <motion.div
                         layoutId="planHighlight"
-                        className="pointer-events-none absolute inset-0 rounded-[inherit] border-[3px] border-black z-10"
+                        className="pointer-events-none absolute inset-0 rounded-[inherit] border-[2px] border-blue-500 z-10"
                         transition={{ type: "spring", stiffness: 320, damping: 28 }}
                       />
                     )}
@@ -392,15 +392,15 @@ export default function BillingPage() {
                         </p>
                       </div>
                       {plan.badge && (
-                        <span className="ml-auto inline-flex items-center rounded-full border border-yellow-500 bg-white px-2.5 py-1 text-[11px] font-bold text-neutral-900">
+                        <span className="ml-auto inline-flex items-center rounded-full border-none bg-[#ffd60a] px-3 py-1.5 text-[10px] font-semibold tracking-wide text-neutral-900 uppercase">
                           {plan.badge}
                         </span>
                       )}
                     </header>
 
-                    <div className="mt-6">
+                    <div className="mt-8">
                       <div className="flex items-end justify-between gap-4">
-                        <div className="flex items-end gap-1">
+                        <div className="flex items-baseline gap-1">
                           <AnimatePresence mode="wait" initial={false}>
                             <motion.span
                               key={currencySymbol}
@@ -408,21 +408,21 @@ export default function BillingPage() {
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: 4 }}
                               transition={{ duration: 0.2 }}
-                              className="text-5xl font-semibold text-neutral-900"
-                              style={{ fontFamily: AEONIK_FONT_FAMILY }}
+                              className="text-[56px] font-bold text-[#1d1d1f]"
+                              style={{ fontFamily: SF_PRO_FONT_FAMILY, fontWeight: 700, letterSpacing: '-1px' }}
                             >
                               {currencySymbol}
                             </motion.span>
                           </AnimatePresence>
                           <AnimatedNumber
                             value={price}
-                            className="text-5xl font-semibold leading-none text-neutral-900"
-                            style={{ fontFamily: AEONIK_FONT_FAMILY }}
+                            className="text-[72px] font-bold leading-none text-[#1d1d1f]"
+                            style={{ fontFamily: SF_PRO_FONT_FAMILY, fontWeight: 700, letterSpacing: '-2px' }}
                           />
                           <AnimatedText
                             text={cadence}
-                            className="text-sm font-medium text-neutral-400"
-                            style={{ fontFamily: AEONIK_FONT_FAMILY }}
+                            className="text-base font-normal text-[#86868b] pb-2"
+                            style={{ fontFamily: SF_PRO_FONT_FAMILY, fontWeight: 400 }}
                           />
                         </div>
                         <div className="flex min-h-[20px] flex-shrink-0 items-center justify-end text-right">
@@ -443,26 +443,30 @@ export default function BillingPage() {
                         </div>
                       </div>
                     </div>
-                    <br />
-                    <button
-                      type="button"
-                      onClick={() => handleCheckout(plan.id)}
-                      className={`mt-auto w-full rounded-full px-6 py-3 text-sm font-semibold text-white transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-black hover:scale-105 hover:bg-neutral-700 active:bg-neutral-600 ${
-                        plan.popular ? "bg-black" : "bg-neutral-900"
-                      }`}
-                    >
-                      {plan.ctaLabel}
-                    </button>
+                    <div className="mt-8">
+                      <button
+                        type="button"
+                        onClick={() => handleCheckout(plan.id)}
+                        className={`w-full rounded-xl px-6 py-3.5 text-[17px] font-medium text-white transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 hover:scale-[1.02] active:scale-[0.98] ${
+                          plan.popular
+                            ? "bg-[#1d1d1f] hover:bg-[#2d2d2f] focus-visible:ring-[#1d1d1f]"
+                            : "bg-[#0071e3] hover:bg-[#0077ed] focus-visible:ring-[#0071e3]"
+                        }`}
+                        style={{ fontFamily: SF_PRO_FONT_FAMILY, fontWeight: 500, letterSpacing: '-0.2px' }}
+                      >
+                        {plan.ctaLabel}
+                      </button>
+                    </div>
 
-                  <ul className="mt-6 space-y-3 text-left text-sm text-neutral-700">
+                  <ul className="mt-8 space-y-4 text-left text-[15px] leading-relaxed text-[#6e6e73]">
                     {plan.features.map((feature, index) => (
-                      <li key={feature} className="flex items-start gap-2">
+                      <li key={feature} className="flex items-start gap-3">
                         {index === 0 ? (
-                          <Coins className="h-4 w-4 mt-0.5 text-neutral-600" />
+                          <Coins className="h-5 w-5 mt-0.5 text-[#6e6e73] flex-shrink-0" />
                         ) : index === 1 ? (
-                          <Plus className="h-4 w-4 mt-0.5 text-neutral-600" />
+                          <Plus className="h-5 w-5 mt-0.5 text-[#6e6e73] flex-shrink-0" />
                         ) : null}
-                        <span>{feature}</span>
+                        <span style={{ lineHeight: 1.6 }}>{feature}</span>
                       </li>
                     ))}
                   </ul>
@@ -475,61 +479,63 @@ export default function BillingPage() {
             </div>
           </LayoutGroup>
 
-          <div className="mt-16 grid grid-cols-1 gap-6 text-left md:grid-cols-2">
-            <section className="rounded-3xl border border-neutral-200 bg-white p-7 text-left shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
-              <h2 className="text-base font-semibold text-neutral-900">
+          <div className="mt-20 grid grid-cols-1 gap-8 text-left md:grid-cols-2">
+            <section className="rounded-[24px] border-none bg-[#f5f5f7] p-8 text-left shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+              <h2 className="text-lg font-semibold text-[#1d1d1f]">
                 Current plan overview
               </h2>
-              <p className="mt-2 text-sm text-neutral-600">
-                You’re on the {currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)} plan.
+              <p className="mt-3 text-[15px] leading-relaxed text-[#6e6e73]">
+                You're on the {currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)} plan.
               </p>
-              <dl className="mt-6 space-y-3 text-sm text-neutral-700">
+              <dl className="mt-8 space-y-4 text-[15px] text-[#6e6e73]">
                 <div className="flex items-center justify-between">
                   <dt>Included monthly lines</dt>
-                  <dd className="font-semibold text-neutral-900">
+                  <dd className="font-semibold text-[#1d1d1f]">
                     {maxCredits.toLocaleString()}
                   </dd>
                 </div>
                 <div className="flex items-center justify-between">
                   <dt>Lines remaining</dt>
-                  <dd className="font-semibold text-neutral-900">
+                  <dd className="font-semibold text-[#1d1d1f]">
                     {credits.toLocaleString()}
                   </dd>
                 </div>
                 {renewalDate && (
                   <div className="flex items-center justify-between">
                     <dt>Renews on</dt>
-                    <dd className="font-semibold text-neutral-900">{renewalDate}</dd>
+                    <dd className="font-semibold text-[#1d1d1f]">{renewalDate}</dd>
                   </div>
                 )}
               </dl>
               <button
                 type="button"
                 disabled
-                className="mt-6 w-full cursor-not-allowed rounded-full border border-neutral-200 bg-neutral-100 px-6 py-3 text-sm font-semibold text-neutral-500"
+                className="mt-8 w-full cursor-not-allowed rounded-xl border-none bg-[#e5e5e7] px-6 py-3.5 text-[17px] font-medium text-[#86868b]"
+                style={{ fontFamily: SF_PRO_FONT_FAMILY, fontWeight: 500 }}
               >
                 Current plan
               </button>
             </section>
 
-            <section className="rounded-3xl border border-neutral-200 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
-              <h2 className="text-base font-semibold text-neutral-900">
+            <section className="rounded-[24px] border-none bg-[#f5f5f7] p-8 shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+              <h2 className="text-lg font-semibold text-[#1d1d1f]">
                 Add more outreach lines
               </h2>
-              <p className="mt-2 text-sm text-neutral-600">
+              <p className="mt-3 text-[15px] leading-relaxed text-[#6e6e73]">
                 For the {currentPlan} plan —
-                <span className="ml-1 font-semibold text-neutral-900">
+                <span className="ml-1 font-semibold text-[#1d1d1f]">
                   ${userInfo?.addon_price || 5}
                 </span>{" "}
                 per additional 1,000 lines.
               </p>
 
-              <label className="mt-6 block text-sm font-medium text-neutral-700" htmlFor="addon-select">
+              <label className="mt-8 block text-[15px] font-medium text-[#1d1d1f]" htmlFor="addon-select">
                 Select add-on packs
               </label>
               <select
                 id="addon-select"
-                className="mt-2 w-full rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm font-medium text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                className="mt-3 w-full rounded-xl border border-[#d2d2d7] bg-white px-4 py-3.5 text-[15px] font-medium text-[#1d1d1f] focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                style={{ fontFamily: SF_PRO_FONT_FAMILY }}
                 onChange={(event) => setAddonCount(Number(event.target.value))}
                 value={addonCount}
               >
@@ -540,16 +546,16 @@ export default function BillingPage() {
                 ))}
               </select>
 
-              <div className="mt-4 rounded-2xl bg-neutral-50 px-4 py-3 text-sm text-neutral-700">
+              <div className="mt-6 rounded-xl bg-white px-5 py-4 text-[15px] text-[#6e6e73] shadow-sm">
                 <div className="flex items-center justify-between">
                   <span>Total lines</span>
-                  <span className="font-semibold text-neutral-900">
+                  <span className="font-semibold text-[#1d1d1f]">
                     {(addonCount * 1000).toLocaleString()}
                   </span>
                 </div>
-                <div className="mt-2 flex items-center justify-between">
+                <div className="mt-3 flex items-center justify-between">
                   <span>One-time total</span>
-                  <span className="font-semibold text-neutral-900">
+                  <span className="font-semibold text-[#1d1d1f]">
                     ${(addonCount * (userInfo?.addon_price || 5)).toLocaleString()}
                   </span>
                 </div>
@@ -558,7 +564,8 @@ export default function BillingPage() {
               <button
                 type="button"
                 onClick={handleBuyAddons}
-                className="mt-6 w-full rounded-full bg-black px-6 py-3 text-sm font-semibold text-white transition hover:bg-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                className="mt-8 w-full rounded-xl bg-[#1d1d1f] px-6 py-3.5 text-[17px] font-medium text-white transition-all duration-200 ease-out hover:bg-[#2d2d2f] hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1d1d1f] focus-visible:ring-offset-2"
+                style={{ fontFamily: SF_PRO_FONT_FAMILY, fontWeight: 500, letterSpacing: '-0.2px' }}
               >
                 Purchase add-ons
               </button>
