@@ -399,7 +399,7 @@ export default function BillingPage() {
                     </header>
 
                     <div className="mt-6">
-                      <div className="flex items-end justify-between">
+                      <div className="flex items-end justify-between gap-4">
                         <div className="flex items-end gap-1">
                           <AnimatePresence mode="wait" initial={false}>
                             <motion.span
@@ -425,11 +425,22 @@ export default function BillingPage() {
                             style={{ fontFamily: AEONIK_FONT_FAMILY }}
                           />
                         </div>
-                        {isYearly && plan.yearlySavings && (
-                          <span className="text-sm font-medium text-[#ff7a00]">
-                            saving {plan.yearlySavings.replace('Save ', '').toLowerCase()}
-                          </span>
-                        )}
+                        <div className="flex min-h-[20px] flex-shrink-0 items-center justify-end text-right">
+                          <AnimatePresence mode="wait" initial={false}>
+                            {isYearly && plan.yearlySavings && (
+                              <motion.span
+                                key={plan.yearlySavings}
+                                initial={{ opacity: 0, y: -4 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 4 }}
+                                transition={{ duration: 0.2 }}
+                                className="text-sm font-medium text-[#ff7a00]"
+                              >
+                                saving {plan.yearlySavings.replace("Save ", "").toLowerCase()}
+                              </motion.span>
+                            )}
+                          </AnimatePresence>
+                        </div>
                       </div>
                     </div>
                     <br />
