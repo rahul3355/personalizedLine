@@ -425,11 +425,23 @@ export default function BillingPage() {
                             style={{ fontFamily: AEONIK_FONT_FAMILY }}
                           />
                         </div>
-                        {isYearly && plan.yearlySavings && (
-                          <span className="text-sm font-medium text-[#ff7a00]">
-                            saving {plan.yearlySavings.replace('Save ', '').toLowerCase()}
-                          </span>
-                        )}
+                        <div className="relative min-w-[118px] text-right">
+                          <motion.span
+                            initial={false}
+                            animate={{
+                              opacity: isYearly && plan.yearlySavings ? 1 : 0,
+                              y: isYearly && plan.yearlySavings ? 0 : 4,
+                            }}
+                            transition={{ duration: 0.2 }}
+                            aria-hidden={!(isYearly && plan.yearlySavings)}
+                            className="block text-sm font-medium text-[#ff7a00] whitespace-nowrap"
+                            style={{ fontFamily: AEONIK_FONT_FAMILY }}
+                          >
+                            {plan.yearlySavings
+                              ? `saving ${plan.yearlySavings.replace('Save ', '').toLowerCase()}`
+                              : ""}
+                          </motion.span>
+                        </div>
                       </div>
                     </div>
                     <br />
