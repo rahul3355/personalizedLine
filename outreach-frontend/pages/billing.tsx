@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
+import { ArrowLeft, X } from "lucide-react";
+import { Switch } from "@headlessui/react";
 import { Check, X } from "lucide-react";
 
 import { useAuth } from "../lib/AuthProvider";
@@ -288,6 +290,8 @@ export default function BillingPage() {
   const plans = planConfigurations[activeSegment];
   const isYearly = billingCycle === "yearly";
 
+  const featureEmojis = ["🚀", "✨", "📈", "🛡️", "🤝", "⚙️", "🧠", "🌐", "📊", "💬"];
+
   return (
     <div className="fixed inset-0 z-50 bg-white">
       <div className="h-full overflow-y-auto">
@@ -301,6 +305,28 @@ export default function BillingPage() {
           <button
             type="button"
             onClick={closeBilling}
+            aria-label="Go back"
+            className="fixed top-6 left-6 flex items-center gap-2 text-sm font-semibold text-black transition hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
+          >
+            <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+            Back
+          </button>
+
+          <button
+            type="button"
+            onClick={closeBilling}
+            aria-label="Close"
+            className="fixed top-6 right-6 flex h-10 w-10 items-center justify-center rounded-full bg-white text-neutral-500 transition hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
+          >
+            <X className="h-4 w-4" aria-hidden="true" />
+          </button>
+
+          <div className="mx-auto max-w-xl">
+            <h1 className="text-4xl font-bold tracking-tight text-neutral-900 sm:text-5xl md:text-6xl">
+              Prices at a glance
+            </h1>
+          </div>
+
             aria-label="Close"
             className="fixed top-6 right-6 flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-500 transition hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
           >
@@ -341,6 +367,21 @@ export default function BillingPage() {
 
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3 text-sm text-neutral-600">
             <span>Save with yearly billing</span>
+            <Switch
+              checked={isYearly}
+              onChange={(value: boolean) => setBillingCycle(value ? "yearly" : "monthly")}
+              className={`${
+                isYearly ? "bg-black" : "bg-neutral-200"
+              } relative inline-flex h-7 w-12 items-center rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-black`}
+            >
+              <span className="sr-only">Save with yearly billing</span>
+              <span
+                aria-hidden="true"
+                className={`${
+                  isYearly ? "translate-x-6" : "translate-x-1"
+                } inline-block h-5 w-5 transform rounded-full bg-white transition`}
+              />
+            </Switch>
             <button
               type="button"
               role="switch"
@@ -378,6 +419,8 @@ export default function BillingPage() {
               return (
                 <article
                   key={`${activeSegment}-${plan.id}`}
+                  className={`flex h-full flex-col rounded-3xl border bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)] ${
+                    plan.popular ? "border-black md:scale-[1.02]" : "border-neutral-200"
                   className={`flex h-full flex-col rounded-3xl border border-neutral-200 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)] ${
                     plan.popular ? "md:scale-[1.02]" : ""
                   }`}
@@ -411,6 +454,24 @@ export default function BillingPage() {
                     </div>
                   )}
 
+                  <button
+                    type="button"
+                    onClick={() => handleCheckout(plan.id)}
+                    className={`mt-6 w-full rounded-full px-6 py-3 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-black ${
+                      plan.popular
+                        ? "bg-black text-white hover:bg-neutral-900"
+                        : "bg-neutral-900 text-white hover:bg-black"
+                    }`}
+                  >
+                    {plan.ctaLabel}
+                  </button>
+
+                  <ul className="mt-6 space-y-3 text-sm text-neutral-700">
+                    {plan.features.map((feature, index) => (
+                      <li key={feature} className="flex items-start gap-2">
+                        <span aria-hidden="true" className="mt-0.5 text-base">
+                          {featureEmojis[index % featureEmojis.length]}
+                        </span>
                   <ul className="mt-6 space-y-3 text-sm text-neutral-700">
                     {plan.features.map((feature) => (
                       <li key={feature} className="flex items-start gap-2">
@@ -420,6 +481,9 @@ export default function BillingPage() {
                     ))}
                     {plan.includes && (
                       <li className="flex items-start gap-2 text-neutral-500">
+                        <span aria-hidden="true" className="mt-0.5 text-base">
+                          ➕
+                        </span>
                         <Check className="mt-0.5 h-4 w-4 text-neutral-300" aria-hidden="true" />
                         <span>{plan.includes}</span>
                       </li>
