@@ -425,6 +425,18 @@ export default function BillingPage() {
                     </div>
                   )}
 
+                  <button
+                    type="button"
+                    onClick={() => handleCheckout(plan.id)}
+                    className={`mt-6 w-full rounded-full px-6 py-3 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-black ${
+                      plan.popular
+                        ? "bg-black text-white hover:bg-neutral-900"
+                        : "bg-neutral-900 text-white hover:bg-black"
+                    }`}
+                  >
+                    {plan.ctaLabel}
+                  </button>
+
                   <ul className="mt-6 space-y-3 text-left text-sm text-neutral-700">
                     {plan.features.map((feature, index) => (
                       <li key={feature} className="flex items-start gap-2">
@@ -444,17 +456,6 @@ export default function BillingPage() {
                     )}
                   </ul>
 
-                  <button
-                    type="button"
-                    onClick={() => handleCheckout(plan.id)}
-                    className={`mt-auto w-full rounded-full px-6 py-3 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-black ${
-                      plan.popular
-                        ? "bg-black text-white hover:bg-neutral-900"
-                        : "bg-neutral-900 text-white hover:bg-black"
-                    }`}
-                  >
-                    {plan.ctaLabel}
-                  </button>
                 </article>
               );
             })}
