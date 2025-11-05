@@ -451,24 +451,24 @@ export default function BillingPage() {
                         </motion.span>
                       </AnimatePresence>
                       <AnimatedNumber value={price} className="text-5xl font-semibold leading-none text-neutral-900" />
+                      <AnimatePresence mode="wait" initial={false}>
+                        <motion.span
+                          key={cadence}
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 4 }}
+                          transition={{ duration: 0.2 }}
+                          className="pb-1 text-sm text-neutral-500"
+                        >
+                          {cadence}
+                          {isYearly && plan.yearlySavings && (
+                            <span className="ml-2 text-sm font-medium text-[#ff7a00]">
+                              saving {plan.yearlySavings.replace('Save ', '').toLowerCase()}
+                            </span>
+                          )}
+                        </motion.span>
+                      </AnimatePresence>
                     </div>
-                    <AnimatePresence mode="wait" initial={false}>
-                      <motion.span
-                        key={cadence}
-                        initial={{ opacity: 0, y: -4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 4 }}
-                        transition={{ duration: 0.2 }}
-                        className="mt-1 block text-sm text-neutral-500"
-                      >
-                        {cadence}
-                        {isYearly && plan.yearlySavings && (
-                          <span className="ml-2 text-sm font-medium text-[#ff7a00]">
-                            saving {plan.yearlySavings.replace('Save ', '').toLowerCase()}
-                          </span>
-                        )}
-                      </motion.span>
-                    </AnimatePresence>
                   </div>
                   <br />
                   <button
