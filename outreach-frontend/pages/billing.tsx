@@ -437,36 +437,20 @@ export default function BillingPage() {
                   </header>
 
                   <div className="mt-6">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-end gap-1">
-                        <AnimatePresence mode="wait" initial={false}>
-                          <motion.span
-                            key={currencySymbol}
-                            initial={{ opacity: 0, y: -4 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 4 }}
-                            transition={{ duration: 0.2 }}
-                            className="text-lg text-neutral-500"
-                          >
-                            {currencySymbol}
-                          </motion.span>
-                        </AnimatePresence>
-                        <AnimatedNumber value={price} className="text-5xl font-semibold leading-none text-neutral-900" />
-                      </div>
-                      <AnimatePresence initial={false}>
-                        {isYearly && plan.yearlySavings && (
-                          <motion.span
-                            key="yearly-savings"
-                            initial={{ opacity: 0, y: -4 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -4 }}
-                            transition={{ duration: 0.2 }}
-                            className="text-xs font-semibold uppercase tracking-[0.24em] text-[#ff7a00]"
-                          >
-                            {plan.yearlySavings}
-                          </motion.span>
-                        )}
+                    <div className="flex items-end gap-1">
+                      <AnimatePresence mode="wait" initial={false}>
+                        <motion.span
+                          key={currencySymbol}
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 4 }}
+                          transition={{ duration: 0.2 }}
+                          className="text-lg text-neutral-500"
+                        >
+                          {currencySymbol}
+                        </motion.span>
                       </AnimatePresence>
+                      <AnimatedNumber value={price} className="text-5xl font-semibold leading-none text-neutral-900" />
                     </div>
                     <AnimatePresence mode="wait" initial={false}>
                       <motion.span
@@ -478,6 +462,11 @@ export default function BillingPage() {
                         className="mt-1 block text-sm text-neutral-500"
                       >
                         {cadence}
+                        {isYearly && plan.yearlySavings && (
+                          <span className="ml-2 text-sm font-medium text-[#ff7a00]">
+                            saving {plan.yearlySavings.replace('Save ', '').toLowerCase()}
+                          </span>
+                        )}
                       </motion.span>
                     </AnimatePresence>
                   </div>
