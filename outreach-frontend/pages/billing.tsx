@@ -3,6 +3,23 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
+import {
+  ArrowLeft,
+  BarChart3,
+  Brain,
+  Check,
+  Globe2,
+  Handshake,
+  LineChart,
+  MessageCircle,
+  Plus,
+  Settings,
+  ShieldCheck,
+  Sparkles,
+  X,
+} from "lucide-react";
+import { Switch } from "@headlessui/react";
+import type { LucideIcon } from "lucide-react";
 import { ArrowLeft, X } from "lucide-react";
 import { Switch } from "@headlessui/react";
 import { Check, X } from "lucide-react";
@@ -163,6 +180,25 @@ const formatCurrencyParts = (amount: number, currency = "USD") => {
   return { currencySymbol, number };
 };
 
+};
+
+const formatCurrencyParts = (amount: number, currency = "USD") => {
+  const formatter = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  });
+
+  const parts = formatter.formatToParts(amount);
+  const currencySymbol = parts.find((part) => part.type === "currency")?.value ?? "";
+  const number = parts
+    .filter((part) => part.type === "integer" || part.type === "group")
+    .map((part) => part.value)
+    .join("");
+
+  return { currencySymbol, number };
+};
+
 // ✅ Initialize Stripe with publishable key from env
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
@@ -290,6 +326,18 @@ export default function BillingPage() {
   const plans = planConfigurations[activeSegment];
   const isYearly = billingCycle === "yearly";
 
+  const featureIcons: LucideIcon[] = [
+    Check,
+    Sparkles,
+    BarChart3,
+    ShieldCheck,
+    Handshake,
+    Settings,
+    Brain,
+    Globe2,
+    LineChart,
+    MessageCircle,
+  ];
   const featureEmojis = ["🚀", "✨", "📈", "🛡️", "🤝", "⚙️", "🧠", "🌐", "📊", "💬"];
 
   return (
@@ -317,6 +365,12 @@ export default function BillingPage() {
             onClick={closeBilling}
             aria-label="Close"
             className="fixed top-6 right-6 flex h-10 w-10 items-center justify-center rounded-full bg-white text-neutral-500 transition hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
+
+          <button
+            type="button"
+            onClick={closeBilling}
+            aria-label="Close"
+            className="fixed top-6 right-6 flex h-10 w-10 items-center justify-center rounded-full bg-white text-neutral-500 transition hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
           >
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
@@ -333,6 +387,10 @@ export default function BillingPage() {
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
 
+          <div className="mx-auto max-w-xl">
+            <h1 className="text-4xl font-bold tracking-tight text-neutral-900 sm:text-5xl md:text-6xl">
+              Prices at a glance
+            </h1>
           <div className="mx-auto max-w-xl space-y-4">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-400">
               Billing
@@ -467,6 +525,18 @@ export default function BillingPage() {
                   </button>
 
                   <ul className="mt-6 space-y-3 text-sm text-neutral-700">
+                    {plan.features.map((feature, index) => {
+                      const Icon = featureIcons[index % featureIcons.length];
+                      return (
+                        <li key={feature} className="flex items-start gap-2">
+                          <Icon aria-hidden="true" className="mt-0.5 h-4 w-4 text-neutral-500" />
+                          <span>{feature}</span>
+                        </li>
+                      );
+                    })}
+                    {plan.includes && (
+                      <li className="flex items-start gap-2 text-neutral-500">
+                        <Plus aria-hidden="true" className="mt-0.5 h-4 w-4" />
                     {plan.features.map((feature, index) => (
                       <li key={feature} className="flex items-start gap-2">
                         <span aria-hidden="true" className="mt-0.5 text-base">
