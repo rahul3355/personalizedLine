@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useSpring } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
-import { ArrowLeft, X } from "lucide-react";
+import { ArrowLeft, X, Coins, Plus } from "lucide-react";
 import { Switch } from "@headlessui/react";
 
 import { useAuth } from "../lib/AuthProvider";
@@ -40,7 +40,7 @@ const planConfigurations: Record<AudienceSegment, PlanConfig[]> = {
       ctaLabel: "Upgrade to Starter",
       features: [
         "2000 credits/month",
-        "Add-on $11 per 1000 credits",
+        "$11 per 1000 credits",
       ],
       includes: "Everything in Free",
     },
@@ -57,7 +57,7 @@ const planConfigurations: Record<AudienceSegment, PlanConfig[]> = {
       ctaLabel: "Upgrade to Growth",
       features: [
         "10000 credits/month",
-        "Add-on $9 per 1000 credits",
+        "$9 per 1000 credits",
       ],
       includes: "Everything in Starter",
     },
@@ -72,7 +72,7 @@ const planConfigurations: Record<AudienceSegment, PlanConfig[]> = {
       ctaLabel: "Upgrade to Pro",
       features: [
         "25000 credits/month",
-        "Add-on $7 per 1000 credits",
+        "$7 per 1000 credits",
       ],
       includes: "Everything in Growth",
     },
@@ -405,7 +405,7 @@ export default function BillingPage() {
               return (
                 <article
                   key={`${activeSegment}-${plan.id}`}
-                  className={`flex h-full flex-col rounded-3xl border bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)] ${
+                  className={`flex h-full min-h-[480px] flex-col rounded-3xl border bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)] ${
                     plan.popular ? "border-black md:scale-[1.02]" : "border-neutral-200"
                   }`}
                 >
@@ -467,8 +467,8 @@ export default function BillingPage() {
                     onClick={() => handleCheckout(plan.id)}
                     className={`mt-auto w-full rounded-full px-6 py-3 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-black ${
                       plan.popular
-                        ? "bg-black text-white hover:bg-neutral-900"
-                        : "bg-neutral-900 text-white hover:bg-black"
+                        ? "bg-black text-white hover:bg-neutral-900 active:bg-neutral-700"
+                        : "bg-neutral-900 text-white hover:bg-black active:bg-neutral-700"
                     }`}
                   >
                     {plan.ctaLabel}
@@ -477,6 +477,15 @@ export default function BillingPage() {
                   <ul className="mt-6 space-y-3 text-left text-sm text-neutral-700">
                     {plan.features.map((feature, index) => (
                       <li key={feature} className="flex items-start gap-2">
+                        {activeSegment === "individual" && (
+                          <>
+                            {index === 0 ? (
+                              <Coins className="h-4 w-4 mt-0.5 text-neutral-600" />
+                            ) : index === 1 ? (
+                              <Plus className="h-4 w-4 mt-0.5 text-neutral-600" />
+                            ) : null}
+                          </>
+                        )}
                         <span>{feature}</span>
                       </li>
                     ))}
