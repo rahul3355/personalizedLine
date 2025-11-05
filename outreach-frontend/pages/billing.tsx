@@ -163,6 +163,12 @@ const planConfigurations: Record<AudienceSegment, PlanConfig[]> = {
   ],
 };
 
+type CurrencyParts = {
+  currencySymbol: string;
+  number: string;
+};
+
+function formatCurrencyParts(amount: number, currency = "USD"): CurrencyParts {
 const formatCurrencyParts = (amount: number, currency = "USD") => {
   const formatter = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -197,6 +203,9 @@ const formatCurrencyParts = (amount: number, currency = "USD") => {
     .join("");
 
   return { currencySymbol, number };
+}
+
+// Initialize Stripe with publishable key from env
 };
 
 // ✅ Initialize Stripe with publishable key from env
@@ -338,6 +347,32 @@ export default function BillingPage() {
     LineChart,
     MessageCircle,
   ];
+
+  return (
+    <div className="fixed inset-0 z-50 bg-white">
+      <div className="h-full overflow-y-auto">
+        <div
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          tabIndex={-1}
+          className="relative mx-auto flex min-h-full w-full max-w-[1120px] flex-col px-6 pt-16 pb-24 text-center md:px-12 md:pt-24"
+        >
+          <button
+            type="button"
+            onClick={closeBilling}
+            aria-label="Go back"
+            className="fixed top-6 left-6 flex items-center gap-2 text-sm font-semibold text-black transition hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
+          >
+            <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+            Back
+          </button>
+
+          <button
+            type="button"
+            onClick={closeBilling}
+            aria-label="Close"
+            className="fixed top-6 right-6 flex h-10 w-10 items-center justify-center rounded-full bg-white text-neutral-500 transition hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
   const featureEmojis = ["🚀", "✨", "📈", "🛡️", "🤝", "⚙️", "🧠", "🌐", "📊", "💬"];
 
   return (
