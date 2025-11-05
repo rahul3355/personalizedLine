@@ -20,6 +20,9 @@ import {
 } from "lucide-react";
 import { Switch } from "@headlessui/react";
 import type { LucideIcon } from "lucide-react";
+import { ArrowLeft, X } from "lucide-react";
+import { Switch } from "@headlessui/react";
+import { Check, X } from "lucide-react";
 
 import { useAuth } from "../lib/AuthProvider";
 
@@ -160,7 +163,7 @@ const planConfigurations: Record<AudienceSegment, PlanConfig[]> = {
   ],
 };
 
-function formatCurrencyParts(amount: number, currency = "USD") {
+const formatCurrencyParts = (amount: number, currency = "USD") => {
   const formatter = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,
@@ -175,7 +178,26 @@ function formatCurrencyParts(amount: number, currency = "USD") {
     .join("");
 
   return { currencySymbol, number };
-}
+};
+
+};
+
+const formatCurrencyParts = (amount: number, currency = "USD") => {
+  const formatter = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  });
+
+  const parts = formatter.formatToParts(amount);
+  const currencySymbol = parts.find((part) => part.type === "currency")?.value ?? "";
+  const number = parts
+    .filter((part) => part.type === "integer" || part.type === "group")
+    .map((part) => part.value)
+    .join("");
+
+  return { currencySymbol, number };
+};
 
 // ✅ Initialize Stripe with publishable key from env
 const stripePromise = loadStripe(
@@ -316,6 +338,7 @@ export default function BillingPage() {
     LineChart,
     MessageCircle,
   ];
+  const featureEmojis = ["🚀", "✨", "📈", "🛡️", "🤝", "⚙️", "🧠", "🌐", "📊", "💬"];
 
   return (
     <div className="fixed inset-0 z-50 bg-white">
@@ -342,6 +365,12 @@ export default function BillingPage() {
             onClick={closeBilling}
             aria-label="Close"
             className="fixed top-6 right-6 flex h-10 w-10 items-center justify-center rounded-full bg-white text-neutral-500 transition hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
+
+          <button
+            type="button"
+            onClick={closeBilling}
+            aria-label="Close"
+            className="fixed top-6 right-6 flex h-10 w-10 items-center justify-center rounded-full bg-white text-neutral-500 transition hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
           >
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
@@ -350,6 +379,28 @@ export default function BillingPage() {
             <h1 className="text-4xl font-bold tracking-tight text-neutral-900 sm:text-5xl md:text-6xl">
               Prices at a glance
             </h1>
+          </div>
+
+            aria-label="Close"
+            className="fixed top-6 right-6 flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-500 transition hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
+          >
+            <X className="h-4 w-4" aria-hidden="true" />
+          </button>
+
+          <div className="mx-auto max-w-xl">
+            <h1 className="text-4xl font-bold tracking-tight text-neutral-900 sm:text-5xl md:text-6xl">
+              Prices at a glance
+            </h1>
+          <div className="mx-auto max-w-xl space-y-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-400">
+              Billing
+            </p>
+            <h1 className="text-4xl font-semibold tracking-tight text-neutral-900 sm:text-5xl md:text-6xl">
+              Outreach plans built for serious senders
+            </h1>
+            <p className="mx-auto max-w-2xl text-base text-neutral-600 sm:text-lg">
+              Choose the capacity that matches your pipeline. Switch between individual and business tiers, then toggle monthly or yearly billing to see the best fit.
+            </p>
           </div>
 
           <div className="mt-12 flex justify-center">
@@ -389,6 +440,24 @@ export default function BillingPage() {
                 } inline-block h-5 w-5 transform rounded-full bg-white transition`}
               />
             </Switch>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={isYearly}
+              onClick={() => setBillingCycle(isYearly ? "monthly" : "yearly")}
+              className={`relative h-6 w-11 rounded-full border transition ${
+                isYearly ? "border-black bg-black" : "border-neutral-300 bg-neutral-200"
+              }`}
+            >
+              <span
+                className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-white transition ${
+                  isYearly ? "translate-x-[22px]" : "translate-x-[6px]"
+                }`}
+              />
+              <span className="sr-only">
+                Toggle {isYearly ? "monthly" : "yearly"} billing
+              </span>
+            </button>
             {isYearly && (
               <span className="inline-flex items-center rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-600">
                 Showing yearly pricing
@@ -410,6 +479,8 @@ export default function BillingPage() {
                   key={`${activeSegment}-${plan.id}`}
                   className={`flex h-full flex-col rounded-3xl border bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)] ${
                     plan.popular ? "border-black md:scale-[1.02]" : "border-neutral-200"
+                  className={`flex h-full flex-col rounded-3xl border border-neutral-200 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)] ${
+                    plan.popular ? "md:scale-[1.02]" : ""
                   }`}
                 >
                   <header className="flex items-start gap-3">
@@ -466,10 +537,40 @@ export default function BillingPage() {
                     {plan.includes && (
                       <li className="flex items-start gap-2 text-neutral-500">
                         <Plus aria-hidden="true" className="mt-0.5 h-4 w-4" />
+                    {plan.features.map((feature, index) => (
+                      <li key={feature} className="flex items-start gap-2">
+                        <span aria-hidden="true" className="mt-0.5 text-base">
+                          {featureEmojis[index % featureEmojis.length]}
+                        </span>
+                  <ul className="mt-6 space-y-3 text-sm text-neutral-700">
+                    {plan.features.map((feature) => (
+                      <li key={feature} className="flex items-start gap-2">
+                        <Check className="mt-0.5 h-4 w-4 text-neutral-400" aria-hidden="true" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                    {plan.includes && (
+                      <li className="flex items-start gap-2 text-neutral-500">
+                        <span aria-hidden="true" className="mt-0.5 text-base">
+                          ➕
+                        </span>
+                        <Check className="mt-0.5 h-4 w-4 text-neutral-300" aria-hidden="true" />
                         <span>{plan.includes}</span>
                       </li>
                     )}
                   </ul>
+
+                  <button
+                    type="button"
+                    onClick={() => handleCheckout(plan.id)}
+                    className={`mt-auto w-full rounded-full px-6 py-3 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-black ${
+                      plan.popular
+                        ? "bg-black text-white hover:bg-neutral-900"
+                        : "bg-neutral-900 text-white hover:bg-black"
+                    }`}
+                  >
+                    {plan.ctaLabel}
+                  </button>
                 </article>
               );
             })}
