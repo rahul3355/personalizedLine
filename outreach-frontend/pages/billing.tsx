@@ -326,15 +326,10 @@ export default function BillingPage() {
           </button>
 
           <div className="mx-auto max-w-xl space-y-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-400">
-              Billing
-            </p>
             <h1 className="text-4xl font-semibold tracking-tight text-neutral-900 sm:text-5xl md:text-6xl">
               Prices at a glance
             </h1>
-            <p className="mx-auto max-w-2xl text-base text-neutral-600 sm:text-lg">
-              Prices at a glance
-            </p>
+
           </div>
 
           <div className="mt-12 flex justify-center">
