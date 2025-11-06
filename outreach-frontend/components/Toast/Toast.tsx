@@ -79,9 +79,9 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
     <motion.div
       initial={{ opacity: 0, y: -20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
+      exit={{ opacity: 0, y: 0, x: 0, scale: 0.95 }}
       transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-      className="relative min-w-[320px] max-w-[440px] rounded-md shadow-xl overflow-visible"
+      className="relative min-w-[320px] max-w-[440px] rounded-full shadow-xl overflow-visible"
       role="alert"
       aria-live="polite"
       style={{
