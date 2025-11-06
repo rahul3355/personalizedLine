@@ -808,6 +808,8 @@ export default function UploadPage() {
     setPreviewError(null);
 
     try {
+      console.log("[Preview] Fetching emails with:", { tempPath, emailCol });
+
       const res = await fetch(`${API_URL}/preview/emails`, {
         method: "POST",
         headers: {
@@ -821,15 +823,31 @@ export default function UploadPage() {
       });
 
       if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`Failed to fetch preview emails: ${res.status} - ${errText}`);
+        let errorMessage = `Failed to fetch preview emails (${res.status})`;
+        try {
+          const errorData = await res.json();
+          if (errorData.detail) {
+            errorMessage = typeof errorData.detail === 'string'
+              ? errorData.detail
+              : JSON.stringify(errorData.detail);
+          }
+        } catch {
+          const errText = await res.text();
+          errorMessage = errText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await res.json();
+      console.log("[Preview] Received emails:", data.emails);
+
       setPreviewEmails(data.emails || []);
       setShowPreview(true);
       if (data.emails && data.emails.length > 0) {
         setSelectedPreviewEmail(data.emails[0]);
+      } else {
+        setSelectedPreviewEmail("");
+        setPreviewError("No emails found in the file. Please check your data.");
       }
     } catch (err: any) {
       console.error("[Upload] Preview emails error:", err);
@@ -840,8 +858,13 @@ export default function UploadPage() {
   };
 
   const handleGeneratePreview = async () => {
-    if (!selectedPreviewEmail || !isServiceContextComplete()) {
-      setPreviewError("Please select an email and complete all service fields");
+    if (!selectedPreviewEmail || selectedPreviewEmail === "") {
+      setPreviewError("Please select an email from the dropdown");
+      return;
+    }
+
+    if (!isServiceContextComplete()) {
+      setPreviewError("Please complete all service fields first");
       return;
     }
 
@@ -850,6 +873,8 @@ export default function UploadPage() {
     setPreviewResult(null);
 
     try {
+      console.log("[Preview] Generating preview for:", selectedPreviewEmail);
+
       const res = await fetch(`${API_URL}/preview/generate`, {
         method: "POST",
         headers: {
@@ -870,11 +895,23 @@ export default function UploadPage() {
           setPreviewError(body.detail?.message || "Insufficient credits for preview");
           return;
         }
-        const errText = await res.text();
-        throw new Error(`Failed to generate preview: ${res.status} - ${errText}`);
+        let errorMessage = `Failed to generate preview (${res.status})`;
+        try {
+          const errorData = await res.json();
+          if (errorData.detail) {
+            errorMessage = typeof errorData.detail === 'string'
+              ? errorData.detail
+              : JSON.stringify(errorData.detail);
+          }
+        } catch {
+          const errText = await res.text();
+          errorMessage = errText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await res.json();
+      console.log("[Preview] Generated preview:", data);
       setPreviewResult(data);
 
       // Update credit info
@@ -1217,13 +1254,14 @@ export default function UploadPage() {
                         <div className="w-full max-w-md space-y-4">
                           <div className="space-y-2">
                             <label className="text-xs font-medium text-gray-700 block text-center">
-                              Select an email to preview
+                              Select an email to preview ({previewEmails.length} available)
                             </label>
                             <select
                               value={selectedPreviewEmail}
                               onChange={(e) => setSelectedPreviewEmail(e.target.value)}
                               className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm transition focus:border-[#4F55F1] focus:ring-2 focus:ring-[#4F55F1]"
                             >
+                              <option value="">-- Select an email --</option>
                               {previewEmails.map((email) => (
                                 <option key={email} value={email}>
                                   {email}
@@ -1501,13 +1539,14 @@ export default function UploadPage() {
                   <div className="w-full space-y-4">
                     <div className="space-y-2">
                       <label className="text-xs font-medium text-gray-700 block text-center">
-                        Select an email to preview
+                        Select an email to preview ({previewEmails.length} available)
                       </label>
                       <select
                         value={selectedPreviewEmail}
                         onChange={(e) => setSelectedPreviewEmail(e.target.value)}
                         className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm"
                       >
+                        <option value="">-- Select an email --</option>
                         {previewEmails.map((email) => (
                           <option key={email} value={email}>
                             {email}
