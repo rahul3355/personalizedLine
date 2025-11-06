@@ -784,7 +784,7 @@ function JobsPage() {
                       type="button"
                       onClick={handleLoadMore}
                       disabled={loadingMore}
-                      className="rounded-full px-6 py-3 text-sm font-semibold text-white shadow-[0_18px_32px_rgba(79,85,241,0.35)] transition-transform hover:-translate-y-0.5 active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="rounded-full px-6 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
                       style={{ background: "linear-gradient(135deg, #4F55F1 0%, #8186FF 100%)" }}
                     >
                       {loadingMore ? "Loading…" : "Load more"}
