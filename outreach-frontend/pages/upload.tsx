@@ -166,30 +166,28 @@ const HelpTooltip = ({ fieldKey }: { fieldKey: ServiceFieldKey }) => {
 
       {showTooltip && (
         <div
-          className="absolute z-50 w-72 p-3 bg-white border border-gray-200 rounded-lg shadow-lg"
+          className="absolute z-50 w-72 p-3 rounded-md"
           style={{
             top: "calc(100% + 8px)",
             left: "50%",
             transform: "translateX(-50%)",
+            backgroundColor: "rgba(24, 25, 28, 0.95)",
+            boxShadow: "0px 5px 15px rgba(0, 0, 0, 0.3)",
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
           }}
           onMouseEnter={() => setShowTooltip(true)}
           onMouseLeave={() => setShowTooltip(false)}
         >
-          <div className="space-y-2 text-xs">
-            <div>
-              <p className="font-semibold text-gray-700 mb-1">What is it?</p>
-              <p className="text-gray-600">{help.what}</p>
-            </div>
-            <div>
-              <p className="font-semibold text-gray-700 mb-1">Why it matters:</p>
-              <p className="text-gray-600">{help.why}</p>
-            </div>
-            <div>
-              <p className="font-semibold text-gray-700 mb-1">Example:</p>
-              <p className="text-gray-600 italic">"{help.example}"</p>
-            </div>
-            <div className="pt-1 border-t border-gray-200">
-              <p className="text-gray-500 italic">Leave blank if not relevant to you.</p>
+          <div className="space-y-2.5 text-sm" style={{ color: "#dbdee1" }}>
+            <p className="leading-relaxed">{help.what}</p>
+            <p className="leading-relaxed">{help.why}</p>
+            <p className="leading-relaxed" style={{ color: "#b5bac1" }}>
+              e.g., "{help.example}"
+            </p>
+            <div className="pt-2 border-t" style={{ borderColor: "rgba(255, 255, 255, 0.08)" }}>
+              <p style={{ color: "#949ba4", fontSize: "0.8125rem" }}>
+                Leave blank if not relevant to you.
+              </p>
             </div>
           </div>
         </div>
@@ -309,7 +307,7 @@ export default function UploadPage() {
     <div className={`grid ${gridClass} gap-4`}>
       {SERVICE_FIELDS.map((field) => (
         <div key={field.key} className="flex flex-col gap-2">
-          <label className="text-xs font-medium uppercase tracking-wide text-gray-500 flex items-center">
+          <label className="text-xs font-medium text-gray-700 flex items-center">
             {field.label}
             <HelpTooltip fieldKey={field.key} />
           </label>
