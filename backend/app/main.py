@@ -945,6 +945,223 @@ async def download_result(
     )
 
 
+class PreviewEmailsRequest(BaseModel):
+    file_path: str
+    email_col: str
+
+class GeneratePreviewRequest(BaseModel):
+    file_path: str
+    email_col: str
+    selected_email: str
+    service: str  # JSON string of service components
+
+
+@app.post("/preview/emails")
+async def get_preview_emails(
+    payload: PreviewEmailsRequest = Body(...),
+    current_user: AuthenticatedUser = Depends(get_current_user),
+):
+    """Extract first 5 emails from the uploaded file for preview selection."""
+    try:
+        file_path = payload.file_path
+        email_col = payload.email_col
+
+        if not file_path or not email_col:
+            raise HTTPException(status_code=400, detail="file_path and email_col required")
+
+        # Verify user owns the file
+        file_path = assert_user_owns_path(file_path, current_user.user_id)
+
+        supabase_client = get_supabase()
+        temp_path = await stream_input_to_tempfile(supabase_client, file_path)
+
+        try:
+            emails = []
+            if file_path.lower().endswith(".xlsx"):
+                from openpyxl import load_workbook
+                workbook = load_workbook(temp_path, read_only=True)
+                sheet = workbook.active
+                rows_iter = sheet.iter_rows(values_only=True)
+
+                # Get header row
+                header_row = next(rows_iter, None)
+                if not header_row:
+                    raise HTTPException(status_code=400, detail="Empty file")
+
+                headers = ["" if cell is None else str(cell) for cell in header_row]
+                if email_col not in headers:
+                    raise HTTPException(status_code=400, detail=f"Column '{email_col}' not found")
+
+                email_col_idx = headers.index(email_col)
+
+                # Extract first 5 emails
+                for i, row in enumerate(rows_iter):
+                    if i >= 5:
+                        break
+                    if row and len(row) > email_col_idx:
+                        email_value = row[email_col_idx]
+                        if email_value:
+                            emails.append(str(email_value))
+
+                workbook.close()
+            else:
+                # CSV file
+                import csv
+                with open(temp_path, newline="", encoding="utf-8-sig") as handle:
+                    reader = csv.DictReader(handle)
+                    if email_col not in (reader.fieldnames or []):
+                        raise HTTPException(status_code=400, detail=f"Column '{email_col}' not found")
+
+                    for i, row in enumerate(reader):
+                        if i >= 5:
+                            break
+                        email_value = row.get(email_col, "")
+                        if email_value:
+                            emails.append(email_value)
+
+            return {"emails": emails}
+        finally:
+            try:
+                os.unlink(temp_path)
+            except OSError:
+                pass
+
+    except FileStreamingError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/preview/generate")
+async def generate_preview(
+    payload: GeneratePreviewRequest = Body(...),
+    current_user: AuthenticatedUser = Depends(get_current_user),
+):
+    """Generate a preview email using the full pipeline (SERP + 3 Groq calls) and deduct 1 credit."""
+    from .research import perform_research
+    from .gpt_helpers import generate_full_email_body
+    from .email_cleaning import clean_email_body
+
+    try:
+        selected_email = payload.selected_email
+        service_context = payload.service
+
+        if not selected_email or "@" not in selected_email:
+            raise HTTPException(status_code=400, detail="Valid email required")
+
+        # Verify user owns the file
+        file_path = assert_user_owns_path(payload.file_path, current_user.user_id)
+
+        # Deduct 1 credit using the same atomic pattern
+        supabase_client = get_supabase()
+        user_id = current_user.user_id
+
+        # Atomic credit deduction
+        max_attempts = 5
+        credit_deducted = False
+        for attempt in range(max_attempts):
+            profile_res = (
+                supabase_client.table("profiles")
+                .select("credits_remaining")
+                .eq("id", user_id)
+                .limit(1)
+                .execute()
+            )
+            profile = _parse_profile_response(profile_res) or {}
+            try:
+                credits_remaining = int(profile.get("credits_remaining") or 0)
+            except (TypeError, ValueError):
+                credits_remaining = 0
+
+            if credits_remaining < 1:
+                raise HTTPException(
+                    status_code=402,
+                    detail={
+                        "error": "insufficient_credits",
+                        "credits_remaining": credits_remaining,
+                        "message": "You need at least 1 credit to generate a preview"
+                    }
+                )
+
+            new_balance = credits_remaining - 1
+            update_res = (
+                supabase_client.table("profiles")
+                .update({"credits_remaining": new_balance})
+                .eq("id", user_id)
+                .eq("credits_remaining", credits_remaining)
+                .execute()
+            )
+
+            if getattr(update_res, "error", None):
+                raise HTTPException(status_code=500, detail="Unable to deduct credits")
+
+            updated_rows = getattr(update_res, "data", None) or []
+            if updated_rows:
+                # Record ledger entry
+                ledger_payload = {
+                    "user_id": user_id,
+                    "change": -1,
+                    "amount": 0.0,
+                    "reason": "preview generation",
+                    "ts": datetime.utcnow().isoformat(),
+                }
+                ledger_res = (
+                    supabase_client.table("ledger").insert(ledger_payload).execute()
+                )
+                if getattr(ledger_res, "error", None):
+                    # Rollback credit deduction
+                    supabase_client.table("profiles").update(
+                        {"credits_remaining": credits_remaining}
+                    ).eq("id", user_id).execute()
+                    raise HTTPException(
+                        status_code=500, detail="Unable to record credit deduction"
+                    )
+
+                credit_deducted = True
+                break
+
+            time.sleep(0.1)
+
+        if not credit_deducted:
+            raise HTTPException(status_code=500, detail="Unable to deduct credits")
+
+        # Run the exact same pipeline as the main job
+        print(f"\n[Preview] Generating preview for email: {selected_email}")
+
+        # Step 1: Research (SERP + Groq synthesis)
+        research_components = perform_research(selected_email)
+        print(f"\n📋 PREVIEW RESEARCH COMPONENTS:")
+        print(research_components)
+
+        # Step 2: Email generation (Groq)
+        email_body = generate_full_email_body(
+            research_components,
+            service_context,
+        )
+        print(f"\n✉️  PREVIEW EMAIL BODY (before cleaning):")
+        print(email_body)
+
+        # Step 3: Cleaning (Groq)
+        email_body = clean_email_body(email_body)
+        print(f"\n🧹 PREVIEW CLEANED EMAIL BODY:")
+        print(email_body)
+
+        return {
+            "email": selected_email,
+            "research_components": research_components,
+            "email_body": email_body,
+            "credits_remaining": new_balance
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Preview] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/jobs/{job_id}/progress")
 def job_progress(
     job_id: str,
