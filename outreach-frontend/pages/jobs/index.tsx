@@ -25,6 +25,9 @@ import InlineLoader from "../../components/InlineLoader";
 import { API_URL } from "../../lib/api";
 import { useAuth } from "../../lib/AuthProvider";
 import { useRouter } from "next/router";
+import ProgressTicker, {
+  type JobActivityMessage,
+} from "../../components/ProgressTicker";
 
 type JobStatus = "pending" | "in_progress" | "succeeded" | "failed";
 
@@ -37,7 +40,7 @@ interface Job {
   finished_at: number | null;
   error: string | null;
   progress?: number;
-  message?: string | null;
+  message?: JobActivityMessage | string | null;
 }
 
 type JobDetail = Job & {
@@ -46,7 +49,7 @@ type JobDetail = Job & {
 
 interface JobProgressPayload {
   percent: number;
-  message: string;
+  message: JobActivityMessage | string | null;
   status: JobStatus;
 }
 
@@ -725,14 +728,17 @@ function JobsPage() {
                                       ) : null}
                                     </div>
 
-                                    {(job.status === "pending" || job.status === "in_progress") && job.message ? (
-                                      <p className="truncate text-xs text-[#8B8DA1]">{job.message}</p>
-                                    ) : null}
-
                                     {(job.status === "pending" || job.status === "in_progress") && (
-                                      <div className="pt-1">
-                                        <ProgressBar value={job.progress ?? 0} />
-                                      </div>
+                                      <>
+                                        <ProgressTicker
+                                          percent={job.progress ?? 0}
+                                          message={job.message}
+                                          className="mt-1"
+                                        />
+                                        <div className="pt-1">
+                                          <ProgressBar value={job.progress ?? 0} />
+                                        </div>
+                                      </>
                                     )}
                                   </div>
 

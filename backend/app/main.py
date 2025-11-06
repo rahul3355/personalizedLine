@@ -544,7 +544,7 @@ def list_jobs(
             step = last_log["step"]
             total = last_log["total"] or 1
             job["progress"] = int((step / total) * 100)
-            job["message"] = last_log.get("message")
+            job["message"] = jobs.parse_progress_message(last_log.get("message"))
         else:
             job["progress"] = 0
             job["message"] = None
@@ -905,7 +905,7 @@ def get_job(
         step = last_log["step"]
         total = last_log["total"] or 1
         job["progress"] = int((step / total) * 100)
-        job["message"] = last_log.get("message")
+        job["message"] = jobs.parse_progress_message(last_log.get("message"))
     else:
         job["progress"] = 0
         job["message"] = None
@@ -1197,7 +1197,7 @@ def job_progress(
         step = last_log["step"]
         total = last_log["total"] or 1
         percent = int((step / total) * 100)
-        message = last_log.get("message")
+        message = jobs.parse_progress_message(last_log.get("message"))
     else:
         percent = 0
         message = None

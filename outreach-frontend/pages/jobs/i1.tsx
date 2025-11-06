@@ -20,6 +20,9 @@ import {
   XCircle,
 } from "lucide-react";
 import InlineLoader from "../../components/InlineLoader";
+import ProgressTicker, {
+  type JobActivityMessage,
+} from "../../components/ProgressTicker";
 import { API_URL } from "../../lib/api";
 import { useAuth } from "../../lib/AuthProvider";
 
@@ -52,7 +55,7 @@ interface Job {
   finished_at: number | null;
   error: string | null;
   progress?: number;
-  message?: string | null;
+  message?: JobActivityMessage | string | null;
 }
 
 type JobDetail = Job & {
@@ -61,7 +64,7 @@ type JobDetail = Job & {
 
 interface JobProgressPayload {
   percent: number;
-  message: string;
+  message: JobActivityMessage | string | null;
   status: JobStatus;
 }
 
@@ -711,16 +714,17 @@ export default function JobsPage() {
                                 ) : null}
                               </div>
 
-                              {job.message && job.status !== "failed" && (
-                                <p className="mt-1 truncate text-xs" style={{ color: SECONDARY }}>
-                                  {job.message}
-                                </p>
-                              )}
-
                               {(job.status === "pending" || job.status === "in_progress") && (
-                                <div className="mt-2">
-                                  <ProgressBar value={job.progress ?? 0} />
-                                </div>
+                                <>
+                                  <ProgressTicker
+                                    percent={job.progress ?? 0}
+                                    message={job.message}
+                                    className="mt-2"
+                                  />
+                                  <div className="mt-2">
+                                    <ProgressBar value={job.progress ?? 0} />
+                                  </div>
+                                </>
                               )}
                             </div>
 
@@ -935,14 +939,13 @@ function DetailPanel({
                 style={{ background: "#FFFFFF", border: `1px solid ${DIVIDER}` }}
               >
                 <h4 className="text-sm font-semibold text-[#111111]">Generating your file</h4>
-                <p className="mt-1 text-xs" style={{ color: SECONDARY }}>
-                  {job.message || "Preparing personalized lines."}
-                </p>
+                <ProgressTicker
+                  percent={job.progress ?? 0}
+                  message={job.message}
+                  className="mt-2"
+                />
                 <div className="mt-3">
                   <ProgressBar value={job.progress ?? 0} />
-                  <p className="mt-2 text-xs font-medium" style={{ color: BRAND }}>
-                    {Math.round(job.progress ?? 0)}% complete
-                  </p>
                 </div>
               </div>
             )}

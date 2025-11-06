@@ -3,6 +3,7 @@ import csv
 import json
 import time
 import math
+import random
 from typing import Optional, List, Dict, Tuple
 import pandas as pd
 import traceback
@@ -33,6 +34,120 @@ RAW_CHUNK_BUCKET = "inputs"
 
 
 GENERATED_OUTPUT_COLUMNS = ("research_components", "email_body")
+
+PROGRESS_ACTIVITIES = [
+    {
+        "glyph": "⋆",
+        "verb": "Analysis…",
+        "details": [
+            "Scoring personalization hooks",
+            "Ranking buying signals",
+            "Sweeping intent breadcrumbs",
+        ],
+    },
+    {
+        "glyph": "⌁",
+        "verb": "Synthesis…",
+        "details": [
+            "Stitching outreach narrative",
+            "Balancing CTA heuristics",
+            "Drafting opener cadence",
+        ],
+    },
+    {
+        "glyph": "☍",
+        "verb": "Research…",
+        "details": [
+            "Collecting fresh proof points",
+            "Surfacing social context",
+            "Indexing persona mentions",
+        ],
+    },
+    {
+        "glyph": "⚙︎",
+        "verb": "Orchestration…",
+        "details": [
+            "Calibrating personalization engine",
+            "Syncing signal extractors",
+            "Refreshing copy playbooks",
+        ],
+    },
+    {
+        "glyph": "✸",
+        "verb": "Polishing…",
+        "details": [
+            "Polishing snippet clarity",
+            "Tuning tone of voice vectors",
+            "Tidying personalization blocks",
+        ],
+    },
+]
+
+FALLBACK_TECH_LINES = [
+    "Buffering lead intelligence pipeline",
+    "Replaying conversation embeddings",
+    "Re-indexing trigger phrases",
+    "Queuing signal scoring batch",
+]
+
+
+def _format_display_email(value: Optional[str]) -> Optional[str]:
+    if not value:
+        return None
+    cleaned = str(value).strip()
+    if not cleaned:
+        return None
+    cleaned = cleaned.replace("\n", " ").replace("\r", " ")
+    if len(cleaned) > 64:
+        cleaned = cleaned[:61] + "…"
+    return cleaned
+
+
+def _build_progress_activity_message(
+    row_number: int, email_value: Optional[str]
+) -> Dict[str, Optional[str]]:
+    activity = random.choice(PROGRESS_ACTIVITIES)
+    detail_pool = list(activity.get("details") or [])
+    if not detail_pool:
+        detail_pool = list(FALLBACK_TECH_LINES)
+
+    email_display = _format_display_email(email_value)
+    if not email_display and FALLBACK_TECH_LINES:
+        detail_pool = detail_pool + list(FALLBACK_TECH_LINES)
+
+    detail = random.choice(detail_pool) if detail_pool else ""
+
+    subject_parts = [f"Row {row_number}"]
+    if email_display:
+        subject_parts.append(email_display)
+
+    return {
+        "glyph": activity.get("glyph", "⋆"),
+        "verb": activity.get("verb", "Processing…"),
+        "subject": " • ".join(subject_parts),
+        "detail": detail,
+        "row": row_number,
+        "email": email_display,
+    }
+
+
+def parse_progress_message(raw_message):
+    if raw_message is None:
+        return None
+    if isinstance(raw_message, dict):
+        return raw_message
+    if isinstance(raw_message, str):
+        trimmed = raw_message.strip()
+        if not trimmed:
+            return None
+        try:
+            parsed = json.loads(trimmed)
+        except json.JSONDecodeError:
+            return raw_message
+        if isinstance(parsed, dict):
+            return parsed
+        return raw_message
+    return raw_message
 
 
 def _ensure_dict(value):
@@ -746,14 +861,15 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                             print(
                                 f"[Worker] Job {job_id} | Chunk {chunk_id} | Progress +{delta} -> {new_done}/{total_rows} rows ({percent}%)"
                             )
+                            message_payload = _build_progress_activity_message(
+                                new_done, email_value
+                            )
                             supabase.table("job_logs").insert(
                                 {
                                     "job_id": job_id,
                                     "step": new_done,
                                     "total": total_rows,
-                                    "message": (
-                                        f"Global progress: +{delta} rows -> {new_done}/{total_rows} ({percent}%)"
-                                    ),
+                                    "message": json.dumps(message_payload),
                                 }
                             ).execute()
 
