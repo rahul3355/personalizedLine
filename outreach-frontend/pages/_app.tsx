@@ -6,6 +6,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import AuthorityPointLoader from "../components/AuthorityPointLoader";
 import InlineLoader from "@/components/InlineLoader";
+import { ToastProvider } from "@/components/Toast";
 
 type AugmentedComponent = AppProps["Component"] & {
   disableWhiteCard?: boolean;
@@ -109,7 +110,9 @@ interface MyAppProps extends AppProps {
 export default function MyApp({ Component, pageProps }: MyAppProps) {
   return (
     <AuthProvider>
-      <Layout Component={Component} pageProps={pageProps} />
+      <ToastProvider>
+        <Layout Component={Component} pageProps={pageProps} />
+      </ToastProvider>
     </AuthProvider>
   );
 }
