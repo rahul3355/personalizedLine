@@ -22,8 +22,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../lib/AuthProvider";
 import { useRouter } from "next/router";
-import Lottie from "lottie-react";
-import confettiAnim from "../public/confetti.json";
+import { useToast } from "@/components/Toast";
 import { supabase } from "../lib/supabaseClient";
 // replace
 
@@ -262,6 +261,7 @@ const StepTracker = ({
 export default function UploadPage() {
   const { session, loading: authLoading, refreshUserInfo } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
 
   const [file, setFile] = useState<File | null>(null);
   const [headers, setHeaders] = useState<string[]>([]);
@@ -781,13 +781,12 @@ export default function UploadPage() {
         console.error("[Upload] Failed to refresh user info after job creation", refreshErr);
       }
 
-      setTimeout(() => {
-        setJobCreated(true);
-
-        setTimeout(() => {
-          router.push("/jobs");
-        }, 1500);
-      }, 500);
+      setJobCreated(true);
+      toast({
+        type: "success",
+        message: "Job started! Redirecting to Jobs...",
+      });
+      router.push("/jobs");
 
       return true;
     } catch (err: any) {
@@ -1385,21 +1384,6 @@ export default function UploadPage() {
               </div>
             )}
 
-            {/* Success */}
-            {jobCreated && (
-              <div className="flex flex-col items-center justify-center py-10">
-                <Lottie
-                  animationData={confettiAnim}
-                  loop={false}
-                  style={{ width: 200, height: 200 }}
-                />
-                <p className="mt-3 text-base font-semibold text-green-600">
-                  Job Created Successfully!
-                </p>
-                <p className="text-sm text-gray-500">Redirecting to Your Files...</p>
-              </div>
-            )}
-
             {showDropOverlay && (
               <div className="fixed inset-0 z-[60] bg-white/70 flex items-center justify-center">
                 {/* keep event-capture layer so drop still works */}
@@ -1647,13 +1631,6 @@ export default function UploadPage() {
         </div>
       )}
 
-      {jobCreated && (
-        <div className="block md:hidden w-full h-[calc(100vh-69px)] px-4 flex flex-col items-center justify-center pt-[64px]">
-          <Lottie animationData={confettiAnim} loop={false} style={{ width: 200, height: 200 }} />
-          <p className="mt-4 text-lg font-semibold text-green-600 text-center">Job Created Successfully!</p>
-          <p className="text-sm text-gray-500 text-center">Redirecting to Your Files...</p>
-        </div>
-      )}
     </>
   );
 }
