@@ -77,6 +77,7 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
 
   return (
     <motion.div
+      layout="position"
       initial={{ opacity: 0, y: -20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 0, x: 0, scale: 0.95 }}

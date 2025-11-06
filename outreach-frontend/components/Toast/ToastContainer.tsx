@@ -13,7 +13,7 @@ export default function ToastContainer({ toasts, onDismiss }: ToastContainerProp
       className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[9999] flex flex-col items-center gap-3 pointer-events-none"
       style={{ maxWidth: '90vw' }}
     >
-      <AnimatePresence mode="popLayout">
+      <AnimatePresence initial={false}>
         {toasts.map((toast) => (
           <div key={toast.id} className="pointer-events-auto">
             <Toast toast={toast} onDismiss={onDismiss} />
