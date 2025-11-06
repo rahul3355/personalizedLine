@@ -55,6 +55,17 @@ interface Job {
   message?: string | null;
 }
 
+function formatJobMessage(message?: string | null) {
+  if (!message) return "";
+  if (message.toLowerCase().startsWith("global progress")) {
+    const match = message.match(/\(([^)]+)\)\s*$/);
+    if (match) {
+      return match[1];
+    }
+  }
+  return message;
+}
+
 type JobDetail = Job & {
   result_path: string | null;
 };
@@ -681,6 +692,7 @@ export default function JobsPage() {
                     <div className="divide-y rounded-[16px] border" style={{ borderColor: DIVIDER, background: "#FFFFFF" }}>
                       {group.jobs.map((job) => {
                         const isActive = job.id === selectedJobId;
+                        const formattedMessage = formatJobMessage(job.message);
                         return (
                           <button
                             key={job.id}
@@ -711,9 +723,9 @@ export default function JobsPage() {
                                 ) : null}
                               </div>
 
-                              {job.message && job.status !== "failed" && (
+                              {formattedMessage && job.status !== "failed" && (
                                 <p className="mt-1 truncate text-xs" style={{ color: SECONDARY }}>
-                                  {job.message}
+                                  {formattedMessage}
                                 </p>
                               )}
 
@@ -840,6 +852,7 @@ function DetailPanel({
   const config = job ? getStatusVisuals(job.status) : null;
   const CreatedDate = job ? new Date(job.created_at) : null;
   const FinishedDate = job?.finished_at ? new Date(job.finished_at) : null;
+  const formattedMessage = formatJobMessage(job?.message);
 
   return (
     <div className="flex h-full flex-col">
@@ -936,7 +949,7 @@ function DetailPanel({
               >
                 <h4 className="text-sm font-semibold text-[#111111]">Generating your file</h4>
                 <p className="mt-1 text-xs" style={{ color: SECONDARY }}>
-                  {job.message || "Preparing personalized lines."}
+                  {formattedMessage || "Preparing personalized lines."}
                 </p>
                 <div className="mt-3">
                   <ProgressBar value={job.progress ?? 0} />

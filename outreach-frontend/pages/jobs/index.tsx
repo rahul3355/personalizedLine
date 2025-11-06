@@ -40,6 +40,17 @@ interface Job {
   message?: string | null;
 }
 
+function formatJobMessage(message?: string | null) {
+  if (!message) return "";
+  if (message.toLowerCase().startsWith("global progress")) {
+    const match = message.match(/\(([^)]+)\)\s*$/);
+    if (match) {
+      return match[1];
+    }
+  }
+  return message;
+}
+
 type JobDetail = Job & {
   result_path: string | null;
 };
@@ -680,6 +691,7 @@ function JobsPage() {
                             const isActive = job.id === selectedJobId;
                             const isFirst = idx === 0;
                             const isLast = idx === group.jobs.length - 1;
+                            const formattedMessage = formatJobMessage(job.message);
                             const radius =
                               isFirst && isLast
                                 ? "rounded-[18px]"
@@ -725,8 +737,8 @@ function JobsPage() {
                                       ) : null}
                                     </div>
 
-                                    {(job.status === "pending" || job.status === "in_progress") && job.message ? (
-                                      <p className="truncate text-xs text-[#8B8DA1]">{job.message}</p>
+                                    {(job.status === "pending" || job.status === "in_progress") && formattedMessage ? (
+                                      <p className="truncate text-xs text-[#8B8DA1]">{formattedMessage}</p>
                                     ) : null}
 
                                     {(job.status === "pending" || job.status === "in_progress") && (
