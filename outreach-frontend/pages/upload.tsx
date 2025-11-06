@@ -79,35 +79,29 @@ const SERVICE_FIELDS: { key: ServiceFieldKey; label: string; placeholder: string
   },
 ];
 
-const HELP_CONTENT: Record<ServiceFieldKey, { what: string; why: string; example: string }> = {
+const HELP_CONTENT: Record<ServiceFieldKey, { description: string; example: string }> = {
   core_offer: {
-    what: "The main product or service you're offering to prospects.",
-    why: "This helps prospects quickly understand what you do and whether it's relevant to them.",
+    description: "The main product or service you're offering to prospects. This helps them quickly understand what you do and whether it's relevant to them.",
     example: "AI-powered email automation for sales teams",
   },
   key_differentiator: {
-    what: "What makes your service unique or better than competitors.",
-    why: "This shows prospects why they should choose you over alternatives.",
+    description: "What makes your service unique or better than competitors. This shows prospects why they should choose you over alternatives.",
     example: "Generates personalized lines 10x faster than manual research",
   },
   cta: {
-    what: "The specific action you want prospects to take next.",
-    why: "This directs them clearly to the next step in your outreach process.",
+    description: "The specific action you want prospects to take next. This directs them clearly to the next step in your outreach process.",
     example: "Book a 15-minute demo call",
   },
   timeline: {
-    what: "When you want the prospect to take action or meet.",
-    why: "This creates urgency and makes scheduling easier for both parties.",
+    description: "When you want the prospect to take action or meet. This creates urgency and makes scheduling easier for both parties.",
     example: "Available Tuesday or Wednesday afternoon",
   },
   goal: {
-    what: "The main outcome you want from this outreach campaign.",
-    why: "This keeps your message focused on what matters most to you.",
+    description: "The main outcome you want from this outreach campaign. This keeps your message focused on what matters most to you.",
     example: "Schedule a qualified sales call",
   },
   fallback_action: {
-    what: "Alternative action if the prospect isn't the right person to contact.",
-    why: "This helps you reach the right decision-maker even if you contacted the wrong person initially.",
+    description: "Alternative action if the prospect isn't the right person to contact. This helps you reach the right decision-maker even if you contacted the wrong person initially.",
     example: "Forward to your sales director",
   },
 };
@@ -158,38 +152,37 @@ const HelpTooltip = ({ fieldKey }: { fieldKey: ServiceFieldKey }) => {
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
         onClick={() => setShowTooltip(!showTooltip)}
-        className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full hover:bg-gray-100 transition-colors"
+        className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full transition-colors"
+        style={{ color: "#5865F2" }}
         aria-label="Help"
       >
-        <HelpCircle className="w-3.5 h-3.5 text-gray-400" />
+        <HelpCircle className="w-3.5 h-3.5" />
       </button>
 
       {showTooltip && (
         <div
-          className="absolute z-50 w-72 p-3 bg-white border border-gray-200 rounded-lg shadow-lg"
+          className="absolute z-50 w-72 p-3 rounded-lg shadow-xl"
           style={{
             top: "calc(100% + 8px)",
             left: "50%",
             transform: "translateX(-50%)",
+            backgroundColor: "#2f3136",
+            color: "#dcddde",
           }}
           onMouseEnter={() => setShowTooltip(true)}
           onMouseLeave={() => setShowTooltip(false)}
         >
-          <div className="space-y-2 text-xs">
-            <div>
-              <p className="font-semibold text-gray-700 mb-1">What is it?</p>
-              <p className="text-gray-600">{help.what}</p>
+          <div className="space-y-2.5 text-xs leading-relaxed">
+            <p>{help.description}</p>
+
+            <div className="pt-2 border-t" style={{ borderColor: "#404249" }}>
+              <p className="italic" style={{ color: "#b9bbbe" }}>
+                e.g. "{help.example}"
+              </p>
             </div>
-            <div>
-              <p className="font-semibold text-gray-700 mb-1">Why it matters:</p>
-              <p className="text-gray-600">{help.why}</p>
-            </div>
-            <div>
-              <p className="font-semibold text-gray-700 mb-1">Example:</p>
-              <p className="text-gray-600 italic">"{help.example}"</p>
-            </div>
-            <div className="pt-1 border-t border-gray-200">
-              <p className="text-gray-500 italic">Leave blank if not relevant to you.</p>
+
+            <div className="pt-1.5 text-[11px]" style={{ color: "#96989d" }}>
+              <p className="italic">Leave blank if not relevant.</p>
             </div>
           </div>
         </div>
@@ -309,7 +302,7 @@ export default function UploadPage() {
     <div className={`grid ${gridClass} gap-4`}>
       {SERVICE_FIELDS.map((field) => (
         <div key={field.key} className="flex flex-col gap-2">
-          <label className="text-xs font-medium uppercase tracking-wide text-gray-500 flex items-center">
+          <label className="text-xs font-medium text-gray-600 flex items-center">
             {field.label}
             <HelpTooltip fieldKey={field.key} />
           </label>
