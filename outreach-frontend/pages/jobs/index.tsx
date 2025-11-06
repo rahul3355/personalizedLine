@@ -737,10 +737,6 @@ function JobsPage() {
                                       ) : null}
                                     </div>
 
-                                    {(job.status === "pending" || job.status === "in_progress") && formattedMessage ? (
-                                      <p className="truncate text-xs text-[#8B8DA1]">{formattedMessage}</p>
-                                    ) : null}
-
                                     {(job.status === "pending" || job.status === "in_progress") && (
                                       <div className="pt-1">
                                         <ProgressBar value={job.progress ?? 0} />
