@@ -319,7 +319,11 @@ function JobsPage() {
           headers: { Authorization: `Bearer ${session.access_token}` },
         });
         if (!res.ok) throw new Error("Failed to fetch jobs");
-        const data: Job[] = await res.json();
+        const response = await res.json();
+
+        // Handle both old format (array) and new format (object with jobs and has_more)
+        const data: Job[] = Array.isArray(response) ? response : response.jobs || [];
+        const hasMoreJobs = Array.isArray(response) ? data.length === limit : response.has_more ?? false;
 
         setJobs((prev) => {
           let next: Job[];
@@ -338,7 +342,7 @@ function JobsPage() {
           return next;
         });
 
-        setHasMore(data.length === limit);
+        setHasMore(hasMoreJobs);
         setOffset(reset ? data.length : offsetParam + data.length);
       } catch (error) {
         console.error("Error fetching jobs:", error);

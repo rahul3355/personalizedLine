@@ -510,17 +510,25 @@ def list_jobs(
     supabase = get_supabase()
     user_id = current_user.user_id
 
+    # Fetch one extra record to determine if there are more jobs
     jobs_res = (
         supabase.table("jobs")
         .select("*")
         .eq("user_id", user_id)
         .order("created_at", desc=True)
-        .range(offset, offset + limit - 1)  # <-- pagination
+        .range(offset, offset + limit)  # Fetch limit + 1 records
         .execute()
     )
-    jobs = jobs_res.data or []
+    all_jobs = jobs_res.data or []
+
+    # Check if there are more jobs beyond the requested limit
+    has_more = len(all_jobs) > limit
+
+    # Only return the requested number of jobs
+    jobs = all_jobs[:limit]
+
     if not jobs:
-        return []
+        return {"jobs": [], "has_more": False}
 
     job_ids = [job["id"] for job in jobs]
 
@@ -549,7 +557,7 @@ def list_jobs(
             job["progress"] = 0
             job["message"] = None
 
-    return jobs
+    return {"jobs": jobs, "has_more": has_more}
 
 
 
@@ -596,42 +604,6 @@ def get_me(current_user: AuthenticatedUser = Depends(get_current_user)):
         raise HTTPException(status_code=500, detail=str(exc))
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
-    
-@app.get("/jobs")
-def list_jobs(current_user: AuthenticatedUser = Depends(get_current_user)):
-    supabase = get_supabase()
-    user_id = current_user.user_id
-
-    jobs_res = (
-        supabase.table("jobs")
-        .select("*")
-        .eq("user_id", user_id)
-        .order("created_at", desc=True)
-        .execute()
-    )
-    jobs = jobs_res.data or []
-
-    for job in jobs:
-        logs_res = (
-            supabase.table("job_logs")
-            .select("step,total,message")
-            .eq("job_id", job["id"])
-            .order("step", desc=True)
-            .limit(1)
-            .execute()
-        )
-        last_log = logs_res.data[0] if logs_res.data else None
-
-        if last_log:
-            step = last_log["step"]
-            total = last_log["total"] or 1
-            job["progress"] = int((step / total) * 100)
-            job["message"] = last_log.get("message")
-        else:
-            job["progress"] = 0
-            job["message"] = None
-
-    return jobs
 
 
 def _parse_profile_response(profile_res) -> Optional[Dict[str, Any]]:
