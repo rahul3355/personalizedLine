@@ -4,7 +4,7 @@ export interface ToastOptions {
   type?: ToastType;
   message: string;
   icon?: React.ReactNode;
-  duration?: number; // in milliseconds, default 4000
+  duration?: number; // in milliseconds, default 2000
 }
 
 export interface Toast extends ToastOptions {
