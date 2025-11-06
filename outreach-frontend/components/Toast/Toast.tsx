@@ -90,50 +90,48 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
       }}
     >
       {/* Lightning splash animations on both sides - outside the toast */}
-      <div className="absolute -left-3 top-1/2 -translate-y-1/2">
+      <div className="absolute -left-2 top-1/2 -translate-y-1/2">
         <motion.div
-          initial={{ scale: 0.5, opacity: 0 }}
+          initial={{ scale: 0.4, opacity: 0 }}
           animate={{
-            scale: [0.5, 1.1, 0.9],
-            opacity: [0, 0.85, 0],
-            x: [-4, -10, -8],
+            scale: [0.4, 0.75, 0.55],
+            opacity: [0, 1, 0],
+            x: [-2, -6, -4],
           }}
           transition={{
-            duration: 0.6,
-            times: [0, 0.45, 1],
+            duration: 0.35,
+            times: [0, 0.55, 1],
             ease: 'easeOut',
-            repeat: Infinity,
-            repeatDelay: 1.2,
           }}
-          className="w-6 h-8"
           style={{
+            width: '12px',
+            height: '24px',
             backgroundColor: '#4f55f1',
             clipPath:
-              'polygon(55% 0%, 72% 0%, 63% 32%, 90% 32%, 42% 100%, 35% 60%, 8% 60%, 32% 24%)',
+              'polygon(62% 0%, 74% 0%, 60% 40%, 86% 40%, 42% 100%, 46% 62%, 18% 62%, 36% 32%)',
           }}
         />
       </div>
 
-      <div className="absolute -right-3 top-1/2 -translate-y-1/2">
+      <div className="absolute -right-2 top-1/2 -translate-y-1/2">
         <motion.div
-          initial={{ scale: 0.5, opacity: 0 }}
+          initial={{ scale: 0.4, opacity: 0 }}
           animate={{
-            scale: [0.5, 1.1, 0.9],
-            opacity: [0, 0.85, 0],
-            x: [4, 10, 8],
+            scale: [0.4, 0.75, 0.55],
+            opacity: [0, 1, 0],
+            x: [2, 6, 4],
           }}
           transition={{
-            duration: 0.6,
-            times: [0, 0.45, 1],
+            duration: 0.35,
+            times: [0, 0.55, 1],
             ease: 'easeOut',
-            repeat: Infinity,
-            repeatDelay: 1.2,
           }}
-          className="w-6 h-8"
           style={{
+            width: '12px',
+            height: '24px',
             backgroundColor: '#4f55f1',
             clipPath:
-              'polygon(45% 0%, 28% 0%, 37% 32%, 10% 32%, 58% 100%, 65% 60%, 92% 60%, 68% 24%)',
+              'polygon(38% 0%, 26% 0%, 40% 40%, 14% 40%, 58% 100%, 54% 62%, 82% 62%, 64% 32%)',
           }}
         />
       </div>
