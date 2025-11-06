@@ -18,7 +18,7 @@ export function ToastProvider({ children }: ToastProviderProps) {
       type: options.type || 'info',
       message: options.message,
       icon: options.icon,
-      duration: options.duration || 4000,
+      duration: options.duration || 2000,
     };
 
     setToasts((prev) => {
