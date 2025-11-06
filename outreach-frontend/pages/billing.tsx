@@ -171,7 +171,6 @@ export default function BillingPage() {
   const { session, userInfo } = useAuth();
   const router = useRouter();
   const dialogRef = useRef<HTMLDivElement>(null);
-  const [addonCount, setAddonCount] = useState(1);
   const [activeSegment, setActiveSegment] = useState<AudienceSegment>("individual");
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
   const [selectedPlanId, setSelectedPlanId] = useState<string>(
@@ -213,38 +212,6 @@ export default function BillingPage() {
       document.removeEventListener("keydown", handleKey);
     };
   }, []);
-
-  const handleBuyAddons = async () => {
-    if (!session || !userInfo?.id) return;
-    try {
-      const res = await fetch(`${API_URL}/create_checkout_session`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          plan: currentPlan.toLowerCase(),
-          addon: true,
-          quantity: addonCount,
-          user_id: userInfo.id,
-        }),
-      });
-
-      const data = await res.json();
-      if (data.id) {
-        const stripe = await stripePromise;
-        if (!stripe) throw new Error("Stripe failed to initialize");
-        await stripe.redirectToCheckout({ sessionId: data.id });
-      } else {
-        console.error("Add-on checkout error", data);
-        alert("Failed to start add-on purchase");
-      }
-    } catch (err) {
-      console.error("Add-on purchase error", err);
-      alert("Something went wrong");
-    }
-  };
 
   const handleCheckout = async (planId: string) => {
     if (!session || !userInfo?.id) return;
@@ -475,13 +442,13 @@ export default function BillingPage() {
             </div>
           </LayoutGroup>
 
-          <div className="mt-16 grid grid-cols-1 gap-6 text-left md:grid-cols-2">
+          <div className="mt-16 mx-auto max-w-xl">
             <section className="rounded-3xl border border-neutral-200 bg-white p-7 text-left shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
               <h2 className="text-base font-semibold text-neutral-900">
                 Current plan overview
               </h2>
               <p className="mt-2 text-sm text-neutral-600">
-                You’re on the {currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)} plan.
+                You're on the {currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)} plan.
               </p>
               <dl className="mt-6 space-y-3 text-sm text-neutral-700">
                 <div className="flex items-center justify-between">
@@ -509,58 +476,6 @@ export default function BillingPage() {
                 className="mt-6 w-full cursor-not-allowed rounded-full border border-neutral-200 bg-neutral-100 px-6 py-3 text-sm font-semibold text-neutral-500"
               >
                 Current plan
-              </button>
-            </section>
-
-            <section className="rounded-3xl border border-neutral-200 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
-              <h2 className="text-base font-semibold text-neutral-900">
-                Add more outreach lines
-              </h2>
-              <p className="mt-2 text-sm text-neutral-600">
-                For the {currentPlan} plan —
-                <span className="ml-1 font-semibold text-neutral-900">
-                  ${userInfo?.addon_price || 5}
-                </span>{" "}
-                per additional 1,000 lines.
-              </p>
-
-              <label className="mt-6 block text-sm font-medium text-neutral-700" htmlFor="addon-select">
-                Select add-on packs
-              </label>
-              <select
-                id="addon-select"
-                className="mt-2 w-full rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm font-medium text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
-                onChange={(event) => setAddonCount(Number(event.target.value))}
-                value={addonCount}
-              >
-                {Array.from({ length: 50 }, (_, i) => i + 1).map((n) => (
-                  <option key={n} value={n}>
-                    {n} × 1,000 lines
-                  </option>
-                ))}
-              </select>
-
-              <div className="mt-4 rounded-2xl bg-neutral-50 px-4 py-3 text-sm text-neutral-700">
-                <div className="flex items-center justify-between">
-                  <span>Total lines</span>
-                  <span className="font-semibold text-neutral-900">
-                    {(addonCount * 1000).toLocaleString()}
-                  </span>
-                </div>
-                <div className="mt-2 flex items-center justify-between">
-                  <span>One-time total</span>
-                  <span className="font-semibold text-neutral-900">
-                    ${(addonCount * (userInfo?.addon_price || 5)).toLocaleString()}
-                  </span>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleBuyAddons}
-                className="mt-6 w-full rounded-full bg-black px-6 py-3 text-sm font-semibold text-white transition hover:bg-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
-              >
-                Purchase add-ons
               </button>
             </section>
           </div>

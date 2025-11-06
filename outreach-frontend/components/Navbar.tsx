@@ -9,6 +9,8 @@ import {
   PiQuestionBold,
   PiGearSixFill,
   PiSignOutBold,
+  PiPlusCircleFill,
+  PiSquaresFourFill,
 } from "react-icons/pi";
 
 import { PiHouseLineFill } from "react-icons/pi";
@@ -350,6 +352,22 @@ export default function Navbar() {
                         <PiGearSixFill className="w-5 h-5" />
                       </span>
                       <span className="text-[15px] text-[#111827]">Settings</span>
+                    </Link>
+
+                    <div className="my-1 border-t border-[#EAECEE]" />
+
+                    <Link href="/add-on-credits" role="menuitem" className="group flex items-center h-11 px-2.5 rounded-[12px] hover:bg-[#F7F7F7]">
+                      <span className="mr-3 inline-flex items-center justify-center min-w-[20px] bg-transparent text-[#4F55F1]">
+                        <PiPlusCircleFill className="w-5 h-5" />
+                      </span>
+                      <span className="text-[15px] text-[#111827]">Buy Add-on Credits</span>
+                    </Link>
+
+                    <Link href="/billing" role="menuitem" className="group flex items-center h-11 px-2.5 rounded-[12px] hover:bg-[#F7F7F7]">
+                      <span className="mr-3 inline-flex items-center justify-center min-w-[20px] bg-transparent text-[#4F55F1]">
+                        <PiSquaresFourFill className="w-5 h-5" />
+                      </span>
+                      <span className="text-[15px] text-[#111827]">View Plans</span>
                     </Link>
 
                     <div className="my-1 border-t border-[#EAECEE]" />
