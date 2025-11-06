@@ -86,7 +86,6 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
       aria-live="polite"
       style={{
         fontFamily: 'Aeonik Pro, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-        backgroundColor: '#313338',
       }}
     >
       {/* Star splash animations on both sides - outside the toast */}
@@ -218,45 +217,50 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
         />
       </div>
 
-      {/* Main content */}
-      <div className="relative px-4 py-3 flex items-start gap-3">
-        {/* Icon */}
-        <div className="flex-shrink-0 mt-0.5">
-          {toast.icon ? (
-            <div style={{ color }}>{toast.icon}</div>
-          ) : Icon ? (
-            <div style={{ color }}>
-              <Icon />
-            </div>
-          ) : null}
+      <div
+        className="relative rounded-full overflow-hidden"
+        style={{ backgroundColor: '#313338' }}
+      >
+        {/* Main content */}
+        <div className="relative px-4 py-3 flex items-start gap-3">
+          {/* Icon */}
+          <div className="flex-shrink-0 mt-0.5">
+            {toast.icon ? (
+              <div style={{ color }}>{toast.icon}</div>
+            ) : Icon ? (
+              <div style={{ color }}>
+                <Icon />
+              </div>
+            ) : null}
+          </div>
+
+          {/* Message */}
+          <div className="flex-1 text-sm font-medium pr-6" style={{ color: '#dbdee1' }}>
+            {toast.message}
+          </div>
+
+          {/* Close button */}
+          <button
+            onClick={() => onDismiss(toast.id)}
+            className="flex-shrink-0 transition-opacity hover:opacity-70"
+            style={{ color: '#b5bac1' }}
+            aria-label="Close notification"
+          >
+            <SolidX />
+          </button>
         </div>
 
-        {/* Message */}
-        <div className="flex-1 text-sm font-medium pr-6" style={{ color: '#dbdee1' }}>
-          {toast.message}
+        {/* Progress bar inside the toast */}
+        <div className="absolute bottom-0 left-0 right-0 h-1" style={{ backgroundColor: '#1e1f22' }}>
+          <motion.div
+            className="h-full rounded-full"
+            style={{
+              backgroundColor: '#4f55f1',
+              width: `${progress}%`,
+              transition: 'width 16ms linear'
+            }}
+          />
         </div>
-
-        {/* Close button */}
-        <button
-          onClick={() => onDismiss(toast.id)}
-          className="flex-shrink-0 transition-opacity hover:opacity-70"
-          style={{ color: '#b5bac1' }}
-          aria-label="Close notification"
-        >
-          <SolidX />
-        </button>
-      </div>
-
-      {/* Progress bar at bottom */}
-      <div className="h-1 overflow-hidden rounded-full" style={{ backgroundColor: '#1e1f22' }}>
-        <motion.div
-          className="h-full rounded-full"
-          style={{
-            backgroundColor: '#4f55f1',
-            width: `${progress}%`,
-            transition: 'width 16ms linear'
-          }}
-        />
       </div>
     </motion.div>
   );
