@@ -313,7 +313,7 @@ export default function UploadPage() {
   };
 
   const isServiceContextComplete = () =>
-    Object.values(serviceComponents).every((value) => value.trim().length > 0);
+    serviceComponents.core_offer.trim().length > 0;
 
   const renderServiceInputs = (gridClass = "grid-cols-1 md:grid-cols-2") => (
     <div className={`grid ${gridClass} gap-4`}>
@@ -724,7 +724,7 @@ export default function UploadPage() {
 
   const handleCreateJob = async (): Promise<boolean> => {
     if (!tempPath || !emailCol || !isServiceContextComplete()) {
-      setError("Please complete all required fields");
+      setError("Please provide your core offer to continue");
       return false;
     }
 
@@ -864,7 +864,7 @@ export default function UploadPage() {
     }
 
     if (!isServiceContextComplete()) {
-      setPreviewError("Please complete all service fields first");
+      setPreviewError("Please provide your core offer to generate a preview");
       return;
     }
 
