@@ -1026,9 +1026,12 @@ async def get_preview_emails(
             except OSError:
                 pass
 
+    except HTTPException:
+        raise
     except FileStreamingError as exc:
         raise HTTPException(status_code=500, detail=str(exc))
     except Exception as e:
+        print(f"[Preview] Unexpected error in get_preview_emails: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 
