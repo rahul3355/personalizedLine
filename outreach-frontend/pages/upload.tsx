@@ -18,6 +18,7 @@ import {
   RefreshCcw,
   Mail,
   FileText,
+  HelpCircle,
 } from "lucide-react";
 import { useAuth } from "../lib/AuthProvider";
 import { useRouter } from "next/router";
@@ -78,6 +79,39 @@ const SERVICE_FIELDS: { key: ServiceFieldKey; label: string; placeholder: string
   },
 ];
 
+const HELP_CONTENT: Record<ServiceFieldKey, { what: string; why: string; example: string }> = {
+  core_offer: {
+    what: "The main product or service you're offering to prospects.",
+    why: "This helps prospects quickly understand what you do and whether it's relevant to them.",
+    example: "AI-powered email automation for sales teams",
+  },
+  key_differentiator: {
+    what: "What makes your service unique or better than competitors.",
+    why: "This shows prospects why they should choose you over alternatives.",
+    example: "Generates personalized lines 10x faster than manual research",
+  },
+  cta: {
+    what: "The specific action you want prospects to take next.",
+    why: "This directs them clearly to the next step in your outreach process.",
+    example: "Book a 15-minute demo call",
+  },
+  timeline: {
+    what: "When you want the prospect to take action or meet.",
+    why: "This creates urgency and makes scheduling easier for both parties.",
+    example: "Available Tuesday or Wednesday afternoon",
+  },
+  goal: {
+    what: "The main outcome you want from this outreach campaign.",
+    why: "This keeps your message focused on what matters most to you.",
+    example: "Schedule a qualified sales call",
+  },
+  fallback_action: {
+    what: "Alternative action if the prospect isn't the right person to contact.",
+    why: "This helps you reach the right decision-maker even if you contacted the wrong person initially.",
+    example: "Forward to your sales director",
+  },
+};
+
 const COPY = {
   title: "Upload prospects",
   sub: "CSV or XLSX • up to 100k rows • header row required",
@@ -112,6 +146,57 @@ type CreditInfo = {
 
 
 
+
+const HelpTooltip = ({ fieldKey }: { fieldKey: ServiceFieldKey }) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+  const help = HELP_CONTENT[fieldKey];
+
+  return (
+    <div className="relative inline-block">
+      <button
+        type="button"
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+        onClick={() => setShowTooltip(!showTooltip)}
+        className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full hover:bg-gray-100 transition-colors"
+        aria-label="Help"
+      >
+        <HelpCircle className="w-3.5 h-3.5 text-gray-400" />
+      </button>
+
+      {showTooltip && (
+        <div
+          className="absolute z-50 w-72 p-3 bg-white border border-gray-200 rounded-lg shadow-lg"
+          style={{
+            top: "calc(100% + 8px)",
+            left: "50%",
+            transform: "translateX(-50%)",
+          }}
+          onMouseEnter={() => setShowTooltip(true)}
+          onMouseLeave={() => setShowTooltip(false)}
+        >
+          <div className="space-y-2 text-xs">
+            <div>
+              <p className="font-semibold text-gray-700 mb-1">What is it?</p>
+              <p className="text-gray-600">{help.what}</p>
+            </div>
+            <div>
+              <p className="font-semibold text-gray-700 mb-1">Why it matters:</p>
+              <p className="text-gray-600">{help.why}</p>
+            </div>
+            <div>
+              <p className="font-semibold text-gray-700 mb-1">Example:</p>
+              <p className="text-gray-600 italic">"{help.example}"</p>
+            </div>
+            <div className="pt-1 border-t border-gray-200">
+              <p className="text-gray-500 italic">Leave blank if not relevant to you.</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const StepTracker = ({
   step,
@@ -224,8 +309,9 @@ export default function UploadPage() {
     <div className={`grid ${gridClass} gap-4`}>
       {SERVICE_FIELDS.map((field) => (
         <div key={field.key} className="flex flex-col gap-2">
-          <label className="text-xs font-medium uppercase tracking-wide text-gray-500">
+          <label className="text-xs font-medium uppercase tracking-wide text-gray-500 flex items-center">
             {field.label}
+            <HelpTooltip fieldKey={field.key} />
           </label>
           <textarea
             autoFocus={field.key === "core_offer"}
