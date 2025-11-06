@@ -89,7 +89,7 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
         backgroundColor: '#313338',
       }}
     >
-      {/* Tear drop splash animations on both sides - outside the toast */}
+      {/* Star splash animations on both sides - outside the toast */}
       <div className="absolute -left-3 top-1/2 -translate-y-1/2">
         <motion.div
           initial={{ scale: 0, opacity: 0 }}
@@ -103,12 +103,11 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
             times: [0, 0.5, 1],
             ease: 'easeOut'
           }}
-          className="w-3 h-4 rounded-full"
+          className="w-4 h-4"
           style={{
-            backgroundColor: color,
+            backgroundColor: '#4f55f1',
             filter: 'blur(1px)',
-            clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
-            transform: 'rotate(-45deg)'
+            clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)',
           }}
         />
         <motion.div
@@ -125,12 +124,11 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
             delay: 0.1,
             ease: 'easeOut'
           }}
-          className="w-2 h-3 rounded-full"
+          className="w-3 h-3"
           style={{
-            backgroundColor: color,
+            backgroundColor: '#4f55f1',
             filter: 'blur(1px)',
-            clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
-            transform: 'rotate(-30deg)'
+            clipPath: 'polygon(50% 0%, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0% 50%, 40% 40%)',
           }}
         />
         <motion.div
@@ -147,10 +145,11 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
             delay: 0.05,
             ease: 'easeOut'
           }}
-          className="w-2 h-2 rounded-full"
+          className="w-2 h-2"
           style={{
-            backgroundColor: color,
+            backgroundColor: '#4f55f1',
             filter: 'blur(0.5px)',
+            clipPath: 'polygon(50% 0%, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0% 50%, 40% 40%)',
           }}
         />
       </div>
@@ -168,12 +167,11 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
             times: [0, 0.5, 1],
             ease: 'easeOut'
           }}
-          className="w-3 h-4 rounded-full"
+          className="w-4 h-4"
           style={{
-            backgroundColor: color,
+            backgroundColor: '#4f55f1',
             filter: 'blur(1px)',
-            clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
-            transform: 'rotate(45deg)'
+            clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)',
           }}
         />
         <motion.div
@@ -190,12 +188,11 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
             delay: 0.1,
             ease: 'easeOut'
           }}
-          className="w-2 h-3 rounded-full"
+          className="w-3 h-3"
           style={{
-            backgroundColor: color,
+            backgroundColor: '#4f55f1',
             filter: 'blur(1px)',
-            clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
-            transform: 'rotate(30deg)'
+            clipPath: 'polygon(50% 0%, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0% 50%, 40% 40%)',
           }}
         />
         <motion.div
@@ -212,10 +209,11 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
             delay: 0.05,
             ease: 'easeOut'
           }}
-          className="w-2 h-2 rounded-full"
+          className="w-2 h-2"
           style={{
-            backgroundColor: color,
+            backgroundColor: '#4f55f1',
             filter: 'blur(0.5px)',
+            clipPath: 'polygon(50% 0%, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0% 50%, 40% 40%)',
           }}
         />
       </div>
@@ -250,11 +248,11 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
       </div>
 
       {/* Progress bar at bottom */}
-      <div className="h-1" style={{ backgroundColor: '#1e1f22' }}>
+      <div className="h-1 overflow-hidden rounded-full" style={{ backgroundColor: '#1e1f22' }}>
         <motion.div
-          className="h-full"
+          className="h-full rounded-full"
           style={{
-            backgroundColor: color,
+            backgroundColor: '#4f55f1',
             width: `${progress}%`,
             transition: 'width 16ms linear'
           }}
