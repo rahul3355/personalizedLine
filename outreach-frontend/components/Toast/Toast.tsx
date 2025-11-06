@@ -89,7 +89,7 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
         fontFamily: 'Aeonik Pro, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
       }}
     >
-      {/* Star splash animations on both sides - outside the toast */}
+      {/* Lightning splash animations on both sides - outside the toast */}
       <div className="absolute -left-3 top-1/2 -translate-y-1/2">
         <motion.div
           initial={{ scale: 0, opacity: 0 }}
@@ -105,9 +105,9 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
           }}
           className="w-4 h-4"
           style={{
-            backgroundColor: '#4f55f1',
+            backgroundColor: '#facc15',
             filter: 'blur(1px)',
-            clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)',
+            clipPath: 'polygon(52% 0%, 62% 0%, 72% 38%, 88% 38%, 58% 100%, 48% 100%, 38% 65%, 22% 65%)',
           }}
         />
         <motion.div
@@ -126,9 +126,9 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
           }}
           className="w-3 h-3"
           style={{
-            backgroundColor: '#4f55f1',
+            backgroundColor: '#facc15',
             filter: 'blur(1px)',
-            clipPath: 'polygon(50% 0%, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0% 50%, 40% 40%)',
+            clipPath: 'polygon(52% 0%, 62% 0%, 70% 40%, 84% 40%, 56% 100%, 46% 100%, 38% 66%, 24% 66%)',
           }}
         />
         <motion.div
@@ -147,9 +147,9 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
           }}
           className="w-2 h-2"
           style={{
-            backgroundColor: '#4f55f1',
+            backgroundColor: '#facc15',
             filter: 'blur(0.5px)',
-            clipPath: 'polygon(50% 0%, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0% 50%, 40% 40%)',
+            clipPath: 'polygon(54% 0%, 64% 0%, 70% 40%, 82% 40%, 56% 100%, 46% 100%, 40% 66%, 28% 66%)',
           }}
         />
       </div>
@@ -169,9 +169,9 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
           }}
           className="w-4 h-4"
           style={{
-            backgroundColor: '#4f55f1',
+            backgroundColor: '#facc15',
             filter: 'blur(1px)',
-            clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)',
+            clipPath: 'polygon(48% 0%, 38% 0%, 28% 38%, 12% 38%, 42% 100%, 52% 100%, 62% 65%, 78% 65%)',
           }}
         />
         <motion.div
@@ -190,9 +190,9 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
           }}
           className="w-3 h-3"
           style={{
-            backgroundColor: '#4f55f1',
+            backgroundColor: '#facc15',
             filter: 'blur(1px)',
-            clipPath: 'polygon(50% 0%, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0% 50%, 40% 40%)',
+            clipPath: 'polygon(48% 0%, 38% 0%, 30% 40%, 16% 40%, 44% 100%, 54% 100%, 62% 66%, 76% 66%)',
           }}
         />
         <motion.div
@@ -211,9 +211,9 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
           }}
           className="w-2 h-2"
           style={{
-            backgroundColor: '#4f55f1',
+            backgroundColor: '#facc15',
             filter: 'blur(0.5px)',
-            clipPath: 'polygon(50% 0%, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0% 50%, 40% 40%)',
+            clipPath: 'polygon(46% 0%, 36% 0%, 30% 40%, 18% 40%, 44% 100%, 54% 100%, 60% 66%, 72% 66%)',
           }}
         />
       </div>
