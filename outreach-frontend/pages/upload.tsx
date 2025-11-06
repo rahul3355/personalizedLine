@@ -284,6 +284,18 @@ export default function UploadPage() {
 
   const [showDropOverlay, setShowDropOverlay] = useState(false);
 
+  // Preview state
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewEmails, setPreviewEmails] = useState<string[]>([]);
+  const [selectedPreviewEmail, setSelectedPreviewEmail] = useState("");
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewResult, setPreviewResult] = useState<{
+    email: string;
+    email_body: string;
+    credits_remaining: number;
+  } | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+
   const hasCreditShortage = Boolean(creditInfo && !creditInfo.hasEnoughCredits);
   const formatNumber = useCallback((value: number) => value.toLocaleString(), []);
 
@@ -786,6 +798,107 @@ export default function UploadPage() {
     }
   };
 
+  const handleShowPreview = async () => {
+    if (!tempPath || !emailCol) {
+      setPreviewError("Please complete the previous steps first");
+      return;
+    }
+
+    setPreviewLoading(true);
+    setPreviewError(null);
+
+    try {
+      const res = await fetch(`${API_URL}/preview/emails`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({
+          file_path: tempPath,
+          email_col: emailCol,
+        }),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Failed to fetch preview emails: ${res.status} - ${errText}`);
+      }
+
+      const data = await res.json();
+      setPreviewEmails(data.emails || []);
+      setShowPreview(true);
+      if (data.emails && data.emails.length > 0) {
+        setSelectedPreviewEmail(data.emails[0]);
+      }
+    } catch (err: any) {
+      console.error("[Upload] Preview emails error:", err);
+      setPreviewError(err.message || "Failed to load preview emails");
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const handleGeneratePreview = async () => {
+    if (!selectedPreviewEmail || !isServiceContextComplete()) {
+      setPreviewError("Please select an email and complete all service fields");
+      return;
+    }
+
+    setPreviewLoading(true);
+    setPreviewError(null);
+    setPreviewResult(null);
+
+    try {
+      const res = await fetch(`${API_URL}/preview/generate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({
+          file_path: tempPath,
+          email_col: emailCol,
+          selected_email: selectedPreviewEmail,
+          service: JSON.stringify(serviceComponents),
+        }),
+      });
+
+      if (!res.ok) {
+        if (res.status === 402) {
+          const body = await res.json();
+          setPreviewError(body.detail?.message || "Insufficient credits for preview");
+          return;
+        }
+        const errText = await res.text();
+        throw new Error(`Failed to generate preview: ${res.status} - ${errText}`);
+      }
+
+      const data = await res.json();
+      setPreviewResult(data);
+
+      // Update credit info
+      if (creditInfo) {
+        setCreditInfo({
+          ...creditInfo,
+          creditsRemaining: data.credits_remaining,
+        });
+      }
+
+      // Refresh user info to update credits in the header
+      try {
+        await refreshUserInfo();
+      } catch (refreshErr) {
+        console.error("[Upload] Failed to refresh user info after preview", refreshErr);
+      }
+    } catch (err: any) {
+      console.error("[Upload] Preview generation error:", err);
+      setPreviewError(err.message || "Failed to generate preview");
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
   const handleDrag = (e: ReactDragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
@@ -1084,6 +1197,121 @@ export default function UploadPage() {
                       {error}
                     </div>
                   )}
+
+                  {/* Preview Section */}
+                  <div className="mt-8 pt-6 border-t border-gray-200">
+                    <div className="flex flex-col items-center">
+                      {!showPreview && !previewResult && (
+                        <button
+                          type="button"
+                          onClick={handleShowPreview}
+                          disabled={previewLoading || !isServiceContextComplete()}
+                          className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-md text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                          style={{ backgroundColor: BRAND }}
+                        >
+                          {previewLoading ? "Loading..." : "Preview"}
+                        </button>
+                      )}
+
+                      {showPreview && !previewResult && (
+                        <div className="w-full max-w-md space-y-4">
+                          <div className="space-y-2">
+                            <label className="text-xs font-medium text-gray-700 block text-center">
+                              Select an email to preview
+                            </label>
+                            <select
+                              value={selectedPreviewEmail}
+                              onChange={(e) => setSelectedPreviewEmail(e.target.value)}
+                              className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm transition focus:border-[#4F55F1] focus:ring-2 focus:ring-[#4F55F1]"
+                            >
+                              {previewEmails.map((email) => (
+                                <option key={email} value={email}>
+                                  {email}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="flex justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowPreview(false);
+                                setPreviewEmails([]);
+                                setSelectedPreviewEmail("");
+                                setPreviewError(null);
+                              }}
+                              className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-md border text-sm hover:bg-gray-50"
+                              style={{ borderColor: "#E5E7EB", color: "#6B7280" }}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleGeneratePreview}
+                              disabled={previewLoading || !selectedPreviewEmail}
+                              className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-md text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                              style={{ backgroundColor: BRAND }}
+                            >
+                              {previewLoading ? "Generating..." : "Start Preview"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {previewError && (
+                        <div className="mt-3 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm font-medium">
+                          {previewError}
+                        </div>
+                      )}
+
+                      {previewResult && (
+                        <div className="w-full mt-4 space-y-4">
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                            <div className="flex items-start gap-3 mb-3">
+                              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                                <Check className="w-5 h-5 text-green-600" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-green-800">
+                                  Preview Generated
+                                </p>
+                                <p className="text-xs text-green-600 mt-1">
+                                  For: {previewResult.email}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="mt-4">
+                              <label className="text-xs font-medium text-green-800 block mb-2">
+                                Personalized Email:
+                              </label>
+                              <div className="bg-white border border-green-200 rounded-md p-4 text-sm text-gray-900 whitespace-pre-wrap">
+                                {previewResult.email_body}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowPreview(false);
+                                setPreviewEmails([]);
+                                setSelectedPreviewEmail("");
+                                setPreviewResult(null);
+                                setPreviewError(null);
+                              }}
+                              className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-md text-white font-medium"
+                              style={{ backgroundColor: BRAND }}
+                            >
+                              Generate Another Preview
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="mt-6 flex items-center justify-between">
@@ -1248,11 +1476,125 @@ export default function UploadPage() {
       )}
 
       {step === 2 && !jobCreated && (
-        <div className="block md:hidden w-full h-[calc(100vh-69px)] px-4 flex items-start justify-center pt-[64px] bg-white">
-          <div className="max-w-md w-full space-y-6" style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}>
+        <div className="block md:hidden w-full h-[calc(100vh-69px)] px-4 flex items-start justify-center pt-[64px] bg-white overflow-y-auto">
+          <div className="max-w-md w-full space-y-6 pb-8" style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}>
             <h2 className="text-lg font-semibold text-gray-900 text-center">Describe Your Service</h2>
             {renderCreditBanner(true)}
             {renderServiceInputs("grid-cols-1")}
+
+            {/* Mobile Preview Section */}
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <div className="flex flex-col items-center space-y-4">
+                {!showPreview && !previewResult && (
+                  <button
+                    type="button"
+                    onClick={handleShowPreview}
+                    disabled={previewLoading || !isServiceContextComplete()}
+                    className="w-full py-3 rounded-md font-medium text-white text-[15px] tracking-tight disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ backgroundColor: BRAND }}
+                  >
+                    {previewLoading ? "Loading..." : "Preview"}
+                  </button>
+                )}
+
+                {showPreview && !previewResult && (
+                  <div className="w-full space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-gray-700 block text-center">
+                        Select an email to preview
+                      </label>
+                      <select
+                        value={selectedPreviewEmail}
+                        onChange={(e) => setSelectedPreviewEmail(e.target.value)}
+                        className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm"
+                      >
+                        {previewEmails.map((email) => (
+                          <option key={email} value={email}>
+                            {email}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowPreview(false);
+                          setPreviewEmails([]);
+                          setSelectedPreviewEmail("");
+                          setPreviewError(null);
+                        }}
+                        className="flex-1 py-3 rounded-md border font-medium text-[15px]"
+                        style={{ borderColor: "#E5E7EB", color: "#6B7280" }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleGeneratePreview}
+                        disabled={previewLoading || !selectedPreviewEmail}
+                        className="flex-1 py-3 rounded-md font-medium text-white text-[15px] disabled:opacity-50"
+                        style={{ backgroundColor: BRAND }}
+                      >
+                        {previewLoading ? "Generating..." : "Start Preview"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {previewError && (
+                  <div className="w-full bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm font-medium">
+                    {previewError}
+                  </div>
+                )}
+
+                {previewResult && (
+                  <div className="w-full space-y-4">
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                          <Check className="w-5 h-5 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-green-800">
+                            Preview Generated
+                          </p>
+                          <p className="text-xs text-green-600 mt-1">
+                            For: {previewResult.email}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4">
+                        <label className="text-xs font-medium text-green-800 block mb-2">
+                          Personalized Email:
+                        </label>
+                        <div className="bg-white border border-green-200 rounded-md p-4 text-sm text-gray-900 whitespace-pre-wrap">
+                          {previewResult.email_body}
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowPreview(false);
+                        setPreviewEmails([]);
+                        setSelectedPreviewEmail("");
+                        setPreviewResult(null);
+                        setPreviewError(null);
+                      }}
+                      className="w-full py-3 rounded-md font-medium text-white text-[15px]"
+                      style={{ backgroundColor: BRAND }}
+                    >
+                      Generate Another Preview
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
             <button
               onClick={handleCreateJob}
               disabled={loading || hasCreditShortage}
