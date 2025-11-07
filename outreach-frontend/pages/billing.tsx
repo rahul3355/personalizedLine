@@ -208,6 +208,29 @@ function AnimatedText({
   );
 }
 
+function DiscordTooltip({ message }: { message: string }) {
+  return (
+    <span className="relative inline-flex group">
+      <button
+        type="button"
+        aria-label={message}
+        className="flex h-5 w-5 items-center justify-center rounded-full border border-[#2f3136] bg-[#1f1f23] text-[10px] font-semibold text-white shadow-[0_4px_14px_rgba(0,0,0,0.45)] transition-colors hover:bg-[#27282f] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5865f2]"
+        onClick={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
+        onKeyDown={(event) => event.stopPropagation()}
+      >
+        ?
+      </button>
+      <span className="absolute left-1/2 top-full z-20 mt-2 hidden -translate-x-1/2 group-hover:flex group-focus-within:flex">
+        <span className="relative rounded-lg border border-[#2f3136] bg-[#111214] px-3 py-2 text-[11px] font-medium text-white shadow-[0_20px_45px_rgba(0,0,0,0.5)]">
+          {message}
+          <span className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border border-[#2f3136] border-b-0 border-r-0 bg-[#111214]" />
+        </span>
+      </span>
+    </span>
+  );
+}
+
 // Initialize Stripe with publishable key from env
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
@@ -469,7 +492,12 @@ export default function BillingPage() {
                             <Plus className="h-4 w-4 mt-0.5 flex-shrink-0 text-neutral-900" />
                           ) : null}
                           <div className="flex flex-col">
-                            <span>{feature}</span>
+                            <span className="flex items-center gap-2">
+                              {feature}
+                              {index === 0 ? (
+                                <DiscordTooltip message="1 credit = 1 personalized email" />
+                              ) : null}
+                            </span>
                             <ul className="mt-1 space-y-1 text-xs font-normal text-neutral-400">
                               <li className="flex items-start gap-2">
                                 <CheckCircle2
