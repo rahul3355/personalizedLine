@@ -385,23 +385,27 @@ export default function BillingPage() {
 
           </div>
 
-          <div className="mt-12 flex flex-wrap items-center justify-center gap-3 text-sm text-neutral-600">
-            <span>Save with yearly billing</span>
-            <Switch
-              checked={isYearly}
-              onChange={(value: boolean) => setBillingCycle(value ? "yearly" : "monthly")}
-              className={`${isYearly ? "bg-black" : "bg-neutral-200"
-                } relative inline-flex h-7 w-12 items-center rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-black`}
-            >
-              <span className="sr-only">Save with yearly billing</span>
-              <span
-                aria-hidden="true"
-                className={`${isYearly ? "translate-x-6" : "translate-x-1"
-                  } inline-block h-5 w-5 transform rounded-full bg-white transition`}
-              />
-            </Switch>
+          <div className="relative mt-12 flex justify-center">
+            <div className="flex flex-wrap items-center justify-center gap-3 text-sm text-neutral-600">
+              <span>Save with yearly billing</span>
+              <Switch
+                checked={isYearly}
+                onChange={(value: boolean) => setBillingCycle(value ? "yearly" : "monthly")}
+                className={`${isYearly ? "bg-black" : "bg-neutral-200"
+                  } relative inline-flex h-7 w-12 items-center rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-black`}
+              >
+                <span className="sr-only">Save with yearly billing</span>
+                <span
+                  aria-hidden="true"
+                  className={`${isYearly ? "translate-x-6" : "translate-x-1"
+                    } inline-block h-5 w-5 transform rounded-full bg-white transition`}
+                />
+              </Switch>
+            </div>
             {isYearly && (
-              <span className="text-sm font-medium text-[#ff7a00]">saving 20%</span>
+              <span className="mt-3 text-sm font-medium text-[#ff7a00] whitespace-nowrap sm:absolute sm:left-full sm:top-1/2 sm:ml-4 sm:-translate-y-1/2 sm:mt-0">
+                saving 20%
+              </span>
             )}
 
           </div>
