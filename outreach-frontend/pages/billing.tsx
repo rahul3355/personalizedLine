@@ -95,7 +95,7 @@ const planConfigurations: PlanConfig[] = [
     tagline: "",
     monthlyPrice: PRICING.starter.monthlyPrice,
     yearlyPrice: calculateAnnualPrice(PRICING.starter.monthlyPrice),
-    yearlySavings: "Save 20%",
+    yearlySavings: "saving 20%",
     currency: "USD",
     ctaLabel: "Upgrade to Starter",
     features: [
@@ -112,7 +112,7 @@ const planConfigurations: PlanConfig[] = [
     tagline: "",
     monthlyPrice: PRICING.growth.monthlyPrice,
     yearlyPrice: calculateAnnualPrice(PRICING.growth.monthlyPrice),
-    yearlySavings: "Save 20%",
+    yearlySavings: "saving 20%",
     currency: "USD",
     badge: "Popular",
     popular: true,
@@ -131,7 +131,7 @@ const planConfigurations: PlanConfig[] = [
     tagline: "",
     monthlyPrice: PRICING.pro.monthlyPrice,
     yearlyPrice: calculateAnnualPrice(PRICING.pro.monthlyPrice),
-    yearlySavings: "Save 20%",
+    yearlySavings: "saving 20%",
     currency: "USD",
     ctaLabel: "Upgrade to Pro",
     features: [
@@ -402,12 +402,6 @@ export default function BillingPage() {
                 />
               </Switch>
             </div>
-            {isYearly && (
-              <span className="mt-3 text-sm font-medium text-[#ff7a00] whitespace-nowrap sm:absolute sm:left-full sm:top-1/2 sm:ml-4 sm:-translate-y-1/2 sm:mt-0">
-                saving 20%
-              </span>
-            )}
-
           </div>
 
           <LayoutGroup>
@@ -424,8 +418,7 @@ export default function BillingPage() {
                 const bulkPerCredit = plan.pricePerThousandCredits / 1000;
                 const cycleUnit = isYearly ? "year" : "month";
                 const cycleDescriptor = isYearly ? "yearly plan" : "monthly plan";
-                const yearlySavingsAmount = plan.monthlyPrice * 12 - plan.yearlyPrice;
-                const savingsText = `saving ${formatCurrency(yearlySavingsAmount, plan.currency)}`;
+                const savingsText = plan.yearlySavings ?? "";
                 const featureLabels = [
                   `${creditsForCycle.toLocaleString()} credits/${cycleUnit}`,
                   `$${plan.pricePerThousandCredits} per 1000 credits`,
