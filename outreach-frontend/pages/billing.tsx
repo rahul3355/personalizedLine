@@ -7,7 +7,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import {
   ArrowLeft,
   X,
-  Coins,
+  CreditCard,
   Plus,
   Infinity,
   Gauge,
@@ -17,6 +17,7 @@ import {
   LifeBuoy,
   Users,
   Sparkles,
+  CheckCircle2,
 } from "lucide-react";
 import { Switch } from "@headlessui/react";
 
@@ -38,7 +39,22 @@ type PlanConfig = {
   ctaLabel: string;
   features: string[];
   includes?: string;
+  monthlyCredits: number;
+  pricePerThousandCredits: number;
 };
+
+function formatCurrency(amount: number, currency = "USD") {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
+function formatPerCredit(amount: number) {
+  return `$${amount.toFixed(4)}`;
+}
 
 const planConfigurations: PlanConfig[] = [
   {
@@ -55,6 +71,8 @@ const planConfigurations: PlanConfig[] = [
       "$11 per 1000 credits",
     ],
     includes: "Everything in Free",
+    monthlyCredits: 2000,
+    pricePerThousandCredits: 11,
   },
   {
     id: "growth",
@@ -72,6 +90,8 @@ const planConfigurations: PlanConfig[] = [
       "$9 per 1000 credits",
     ],
     includes: "Everything in Starter",
+    monthlyCredits: 10000,
+    pricePerThousandCredits: 9,
   },
   {
     id: "pro",
@@ -87,6 +107,8 @@ const planConfigurations: PlanConfig[] = [
       "$7 per 1000 credits",
     ],
     includes: "Everything in Growth",
+    monthlyCredits: 25000,
+    pricePerThousandCredits: 7,
   },
 ];
 
@@ -328,6 +350,19 @@ export default function BillingPage() {
                 const cadence = isYearly ? "/year" : "/month";
                 const { currencySymbol } = formatCurrencyParts(price, plan.currency);
                 const isSelected = plan.id === selectedPlanId;
+                const creditsForCycle = isYearly
+                  ? plan.monthlyCredits * 12
+                  : plan.monthlyCredits;
+                const perCreditRate = creditsForCycle > 0 ? price / creditsForCycle : 0;
+                const bulkPerCredit = plan.pricePerThousandCredits / 1000;
+                const cycleDescriptor = isYearly ? "yearly plan" : "monthly plan";
+                const featureDetails = [
+                  `${plan.name} ${cycleDescriptor} averages ${formatPerCredit(perCreditRate)} per credit.`,
+                  `1,000-credit refills land at ${formatPerCredit(bulkPerCredit)} per credit (${formatCurrency(
+                    plan.pricePerThousandCredits,
+                    plan.currency,
+                  )} total).`,
+                ];
 
                 return (
                   <article
@@ -429,17 +464,19 @@ export default function BillingPage() {
                       {plan.features.map((feature, index) => (
                         <li key={feature} className="flex items-start gap-2 font-medium">
                           {index === 0 ? (
-                            <Coins className="h-4 w-4 mt-0.5 flex-shrink-0 text-neutral-900" />
+                            <CreditCard className="mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-900" />
                           ) : index === 1 ? (
                             <Plus className="h-4 w-4 mt-0.5 flex-shrink-0 text-neutral-900" />
                           ) : null}
                           <div className="flex flex-col">
                             <span>{feature}</span>
-                            <ul className="ml-5 mt-1 list-disc text-xs font-normal text-neutral-400">
-                              <li>
-                                {index === 0
-                                  ? "Reliable baseline for your campaigns."
-                                  : "Lower rates as your volume grows."}
+                            <ul className="mt-1 space-y-1 text-xs font-normal text-neutral-400">
+                              <li className="flex items-start gap-2">
+                                <CheckCircle2
+                                  className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-neutral-400"
+                                  aria-hidden="true"
+                                />
+                                <span>{featureDetails[index] ?? ""}</span>
                               </li>
                             </ul>
                           </div>
