@@ -9,14 +9,10 @@ import {
   X,
   Coins,
   Plus,
-  Infinity,
-  Gauge,
-  Puzzle,
-  Handshake,
-  ShieldCheck,
   LifeBuoy,
-  Users,
-  Sparkles,
+  KeyRound,
+  UserCog,
+  ServerCog,
 } from "lucide-react";
 import { Switch } from "@headlessui/react";
 
@@ -91,14 +87,10 @@ const planConfigurations: PlanConfig[] = [
 ];
 
 const enterpriseFeatures = [
-  { label: "Unlimited credits", Icon: Infinity },
-  { label: "Priority queueing", Icon: Gauge },
-  { label: "Customized integrations", Icon: Puzzle },
-  { label: "Founder-led onboarding", Icon: Handshake },
-  { label: "Compliance", Icon: ShieldCheck },
-  { label: "24x7x365 premium support", Icon: LifeBuoy },
-  { label: "Additional seats", Icon: Users },
-  { label: "Customized personalization of emails", Icon: Sparkles },
+  { label: "Single sign-on (SSO)", Icon: KeyRound },
+  { label: "Custom role-based access controls", Icon: UserCog },
+  { label: "Custom data retention", Icon: ServerCog },
+  { label: "Dedicated onboarding and support", Icon: LifeBuoy },
 ];
 
 type CurrencyParts = {
@@ -451,24 +443,48 @@ export default function BillingPage() {
           </LayoutGroup>
 
           <section className="mt-10 w-full text-left">
-            <article className="flex min-h-[220px] flex-col justify-between rounded-3xl border border-neutral-200/60 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
-              <header>
-                <p className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Enterprise</p>
-              </header>
-              <ul className="mt-6 grid grid-cols-1 gap-x-6 gap-y-4 text-sm text-neutral-700 sm:grid-cols-2 lg:grid-cols-4">
-                {enterpriseFeatures.map(({ label, Icon }) => (
-                  <li key={label} className="flex items-start gap-2 font-medium">
-                    <Icon className="mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-900" aria-hidden="true" />
-                    <span>{label}</span>
-                  </li>
-                ))}
-              </ul>
-              <a
-                href="mailto:founders@personalizedline.com"
-                className="mt-8 inline-flex items-center justify-center rounded-full bg-neutral-900 px-5 py-3 text-sm font-semibold text-white transition hover:scale-[1.02] hover:bg-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-black sm:self-start"
-              >
-                Talk to us
-              </a>
+            <article className="flex min-h-[220px] flex-col gap-8 rounded-3xl border border-neutral-200/60 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+                <div className="max-w-2xl space-y-4">
+                  <header className="space-y-1">
+                    <p className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Enterprise</p>
+                    <p className="text-xl font-semibold text-neutral-900">Scale with governance built for your org</p>
+                  </header>
+                  <p className="text-sm text-neutral-600">
+                    Partner with our founders to tailor deployments, streamline onboarding, and meet the compliance expectations of modern go-to-market teams.
+                  </p>
+                  <ul className="grid grid-cols-1 gap-x-6 gap-y-4 text-sm text-neutral-700 sm:grid-cols-2">
+                    {enterpriseFeatures.map(({ label, Icon }) => (
+                      <li key={label} className="flex items-start gap-3 font-medium">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-100 text-neutral-900">
+                          <Icon className="h-4 w-4" aria-hidden="true" />
+                        </span>
+                        <span className="leading-snug">{label}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="flex w-full flex-col gap-4 rounded-2xl border border-neutral-200/70 bg-neutral-50 p-5 text-sm text-neutral-600 sm:max-w-xs lg:w-auto lg:text-right">
+                  <p className="font-medium text-neutral-900">Need a custom plan?</p>
+                  <p>
+                    Share your requirements and we&apos;ll design pricing, security reviews, and success milestones to match your workflows.
+                  </p>
+                  <div className="flex flex-col gap-3 sm:flex-row-reverse">
+                    <a
+                      href="mailto:founders@personalizedline.com"
+                      className="inline-flex items-center justify-center rounded-full bg-neutral-900 px-6 py-3 text-base font-semibold text-white transition hover:scale-[1.02] hover:bg-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                    >
+                      Talk to us
+                    </a>
+                    <a
+                      href="mailto:founders@personalizedline.com?subject=Enterprise%20Security%20Overview"
+                      className="inline-flex items-center justify-center rounded-full border border-neutral-300 bg-white px-6 py-3 text-base font-semibold text-neutral-900 transition hover:scale-[1.02] focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                    >
+                      Request security brief
+                    </a>
+                  </div>
+                </div>
+              </div>
             </article>
           </section>
         </div>
