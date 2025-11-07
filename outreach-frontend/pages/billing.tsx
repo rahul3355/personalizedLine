@@ -426,17 +426,26 @@ export default function BillingPage() {
                     </button>
 
                     <ul className="mt-6 space-y-3 text-left text-sm text-neutral-700">
-  {plan.features.map((feature, index) => (
-    <li key={feature} className="flex items-start gap-2 font-medium">
-      {index === 0 ? (
-        <Coins className="h-4 w-4 mt-0.5 flex-shrink-0 text-neutral-900" />
-      ) : index === 1 ? (
-        <Plus className="h-4 w-4 mt-0.5 flex-shrink-0 text-neutral-900" />
-      ) : null}
-      <span>{feature}</span>
-    </li>
-  ))}
-</ul>
+                      {plan.features.map((feature, index) => (
+                        <li key={feature} className="flex items-start gap-2 font-medium">
+                          {index === 0 ? (
+                            <Coins className="h-4 w-4 mt-0.5 flex-shrink-0 text-neutral-900" />
+                          ) : index === 1 ? (
+                            <Plus className="h-4 w-4 mt-0.5 flex-shrink-0 text-neutral-900" />
+                          ) : null}
+                          <div className="flex flex-col">
+                            <span>{feature}</span>
+                            <ul className="ml-5 mt-1 list-disc text-xs font-normal text-neutral-400">
+                              <li>
+                                {index === 0
+                                  ? "Reliable baseline for your campaigns."
+                                  : "Lower rates as your volume grows."}
+                              </li>
+                            </ul>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
                     <br /><br />
 
 
