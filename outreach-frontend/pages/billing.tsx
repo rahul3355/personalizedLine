@@ -17,6 +17,7 @@ import {
   LifeBuoy,
   Users,
   Sparkles,
+  Brain,
   CheckCircle2,
 } from "lucide-react";
 import { TbHelpCircle } from "react-icons/tb";
@@ -121,7 +122,7 @@ const enterpriseFeatures = [
   { label: "Compliance", Icon: ShieldCheck },
   { label: "24x7x365 Premium Support", Icon: LifeBuoy },
   { label: "Additional Seats + Team Management", Icon: Users },
-  { label: "Customized Email Scripts", Icon: Sparkles },
+  { label: "Customized Email Scripts", Icon: Brain },
 ];
 
 type CurrencyParts = {
