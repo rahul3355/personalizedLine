@@ -451,23 +451,21 @@ export default function BillingPage() {
           </LayoutGroup>
 
           <section className="mt-10 w-full text-left">
-            <article className="flex min-h-[290px] flex-col justify-between rounded-3xl border border-neutral-200/60 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
+            <article className="flex min-h-[220px] flex-col justify-between rounded-3xl border border-neutral-200/60 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
               <header>
                 <p className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Enterprise</p>
               </header>
-              <ul className="mt-6 space-y-3 text-sm text-neutral-700">
+              <ul className="mt-6 grid grid-cols-1 gap-x-6 gap-y-4 text-sm text-neutral-700 sm:grid-cols-2 lg:grid-cols-4">
                 {enterpriseFeatures.map(({ label, Icon }) => (
-                  <li key={label} className="flex items-start gap-3">
-                    <span className="mt-1 text-neutral-900">
-                      <Icon className="h-4 w-4" aria-hidden="true" />
-                    </span>
-                    <span className="font-medium">{label}</span>
+                  <li key={label} className="flex items-start gap-2 font-medium">
+                    <Icon className="mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-900" aria-hidden="true" />
+                    <span>{label}</span>
                   </li>
                 ))}
               </ul>
               <a
                 href="mailto:founders@personalizedline.com"
-                className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-neutral-900 px-6 py-3 text-sm font-semibold text-white transition hover:scale-[1.02] hover:bg-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-black sm:w-auto"
+                className="mt-8 inline-flex items-center justify-center rounded-full bg-neutral-900 px-5 py-3 text-sm font-semibold text-white transition hover:scale-[1.02] hover:bg-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-black sm:self-start"
               >
                 Talk to us
               </a>
