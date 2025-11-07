@@ -210,24 +210,41 @@ function AnimatedText({
 }
 
 function DiscordTooltip({ message }: { message: string }) {
+  const [isVisible, setIsVisible] = useState(false);
+
+  const showTooltip = () => setIsVisible(true);
+  const hideTooltip = () => setIsVisible(false);
+
   return (
-    <span className="relative inline-block group">
+    <span
+      className="relative inline-flex items-center align-middle"
+      onMouseEnter={showTooltip}
+      onMouseLeave={hideTooltip}
+    >
       <button
         type="button"
         aria-label={message}
         className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-transparent bg-transparent text-sm leading-none text-neutral-400 transition-colors hover:text-neutral-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5865f2]"
+        onFocus={showTooltip}
+        onBlur={hideTooltip}
         onClick={(event) => event.stopPropagation()}
         onPointerDown={(event) => event.stopPropagation()}
-        onKeyDown={(event) => event.stopPropagation()}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            hideTooltip();
+          }
+        }}
       >
         <TbHelpCircle aria-hidden="true" className="h-3.5 w-3.5" />
       </button>
-      <span className="absolute left-1/2 top-full z-20 mt-2 hidden -translate-x-1/2 group-hover:flex group-focus-within:flex">
-        <span className="relative rounded-md border border-[#2b2d31] bg-[#1e1f22] px-3 py-1.5 text-[10px] font-medium text-[#dbdee1] shadow-[0_20px_45px_rgba(0,0,0,0.55)] whitespace-nowrap">
-          {message}
-          <span className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border border-[#2b2d31] border-b-0 border-r-0 bg-[#1e1f22]" />
+      {isVisible ? (
+        <span className="absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2 whitespace-nowrap">
+          <span className="relative rounded-md border border-[#2b2d31] bg-[#1e1f22] px-3 py-1.5 text-[10px] font-medium text-[#dbdee1] shadow-[0_20px_45px_rgba(0,0,0,0.55)]">
+            {message}
+            <span className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border border-[#2b2d31] border-b-0 border-r-0 bg-[#1e1f22]" />
+          </span>
         </span>
-      </span>
+      ) : null}
     </span>
   );
 }
