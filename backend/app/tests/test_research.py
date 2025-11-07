@@ -99,9 +99,13 @@ def test_perform_research_invalid_json(monkeypatch):
 
     _stub_research_calls(monkeypatch, malformed_payload)
 
+    # Set max retries to 3 for this test
+    monkeypatch.setenv("GROQ_MAX_RETRIES", "3")
+
     result = research.perform_research("bob@example.com")
 
-    assert result == "Research unavailable: Groq returned malformed JSON."
+    # After retries, the error message includes "after retries"
+    assert result == "Research unavailable: Groq returned malformed JSON after retries."
 
 
 def test_perform_research_strips_person_moat(monkeypatch):
