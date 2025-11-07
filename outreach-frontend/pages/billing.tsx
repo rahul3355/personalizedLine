@@ -209,25 +209,68 @@ function AnimatedText({
   );
 }
 
-function DiscordTooltip({ message }: { message: string }) {
+function HelpToolkit({ message }: { message: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  const openTooltip = () => {
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+    setIsOpen(true);
+  };
+
+  const closeTooltip = () => {
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+    }
+    hideTimerRef.current = setTimeout(() => {
+      setIsOpen(false);
+    }, 80);
+  };
+
   return (
-    <span className="relative inline-block group">
+    <span className="relative ml-1 inline-flex items-center align-middle text-neutral-400">
       <button
         type="button"
         aria-label={message}
-        className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-transparent bg-transparent text-sm leading-none text-neutral-400 transition-colors hover:text-neutral-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5865f2]"
+        className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-transparent text-[13px] leading-none transition-colors hover:text-neutral-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5865f2]"
         onClick={(event) => event.stopPropagation()}
         onPointerDown={(event) => event.stopPropagation()}
         onKeyDown={(event) => event.stopPropagation()}
+        onMouseEnter={openTooltip}
+        onFocus={openTooltip}
+        onMouseLeave={closeTooltip}
+        onBlur={closeTooltip}
       >
         <TbHelpCircle aria-hidden="true" className="h-3.5 w-3.5" />
       </button>
-      <span className="absolute left-1/2 top-full z-20 mt-2 hidden -translate-x-1/2 group-hover:flex group-focus-within:flex">
-        <span className="relative rounded-md border border-[#2b2d31] bg-[#1e1f22] px-3 py-1.5 text-[10px] font-medium text-[#dbdee1] shadow-[0_20px_45px_rgba(0,0,0,0.55)] whitespace-nowrap">
-          {message}
-          <span className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border border-[#2b2d31] border-b-0 border-r-0 bg-[#1e1f22]" />
-        </span>
-      </span>
+      <AnimatePresence>
+        {isOpen ? (
+          <motion.span
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.16, ease: "easeOut" }}
+            className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2"
+          >
+            <span className="relative whitespace-nowrap rounded-md border border-[#2b2d31] bg-[#1e1f22] px-3 py-1.5 text-[10px] font-medium text-[#dbdee1] shadow-[0_20px_45px_rgba(0,0,0,0.55)]">
+              {message}
+              <span className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border border-[#2b2d31] border-b-0 border-r-0 bg-[#1e1f22]" />
+            </span>
+          </motion.span>
+        ) : null}
+      </AnimatePresence>
     </span>
   );
 }
@@ -496,7 +539,7 @@ export default function BillingPage() {
                             <span className="flex items-center gap-2">
                               {feature}
                               {index === 0 ? (
-                                <DiscordTooltip message="1 credit = 1 email (research + personalized email + icebreaker)" />
+                                <HelpToolkit message="1 credit = 1 email (research + personalized email + icebreaker)" />
                               ) : null}
                             </span>
                             <ul className="mt-1 space-y-1 text-xs font-normal text-neutral-400">
