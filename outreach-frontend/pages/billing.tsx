@@ -308,19 +308,17 @@ export default function BillingPage() {
             <Switch
               checked={isYearly}
               onChange={(value: boolean) => setBillingCycle(value ? "yearly" : "monthly")}
-              className={`${
-                isYearly ? "bg-black" : "bg-neutral-200"
-              } relative inline-flex h-7 w-12 items-center rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-black`}
+              className={`${isYearly ? "bg-black" : "bg-neutral-200"
+                } relative inline-flex h-7 w-12 items-center rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-black`}
             >
               <span className="sr-only">Save with yearly billing</span>
               <span
                 aria-hidden="true"
-                className={`${
-                  isYearly ? "translate-x-6" : "translate-x-1"
-                } inline-block h-5 w-5 transform rounded-full bg-white transition`}
+                className={`${isYearly ? "translate-x-6" : "translate-x-1"
+                  } inline-block h-5 w-5 transform rounded-full bg-white transition`}
               />
             </Switch>
-          
+
           </div>
 
           <LayoutGroup>
@@ -344,11 +342,10 @@ export default function BillingPage() {
                       }
                     }}
                     aria-pressed={isSelected}
-                    className={`relative flex h-full min-h-[290px] cursor-pointer flex-col rounded-3xl border bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-black ${
-                      isSelected
+                    className={`relative flex h-full min-h-[290px] cursor-pointer flex-col rounded-3xl border bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-black ${isSelected
                         ? "border-transparent"
                         : "border-neutral-200/60"
-                    }`}
+                      }`}
                   >
                     {isSelected && (
                       <motion.div
@@ -422,28 +419,27 @@ export default function BillingPage() {
                     <button
                       type="button"
                       onClick={() => handleCheckout(plan.id)}
-                      className={`mt-auto w-full rounded-full px-6 py-3 text-sm font-semibold text-white transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-black hover:scale-105 hover:bg-neutral-700 active:bg-neutral-600 ${
-                        plan.popular ? "bg-black" : "bg-neutral-900"
-                      }`}
+                      className={`mt-auto w-full rounded-full px-6 py-3 text-sm font-semibold text-white transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-black hover:scale-105 hover:bg-neutral-700 active:bg-neutral-600 ${plan.popular ? "bg-black" : "bg-neutral-900"
+                        }`}
                     >
                       {plan.ctaLabel}
                     </button>
 
-                  <ul className="mt-6 space-y-3 text-left text-sm text-neutral-700">
-                    {plan.features.map((feature, index) => (
-                      <li key={feature} className="flex items-start gap-2">
-                        {index === 0 ? (
-                          <Coins className="h-4 w-4 mt-0.5 text-neutral-600" />
-                        ) : index === 1 ? (
-                          <Plus className="h-4 w-4 mt-0.5 text-neutral-600" />
-                        ) : null}
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <br /><br />
+                    <ul className="mt-6 space-y-3 text-left text-sm text-neutral-700">
+  {plan.features.map((feature, index) => (
+    <li key={feature} className="flex items-start gap-2 font-medium">
+      {index === 0 ? (
+        <Coins className="h-4 w-4 mt-0.5 flex-shrink-0 text-neutral-900" />
+      ) : index === 1 ? (
+        <Plus className="h-4 w-4 mt-0.5 flex-shrink-0 text-neutral-900" />
+      ) : null}
+      <span>{feature}</span>
+    </li>
+  ))}
+</ul>
+                    <br /><br />
 
-                  
+
                   </article>
                 );
               })}
@@ -451,24 +447,26 @@ export default function BillingPage() {
           </LayoutGroup>
 
           <section className="mt-10 w-full text-left">
-            <article className="flex min-h-[220px] flex-col justify-between rounded-3xl border border-neutral-200/60 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
+            <article className="flex min-h-[220px] flex-col rounded-3xl border border-neutral-200/60 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
               <header>
                 <p className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Enterprise</p>
               </header>
-              <ul className="mt-6 grid grid-cols-1 gap-x-6 gap-y-4 text-sm text-neutral-700 sm:grid-cols-2 lg:grid-cols-4">
-                {enterpriseFeatures.map(({ label, Icon }) => (
-                  <li key={label} className="flex items-start gap-2 font-medium">
-                    <Icon className="mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-900" aria-hidden="true" />
-                    <span>{label}</span>
-                  </li>
-                ))}
-              </ul>
-              <a
-                href="mailto:founders@personalizedline.com"
-                className="mt-8 inline-flex items-center justify-center rounded-full bg-neutral-900 px-5 py-3 text-sm font-semibold text-white transition hover:scale-[1.02] hover:bg-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-black sm:self-start"
-              >
-                Talk to us
-              </a>
+              <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-center  lg:justify-between">
+                <ul className="grid flex-1 grid-cols-1 gap-x-6 gap-y-4 text-sm text-neutral-700 sm:grid-cols-2">
+                  {enterpriseFeatures.map(({ label, Icon }) => (
+                    <li key={label} className="flex items-start gap-2 font-medium">
+                      <Icon className="mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-900" aria-hidden="true" />
+                      <span>{label}</span>
+                    </li>
+                  ))}
+                </ul>
+                <a
+                  href="mailto:founders@personalizedline.com"
+                  className="inline-flex items-center justify-center rounded-full bg-neutral-900 px-5 py-3 text-sm font-semibold text-white transition hover:scale-[1.02] hover:bg-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-black sm:self-start lg:self-auto lg:flex-shrink-0"
+                >
+                  Talk to us
+                </a>
+              </div>
             </article>
           </section>
         </div>
