@@ -451,37 +451,27 @@ export default function BillingPage() {
           </LayoutGroup>
 
           <section className="mt-10 w-full text-left">
-            <div className="relative overflow-hidden rounded-3xl border border-neutral-200/60 bg-white p-8 shadow-[0_1px_2px_rgba(15,23,42,0.08)] md:p-12">
-              <div className="absolute inset-y-0 left-0 w-1 bg-neutral-900" aria-hidden="true" />
-              <div className="relative flex flex-col gap-10 lg:flex-row lg:items-center lg:gap-16">
-                <div className="max-w-xl space-y-4">
-                  <p className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Enterprise</p>
-                  <h2 className="text-3xl font-semibold text-neutral-900 md:text-4xl">Tailored for scaling teams</h2>
-                  <p className="text-base text-neutral-600">
-                    Partner with our founders to design a program that meets your compliance, customization, and scale requirements.
-                  </p>
-                  <a
-                    href="mailto:founders@personalizedline.com"
-                    className="inline-flex w-full items-center justify-center rounded-full bg-neutral-900 px-6 py-3 text-sm font-semibold text-white transition hover:scale-[1.02] hover:bg-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-black sm:w-auto"
-                  >
-                    Talk to us
-                  </a>
-                </div>
-                <div className="grid w-full gap-4 sm:grid-cols-2">
-                  {enterpriseFeatures.map(({ label, Icon }) => (
-                    <div
-                      key={label}
-                      className="flex items-start gap-3 rounded-2xl border border-neutral-100/80 bg-neutral-50/80 p-4"
-                    >
-                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-neutral-900">
-                        <Icon className="h-4 w-4" aria-hidden="true" />
-                      </span>
-                      <span className="text-sm font-medium text-neutral-700">{label}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <article className="flex min-h-[290px] flex-col justify-between rounded-3xl border border-neutral-200/60 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
+              <header>
+                <p className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Enterprise</p>
+              </header>
+              <ul className="mt-6 space-y-3 text-sm text-neutral-700">
+                {enterpriseFeatures.map(({ label, Icon }) => (
+                  <li key={label} className="flex items-start gap-3">
+                    <span className="mt-1 text-neutral-900">
+                      <Icon className="h-4 w-4" aria-hidden="true" />
+                    </span>
+                    <span className="font-medium">{label}</span>
+                  </li>
+                ))}
+              </ul>
+              <a
+                href="mailto:founders@personalizedline.com"
+                className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-neutral-900 px-6 py-3 text-sm font-semibold text-white transition hover:scale-[1.02] hover:bg-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-black sm:w-auto"
+              >
+                Talk to us
+              </a>
+            </article>
           </section>
         </div>
       </div>
