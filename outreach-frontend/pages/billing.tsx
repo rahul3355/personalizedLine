@@ -402,10 +402,7 @@ export default function BillingPage() {
                       }
                     }}
                     aria-pressed={isSelected}
-                    className={`relative flex h-full min-h-[290px] cursor-pointer flex-col rounded-3xl border bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-black ${isSelected
-                        ? "border-transparent"
-                        : "border-neutral-200/60"
-                      }`}
+                    className="relative flex h-full min-h-[290px] cursor-pointer flex-col rounded-3xl border border-transparent bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
                   >
                     {isSelected && (
                       <motion.div
