@@ -1,0 +1,44 @@
+.featuresList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.featureItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.featureItemHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.subList {
+  margin-left: 1.75rem;
+  padding-left: 0.75rem;
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: #4b5563;
+}
+
+.subListItem {
+  position: relative;
+  list-style: none;
+  line-height: 1.5;
+  padding-left: 0.75rem;
+}
+
+.subListItem::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  top: 0.6rem;
+  transform: translateY(-50%);
+  font-size: 0.6rem;
+  color: #9ca3af;
+}

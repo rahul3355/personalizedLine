@@ -21,9 +21,15 @@ import {
 import { Switch } from "@headlessui/react";
 
 import { useAuth } from "../lib/AuthProvider";
+import styles from "./billing.module.css";
 
 type BillingCycle = "monthly" | "yearly";
 type AudienceSegment = "individual" | "business";
+
+type PlanFeature = {
+  label: string;
+  subPoints?: string[];
+};
 
 type PlanConfig = {
   id: string;
@@ -36,7 +42,7 @@ type PlanConfig = {
   badge?: string;
   popular?: boolean;
   ctaLabel: string;
-  features: string[];
+  features: PlanFeature[];
   includes?: string;
 };
 
@@ -51,8 +57,16 @@ const planConfigurations: PlanConfig[] = [
     currency: "USD",
     ctaLabel: "Upgrade to Starter",
     features: [
-      "2000 credits/month",
-      "$11 per 1000 credits",
+      { label: "2000 credits/month" },
+      { label: "$11 per 1000 credits" },
+      {
+        label: "Increased access to Grok 3",
+        subPoints: [
+          "More detailed responses",
+          "Higher daily request limits",
+          "Priority availability during peak hours",
+        ],
+      },
     ],
     includes: "Everything in Free",
   },
@@ -68,8 +82,16 @@ const planConfigurations: PlanConfig[] = [
     popular: true,
     ctaLabel: "Upgrade to Growth",
     features: [
-      "10000 credits/month",
-      "$9 per 1000 credits",
+      { label: "10000 credits/month" },
+      { label: "$9 per 1000 credits" },
+      {
+        label: "Accelerated access to Grok 3",
+        subPoints: [
+          "Richer strategic insights",
+          "Expanded concurrent request capacity",
+          "Beta feature previews",
+        ],
+      },
     ],
     includes: "Everything in Starter",
   },
@@ -83,8 +105,16 @@ const planConfigurations: PlanConfig[] = [
     currency: "USD",
     ctaLabel: "Upgrade to Pro",
     features: [
-      "25000 credits/month",
-      "$7 per 1000 credits",
+      { label: "25000 credits/month" },
+      { label: "$7 per 1000 credits" },
+      {
+        label: "Maximum access to Grok 3",
+        subPoints: [
+          "Deep-dive personalization guidance",
+          "Highest throughput for automation",
+          "Dedicated experimentation sandbox",
+        ],
+      },
     ],
     includes: "Everything in Growth",
   },
@@ -425,18 +455,39 @@ export default function BillingPage() {
                       {plan.ctaLabel}
                     </button>
 
-                    <ul className="mt-6 space-y-3 text-left text-sm text-neutral-700">
-  {plan.features.map((feature, index) => (
-    <li key={feature} className="flex items-start gap-2 font-medium">
-      {index === 0 ? (
-        <Coins className="h-4 w-4 mt-0.5 flex-shrink-0 text-neutral-900" />
-      ) : index === 1 ? (
-        <Plus className="h-4 w-4 mt-0.5 flex-shrink-0 text-neutral-900" />
-      ) : null}
-      <span>{feature}</span>
-    </li>
-  ))}
-</ul>
+                    <ul className={`mt-6 space-y-3 text-left ${styles.featuresList}`}>
+                      {plan.features.map((feature, index) => (
+                        <li
+                          key={`${plan.id}-${feature.label}-${index}`}
+                          className={styles.featureItem}
+                        >
+                          <div
+                            className={`${styles.featureItemHeader} flex items-start gap-2 text-sm font-medium text-neutral-700`}
+                          >
+                            {index === 0 ? (
+                              <Coins className="mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-900" />
+                            ) : index === 1 ? (
+                              <Plus className="mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-900" />
+                            ) : (
+                              <span
+                                className="mt-[7px] h-1.5 w-1.5 flex-shrink-0 rounded-full bg-neutral-300"
+                                aria-hidden="true"
+                              />
+                            )}
+                            <span>{feature.label}</span>
+                          </div>
+                          {feature.subPoints?.length ? (
+                            <ul className={styles.subList}>
+                              {feature.subPoints.map((subPoint) => (
+                                <li key={subPoint} className={styles.subListItem}>
+                                  {subPoint}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
                     <br /><br />
 
 
