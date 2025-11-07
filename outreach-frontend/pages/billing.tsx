@@ -1,6 +1,6 @@
 "use client";
 
-import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
+import { CSSProperties, useEffect, useRef, useState } from "react";
 import { AnimatePresence, LayoutGroup, motion, useSpring } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
@@ -178,11 +178,6 @@ export default function BillingPage() {
   );
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-  const currentPlan = useMemo(
-    () => userInfo?.user?.plan_type || userInfo?.plan_type || "free",
-    [userInfo?.plan_type, userInfo?.user?.plan_type]
-  );
-
   const closeBilling = () => {
     if (window.history.length > 1) {
       router.back();
@@ -244,17 +239,6 @@ export default function BillingPage() {
       alert("Something went wrong starting checkout");
     }
   };
-
-  const credits = userInfo?.credits_remaining ?? 0;
-  const maxCredits = userInfo?.max_credits ?? 25000;
-  const renewalTimestamp = userInfo?.next_renewal;
-  const renewalDate = renewalTimestamp
-    ? new Date(renewalTimestamp * 1000).toLocaleDateString(undefined, {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      })
-    : null;
 
   const plans = planConfigurations;
   const isYearly = billingCycle === "yearly";
@@ -441,44 +425,6 @@ export default function BillingPage() {
               })}
             </div>
           </LayoutGroup>
-
-          <div className="mt-16 mx-auto max-w-xl">
-            <section className="rounded-3xl border border-neutral-200 bg-white p-7 text-left shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
-              <h2 className="text-base font-semibold text-neutral-900">
-                Current plan overview
-              </h2>
-              <p className="mt-2 text-sm text-neutral-600">
-                You're on the {currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)} plan.
-              </p>
-              <dl className="mt-6 space-y-3 text-sm text-neutral-700">
-                <div className="flex items-center justify-between">
-                  <dt>Included monthly lines</dt>
-                  <dd className="font-semibold text-neutral-900">
-                    {maxCredits.toLocaleString()}
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between">
-                  <dt>Lines remaining</dt>
-                  <dd className="font-semibold text-neutral-900">
-                    {credits.toLocaleString()}
-                  </dd>
-                </div>
-                {renewalDate && (
-                  <div className="flex items-center justify-between">
-                    <dt>Renews on</dt>
-                    <dd className="font-semibold text-neutral-900">{renewalDate}</dd>
-                  </div>
-                )}
-              </dl>
-              <button
-                type="button"
-                disabled
-                className="mt-6 w-full cursor-not-allowed rounded-full border border-neutral-200 bg-neutral-100 px-6 py-3 text-sm font-semibold text-neutral-500"
-              >
-                Current plan
-              </button>
-            </section>
-          </div>
         </div>
       </div>
     </div>
