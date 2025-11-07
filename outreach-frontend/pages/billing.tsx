@@ -211,7 +211,7 @@ function AnimatedText({
 
 function DiscordTooltip({ message }: { message: string }) {
   return (
-    <span className="relative inline-flex items-center group">
+    <span className="relative inline-block group">
       <button
         type="button"
         aria-label={message}
