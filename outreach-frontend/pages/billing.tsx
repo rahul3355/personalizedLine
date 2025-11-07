@@ -74,7 +74,7 @@ const planConfigurations: PlanConfig[] = [
     ],
     includes: "Everything in Free",
     monthlyCredits: 2000,
-    pricePerThousandCredits: 11,
+    pricePerThousandCredits: 19,
   },
   {
     id: "growth",
@@ -93,7 +93,7 @@ const planConfigurations: PlanConfig[] = [
     ],
     includes: "Everything in Starter",
     monthlyCredits: 10000,
-    pricePerThousandCredits: 9,
+    pricePerThousandCredits: 19,
   },
   {
     id: "pro",
