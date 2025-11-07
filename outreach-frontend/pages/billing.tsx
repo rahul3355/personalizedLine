@@ -114,14 +114,14 @@ const planConfigurations: PlanConfig[] = [
 ];
 
 const enterpriseFeatures = [
-  { label: "Unlimited credits", Icon: Infinity },
-  { label: "Priority queueing", Icon: Gauge },
-  { label: "Customized integrations", Icon: Puzzle },
-  { label: "Founder-led onboarding", Icon: Handshake },
+  { label: "Unlimited Credits", Icon: Infinity },
+  { label: "Priority Queueing", Icon: Gauge },
+  { label: "CRM Integrations", Icon: Puzzle },
+  { label: "Founder-led Onboarding", Icon: Handshake },
   { label: "Compliance", Icon: ShieldCheck },
-  { label: "24x7x365 premium support", Icon: LifeBuoy },
-  { label: "Additional seats", Icon: Users },
-  { label: "Customized personalization of emails", Icon: Sparkles },
+  { label: "24x7x365 Premium Support", Icon: LifeBuoy },
+  { label: "Additional Seats + Team Management", Icon: Users },
+  { label: "Customized Email Scripts", Icon: Sparkles },
 ];
 
 type CurrencyParts = {
