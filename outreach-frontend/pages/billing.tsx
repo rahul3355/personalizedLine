@@ -19,6 +19,7 @@ import {
   Sparkles,
   CheckCircle2,
 } from "lucide-react";
+import { TbHelpCircle } from "react-icons/tb";
 import { Switch } from "@headlessui/react";
 
 import { useAuth } from "../lib/AuthProvider";
@@ -214,12 +215,12 @@ function DiscordTooltip({ message }: { message: string }) {
       <button
         type="button"
         aria-label={message}
-        className="flex h-4 w-4 items-center justify-center rounded-full border border-transparent bg-transparent text-[10px] font-semibold text-[#dbdee1] transition-colors hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5865f2]"
+        className="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-transparent bg-transparent text-sm text-neutral-400 transition-colors hover:text-neutral-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5865f2]"
         onClick={(event) => event.stopPropagation()}
         onPointerDown={(event) => event.stopPropagation()}
         onKeyDown={(event) => event.stopPropagation()}
       >
-        i
+        <TbHelpCircle aria-hidden="true" />
       </button>
       <span className="absolute left-1/2 top-full z-20 mt-2 hidden -translate-x-1/2 group-hover:flex group-focus-within:flex">
         <span className="relative rounded-md border border-[#2b2d31] bg-[#1e1f22] px-3 py-1.5 text-[10px] font-medium text-[#dbdee1] shadow-[0_20px_45px_rgba(0,0,0,0.55)] whitespace-nowrap">
