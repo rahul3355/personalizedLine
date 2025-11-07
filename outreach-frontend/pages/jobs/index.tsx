@@ -17,6 +17,7 @@ import {
   Clock3,
   Download,
   FileText,
+  Loader2,
   X,
   XCircle,
 } from "lucide-react";
@@ -234,6 +235,7 @@ function JobsPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [downloadingJobs, setDownloadingJobs] = useState<Record<string, boolean>>({});
 
   const jobsRef = useRef<Job[]>([]);
   const historyHasDrawer = useRef(false);
@@ -605,11 +607,12 @@ function JobsPage() {
     }
   }, [selectedJobId, loadJobDetail]);
 
-  const handleDownload = useCallback(async () => {
-    if (!session || !selectedJob || downloading) return;
-    try {
-      setDownloading(true);
-      const res = await fetch(`${API_URL}/jobs/${selectedJob.id}/download`, {
+  const downloadJobFile = useCallback(
+    async (jobId: string, filename: string) => {
+      if (!session) {
+        throw new Error("Missing session");
+      }
+      const res = await fetch(`${API_URL}/jobs/${jobId}/download`, {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (!res.ok) {
@@ -619,16 +622,54 @@ function JobsPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = selectedJob.filename || "result.xlsx";
+      a.download = filename || "result.xlsx";
       a.click();
       window.URL.revokeObjectURL(url);
+    },
+    [session]
+  );
+
+  const handleDownload = useCallback(async () => {
+    if (!selectedJob || downloading) return;
+    try {
+      setDownloading(true);
+      await downloadJobFile(selectedJob.id, selectedJob.filename || "result.xlsx");
     } catch (error) {
       console.error("Download error:", error);
       alert("Download failed");
     } finally {
       setDownloading(false);
     }
-  }, [session, selectedJob, downloading]);
+  }, [selectedJob, downloading, downloadJobFile]);
+
+  const handleDownloadFromList = useCallback(
+    async (job: Job) => {
+      let alreadyDownloading = false;
+      setDownloadingJobs((prev) => {
+        if (prev[job.id]) {
+          alreadyDownloading = true;
+          return prev;
+        }
+        return { ...prev, [job.id]: true };
+      });
+      if (alreadyDownloading) {
+        return;
+      }
+      try {
+        await downloadJobFile(job.id, job.filename || "result.xlsx");
+      } catch (error) {
+        console.error("Download error:", error);
+        alert("Download failed");
+      } finally {
+        setDownloadingJobs((prev) => {
+          const next = { ...prev };
+          delete next[job.id];
+          return next;
+        });
+      }
+    },
+    [downloadJobFile]
+  );
 
   const handleLoadMore = useCallback(() => {
     if (!hasMore || loadingMore) return;
@@ -703,12 +744,19 @@ function JobsPage() {
 
                             return (
                               <li key={job.id} className={idx > 0 ? "border-t border-[#EFF0F6]" : ""}>
-                                <button
-                                  type="button"
+                                <div
+                                  role="button"
+                                  tabIndex={0}
                                   onClick={() => openJob(job.id)}
+                                  onKeyDown={(event) => {
+                                    if (event.key === "Enter" || event.key === " ") {
+                                      event.preventDefault();
+                                      openJob(job.id);
+                                    }
+                                  }}
                                   data-active={isActive}
                                   className={[
-                                    "group relative z-0 flex w-full items-center gap-5 px-6 py-[14px] text-left transition-colors",
+                                    "group relative z-0 flex w-full cursor-pointer items-center gap-5 px-6 py-[14px] text-left transition-colors",
                                     "hover:bg-white/70",
                                     radius,
                                     "data-[active=true]:ring-1 data-[active=true]:ring-[#4F55F1] data-[active=true]:bg-white data-[active=true]:z-[1]"
@@ -744,11 +792,31 @@ function JobsPage() {
                                     )}
                                   </div>
 
-                                  <ArrowRight
-                                    className={`h-5 w-5 flex-shrink-0 transition-colors ${isActive ? "text-[#4F55F1]" : "text-[#C1C3D6] group-hover:text-[#4F55F1]"
-                                      }`}
-                                  />
-                                </button>
+                                  <div className="flex items-center gap-3">
+                                    {job.status === "succeeded" && (
+                                      <button
+                                        type="button"
+                                        onClick={(event) => {
+                                          event.stopPropagation();
+                                          event.preventDefault();
+                                          handleDownloadFromList(job);
+                                        }}
+                                        disabled={Boolean(downloadingJobs[job.id])}
+                                        className="flex h-9 w-9 items-center justify-center rounded-full border border-[#D8DAE6] text-[#4F55F1] transition-colors hover:bg-[#4F55F1] hover:text-white disabled:cursor-not-allowed disabled:opacity-70"
+                                        aria-label="Download results"
+                                      >
+                                        {downloadingJobs[job.id] ? (
+                                          <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                          <Download className="h-4 w-4" />
+                                        )}
+                                      </button>
+                                    )}
+                                    <ArrowRight
+                                      className={`h-5 w-5 flex-shrink-0 transition-colors ${isActive ? "text-[#4F55F1]" : "text-[#C1C3D6] group-hover:text-[#4F55F1]"}`}
+                                    />
+                                  </div>
+                                </div>
                               </li>
                             );
                           })}
