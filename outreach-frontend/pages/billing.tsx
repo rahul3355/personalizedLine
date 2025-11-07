@@ -415,7 +415,14 @@ export default function BillingPage() {
                   : plan.monthlyCredits;
                 const perCreditRate = creditsForCycle > 0 ? price / creditsForCycle : 0;
                 const bulkPerCredit = plan.pricePerThousandCredits / 1000;
+                const cycleUnit = isYearly ? "year" : "month";
                 const cycleDescriptor = isYearly ? "yearly plan" : "monthly plan";
+                const yearlySavingsAmount = plan.monthlyPrice * 12 - plan.yearlyPrice;
+                const savingsText = `saving ${formatCurrency(yearlySavingsAmount, plan.currency)} (20%)`;
+                const featureLabels = [
+                  `${creditsForCycle.toLocaleString()} credits/${cycleUnit}`,
+                  `$${plan.pricePerThousandCredits} per 1000 credits`,
+                ];
                 const featureDetails = [
                   `${formatPerCredit(perCreditRate)} per credit`,
                   `${formatPerCredit(bulkPerCredit)} per credit`,
@@ -490,14 +497,14 @@ export default function BillingPage() {
                           <AnimatePresence mode="wait" initial={false}>
                             {isYearly && plan.yearlySavings && (
                               <motion.span
-                                key={plan.yearlySavings}
+                                key={savingsText}
                                 initial={{ opacity: 0, y: -4 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: 4 }}
                                 transition={{ duration: 0.2 }}
                                 className="text-sm font-medium text-[#ff7a00]"
                               >
-                                saving {plan.yearlySavings.replace("Save ", "").toLowerCase()}
+                                {savingsText}
                               </motion.span>
                             )}
                           </AnimatePresence>
@@ -515,8 +522,8 @@ export default function BillingPage() {
                     </button>
 
                     <ul className="mt-6 space-y-3 text-left text-sm text-neutral-700">
-                      {plan.features.map((feature, index) => (
-                        <li key={feature} className="flex items-start gap-2 font-medium">
+                      {featureLabels.map((feature, index) => (
+                        <li key={`${plan.id}-feature-${index}`} className="flex items-start gap-2 font-medium">
                           {index === 0 ? (
                             <CreditCard className="mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-900" />
                           ) : index === 1 ? (
