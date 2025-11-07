@@ -382,11 +382,8 @@ export default function BillingPage() {
                 const bulkPerCredit = plan.pricePerThousandCredits / 1000;
                 const cycleDescriptor = isYearly ? "yearly plan" : "monthly plan";
                 const featureDetails = [
-                  `${plan.name} ${cycleDescriptor} averages ${formatPerCredit(perCreditRate)} per credit.`,
-                  `1,000-credit refills land at ${formatPerCredit(bulkPerCredit)} per credit (${formatCurrency(
-                    plan.pricePerThousandCredits,
-                    plan.currency,
-                  )} total).`,
+                  `${formatPerCredit(perCreditRate)} per credit`,
+                  `${formatPerCredit(bulkPerCredit)} per credit`,
                 ];
 
                 return (
@@ -499,10 +496,7 @@ export default function BillingPage() {
                             </span>
                             <ul className="mt-1 space-y-1 text-xs font-normal text-neutral-400">
                               <li className="flex items-start gap-2">
-                                <CheckCircle2
-                                  className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-neutral-400"
-                                  aria-hidden="true"
-                                />
+                                
                                 <span>{featureDetails[index] ?? ""}</span>
                               </li>
                             </ul>
