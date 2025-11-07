@@ -220,7 +220,7 @@ function DiscordTooltip({ message }: { message: string }) {
         onPointerDown={(event) => event.stopPropagation()}
         onKeyDown={(event) => event.stopPropagation()}
       >
-        <TbHelpCircle aria-hidden="true" className="h-3.5 w-3.5" />
+        <TbHelpCircle aria-hidden="true" className="h-3.5 w-3.5 mt-px -ml-px" />
       </button>
       <span className="absolute left-1/2 top-full z-20 mt-2 hidden -translate-x-1/2 group-hover:flex group-focus-within:flex">
         <span className="relative rounded-md border border-[#2b2d31] bg-[#1e1f22] px-3 py-1.5 text-[10px] font-medium text-[#dbdee1] shadow-[0_20px_45px_rgba(0,0,0,0.55)] whitespace-nowrap">
