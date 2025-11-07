@@ -16,9 +16,9 @@ import {
   ShieldCheck,
   LifeBuoy,
   Users,
-  Sparkles,
   Brain,
   CheckCircle2,
+  Star,
 } from "lucide-react";
 import { TbHelpCircle } from "react-icons/tb";
 import { Switch } from "@headlessui/react";
@@ -156,7 +156,7 @@ const enterpriseFeatures = [
 ];
 
 const enterpriseCtaHighlights = [
-  { label: "Dedicated Account Strategist", Icon: Sparkles },
+  { label: "Dedicated Account Strategist", Icon: Star },
   { label: "Quarterly Success Reviews", Icon: CheckCircle2 },
 ];
 
