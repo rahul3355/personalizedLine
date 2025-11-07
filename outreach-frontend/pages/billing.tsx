@@ -155,6 +155,11 @@ const enterpriseFeatures = [
   { label: "Customized Email Scripts", Icon: Brain },
 ];
 
+const enterpriseCtaHighlights = [
+  { label: "Dedicated Account Strategist", Icon: Sparkles },
+  { label: "Quarterly Success Reviews", Icon: CheckCircle2 },
+];
+
 type CurrencyParts = {
   currencySymbol: string;
   number: string;
@@ -548,7 +553,7 @@ export default function BillingPage() {
               <header>
                 <p className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Enterprise</p>
               </header>
-              <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-center  lg:justify-between">
+              <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-stretch lg:justify-between">
                 <ul className="grid flex-1 grid-cols-1 gap-x-6 gap-y-4 text-sm text-neutral-700 sm:grid-cols-2">
                   {enterpriseFeatures.map(({ label, Icon }) => (
                     <li key={label} className="flex items-start gap-2 font-medium">
@@ -557,12 +562,22 @@ export default function BillingPage() {
                     </li>
                   ))}
                 </ul>
-                <a
-                  href="mailto:founders@personalizedline.com"
-                  className="inline-flex items-center justify-center rounded-full bg-neutral-900 px-5 py-3 text-sm font-semibold text-white transition hover:scale-[1.02] hover:bg-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-black sm:self-start lg:self-auto lg:flex-shrink-0"
-                >
-                  Talk to us
-                </a>
+                <div className="flex w-full flex-col justify-between gap-4 sm:max-w-sm lg:max-w-xs lg:self-stretch">
+                  <ul className="space-y-3 text-sm text-neutral-700">
+                    {enterpriseCtaHighlights.map(({ label, Icon }) => (
+                      <li key={label} className="flex items-start gap-2 font-medium">
+                        <Icon className="mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-900" aria-hidden="true" />
+                        <span>{label}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <a
+                    href="mailto:founders@personalizedline.com"
+                    className="inline-flex w-full items-center justify-center rounded-xl bg-neutral-900 px-8 py-3 text-sm font-semibold text-white transition hover:scale-[1.02] hover:bg-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                  >
+                    Talk to us
+                  </a>
+                </div>
               </div>
             </article>
           </section>
