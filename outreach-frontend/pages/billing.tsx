@@ -45,6 +45,36 @@ type PlanConfig = {
   pricePerThousandCredits: number;
 };
 
+// ============================================================================
+// PRICING CONFIGURATION - Update monthly prices here
+// Annual prices are automatically calculated with 20% off
+// ============================================================================
+
+const PRICING = {
+  starter: {
+    monthlyPrice: 49,
+    credits: 2000,
+    addonPricePer1000: 15,
+  },
+  growth: {
+    monthlyPrice: 149,
+    credits: 10000,
+    addonPricePer1000: 13,
+  },
+  pro: {
+    monthlyPrice: 499,
+    credits: 40000,
+    addonPricePer1000: 11,
+  },
+} as const;
+
+// Helper function to calculate annual price with 20% off
+function calculateAnnualPrice(monthlyPrice: number): number {
+  return Math.round(monthlyPrice * 12 * 0.8);
+}
+
+// ============================================================================
+
 function formatCurrency(amount: number, currency = "USD") {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -63,54 +93,54 @@ const planConfigurations: PlanConfig[] = [
     id: "starter",
     name: "Starter",
     tagline: "",
-    monthlyPrice: 44,
-    yearlyPrice: 96,
+    monthlyPrice: PRICING.starter.monthlyPrice,
+    yearlyPrice: calculateAnnualPrice(PRICING.starter.monthlyPrice),
     yearlySavings: "Save 20%",
     currency: "USD",
     ctaLabel: "Upgrade to Starter",
     features: [
-      "2000 credits/month",
-      "$11 per 1000 credits",
+      `${PRICING.starter.credits.toLocaleString()} credits/month`,
+      `$${PRICING.starter.addonPricePer1000} per 1000 credits`,
     ],
     includes: "Everything in Free",
-    monthlyCredits: 2000,
-    pricePerThousandCredits: 19,
+    monthlyCredits: PRICING.starter.credits,
+    pricePerThousandCredits: PRICING.starter.addonPricePer1000,
   },
   {
     id: "growth",
     name: "Growth",
     tagline: "",
-    monthlyPrice: 84,
-    yearlyPrice: 528,
-    yearlySavings: "Save 12%",
+    monthlyPrice: PRICING.growth.monthlyPrice,
+    yearlyPrice: calculateAnnualPrice(PRICING.growth.monthlyPrice),
+    yearlySavings: "Save 20%",
     currency: "USD",
     badge: "Popular",
     popular: true,
     ctaLabel: "Upgrade to Growth",
     features: [
-      "10000 credits/month",
-      "$9 per 1000 credits",
+      `${PRICING.growth.credits.toLocaleString()} credits/month`,
+      `$${PRICING.growth.addonPricePer1000} per 1000 credits`,
     ],
     includes: "Everything in Starter",
-    monthlyCredits: 10000,
-    pricePerThousandCredits: 19,
+    monthlyCredits: PRICING.growth.credits,
+    pricePerThousandCredits: PRICING.growth.addonPricePer1000,
   },
   {
     id: "pro",
     name: "Pro",
     tagline: "",
-    monthlyPrice: 264,
-    yearlyPrice: 1056,
-    yearlySavings: "Save 12%",
+    monthlyPrice: PRICING.pro.monthlyPrice,
+    yearlyPrice: calculateAnnualPrice(PRICING.pro.monthlyPrice),
+    yearlySavings: "Save 20%",
     currency: "USD",
     ctaLabel: "Upgrade to Pro",
     features: [
-      "25000 credits/month",
-      "$7 per 1000 credits",
+      `${PRICING.pro.credits.toLocaleString()} credits/month`,
+      `$${PRICING.pro.addonPricePer1000} per 1000 credits`,
     ],
     includes: "Everything in Growth",
-    monthlyCredits: 25000,
-    pricePerThousandCredits: 7,
+    monthlyCredits: PRICING.pro.credits,
+    pricePerThousandCredits: PRICING.pro.addonPricePer1000,
   },
 ];
 
