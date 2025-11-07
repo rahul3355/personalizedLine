@@ -400,6 +400,9 @@ export default function BillingPage() {
                   } inline-block h-5 w-5 transform rounded-full bg-white transition`}
               />
             </Switch>
+            {isYearly && (
+              <span className="text-sm font-medium text-[#ff7a00]">saving 20%</span>
+            )}
 
           </div>
 
@@ -418,7 +421,7 @@ export default function BillingPage() {
                 const cycleUnit = isYearly ? "year" : "month";
                 const cycleDescriptor = isYearly ? "yearly plan" : "monthly plan";
                 const yearlySavingsAmount = plan.monthlyPrice * 12 - plan.yearlyPrice;
-                const savingsText = `saving ${formatCurrency(yearlySavingsAmount, plan.currency)} (20%)`;
+                const savingsText = `saving ${formatCurrency(yearlySavingsAmount, plan.currency)}`;
                 const featureLabels = [
                   `${creditsForCycle.toLocaleString()} credits/${cycleUnit}`,
                   `$${plan.pricePerThousandCredits} per 1000 credits`,
