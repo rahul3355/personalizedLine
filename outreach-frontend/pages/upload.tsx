@@ -962,7 +962,7 @@ export default function UploadPage() {
       {/* DESKTOP */}
       <div className="hidden md:block">
         <section
-          className="md:px-8 md:py-6 min-h-[calc(100vh-64px)] bg-white"
+          className="md:px-8 md:py-6 min-h-[calc(100vh-170px)] bg-white"
           style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}
         >
           <div className="max-w-[960px] mx-auto">
