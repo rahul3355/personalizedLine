@@ -492,7 +492,7 @@ export default function UploadPage() {
                   animate={{ x: 0 }}
                   exit={{ x: "100%" }}
                   transition={{ type: "spring", stiffness: 260, damping: 30 }}
-                  className="absolute inset-y-0 right-0 w-full max-w-md bg-white"
+                  className="absolute inset-y-0 right-0 w-full max-w-md bg-[#FCFCFC]"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <ExamplesDrawerPanel onClose={closeExamples} isMobile />
