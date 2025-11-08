@@ -156,45 +156,73 @@ const EXAMPLE_DATA: ExampleItem[] = [
   },
   {
     id: "ex3",
+    category: "outreach",
+    core_offer: "LinkedIn automation for outbound prospecting",
+    key_differentiator: "Send 200+ personalized connection requests daily with AI-generated messages",
+    cta: "Try it free for 14 days",
+  },
+  {
+    id: "ex4",
     category: "sales",
     core_offer: "CRM integration that syncs with your existing workflow",
     key_differentiator: "Zero setup time - plug and play in under 5 minutes",
     cta: "Schedule a walkthrough with our team",
   },
   {
-    id: "ex4",
+    id: "ex5",
     category: "sales",
     core_offer: "Sales intelligence platform for B2B teams",
     key_differentiator: "Access to 50M+ verified contacts across all industries",
     cta: "Get started with 100 free credits",
   },
   {
-    id: "ex5",
+    id: "ex6",
+    category: "sales",
+    core_offer: "Interactive proposal software for closing deals faster",
+    key_differentiator: "Track engagement in real-time and follow up at the perfect moment",
+    cta: "Create your first proposal in minutes",
+  },
+  {
+    id: "ex7",
     category: "marketing",
     core_offer: "Multi-channel campaign automation",
     key_differentiator: "Increases conversion rates by 3x with smart segmentation",
     cta: "See our case studies and ROI calculator",
   },
   {
-    id: "ex6",
+    id: "ex8",
     category: "marketing",
     core_offer: "Content personalization engine for websites",
     key_differentiator: "Real-time visitor analytics and dynamic content delivery",
     cta: "Request a personalized demo",
   },
   {
-    id: "ex7",
+    id: "ex9",
+    category: "marketing",
+    core_offer: "Email marketing automation with advanced A/B testing",
+    key_differentiator: "Achieve 40% higher open rates with AI-optimized send times",
+    cta: "Sign up and send your first campaign free",
+  },
+  {
+    id: "ex10",
     category: "recruitment",
     core_offer: "AI-powered candidate screening and matching",
     key_differentiator: "Reduces time-to-hire by 60% with intelligent automation",
     cta: "Book a consultation with our hiring experts",
   },
   {
-    id: "ex8",
+    id: "ex11",
     category: "recruitment",
     core_offer: "Talent sourcing platform with passive candidate reach",
     key_differentiator: "2x larger talent pool than traditional job boards",
     cta: "Start sourcing top talent in 48 hours",
+  },
+  {
+    id: "ex12",
+    category: "recruitment",
+    core_offer: "Interview scheduling and coordination platform",
+    key_differentiator: "Eliminates back-and-forth emails with smart calendar integration",
+    cta: "Schedule a demo to see how it works",
   },
 ];
 
@@ -403,15 +431,22 @@ function ExamplesDrawerPanel({
   const radiusClass = isMobile ? "rounded-l-3xl" : "rounded-[24px]";
 
   // Filter examples based on search and category
+  // When searching, ALWAYS search across ALL categories
   const filteredExamples = EXAMPLE_DATA.filter((example) => {
-    const matchesCategory = selectedCategory === "all" || example.category === selectedCategory;
     const matchesSearch =
       searchQuery === "" ||
       example.core_offer.toLowerCase().includes(searchQuery.toLowerCase()) ||
       example.key_differentiator.toLowerCase().includes(searchQuery.toLowerCase()) ||
       example.cta.toLowerCase().includes(searchQuery.toLowerCase());
 
-    return matchesCategory && matchesSearch;
+    // If there's a search query, ignore category filter and search all
+    if (searchQuery !== "") {
+      return matchesSearch;
+    }
+
+    // If no search query, filter by category as usual
+    const matchesCategory = selectedCategory === "all" || example.category === selectedCategory;
+    return matchesCategory;
   });
 
   return (
@@ -461,43 +496,58 @@ function ExamplesDrawerPanel({
             const isSelected = selectedCategory === category.id;
 
             return (
-              <button
-                key={category.id}
-                type="button"
-                onClick={() => setSelectedCategory(category.id)}
-                className={`
-                  flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all
-                  ${isSelected
-                    ? 'bg-white border-gray-400 shadow-sm'
-                    : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm'
-                  }
-                `}
-                title={category.label}
-                aria-label={category.label}
-              >
-                <Icon
-                  className={`h-4 w-4 ${isSelected ? 'text-gray-700' : 'text-gray-500'}`}
-                />
-              </button>
+              <div key={category.id} className="relative group">
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategory(category.id)}
+                  className={`
+                    flex items-center justify-center w-10 h-10 rounded-full transition-all
+                    ${isSelected ? 'bg-white' : 'bg-white hover:bg-gray-50'}
+                  `}
+                  title={category.label}
+                  aria-label={category.label}
+                >
+                  <Icon
+                    className={`h-4 w-4 ${isSelected ? 'text-gray-700' : 'text-gray-500'}`}
+                  />
+                </button>
+                <div
+                  className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap"
+                  style={{
+                    backgroundColor: 'rgba(24, 25, 28, 0.95)',
+                    color: 'white'
+                  }}
+                >
+                  {category.label}
+                </div>
+              </div>
             );
           })}
 
           {/* All Categories Button */}
-          <button
-            type="button"
-            onClick={() => setSelectedCategory("all")}
-            className={`
-              flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all text-xs font-semibold
-              ${selectedCategory === "all"
-                ? 'bg-white border-gray-400 shadow-sm text-gray-700'
-                : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm text-gray-500'
-              }
-            `}
-            title="All Categories"
-            aria-label="All Categories"
-          >
-            All
-          </button>
+          <div className="relative group">
+            <button
+              type="button"
+              onClick={() => setSelectedCategory("all")}
+              className={`
+                flex items-center justify-center w-10 h-10 rounded-full transition-all text-xs font-semibold
+                ${selectedCategory === "all" ? 'bg-white text-gray-700' : 'bg-white text-gray-500 hover:bg-gray-50'}
+              `}
+              title="All Categories"
+              aria-label="All Categories"
+            >
+              All
+            </button>
+            <div
+              className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap"
+              style={{
+                backgroundColor: 'rgba(24, 25, 28, 0.95)',
+                color: 'white'
+              }}
+            >
+              All
+            </div>
+          </div>
         </div>
 
         {/* Scrollable Content Area */}
@@ -546,15 +596,26 @@ function ExamplesDrawerPanel({
                   <button
                     type="button"
                     onClick={() => onUseExample(example)}
-                    className="px-4 py-2 rounded-md text-sm font-medium text-white transition-colors"
+                    className="px-4 py-2 rounded-md text-sm font-medium border transition-colors"
                     style={{
-                      backgroundColor: '#C026D3',
-                      ':hover': { backgroundColor: '#A21CAF' }
+                      backgroundColor: 'white',
+                      borderColor: '#D1D5DB',
+                      color: '#6B7280'
                     }}
                     onMouseEnter={(e) => {
-                      (e.target as HTMLButtonElement).style.backgroundColor = '#A21CAF';
+                      (e.target as HTMLButtonElement).style.backgroundColor = '#C026D3';
+                      (e.target as HTMLButtonElement).style.color = 'white';
+                      (e.target as HTMLButtonElement).style.borderColor = '#C026D3';
                     }}
                     onMouseLeave={(e) => {
+                      (e.target as HTMLButtonElement).style.backgroundColor = 'white';
+                      (e.target as HTMLButtonElement).style.color = '#6B7280';
+                      (e.target as HTMLButtonElement).style.borderColor = '#D1D5DB';
+                    }}
+                    onMouseDown={(e) => {
+                      (e.target as HTMLButtonElement).style.backgroundColor = '#A21CAF';
+                    }}
+                    onMouseUp={(e) => {
                       (e.target as HTMLButtonElement).style.backgroundColor = '#C026D3';
                     }}
                   >
