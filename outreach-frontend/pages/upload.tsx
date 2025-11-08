@@ -6,6 +6,7 @@ import {
   useRef,
   useCallback,
   type DragEvent as ReactDragEvent,
+  type ReactNode,
 } from "react";
 import { Switch } from "@headlessui/react";
 import { API_URL } from "../lib/api";
@@ -137,14 +138,25 @@ type CreditInfo = {
 
 
 
+type TooltipHandlers = {
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
+  onFocus: () => void;
+  onBlur: () => void;
+};
+
 const HelpTooltip = ({
   fieldKey,
   showLabelSpacing = true,
   buttonClassName,
+  renderTrigger,
+  containerClassName,
 }: {
   fieldKey: ServiceHelpKey;
   showLabelSpacing?: boolean;
   buttonClassName?: string;
+  renderTrigger?: (handlers: TooltipHandlers) => ReactNode;
+  containerClassName?: string;
 }) => {
   const [showTooltip, setShowTooltip] = useState(false);
   const help = HELP_CONTENT[fieldKey];
@@ -156,18 +168,35 @@ const HelpTooltip = ({
     .filter(Boolean)
     .join(" ");
 
+  const containerClasses = ["relative inline-block", containerClassName]
+    .filter(Boolean)
+    .join(" ");
+
+  const handlers: TooltipHandlers = {
+    onMouseEnter: () => setShowTooltip(true),
+    onMouseLeave: () => setShowTooltip(false),
+    onFocus: () => setShowTooltip(true),
+    onBlur: () => setShowTooltip(false),
+  };
+
   return (
-    <div className="relative inline-block">
-      <button
-        type="button"
-        onMouseEnter={() => setShowTooltip(true)}
-        onMouseLeave={() => setShowTooltip(false)}
-        onClick={() => setShowTooltip(!showTooltip)}
-        className={triggerClasses}
-        aria-label="Help"
-      >
-        <HelpCircle className="w-3.5 h-3.5 text-gray-400" />
-      </button>
+    <div className={containerClasses}>
+      {renderTrigger ? (
+        renderTrigger(handlers)
+      ) : (
+        <button
+          type="button"
+          onMouseEnter={handlers.onMouseEnter}
+          onMouseLeave={handlers.onMouseLeave}
+          onClick={() => setShowTooltip(!showTooltip)}
+          onFocus={handlers.onFocus}
+          onBlur={handlers.onBlur}
+          className={triggerClasses}
+          aria-label="Help"
+        >
+          <HelpCircle className="w-3.5 h-3.5 text-gray-400" />
+        </button>
+      )}
 
       {showTooltip && (
         <div
@@ -180,8 +209,8 @@ const HelpTooltip = ({
             boxShadow: "0px 5px 15px rgba(0, 0, 0, 0.3)",
             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
           }}
-          onMouseEnter={() => setShowTooltip(true)}
-          onMouseLeave={() => setShowTooltip(false)}
+          onMouseEnter={handlers.onMouseEnter}
+          onMouseLeave={handlers.onMouseLeave}
         >
           <div className="space-y-2.5 text-sm" style={{ color: "#dbdee1" }}>
             <p className="leading-relaxed">{help.what}</p>
@@ -1292,22 +1321,34 @@ export default function UploadPage() {
                   <div className="space-y-6">
                     <div className="flex flex-col gap-5 w-full">
                       {!showPreview && !previewResult && (
-                        <div className="flex flex-col items-center gap-3">
-                          <div className="flex items-center justify-center gap-1 text-xs font-semibold text-gray-700">
-                            <span>Preview</span>
-                            <HelpTooltip
-                              fieldKey="preview_button"
-                              showLabelSpacing={false}
-                            />
-                          </div>
-                          <button
-                            type="button"
-                            onClick={handleShowPreview}
-                            disabled={previewLoading || !isServiceContextComplete()}
-                            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-gray-900 bg-gray-900 text-white font-semibold transition disabled:bg-gray-400 disabled:border-gray-400 disabled:text-white disabled:cursor-not-allowed"
-                          >
-                            {previewLoading ? "Loading..." : "Preview"}
-                          </button>
+                        <div className="flex flex-col items-center">
+                          <HelpTooltip
+                            fieldKey="preview_button"
+                            showLabelSpacing={false}
+                            renderTrigger={({
+                              onMouseEnter,
+                              onMouseLeave,
+                              onFocus,
+                              onBlur,
+                            }) => (
+                              <div
+                                onMouseEnter={onMouseEnter}
+                                onMouseLeave={onMouseLeave}
+                                onFocus={onFocus}
+                                onBlur={onBlur}
+                                className="inline-flex items-center justify-center"
+                              >
+                                <button
+                                  type="button"
+                                  onClick={handleShowPreview}
+                                  disabled={previewLoading || !isServiceContextComplete()}
+                                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-gray-900 bg-gray-900 text-white font-semibold transition disabled:bg-gray-400 disabled:border-gray-400 disabled:text-white disabled:cursor-not-allowed"
+                                >
+                                  {previewLoading ? "Loading..." : "Preview"}
+                                </button>
+                              </div>
+                            )}
+                          />
                         </div>
                       )}
 
@@ -1575,23 +1616,34 @@ export default function UploadPage() {
               <div className="space-y-6">
                 <div className="flex flex-col items-center space-y-4">
                   {!showPreview && !previewResult && (
-                    <div className="w-full flex flex-col items-center gap-3">
-                      <div className="flex items-center justify-center gap-1 text-xs font-semibold text-gray-700">
-                        <span>Preview</span>
-                        <HelpTooltip
-                          fieldKey="preview_button"
-                          showLabelSpacing={false}
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleShowPreview}
-                        disabled={previewLoading || !isServiceContextComplete()}
-                        className="w-full inline-flex items-center justify-center px-6 py-3 rounded-full border border-gray-900 bg-gray-900 text-white font-semibold tracking-tight transition disabled:bg-gray-400 disabled:border-gray-400 disabled:text-white disabled:cursor-not-allowed"
-                      >
-                        {previewLoading ? "Loading..." : "Preview"}
-                      </button>
-                    </div>
+                    <HelpTooltip
+                      fieldKey="preview_button"
+                      showLabelSpacing={false}
+                      containerClassName="relative block w-full"
+                      renderTrigger={({
+                        onMouseEnter,
+                        onMouseLeave,
+                        onFocus,
+                        onBlur,
+                      }) => (
+                        <div
+                          onMouseEnter={onMouseEnter}
+                          onMouseLeave={onMouseLeave}
+                          onFocus={onFocus}
+                          onBlur={onBlur}
+                          className="w-full"
+                        >
+                          <button
+                            type="button"
+                            onClick={handleShowPreview}
+                            disabled={previewLoading || !isServiceContextComplete()}
+                            className="w-full inline-flex items-center justify-center px-6 py-3 rounded-full border border-gray-900 bg-gray-900 text-white font-semibold tracking-tight transition disabled:bg-gray-400 disabled:border-gray-400 disabled:text-white disabled:cursor-not-allowed"
+                          >
+                            {previewLoading ? "Loading..." : "Preview"}
+                          </button>
+                        </div>
+                      )}
+                    />
                   )}
 
                   {showPreview && !previewResult && (
