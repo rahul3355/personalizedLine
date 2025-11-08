@@ -24,3 +24,5 @@ __pycache__/
 # Ignore OS/filesystem junk
 .DS_Store
 Thumbs.db
+
+!outreach-frontend/data/
