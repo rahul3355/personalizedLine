@@ -416,8 +416,12 @@ function ExamplesDrawerPanel({
 
   return (
     <div
-      className={`relative flex min-h-full flex-col ${radiusClass} bg-[#F5F5F5] shadow-[0_12px_30px_rgba(0,0,0,0.08)]`}
-      style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}
+      className={`relative flex flex-col ${radiusClass} bg-[#F5F5F5] shadow-[0_12px_30px_rgba(0,0,0,0.08)]`}
+      style={{
+        fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui',
+        height: '450px',
+        maxHeight: '450px'
+      }}
     >
       {/* Close Button */}
       <button
@@ -449,9 +453,9 @@ function ExamplesDrawerPanel({
       </div>
 
       {/* Main Content Area with Sidebar */}
-      <div className="flex flex-1 gap-3 px-4 pb-4 overflow-hidden">
+      <div className="flex flex-1 gap-3 px-4 pb-4 overflow-hidden min-h-0">
         {/* Left Sidebar */}
-        <div className="flex flex-col gap-3 pt-2">
+        <div className="flex flex-col gap-3 pt-2 flex-shrink-0">
           {EXAMPLE_CATEGORIES.map((category) => {
             const Icon = category.icon;
             const isSelected = selectedCategory === category.id;
@@ -497,7 +501,7 @@ function ExamplesDrawerPanel({
         </div>
 
         {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto pr-2 space-y-3" style={{ scrollbarWidth: 'thin', scrollbarColor: '#D1D5DB #F5F5F5' }}>
+        <div className="flex-1 overflow-y-scroll pr-2 space-y-3 min-h-0" style={{ scrollbarWidth: 'thin', scrollbarColor: '#9CA3AF #F5F5F5' }}>
           {filteredExamples.length === 0 ? (
             <div className="flex items-center justify-center h-full text-gray-400 text-sm">
               No examples found
