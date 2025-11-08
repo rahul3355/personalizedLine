@@ -1342,7 +1342,7 @@ export default function UploadPage() {
                                   type="button"
                                   onClick={handleShowPreview}
                                   disabled={previewLoading || !isServiceContextComplete()}
-                                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-gray-900 bg-gray-900 text-white font-semibold transition disabled:bg-gray-400 disabled:border-gray-400 disabled:text-white disabled:cursor-not-allowed"
+                                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-gray-300 bg-white text-gray-600 font-semibold transition hover:bg-gray-50 disabled:bg-white disabled:border-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
                                 >
                                   {previewLoading ? "Loading..." : "Preview"}
                                 </button>
@@ -1637,7 +1637,7 @@ export default function UploadPage() {
                             type="button"
                             onClick={handleShowPreview}
                             disabled={previewLoading || !isServiceContextComplete()}
-                            className="w-full inline-flex items-center justify-center px-6 py-3 rounded-full border border-gray-900 bg-gray-900 text-white font-semibold tracking-tight transition disabled:bg-gray-400 disabled:border-gray-400 disabled:text-white disabled:cursor-not-allowed"
+                            className="w-full inline-flex items-center justify-center px-6 py-3 rounded-full border border-gray-300 bg-white text-gray-600 font-semibold tracking-tight transition hover:bg-gray-50 disabled:bg-white disabled:border-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
                           >
                             {previewLoading ? "Loading..." : "Preview"}
                           </button>
