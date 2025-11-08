@@ -75,7 +75,13 @@ const SERVICE_FIELDS: { key: ServiceFieldKey; label: string; placeholder: string
   },
 ];
 
-const HELP_CONTENT: Record<ServiceHelpKey, { what: string; why: string; example: string }> = {
+type HelpContent = {
+  what: string;
+  why: string;
+  example?: string;
+};
+
+const HELP_CONTENT: Record<ServiceHelpKey, HelpContent> = {
   core_offer: {
     what: "The main product or service you're offering to prospects.",
     why: "This helps prospects quickly understand what you do and whether it's relevant to them.",
@@ -99,7 +105,6 @@ const HELP_CONTENT: Record<ServiceHelpKey, { what: string; why: string; example:
   preview_button: {
     what: "Generates a sample personalized email from your uploaded file.",
     why: "Lets you confirm the tone and content before committing credits to a full run.",
-    example: "Try a preview to see how your messaging lands before generating everything",
   },
 };
 
@@ -160,6 +165,7 @@ const HelpTooltip = ({
 }) => {
   const [showTooltip, setShowTooltip] = useState(false);
   const help = HELP_CONTENT[fieldKey];
+  const isPreviewTooltip = fieldKey === "preview_button";
   const triggerClasses = [
     "inline-flex items-center justify-center w-4 h-4 rounded-full hover:bg-gray-100 transition-colors",
     showLabelSpacing ? "ml-1.5" : "",
@@ -213,16 +219,28 @@ const HelpTooltip = ({
           onMouseLeave={handlers.onMouseLeave}
         >
           <div className="space-y-2.5 text-sm" style={{ color: "#dbdee1" }}>
+            {isPreviewTooltip && (
+              <p
+                className="leading-relaxed"
+                style={{ color: "#dbdee1", marginBottom: "0.5rem" }}
+              >
+                (Highly Recommended)
+              </p>
+            )}
             <p className="leading-relaxed">{help.what}</p>
             <p className="leading-relaxed">{help.why}</p>
-            <p className="leading-relaxed" style={{ color: "#b5bac1" }}>
-              e.g., "{help.example}"
-            </p>
-            <div className="pt-2 border-t" style={{ borderColor: "rgba(255, 255, 255, 0.08)" }}>
-              <p style={{ color: "#949ba4", fontSize: "0.8125rem" }}>
-                Leave blank if not relevant to you.
+            {!isPreviewTooltip && help.example && (
+              <p className="leading-relaxed" style={{ color: "#b5bac1" }}>
+                e.g., "{help.example}"
               </p>
-            </div>
+            )}
+            {!isPreviewTooltip && (
+              <div className="pt-2 border-t" style={{ borderColor: "rgba(255, 255, 255, 0.08)" }}>
+                <p style={{ color: "#949ba4", fontSize: "0.8125rem" }}>
+                  Leave blank if not relevant to you.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}
