@@ -29,6 +29,7 @@ import {
   TrendingUp,
   Sparkles,
   ListChecks,
+  ChevronDown,
 } from "lucide-react";
 import { useAuth } from "../lib/AuthProvider";
 import { useRouter } from "next/router";
@@ -839,9 +840,10 @@ export default function UploadPage() {
                 value={serviceComponents[field.key]}
                 onChange={(e) => updateServiceComponent(field.key, e.target.value)}
                 placeholder={field.placeholder}
-                className="w-full rounded-md border border-gray-200 bg-white px-3 py-3 text-sm text-gray-900 shadow-sm transition focus:border-[#4F55F1] focus:ring-2 focus:ring-[#4F55F1]"
+                className="w-full rounded-md border border-gray-200 bg-white px-3 py-3 text-sm text-gray-900 shadow-sm transition focus:border-[#4F55F1] focus:ring-2 focus:ring-[#4F55F1] resize-none overflow-auto"
                 rows={field.key === "core_offer" ? 4 : 3}
                 required={field.key === "core_offer"}
+                maxLength={300}
               />
             </div>
           ))}
@@ -1868,9 +1870,16 @@ export default function UploadPage() {
                                   type="button"
                                   onClick={handleShowPreview}
                                   disabled={previewLoading || !isServiceContextComplete()}
-                                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-gray-300 bg-white text-gray-600 font-semibold transition hover:bg-gray-50 disabled:bg-white disabled:border-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
+                                  className="group relative inline-flex items-center gap-2 px-4 py-2 rounded-md font-semibold transition-all duration-200 ease-out disabled:cursor-not-allowed disabled:opacity-50 text-gray-700 hover:text-gray-900 hover:bg-gray-100 hover:scale-105"
                                 >
-                                  {previewLoading ? "Loading..." : "Preview"}
+                                  <span className="relative">
+                                    {previewLoading ? "Loading..." : "Preview"}
+                                    <span
+                                      className="absolute bottom-0 left-0 w-0 h-[2px] bg-gray-900 transition-all duration-300 group-hover:w-full group-disabled:w-0"
+                                      style={{ bottom: '-2px' }}
+                                    />
+                                  </span>
+                                  <ChevronDown className="w-4 h-4 transition-transform duration-200" />
                                 </button>
                               </div>
                             )}
