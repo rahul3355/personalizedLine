@@ -68,8 +68,8 @@ def test_prompt_excludes_fallback_when_disabled():
 
     prompt = mock_post.call_args.kwargs["json"]["messages"][0]["content"]
 
-    assert "- Always include forward option" not in prompt
-    assert "Call-to-action and forward option" not in prompt
+    assert "- Include a forward option for alternate contacts" not in prompt
+    assert "Call-to-action plus optional forward option" not in prompt
     assert "\"fallback_action\"" not in prompt
 
 

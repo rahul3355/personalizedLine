@@ -10,8 +10,6 @@ LOGGER = logging.getLogger(__name__)
 GROQ_CHAT_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_SIF_MODEL = "openai/gpt-oss-120b"
 
-DEFAULT_FALLBACK_ACTION = "Forward if not right person"
-
 def generate_full_email_body(research_components: str, service_context: str) -> str:
     """Generate a full email body using Groq with structured research."""
 
@@ -44,13 +42,11 @@ def generate_full_email_body(research_components: str, service_context: str) -> 
             parsed_service = json.loads(service_context)
             if isinstance(parsed_service, dict):
                 include_flag = parsed_service.get("include_fallback")
-                fallback_action = parsed_service.get("fallback_action")
-                if include_flag is True and (
-                    fallback_action is None
-                    or (isinstance(fallback_action, str) and not fallback_action.strip())
-                ):
-                    parsed_service["fallback_action"] = DEFAULT_FALLBACK_ACTION
-                if include_flag is False:
+                if include_flag is True:
+                    fallback_action = parsed_service.get("fallback_action")
+                    if not isinstance(fallback_action, str) or not fallback_action.strip():
+                        parsed_service.pop("fallback_action", None)
+                else:
                     parsed_service.pop("fallback_action", None)
                 service_components = parsed_service
             else:
@@ -61,15 +57,11 @@ def generate_full_email_body(research_components: str, service_context: str) -> 
             service_components = {
                 "core_offer": service_context,
                 "key_differentiator": "",
-                "cta": "Demo invitation",
-                "timeline": "Next Thursday at 2pm or 5pm",
-                "goal": "Get meeting OR forward to right person",
-                "include_fallback": True,
-                "fallback_action": DEFAULT_FALLBACK_ACTION,
+                "cta": "",
             }
 
     include_fallback = service_components.get("include_fallback")
-    fallback_enabled = include_fallback is not False
+    fallback_enabled = include_fallback is True
 
     critical_rules = [
         "- Use conversational tone with contractions\n",
@@ -77,10 +69,10 @@ def generate_full_email_body(research_components: str, service_context: str) -> 
         "- Reference specific research findings naturally (don't list facts)\n",
         "- Connect their world to the service value or product value\n",
         "- Include self-awareness when appropriate\n",
-        "- Clear CTA with specific times\n",
+        "- Provide a clear call-to-action that matches the service details\n",
     ]
     if fallback_enabled:
-        critical_rules.append("- Always include forward option\n")
+        critical_rules.append("- Include a forward option for alternate contacts\n")
     critical_rules.append(
         "- Sound like a human wrote this, not an AI. Write for easy readability.\n"
     )
@@ -91,7 +83,7 @@ def generate_full_email_body(research_components: str, service_context: str) -> 
     ]
     third_paragraph = "  3. Third paragraph: Call-to-action"
     if fallback_enabled:
-        third_paragraph += " and forward option"
+        third_paragraph += " plus optional forward option"
     formatting_lines.append(f"{third_paragraph}\n\n")
 
     user_prompt = (
