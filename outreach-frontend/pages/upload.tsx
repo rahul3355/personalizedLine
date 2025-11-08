@@ -32,18 +32,18 @@ const BRAND_HOVER = "#3D42D8";
 const BRAND_TINT = "rgba(79,85,241,0.12)";
 const BRAND_SOFT = "rgba(79,85,241,0.22)";
 
+const DEFAULT_INCLUDE_FALLBACK = true;
+
 const DEFAULT_SERVICE_COMPONENTS = {
   core_offer: "AI-powered personalized email outreach at scale",
   key_differentiator:
     "Researches prospect data in depth, writes human-sounding emails",
   cta: "Demo invitation",
-  timeline: "Next Thursday at 2pm or 5pm",
-  goal: "Get meeting OR forward to right person",
-  fallback_action: "Forward if not right person",
 } as const;
 
 type ServiceFieldKey = keyof typeof DEFAULT_SERVICE_COMPONENTS;
 type ServiceComponents = Record<ServiceFieldKey, string>;
+type ServiceHelpKey = ServiceFieldKey | "include_fallback";
 
 const SERVICE_FIELDS: { key: ServiceFieldKey; label: string; placeholder: string }[] = [
   {
@@ -61,24 +61,9 @@ const SERVICE_FIELDS: { key: ServiceFieldKey; label: string; placeholder: string
     label: "Call to Action",
     placeholder: DEFAULT_SERVICE_COMPONENTS.cta,
   },
-  {
-    key: "timeline",
-    label: "Timeline",
-    placeholder: DEFAULT_SERVICE_COMPONENTS.timeline,
-  },
-  {
-    key: "goal",
-    label: "Primary Goal",
-    placeholder: DEFAULT_SERVICE_COMPONENTS.goal,
-  },
-  {
-    key: "fallback_action",
-    label: "Fallback Action",
-    placeholder: DEFAULT_SERVICE_COMPONENTS.fallback_action,
-  },
 ];
 
-const HELP_CONTENT: Record<ServiceFieldKey, { what: string; why: string; example: string }> = {
+const HELP_CONTENT: Record<ServiceHelpKey, { what: string; why: string; example: string }> = {
   core_offer: {
     what: "The main product or service you're offering to prospects.",
     why: "This helps prospects quickly understand what you do and whether it's relevant to them.",
@@ -94,20 +79,10 @@ const HELP_CONTENT: Record<ServiceFieldKey, { what: string; why: string; example
     why: "This directs them clearly to the next step in your outreach process.",
     example: "Book a 15-minute demo call",
   },
-  timeline: {
-    what: "When you want the prospect to take action or meet.",
-    why: "This creates urgency and makes scheduling easier for both parties.",
-    example: "Available Tuesday or Wednesday afternoon",
-  },
-  goal: {
-    what: "The main outcome you want from this outreach campaign.",
-    why: "This keeps your message focused on what matters most to you.",
-    example: "Schedule a qualified sales call",
-  },
-  fallback_action: {
-    what: "Alternative action if the prospect isn't the right person to contact.",
-    why: "This helps you reach the right decision-maker even if you contacted the wrong person initially.",
-    example: "Forward to your sales director",
+  include_fallback: {
+    what: "Whether you want to ask the reader to forward the email if they're not the right contact.",
+    why: "Keeps momentum by inviting prospects to connect you with the correct decision-maker when needed.",
+    example: "Select \"Yes\" to add a forward option at the end of your email",
   },
 };
 
@@ -146,7 +121,7 @@ type CreditInfo = {
 
 
 
-const HelpTooltip = ({ fieldKey }: { fieldKey: ServiceFieldKey }) => {
+const HelpTooltip = ({ fieldKey }: { fieldKey: ServiceHelpKey }) => {
   const [showTooltip, setShowTooltip] = useState(false);
   const help = HELP_CONTENT[fieldKey];
 
@@ -272,6 +247,9 @@ export default function UploadPage() {
   const [serviceComponents, setServiceComponents] = useState<ServiceComponents>(
     () => ({ ...DEFAULT_SERVICE_COMPONENTS })
   );
+  const [includeFallback, setIncludeFallback] = useState<boolean>(
+    DEFAULT_INCLUDE_FALLBACK
+  );
 
   const [loading, setLoading] = useState(false);
   const [jobCreated, setJobCreated] = useState(false);
@@ -315,24 +293,69 @@ export default function UploadPage() {
   const isServiceContextComplete = () =>
     serviceComponents.core_offer.trim().length > 0;
 
-  const renderServiceInputs = (gridClass = "grid-cols-1 md:grid-cols-2") => (
-    <div className={`grid ${gridClass} gap-4`}>
-      {SERVICE_FIELDS.map((field) => (
-        <div key={field.key} className="flex flex-col gap-2">
-          <label className="text-xs font-medium text-gray-700 flex items-center">
-            {field.label}
-            <HelpTooltip fieldKey={field.key} />
+  const serializeServicePayload = () =>
+    JSON.stringify({
+      ...serviceComponents,
+      include_fallback: includeFallback,
+    });
+
+  const renderServiceInputs = () => (
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {SERVICE_FIELDS.map((field) => (
+          <div
+            key={field.key}
+            className={`flex flex-col gap-2 ${
+              field.key === "core_offer" ? "md:col-span-2" : ""
+            }`}
+          >
+            <label className="text-xs font-semibold text-gray-700 flex items-center gap-1">
+              {field.label}
+              <HelpTooltip fieldKey={field.key} />
+            </label>
+            <textarea
+              autoFocus={field.key === "core_offer"}
+              value={serviceComponents[field.key]}
+              onChange={(e) => updateServiceComponent(field.key, e.target.value)}
+              placeholder={field.placeholder}
+              className="w-full rounded-md border border-gray-200 bg-white px-3 py-3 text-sm text-gray-900 shadow-sm transition focus:border-[#4F55F1] focus:ring-2 focus:ring-[#4F55F1]"
+              rows={field.key === "core_offer" ? 4 : 3}
+              required={field.key === "core_offer"}
+            />
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-4">
+        <span className="text-xs font-semibold text-gray-700 flex items-center gap-1">
+          <span className="font-semibold">Include fallback?</span>
+          <HelpTooltip fieldKey="include_fallback" />
+        </span>
+        <div className="flex items-center gap-4 text-xs font-semibold text-gray-700">
+          <label className="inline-flex items-center gap-2 cursor-pointer font-semibold">
+            <input
+              type="radio"
+              name="include-fallback"
+              value="yes"
+              checked={includeFallback}
+              onChange={() => setIncludeFallback(true)}
+              className="h-4 w-4 text-[#4F55F1] border-gray-300 focus:ring-[#4F55F1]"
+            />
+            Yes
           </label>
-          <textarea
-            autoFocus={field.key === "core_offer"}
-            value={serviceComponents[field.key]}
-            onChange={(e) => updateServiceComponent(field.key, e.target.value)}
-            placeholder={field.placeholder}
-            className="w-full rounded-md border border-gray-200 bg-white px-3 py-3 text-sm text-gray-900 shadow-sm transition focus:border-[#4F55F1] focus:ring-2 focus:ring-[#4F55F1]"
-            rows={3}
-          />
+          <label className="inline-flex items-center gap-2 cursor-pointer font-semibold">
+            <input
+              type="radio"
+              name="include-fallback"
+              value="no"
+              checked={!includeFallback}
+              onChange={() => setIncludeFallback(false)}
+              className="h-4 w-4 text-[#4F55F1] border-gray-300 focus:ring-[#4F55F1]"
+            />
+            No
+          </label>
         </div>
-      ))}
+      </div>
     </div>
   );
 
@@ -347,6 +370,7 @@ export default function UploadPage() {
       setStep(0);
       setEmailCol("");
       setServiceComponents({ ...DEFAULT_SERVICE_COMPONENTS });
+      setIncludeFallback(DEFAULT_INCLUDE_FALLBACK);
       setRefreshingCredits(false);
     },
     []
@@ -740,7 +764,7 @@ export default function UploadPage() {
         user_id: session?.user.id || "",
         file_path: tempPath,
         email_col: emailCol,
-        service: JSON.stringify(serviceComponents),
+        service: serializeServicePayload(),
       };
 
       const res = await fetch(`${API_URL}/jobs`, {
@@ -884,7 +908,7 @@ export default function UploadPage() {
           file_path: tempPath,
           email_col: emailCol,
           selected_email: selectedPreviewEmail,
-          service: JSON.stringify(serviceComponents),
+          service: serializeServicePayload(),
         }),
       });
 
@@ -1502,7 +1526,7 @@ export default function UploadPage() {
           <div className="max-w-md w-full space-y-6 pb-8" style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}>
             <h2 className="text-lg font-semibold text-gray-900 text-center">Describe Your Service</h2>
             {renderCreditBanner(true)}
-            {renderServiceInputs("grid-cols-1")}
+            {renderServiceInputs()}
 
             {/* Mobile Preview Section */}
             <div className="mt-6 pt-6 border-t border-gray-200">
