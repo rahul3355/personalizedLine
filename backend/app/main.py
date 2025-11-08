@@ -490,9 +490,10 @@ class ServiceComponents(BaseModel):
     core_offer: str
     key_differentiator: str
     cta: str
-    timeline: str
-    goal: str
-    fallback_action: str
+    include_fallback: Optional[bool] = True
+    timeline: Optional[str] = None
+    goal: Optional[str] = None
+    fallback_action: Optional[str] = None
 
 
 class JobRequest(BaseModel):

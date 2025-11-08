@@ -10,6 +10,8 @@ LOGGER = logging.getLogger(__name__)
 GROQ_CHAT_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_SIF_MODEL = "openai/gpt-oss-120b"
 
+DEFAULT_FALLBACK_ACTION = "Forward if not right person"
+
 def generate_full_email_body(research_components: str, service_context: str) -> str:
     """Generate a full email body using Groq with structured research."""
 
@@ -39,7 +41,20 @@ def generate_full_email_body(research_components: str, service_context: str) -> 
     service_components = {}
     if service_context and service_context.strip():
         try:
-            service_components = json.loads(service_context)
+            parsed_service = json.loads(service_context)
+            if isinstance(parsed_service, dict):
+                include_flag = parsed_service.get("include_fallback")
+                fallback_action = parsed_service.get("fallback_action")
+                if include_flag is True and (
+                    fallback_action is None
+                    or (isinstance(fallback_action, str) and not fallback_action.strip())
+                ):
+                    parsed_service["fallback_action"] = DEFAULT_FALLBACK_ACTION
+                if include_flag is False:
+                    parsed_service["fallback_action"] = ""
+                service_components = parsed_service
+            else:
+                service_components = {}
         except json.JSONDecodeError:
             LOGGER.warning("Service context JSON could not be parsed, using as plain text: %s", service_context)
             # If it's a plain string, create a basic structure
@@ -49,7 +64,8 @@ def generate_full_email_body(research_components: str, service_context: str) -> 
                 "cta": "Demo invitation",
                 "timeline": "Next Thursday at 2pm or 5pm",
                 "goal": "Get meeting OR forward to right person",
-                "fallback_action": "Forward if not right person"
+                "include_fallback": True,
+                "fallback_action": DEFAULT_FALLBACK_ACTION,
             }
 
     user_prompt = (

@@ -35,9 +35,7 @@ SERVICE_COMPONENTS_STRUCTURED = json.dumps({
     "core_offer": "AI-powered personalized email outreach at scale",
     "key_differentiator": "Researches prospect data in depth, writes human-sounding emails",
     "cta": "Demo invitation",
-    "timeline": "Next Thursday at 2pm or 5pm",
-    "goal": "Get meeting OR forward to right person",
-    "fallback_action": "Forward if not right person"
+    "include_fallback": True
 })
 
 print("\n📧 SERVICE COMPONENTS (Structured):")
@@ -47,6 +45,27 @@ email_body = generate_full_email_body(RESEARCH_COMPONENTS, SERVICE_COMPONENTS_ST
 
 print("\n✉️  GENERATED EMAIL:")
 print(email_body)
+print("\n")
+
+# Test 1b: Structured service components without fallback (NEW FORMAT)
+print("=" * 80)
+print("TEST 1B: Structured Service Components without Fallback")
+print("=" * 80)
+
+SERVICE_COMPONENTS_NO_FALLBACK = json.dumps({
+    "core_offer": "AI-powered personalized email outreach at scale",
+    "key_differentiator": "Researches prospect data in depth, writes human-sounding emails",
+    "cta": "Demo invitation",
+    "include_fallback": False
+})
+
+print("\n📧 SERVICE COMPONENTS (Structured, No Fallback):")
+print(SERVICE_COMPONENTS_NO_FALLBACK)
+
+email_body_no_fallback = generate_full_email_body(RESEARCH_COMPONENTS, SERVICE_COMPONENTS_NO_FALLBACK)
+
+print("\n✉️  GENERATED EMAIL:")
+print(email_body_no_fallback)
 print("\n")
 
 # Test 2: Plain string service (LEGACY FORMAT - should still work with defaults)
