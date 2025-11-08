@@ -14,6 +14,8 @@ const PHRASES = [
   "uploading result.xlsx to Supabase storage...",
 ];
 
+const TEXT_ART_FRAMES = ["✶··", "·✶·", "··✶"];
+
 const EMAIL_REGEX = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
 
 type JobStatus = "pending" | "in_progress" | "succeeded" | "failed";
@@ -26,7 +28,6 @@ interface ThinkingIndicatorProps {
 
 export function ThinkingIndicator({ status, progress, message }: ThinkingIndicatorProps) {
   const isInProgress = status === "in_progress";
-  const isComplete = status === "succeeded" || (typeof progress === "number" && progress >= 100);
 
   const subject = useMemo(() => {
     if (message) {
@@ -131,68 +132,48 @@ export function ThinkingIndicator({ status, progress, message }: ThinkingIndicat
     };
   }, [isInProgress]);
 
-  const stepLabels = useMemo(
-    () => [
-      "① ingest CSV",
-      "② research leads",
-      "③ finalize export",
-    ],
-    []
-  );
-
-  if (!isInProgress && !isComplete) {
+  if (!isInProgress) {
     return null;
   }
 
   return (
     <div className="min-w-0 flex items-center">
       <AnimatePresence mode="wait">
-        {isInProgress ? (
+        <motion.span
+          key="thinking"
+          initial={{ opacity: 0, y: 2 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -2 }}
+          transition={{ duration: 0.28, ease: "easeOut" }}
+          className="flex min-w-0 max-w-[32ch] items-center gap-2 text-[12px] font-semibold text-[#4F55F1]"
+        >
           <motion.span
-            key="thinking"
-            initial={{ opacity: 0, y: 2 }}
+            key={TEXT_ART_FRAMES[stepIndex]}
+            initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -2 }}
-            transition={{ duration: 0.28, ease: "easeOut" }}
-            className="flex min-w-0 max-w-[32ch] items-center gap-2 text-[12px] font-semibold text-[#1D1F33]"
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            className="text-[13px] text-[#4F55F1]"
+            style={{ fontFamily: '"Consolas","Courier New",monospace' }}
           >
-            <motion.span
-              key={stepLabels[stepIndex]}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.18, ease: "easeOut" }}
-              className="rounded-md border border-[#4F55F1]/40 px-2 py-[1px] text-[11px] text-[#4F55F1]"
-              style={{ fontFamily: '"Consolas","Courier New",monospace' }}
-            >
-              {stepLabels[stepIndex]}
-            </motion.span>
-            <span
-              className="pixel-thinking-text truncate whitespace-nowrap"
-              style={{ fontFamily: '"Consolas","Courier New",monospace' }}
-            >
-              {typedText}
-            </span>
-            <span
-              aria-hidden
-              className="pixel-thinking-cursor"
-              style={{ fontFamily: '"Consolas","Courier New",monospace' }}
-            >
-              █
-            </span>
+            {TEXT_ART_FRAMES[stepIndex]}
           </motion.span>
-        ) : isComplete ? (
-          <motion.span
-            key="complete"
-            initial={{ opacity: 0, y: 2 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -2 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-            className="text-[12px] font-bold text-[#4F55F1]"
+          <span
+            className="pixel-thinking-text truncate whitespace-nowrap"
+            style={{ fontFamily: '"Consolas","Courier New",monospace' }}
           >
-            Job Complete
-          </motion.span>
-        ) : null}
+            {progress !== undefined && progress <= 0
+              ? `Starting.. ${typedText}`.trim()
+              : typedText}
+          </span>
+          <span
+            aria-hidden
+            className="pixel-thinking-cursor"
+            style={{ fontFamily: '"Consolas","Courier New",monospace' }}
+          >
+            █
+          </span>
+        </motion.span>
       </AnimatePresence>
     </div>
   );
