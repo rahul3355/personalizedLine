@@ -1393,7 +1393,7 @@ export default function UploadPage() {
                               className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-md text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                               style={{ backgroundColor: BRAND }}
                             >
-                              {previewLoading ? "Generating..." : "Start Preview"}
+                              {previewLoading ? "Generating..." : "Start Preview (1 credit)"}
                             </button>
                           </div>
                         </div>
