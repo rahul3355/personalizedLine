@@ -47,10 +47,12 @@ function formatJobMessage(message?: string | null) {
   if (message.toLowerCase().startsWith("global progress")) {
     const match = message.match(/\(([^)]+)\)\s*$/);
     if (match) {
-      return match[1];
+      const cleaned = match[1].replace(/\d+(?:\.\d+)?\s*%/g, "").replace(/\s{2,}/g, " ").trim();
+      return cleaned;
     }
   }
-  return message;
+  const cleaned = message.replace(/\d+(?:\.\d+)?\s*%/g, "").replace(/\s{2,}/g, " ").trim();
+  return cleaned;
 }
 
 type JobDetail = Job & {
