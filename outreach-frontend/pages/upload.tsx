@@ -1275,9 +1275,9 @@ export default function UploadPage() {
 
                   {/* Preview Section */}
                   <div className="space-y-6">
-                    <div className="flex flex-col items-center gap-5">
+                    <div className="flex flex-col gap-5 w-full">
                       {!showPreview && !previewResult && (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 justify-center">
                           <button
                             type="button"
                             onClick={handleShowPreview}
@@ -1291,7 +1291,7 @@ export default function UploadPage() {
                       )}
 
                       {showPreview && !previewResult && (
-                        <div className="w-full max-w-md space-y-4">
+                        <div className="w-full space-y-4">
                           <div className="space-y-2">
                             <label className="text-xs font-medium text-gray-700 block text-center">
                               Select an email to preview ({previewEmails.length} available)
@@ -1338,13 +1338,13 @@ export default function UploadPage() {
                       )}
 
                       {previewError && (
-                        <div className="w-full max-w-md bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm font-medium text-center">
+                        <div className="w-full bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm font-medium text-center">
                           {previewError}
                         </div>
                       )}
 
                       {previewResult && (
-                        <div className="w-full max-w-md space-y-4">
+                        <div className="w-full space-y-4">
                           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                             <div className="flex items-start gap-3 mb-3">
                               <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
