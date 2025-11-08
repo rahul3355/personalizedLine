@@ -318,7 +318,7 @@ function ExamplesDrawerPanel({
 
   return (
     <div
-      className={`relative flex min-h-full flex-col ${radiusClass} bg-[#FCFCFC] shadow-[0_12px_30px_rgba(0,0,0,0.08)]`}
+      className={`relative flex min-h-full flex-col ${radiusClass} bg-[#F3F3F3] shadow-[0_12px_30px_rgba(0,0,0,0.08)]`}
     >
       <button
         type="button"
