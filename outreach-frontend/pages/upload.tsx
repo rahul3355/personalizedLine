@@ -321,6 +321,7 @@ export default function UploadPage() {
     () => ({ ...INITIAL_SERVICE_COMPONENTS })
   );
   const [includeFallback, setIncludeFallback] = useState<boolean>(false);
+  const [showExamples, setShowExamples] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [jobCreated, setJobCreated] = useState(false);
@@ -377,59 +378,123 @@ export default function UploadPage() {
     return JSON.stringify(payload);
   };
 
-  const renderServiceInputs = () => (
-    <div className="space-y-5">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {SERVICE_FIELDS.map((field) => (
-          <div
-            key={field.key}
-            className={`flex flex-col gap-2 ${
-              field.key === "core_offer" ? "md:col-span-2" : ""
-            }`}
-          >
-            <label className="text-xs font-semibold text-gray-700 flex items-center gap-1">
-              {field.label}
-              <HelpTooltip fieldKey={field.key} />
-            </label>
-            <textarea
-              autoFocus={field.key === "core_offer"}
-              value={serviceComponents[field.key]}
-              onChange={(e) => updateServiceComponent(field.key, e.target.value)}
-              placeholder={field.placeholder}
-              className="w-full rounded-md border border-gray-200 bg-white px-3 py-3 text-sm text-gray-900 shadow-sm transition focus:border-[#4F55F1] focus:ring-2 focus:ring-[#4F55F1]"
-              rows={field.key === "core_offer" ? 4 : 3}
-              required={field.key === "core_offer"}
-            />
-          </div>
-        ))}
-      </div>
+  const renderServiceInputs = () => {
+    const exampleEntries = SERVICE_FIELDS.reduce(
+      (entries, field) => {
+        const help = HELP_CONTENT[field.key];
+        if (help.example) {
+          entries.push({
+            key: field.key,
+            label: field.label,
+            what: help.what,
+            example: help.example,
+          });
+        }
+        return entries;
+      },
+      [] as {
+        key: ServiceFieldKey;
+        label: string;
+        what: string;
+        example: string;
+      }[]
+    );
 
-      <div className="flex flex-wrap items-center gap-4">
-        <span className="text-xs font-semibold text-gray-700 flex items-center gap-1">
-          <span className="font-semibold">Include fallback?</span>
-          <HelpTooltip fieldKey="include_fallback" />
-        </span>
-        <div className="flex items-center gap-3 text-xs font-semibold text-gray-700">
-          <Switch
-            checked={includeFallback}
-            onChange={setIncludeFallback}
-            className={`${
-              includeFallback ? "bg-[#4F55F1]" : "bg-gray-200"
-            } relative inline-flex h-6 w-11 items-center rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4F55F1]`}
-          >
-            <span className="sr-only">Toggle fallback forwarding request</span>
-            <span
-              aria-hidden="true"
-              className={`${
-                includeFallback ? "translate-x-6" : "translate-x-1"
-              } inline-block h-4 w-4 transform rounded-full bg-white transition`}
-            />
-          </Switch>
-          <span>{includeFallback ? "On" : "Off"}</span>
+    const fallbackExample = HELP_CONTENT.include_fallback.example;
+
+    return (
+      <div className="space-y-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {SERVICE_FIELDS.map((field) => (
+            <div
+              key={field.key}
+              className={`flex flex-col gap-2 ${
+                field.key === "core_offer" ? "md:col-span-2" : ""
+              }`}
+            >
+              <label className="text-xs font-semibold text-gray-700 flex items-center gap-1">
+                {field.label}
+                <HelpTooltip fieldKey={field.key} />
+              </label>
+              <textarea
+                autoFocus={field.key === "core_offer"}
+                value={serviceComponents[field.key]}
+                onChange={(e) => updateServiceComponent(field.key, e.target.value)}
+                placeholder={field.placeholder}
+                className="w-full rounded-md border border-gray-200 bg-white px-3 py-3 text-sm text-gray-900 shadow-sm transition focus:border-[#4F55F1] focus:ring-2 focus:ring-[#4F55F1]"
+                rows={field.key === "core_offer" ? 4 : 3}
+                required={field.key === "core_offer"}
+              />
+            </div>
+          ))}
         </div>
+
+        <div className="flex flex-wrap items-center gap-4">
+          <span className="text-xs font-semibold text-gray-700 flex items-center gap-1">
+            <span className="font-semibold">Include fallback?</span>
+            <HelpTooltip fieldKey="include_fallback" />
+          </span>
+          <div className="flex items-center gap-3 text-xs font-semibold text-gray-700">
+            <Switch
+              checked={includeFallback}
+              onChange={setIncludeFallback}
+              className={`${
+                includeFallback ? "bg-[#4F55F1]" : "bg-gray-200"
+              } relative inline-flex h-6 w-11 items-center rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4F55F1]`}
+            >
+              <span className="sr-only">Toggle fallback forwarding request</span>
+              <span
+                aria-hidden="true"
+                className={`${
+                  includeFallback ? "translate-x-6" : "translate-x-1"
+                } inline-block h-4 w-4 transform rounded-full bg-white transition`}
+              />
+            </Switch>
+            <span>{includeFallback ? "On" : "Off"}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end">
+          <button
+            type="button"
+            onClick={() => setShowExamples((prev) => !prev)}
+            className="text-xs font-semibold text-[#4F55F1] transition hover:text-[#3D42D8] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#4F55F1]"
+            aria-expanded={showExamples}
+          >
+            View Examples
+          </button>
+        </div>
+
+        {showExamples && (
+          <div className="space-y-4 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4">
+            {exampleEntries.map((entry) => (
+              <div key={entry.key} className="space-y-1">
+                <p className="text-xs font-semibold text-gray-800">{entry.label}</p>
+                {entry.what && (
+                  <p className="text-xs text-gray-500">{entry.what}</p>
+                )}
+                <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700">
+                  {entry.example}
+                </div>
+              </div>
+            ))}
+
+            {fallbackExample && (
+              <div className="space-y-1 border-t border-gray-200 pt-3">
+                <p className="text-xs font-semibold text-gray-800">Fallback Request</p>
+                <p className="text-xs text-gray-500">
+                  {HELP_CONTENT.include_fallback.what}
+                </p>
+                <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700">
+                  {fallbackExample}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   const handleFileSelection = useCallback(
     (next: File | null) => {
@@ -443,6 +508,7 @@ export default function UploadPage() {
       setEmailCol("");
       setServiceComponents({ ...INITIAL_SERVICE_COMPONENTS });
       setIncludeFallback(false);
+      setShowExamples(false);
       setRefreshingCredits(false);
     },
     []
