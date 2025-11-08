@@ -145,7 +145,7 @@ export function ThinkingIndicator({ status, progress, message }: ThinkingIndicat
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -2 }}
           transition={{ duration: 0.28, ease: "easeOut" }}
-          className="flex min-w-0 max-w-[32ch] items-center gap-2 text-[12px] font-semibold text-[#4F55F1]"
+          className="flex min-w-0 items-center gap-2 text-[12px] font-semibold text-[#4F55F1]"
         >
           <motion.span
             key={TEXT_ART_FRAMES[stepIndex]}
@@ -159,7 +159,7 @@ export function ThinkingIndicator({ status, progress, message }: ThinkingIndicat
             {TEXT_ART_FRAMES[stepIndex]}
           </motion.span>
           <span
-            className="pixel-thinking-text truncate whitespace-nowrap"
+            className="pixel-thinking-text whitespace-nowrap"
             style={{ fontFamily: '"Consolas","Courier New",monospace' }}
           >
             {progress !== undefined && progress <= 0
