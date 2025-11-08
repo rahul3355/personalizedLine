@@ -186,19 +186,14 @@ function StatusIcon({ status }: { status: JobStatus }) {
   );
 }
 
-function StatusPill({ status, progress }: { status: JobStatus; progress?: number }) {
+function StatusPill({ status }: { status: JobStatus }) {
   const config = getStatusVisuals(status);
-  let label = config.label;
-
-  if ((status === "pending" || status === "in_progress") && typeof progress === "number") {
-    label = `${Math.round(progress)}%`;
-  }
 
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold ${config.pillBg} ${config.pillColor}`}
     >
-      {label}
+      {config.label}
     </span>
   );
 }
@@ -780,7 +775,7 @@ function JobsPage() {
                                     </div>
 
                                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#8B8DA1]">
-                                      <StatusPill status={job.status} progress={job.progress} />
+                                      <StatusPill status={job.status} />
                                       <span>{job.rows.toLocaleString()} rows</span>
                                       <ThinkingIndicator
                                         status={job.status}
