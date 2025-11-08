@@ -218,17 +218,12 @@ const HelpTooltip = ({
           onMouseEnter={handlers.onMouseEnter}
           onMouseLeave={handlers.onMouseLeave}
         >
-          <div className="space-y-2.5 text-sm" style={{ color: "#dbdee1" }}>
-            {isPreviewTooltip && (
-              <p
-                className="leading-relaxed"
-                style={{ color: "#dbdee1", marginBottom: "0.5rem" }}
-              >
-                (Highly Recommended)
-              </p>
-            )}
-            <p className="leading-relaxed">{help.what}</p>
-            <p className="leading-relaxed">{help.why}</p>
+          <div
+            className="space-y-2.5 text-sm leading-relaxed"
+            style={{ color: "#dbdee1" }}
+          >
+            <p>{help.what}</p>
+            <p>{help.why}</p>
             {!isPreviewTooltip && help.example && (
               <p className="leading-relaxed" style={{ color: "#b5bac1" }}>
                 e.g., "{help.example}"
