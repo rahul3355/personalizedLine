@@ -224,6 +224,90 @@ const EXAMPLE_DATA: ExampleItem[] = [
     key_differentiator: "Eliminates back-and-forth emails with smart calendar integration",
     cta: "Schedule a demo to see how it works",
   },
+  {
+    id: "ex13",
+    category: "outreach",
+    core_offer: "Cold email outreach platform with deliverability optimization",
+    key_differentiator: "95% inbox placement rate with AI-powered spam detection",
+    cta: "Get a free deliverability audit",
+  },
+  {
+    id: "ex14",
+    category: "outreach",
+    core_offer: "Multi-channel outreach sequences with email, LinkedIn, and phone",
+    key_differentiator: "Coordinate touchpoints across channels with smart timing algorithms",
+    cta: "Book a strategy session with our outreach experts",
+  },
+  {
+    id: "ex15",
+    category: "outreach",
+    core_offer: "Automated follow-up system for cold outreach campaigns",
+    key_differentiator: "Increases response rates by 3x with behavior-triggered follow-ups",
+    cta: "Start your 30-day free trial",
+  },
+  {
+    id: "ex16",
+    category: "sales",
+    core_offer: "Predictive analytics platform for sales forecasting",
+    key_differentiator: "Achieve 90% forecast accuracy with machine learning models",
+    cta: "Request a personalized forecast demo",
+  },
+  {
+    id: "ex17",
+    category: "sales",
+    core_offer: "Sales enablement platform with content management and tracking",
+    key_differentiator: "Track content engagement and identify what resonates with buyers",
+    cta: "See how top performers use our platform",
+  },
+  {
+    id: "ex18",
+    category: "sales",
+    core_offer: "Conversation intelligence software for sales calls",
+    key_differentiator: "AI-powered insights from every call to improve win rates by 25%",
+    cta: "Try it free with 5 call recordings",
+  },
+  {
+    id: "ex19",
+    category: "marketing",
+    core_offer: "Social media management and scheduling platform",
+    key_differentiator: "AI suggests optimal posting times and content recommendations",
+    cta: "Connect your accounts and schedule your first post",
+  },
+  {
+    id: "ex20",
+    category: "marketing",
+    core_offer: "Marketing attribution and ROI tracking software",
+    key_differentiator: "Track every touchpoint and attribute revenue to the right channels",
+    cta: "Get a free marketing ROI assessment",
+  },
+  {
+    id: "ex21",
+    category: "marketing",
+    core_offer: "Webinar hosting platform with lead generation tools",
+    key_differentiator: "Automated lead scoring and instant follow-up sequences",
+    cta: "Host your first webinar in 10 minutes",
+  },
+  {
+    id: "ex22",
+    category: "recruitment",
+    core_offer: "Video interviewing platform with AI assessment",
+    key_differentiator: "Screen 10x more candidates with asynchronous video and AI analysis",
+    cta: "Start your pilot program today",
+  },
+  {
+    id: "ex23",
+    category: "recruitment",
+    core_offer: "Applicant tracking system with collaborative hiring workflows",
+    key_differentiator: "Reduce time-to-hire by 40% with streamlined team collaboration",
+    cta: "Schedule a walkthrough with our team",
+  },
+  {
+    id: "ex24",
+    category: "recruitment",
+    core_offer: "Employee referral program software with gamification",
+    key_differentiator: "Generate 5x more quality referrals with automated rewards",
+    cta: "Launch your referral program in one week",
+  },
 ];
 
 // Step-specific titles/subtitles shown *under* the stepper
@@ -504,15 +588,15 @@ function ExamplesDrawerPanel({
                     flex items-center justify-center w-10 h-10 rounded-full transition-all
                     ${isSelected ? 'bg-white' : 'bg-white hover:bg-gray-50'}
                   `}
-                  title={category.label}
                   aria-label={category.label}
                 >
                   <Icon
                     className={`h-4 w-4 ${isSelected ? 'text-gray-700' : 'text-gray-500'}`}
                   />
                 </button>
+                {/* Tooltip on hover */}
                 <div
-                  className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap"
+                  className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-md text-sm font-bold whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50"
                   style={{
                     backgroundColor: 'rgba(24, 25, 28, 0.95)',
                     color: 'white'
@@ -533,13 +617,13 @@ function ExamplesDrawerPanel({
                 flex items-center justify-center w-10 h-10 rounded-full transition-all text-xs font-semibold
                 ${selectedCategory === "all" ? 'bg-white text-gray-700' : 'bg-white text-gray-500 hover:bg-gray-50'}
               `}
-              title="All Categories"
               aria-label="All Categories"
             >
               All
             </button>
+            {/* Tooltip on hover */}
             <div
-              className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap"
+              className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-md text-sm font-bold whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50"
               style={{
                 backgroundColor: 'rgba(24, 25, 28, 0.95)',
                 color: 'white'
