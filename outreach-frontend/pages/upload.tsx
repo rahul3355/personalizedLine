@@ -1334,34 +1334,19 @@ export default function UploadPage() {
                   <div className="space-y-6">
                     <div className="flex flex-col gap-5 w-full">
                       {!showPreview && !previewResult && (
-                        <div className="flex flex-col items-center">
-                          <HelpTooltip
-                            fieldKey="preview_button"
-                            showLabelSpacing={false}
-                            renderTrigger={({
-                              onMouseEnter,
-                              onMouseLeave,
-                              onFocus,
-                              onBlur,
-                            }) => (
-                              <div
-                                onMouseEnter={onMouseEnter}
-                                onMouseLeave={onMouseLeave}
-                                onFocus={onFocus}
-                                onBlur={onBlur}
-                                className="inline-flex items-center justify-center"
-                              >
-                                <button
-                                  type="button"
-                                  onClick={handleShowPreview}
-                                  disabled={previewLoading || !isServiceContextComplete()}
-                                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-gray-300 bg-white text-gray-600 font-semibold transition hover:bg-gray-50 disabled:bg-white disabled:border-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
-                                >
-                                  {previewLoading ? "Loading..." : "Preview"}
-                                </button>
-                              </div>
-                            )}
-                          />
+                        <div className="flex flex-col items-center gap-3">
+                          <div className="flex items-center gap-1 text-xs font-semibold text-gray-700">
+                            <span>Preview</span>
+                            <HelpTooltip fieldKey="preview_button" />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleShowPreview}
+                            disabled={previewLoading || !isServiceContextComplete()}
+                            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-gray-300 bg-white text-gray-600 font-semibold transition hover:bg-gray-50 disabled:bg-white disabled:border-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
+                          >
+                            {previewLoading ? "Loading..." : "Preview"}
+                          </button>
                         </div>
                       )}
 
@@ -1629,34 +1614,20 @@ export default function UploadPage() {
               <div className="space-y-6">
                 <div className="flex flex-col items-center space-y-4">
                   {!showPreview && !previewResult && (
-                    <HelpTooltip
-                      fieldKey="preview_button"
-                      showLabelSpacing={false}
-                      containerClassName="relative block w-full"
-                      renderTrigger={({
-                        onMouseEnter,
-                        onMouseLeave,
-                        onFocus,
-                        onBlur,
-                      }) => (
-                        <div
-                          onMouseEnter={onMouseEnter}
-                          onMouseLeave={onMouseLeave}
-                          onFocus={onFocus}
-                          onBlur={onBlur}
-                          className="w-full"
-                        >
-                          <button
-                            type="button"
-                            onClick={handleShowPreview}
-                            disabled={previewLoading || !isServiceContextComplete()}
-                            className="w-full inline-flex items-center justify-center px-6 py-3 rounded-full border border-gray-300 bg-white text-gray-600 font-semibold tracking-tight transition hover:bg-gray-50 disabled:bg-white disabled:border-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
-                          >
-                            {previewLoading ? "Loading..." : "Preview"}
-                          </button>
-                        </div>
-                      )}
-                    />
+                    <div className="w-full flex flex-col items-center gap-3">
+                      <div className="flex items-center gap-1 text-xs font-semibold text-gray-700">
+                        <span>Preview</span>
+                        <HelpTooltip fieldKey="preview_button" />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleShowPreview}
+                        disabled={previewLoading || !isServiceContextComplete()}
+                        className="w-full inline-flex items-center justify-center px-6 py-3 rounded-full border border-gray-300 bg-white text-gray-600 font-semibold tracking-tight transition hover:bg-gray-50 disabled:bg-white disabled:border-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
+                      >
+                        {previewLoading ? "Loading..." : "Preview"}
+                      </button>
+                    </div>
                   )}
 
                   {showPreview && !previewResult && (
