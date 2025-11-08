@@ -137,9 +137,24 @@ type CreditInfo = {
 
 
 
-const HelpTooltip = ({ fieldKey }: { fieldKey: ServiceHelpKey }) => {
+const HelpTooltip = ({
+  fieldKey,
+  showLabelSpacing = true,
+  buttonClassName,
+}: {
+  fieldKey: ServiceHelpKey;
+  showLabelSpacing?: boolean;
+  buttonClassName?: string;
+}) => {
   const [showTooltip, setShowTooltip] = useState(false);
   const help = HELP_CONTENT[fieldKey];
+  const triggerClasses = [
+    "inline-flex items-center justify-center w-4 h-4 rounded-full hover:bg-gray-100 transition-colors",
+    showLabelSpacing ? "ml-1.5" : "",
+    buttonClassName ?? "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <div className="relative inline-block">
@@ -148,7 +163,7 @@ const HelpTooltip = ({ fieldKey }: { fieldKey: ServiceHelpKey }) => {
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
         onClick={() => setShowTooltip(!showTooltip)}
-        className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full hover:bg-gray-100 transition-colors"
+        className={triggerClasses}
         aria-label="Help"
       >
         <HelpCircle className="w-3.5 h-3.5 text-gray-400" />
@@ -1277,7 +1292,14 @@ export default function UploadPage() {
                   <div className="space-y-6">
                     <div className="flex flex-col gap-5 w-full">
                       {!showPreview && !previewResult && (
-                        <div className="flex items-center gap-2 justify-center">
+                        <div className="flex flex-col items-center gap-3">
+                          <div className="flex items-center justify-center gap-1 text-xs font-semibold text-gray-700">
+                            <span>Preview</span>
+                            <HelpTooltip
+                              fieldKey="preview_button"
+                              showLabelSpacing={false}
+                            />
+                          </div>
                           <button
                             type="button"
                             onClick={handleShowPreview}
@@ -1286,7 +1308,6 @@ export default function UploadPage() {
                           >
                             {previewLoading ? "Loading..." : "Preview"}
                           </button>
-                          <HelpTooltip fieldKey="preview_button" />
                         </div>
                       )}
 
@@ -1554,16 +1575,22 @@ export default function UploadPage() {
               <div className="space-y-6">
                 <div className="flex flex-col items-center space-y-4">
                   {!showPreview && !previewResult && (
-                    <div className="flex items-center gap-3 w-full">
+                    <div className="w-full flex flex-col items-center gap-3">
+                      <div className="flex items-center justify-center gap-1 text-xs font-semibold text-gray-700">
+                        <span>Preview</span>
+                        <HelpTooltip
+                          fieldKey="preview_button"
+                          showLabelSpacing={false}
+                        />
+                      </div>
                       <button
                         type="button"
                         onClick={handleShowPreview}
                         disabled={previewLoading || !isServiceContextComplete()}
-                        className="flex-1 inline-flex items-center justify-center px-6 py-3 rounded-full border border-gray-900 bg-gray-900 text-white font-semibold tracking-tight transition disabled:bg-gray-400 disabled:border-gray-400 disabled:text-white disabled:cursor-not-allowed"
+                        className="w-full inline-flex items-center justify-center px-6 py-3 rounded-full border border-gray-900 bg-gray-900 text-white font-semibold tracking-tight transition disabled:bg-gray-400 disabled:border-gray-400 disabled:text-white disabled:cursor-not-allowed"
                       >
                         {previewLoading ? "Loading..." : "Preview"}
                       </button>
-                      <HelpTooltip fieldKey="preview_button" />
                     </div>
                   )}
 
