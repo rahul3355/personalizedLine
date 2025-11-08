@@ -62,6 +62,21 @@ def generate_full_email_body(research_components: str, service_context: str) -> 
 
     include_fallback = service_components.get("include_fallback")
     fallback_enabled = include_fallback is True
+    fallback_descriptor = ""
+    if fallback_enabled:
+        core_offer_text = str(service_components.get("core_offer") or "").strip()
+        fallback_descriptor = core_offer_text or "this area of the business"
+        fallback_action_text = str(service_components.get("fallback_action") or "").strip()
+        if not fallback_action_text:
+            if core_offer_text:
+                fallback_action_text = (
+                    f"If you're not the right person, please connect me with whoever oversees {core_offer_text}."
+                )
+            else:
+                fallback_action_text = (
+                    "If you're not the right person, please connect me with whoever oversees this area of the business."
+                )
+        service_components["fallback_action"] = fallback_action_text
 
     critical_rules = [
         "- Use conversational tone with contractions\n",
@@ -72,7 +87,9 @@ def generate_full_email_body(research_components: str, service_context: str) -> 
         "- Provide a clear call-to-action that matches the service details\n",
     ]
     if fallback_enabled:
-        critical_rules.append("- Include a forward option for alternate contacts\n")
+        critical_rules.append(
+            f"- Close with a polite forward request asking to be connected to whoever handles {fallback_descriptor} if they're not the right contact\n"
+        )
     critical_rules.append(
         "- Sound like a human wrote this, not an AI. Write for easy readability.\n"
     )
@@ -83,7 +100,7 @@ def generate_full_email_body(research_components: str, service_context: str) -> 
     ]
     third_paragraph = "  3. Third paragraph: Call-to-action"
     if fallback_enabled:
-        third_paragraph += " plus optional forward option"
+        third_paragraph += " plus forward request if they're not the right contact"
     formatting_lines.append(f"{third_paragraph}\n\n")
 
     user_prompt = (

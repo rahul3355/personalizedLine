@@ -68,9 +68,50 @@ def test_prompt_excludes_fallback_when_disabled():
 
     prompt = mock_post.call_args.kwargs["json"]["messages"][0]["content"]
 
-    assert "- Include a forward option for alternate contacts" not in prompt
-    assert "Call-to-action plus optional forward option" not in prompt
+    assert "polite forward request" not in prompt
+    assert "Call-to-action plus forward request if they're not the right contact" not in prompt
     assert "\"fallback_action\"" not in prompt
+
+
+def test_prompt_includes_fallback_when_enabled():
+    """The Groq prompt should add forward instructions when fallback is requested."""
+
+    service_components_with_fallback = json.dumps(
+        {
+            "core_offer": "AI-powered personalized email outreach at scale",
+            "key_differentiator": "Researches prospect data in depth, writes human-sounding emails",
+            "cta": "Demo invitation",
+            "include_fallback": True,
+        }
+    )
+
+    fake_response = MagicMock()
+    fake_response.raise_for_status.return_value = None
+    fake_response.json.return_value = {
+        "choices": [
+            {
+                "message": {
+                    "content": "Generated email body with fallback",
+                }
+            }
+        ]
+    }
+
+    with patch.dict(os.environ, {"GROQ_API_KEY": "test-key"}, clear=False):
+        with patch(
+            "backend.app.gpt_helpers.requests.post", return_value=fake_response
+        ) as mock_post:
+            result = generate_full_email_body(
+                RESEARCH_COMPONENTS, service_components_with_fallback
+            )
+
+    assert result == "Generated email body with fallback"
+
+    prompt = mock_post.call_args.kwargs["json"]["messages"][0]["content"]
+
+    assert "polite forward request" in prompt
+    assert "Call-to-action plus forward request if they're not the right contact" in prompt
+    assert "whoever oversees AI-powered personalized email outreach at scale" in prompt
 
 
 def _run_manual_tests():

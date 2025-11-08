@@ -7,6 +7,7 @@ import {
   useCallback,
   type DragEvent as ReactDragEvent,
 } from "react";
+import { Switch } from "@headlessui/react";
 import { API_URL } from "../lib/api";
 import {
   Upload as UploadIcon,
@@ -41,6 +42,19 @@ const INITIAL_SERVICE_COMPONENTS = {
 type ServiceFieldKey = keyof typeof INITIAL_SERVICE_COMPONENTS;
 type ServiceComponents = Record<ServiceFieldKey, string>;
 type ServiceHelpKey = ServiceFieldKey | "include_fallback";
+type SerializedServiceComponents = ServiceComponents & {
+  include_fallback: boolean;
+  fallback_action?: string;
+};
+
+const buildFallbackAction = (coreOffer: string): string => {
+  const trimmed = coreOffer.trim();
+  if (!trimmed) {
+    return "If you're not the right person, please connect me with whoever oversees this area of the business.";
+  }
+
+  return `If you're not the right person, please connect me with whoever oversees ${trimmed}.`;
+};
 
 const SERVICE_FIELDS: { key: ServiceFieldKey; label: string; placeholder: string }[] = [
   {
@@ -79,7 +93,7 @@ const HELP_CONTENT: Record<ServiceHelpKey, { what: string; why: string; example:
   include_fallback: {
     what: "Whether you want to ask the reader to forward the email if they're not the right contact.",
     why: "Keeps momentum by inviting prospects to connect you with the correct decision-maker when needed.",
-    example: "Select \"Yes\" to add a forward option at the end of your email",
+    example: "Toggle this on to add a forward request at the end of your email",
   },
 };
 
@@ -288,11 +302,18 @@ export default function UploadPage() {
   const isServiceContextComplete = () =>
     serviceComponents.core_offer.trim().length > 0;
 
-  const serializeServicePayload = () =>
-    JSON.stringify({
+  const serializeServicePayload = () => {
+    const payload: SerializedServiceComponents = {
       ...serviceComponents,
       include_fallback: includeFallback,
-    });
+    };
+
+    if (includeFallback) {
+      payload.fallback_action = buildFallbackAction(serviceComponents.core_offer);
+    }
+
+    return JSON.stringify(payload);
+  };
 
   const renderServiceInputs = () => (
     <div className="space-y-5">
@@ -326,29 +347,23 @@ export default function UploadPage() {
           <span className="font-semibold">Include fallback?</span>
           <HelpTooltip fieldKey="include_fallback" />
         </span>
-        <div className="flex items-center gap-4 text-xs font-semibold text-gray-700">
-          <label className="inline-flex items-center gap-2 cursor-pointer font-semibold">
-            <input
-              type="radio"
-              name="include-fallback"
-              value="yes"
-              checked={includeFallback}
-              onChange={() => setIncludeFallback(true)}
-              className="h-4 w-4 text-[#4F55F1] border-gray-300 focus:ring-[#4F55F1]"
+        <div className="flex items-center gap-3 text-xs font-semibold text-gray-700">
+          <Switch
+            checked={includeFallback}
+            onChange={setIncludeFallback}
+            className={`${
+              includeFallback ? "bg-[#4F55F1]" : "bg-gray-200"
+            } relative inline-flex h-6 w-11 items-center rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4F55F1]`}
+          >
+            <span className="sr-only">Toggle fallback forwarding request</span>
+            <span
+              aria-hidden="true"
+              className={`${
+                includeFallback ? "translate-x-6" : "translate-x-1"
+              } inline-block h-4 w-4 transform rounded-full bg-white transition`}
             />
-            Yes
-          </label>
-          <label className="inline-flex items-center gap-2 cursor-pointer font-semibold">
-            <input
-              type="radio"
-              name="include-fallback"
-              value="no"
-              checked={!includeFallback}
-              onChange={() => setIncludeFallback(false)}
-              className="h-4 w-4 text-[#4F55F1] border-gray-300 focus:ring-[#4F55F1]"
-            />
-            No
-          </label>
+          </Switch>
+          <span>{includeFallback ? "On" : "Off"}</span>
         </div>
       </div>
     </div>
