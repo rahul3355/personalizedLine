@@ -140,6 +140,10 @@ type CreditInfo = {
 const HelpTooltip = ({ fieldKey }: { fieldKey: ServiceHelpKey }) => {
   const [showTooltip, setShowTooltip] = useState(false);
   const help = HELP_CONTENT[fieldKey];
+  const finalNote =
+    fieldKey === "preview_button"
+      ? "HIGHLY RECOMMENDED"
+      : "Leave blank if not relevant to you.";
 
   return (
     <div className="relative inline-block">
@@ -156,27 +160,18 @@ const HelpTooltip = ({ fieldKey }: { fieldKey: ServiceHelpKey }) => {
 
       {showTooltip && (
         <div
-          className="absolute z-50 w-72 p-3 rounded-md"
-          style={{
-            top: "calc(100% + 8px)",
-            left: "50%",
-            transform: "translateX(-50%)",
-            backgroundColor: "rgba(24, 25, 28, 0.95)",
-            boxShadow: "0px 5px 15px rgba(0, 0, 0, 0.3)",
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-          }}
+          className="absolute left-1/2 top-full mt-2 w-72 rounded-md bg-[#18191c] p-3 shadow-xl ring-1 ring-black/10"
+          style={{ transform: "translateX(-50%)", zIndex: 9999 }}
           onMouseEnter={() => setShowTooltip(true)}
           onMouseLeave={() => setShowTooltip(false)}
         >
-          <div className="space-y-2.5 text-sm" style={{ color: "#dbdee1" }}>
+          <div className="space-y-2.5 text-sm font-normal text-[#dbdee1]">
             <p className="leading-relaxed">{help.what}</p>
             <p className="leading-relaxed">{help.why}</p>
-            <p className="leading-relaxed" style={{ color: "#b5bac1" }}>
-              e.g., "{help.example}"
-            </p>
-            <div className="pt-2 border-t" style={{ borderColor: "rgba(255, 255, 255, 0.08)" }}>
-              <p style={{ color: "#949ba4", fontSize: "0.8125rem" }}>
-                Leave blank if not relevant to you.
+            <p className="leading-relaxed text-[#b5bac1]">e.g., "{help.example}"</p>
+            <div className="border-t border-white/10 pt-2">
+              <p className="text-[0.8125rem] font-semibold uppercase tracking-wide text-[#949ba4]">
+                {finalNote}
               </p>
             </div>
           </div>
