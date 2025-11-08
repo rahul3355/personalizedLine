@@ -1041,7 +1041,7 @@ export default function UploadPage() {
 
 
             {/* NO CARD — direct on base background */}
-            {!jobCreated && renderCreditBanner()}
+            {step !== 2 && !jobCreated && renderCreditBanner()}
             {/* Step 0: Upload */}
             {step === 0 && !jobCreated && (
               <div className="flex flex-col">
@@ -1535,7 +1535,6 @@ export default function UploadPage() {
         <div className="block md:hidden w-full h-[calc(100vh-69px)] px-4 flex items-start justify-center pt-[64px] bg-white overflow-y-auto">
           <div className="max-w-md w-full space-y-6 pb-8" style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}>
             <h2 className="text-lg font-semibold text-gray-900 text-center">Describe Your Service</h2>
-            {renderCreditBanner(true)}
             {renderServiceInputs()}
 
             {/* Mobile Preview Section */}
