@@ -41,7 +41,7 @@ const INITIAL_SERVICE_COMPONENTS = {
 
 type ServiceFieldKey = keyof typeof INITIAL_SERVICE_COMPONENTS;
 type ServiceComponents = Record<ServiceFieldKey, string>;
-type ServiceHelpKey = ServiceFieldKey | "include_fallback";
+type ServiceHelpKey = ServiceFieldKey | "include_fallback" | "preview_button";
 type SerializedServiceComponents = ServiceComponents & {
   include_fallback: boolean;
   fallback_action?: string;
@@ -94,6 +94,11 @@ const HELP_CONTENT: Record<ServiceHelpKey, { what: string; why: string; example:
     what: "Whether you want to ask the reader to forward the email if they're not the right contact.",
     why: "Keeps momentum by inviting prospects to connect you with the correct decision-maker when needed.",
     example: "Toggle this on to add a forward request at the end of your email",
+  },
+  preview_button: {
+    what: "Generates a sample personalized email from your uploaded file.",
+    why: "Lets you confirm the tone and content before committing credits to a full run.",
+    example: "Try a preview to see how your messaging lands before generating everything",
   },
 };
 
@@ -1259,7 +1264,7 @@ export default function UploadPage() {
             {/* Step 2: Confirm Service (compact) */}
             {step === 2 && !jobCreated && (
               <div className="flex flex-col">
-                <div className="space-y-4">
+                <div className="rounded-3xl border border-gray-200 bg-white px-8 py-8 shadow-sm space-y-6 min-h-[540px]">
 
                   {renderServiceInputs()}
                   {error && (
@@ -1269,18 +1274,20 @@ export default function UploadPage() {
                   )}
 
                   {/* Preview Section */}
-                  <div className="mt-8 pt-6 border-t border-gray-200">
-                    <div className="flex flex-col items-center">
+                  <div className="space-y-6">
+                    <div className="flex flex-col items-center gap-5">
                       {!showPreview && !previewResult && (
-                        <button
-                          type="button"
-                          onClick={handleShowPreview}
-                          disabled={previewLoading || !isServiceContextComplete()}
-                          className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-md text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                          style={{ backgroundColor: BRAND }}
-                        >
-                          {previewLoading ? "Loading..." : "Preview"}
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={handleShowPreview}
+                            disabled={previewLoading || !isServiceContextComplete()}
+                            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-gray-900 bg-gray-900 text-white font-semibold transition disabled:bg-gray-400 disabled:border-gray-400 disabled:text-white disabled:cursor-not-allowed"
+                          >
+                            {previewLoading ? "Loading..." : "Preview"}
+                          </button>
+                          <HelpTooltip fieldKey="preview_button" />
+                        </div>
                       )}
 
                       {showPreview && !previewResult && (
@@ -1331,13 +1338,13 @@ export default function UploadPage() {
                       )}
 
                       {previewError && (
-                        <div className="mt-3 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm font-medium">
+                        <div className="w-full max-w-md bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm font-medium text-center">
                           {previewError}
                         </div>
                       )}
 
                       {previewResult && (
-                        <div className="w-full mt-4 space-y-4">
+                        <div className="w-full max-w-md space-y-4">
                           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                             <div className="flex items-start gap-3 mb-3">
                               <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
@@ -1535,119 +1542,128 @@ export default function UploadPage() {
         <div className="block md:hidden w-full h-[calc(100vh-69px)] px-4 flex items-start justify-center pt-[64px] bg-white overflow-y-auto">
           <div className="max-w-md w-full space-y-6 pb-8" style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}>
             <h2 className="text-lg font-semibold text-gray-900 text-center">Describe Your Service</h2>
-            {renderServiceInputs()}
+            <div className="rounded-3xl border border-gray-200 bg-white px-5 py-6 shadow-sm space-y-6">
+              {renderServiceInputs()}
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm font-medium">
+                  {error}
+                </div>
+              )}
 
-            {/* Mobile Preview Section */}
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <div className="flex flex-col items-center space-y-4">
-                {!showPreview && !previewResult && (
-                  <button
-                    type="button"
-                    onClick={handleShowPreview}
-                    disabled={previewLoading || !isServiceContextComplete()}
-                    className="w-full py-3 rounded-md font-medium text-white text-[15px] tracking-tight disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{ backgroundColor: BRAND }}
-                  >
-                    {previewLoading ? "Loading..." : "Preview"}
-                  </button>
-                )}
-
-                {showPreview && !previewResult && (
-                  <div className="w-full space-y-4">
-                    <div className="space-y-2">
-                      <label className="text-xs font-medium text-gray-700 block text-center">
-                        Select an email to preview ({previewEmails.length} available)
-                      </label>
-                      <select
-                        value={selectedPreviewEmail}
-                        onChange={(e) => setSelectedPreviewEmail(e.target.value)}
-                        className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm"
+              {/* Mobile Preview Section */}
+              <div className="space-y-6">
+                <div className="flex flex-col items-center space-y-4">
+                  {!showPreview && !previewResult && (
+                    <div className="flex items-center gap-3 w-full">
+                      <button
+                        type="button"
+                        onClick={handleShowPreview}
+                        disabled={previewLoading || !isServiceContextComplete()}
+                        className="flex-1 inline-flex items-center justify-center px-6 py-3 rounded-full border border-gray-900 bg-gray-900 text-white font-semibold tracking-tight transition disabled:bg-gray-400 disabled:border-gray-400 disabled:text-white disabled:cursor-not-allowed"
                       >
-                        <option value="">-- Select an email --</option>
-                        {previewEmails.map((email) => (
-                          <option key={email} value={email}>
-                            {email}
-                          </option>
-                        ))}
-                      </select>
+                        {previewLoading ? "Loading..." : "Preview"}
+                      </button>
+                      <HelpTooltip fieldKey="preview_button" />
                     </div>
+                  )}
 
-                    <div className="flex gap-2">
+                  {showPreview && !previewResult && (
+                    <div className="w-full space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-gray-700 block text-center">
+                          Select an email to preview ({previewEmails.length} available)
+                        </label>
+                        <select
+                          value={selectedPreviewEmail}
+                          onChange={(e) => setSelectedPreviewEmail(e.target.value)}
+                          className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm"
+                        >
+                          <option value="">-- Select an email --</option>
+                          {previewEmails.map((email) => (
+                            <option key={email} value={email}>
+                              {email}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowPreview(false);
+                            setPreviewEmails([]);
+                            setSelectedPreviewEmail("");
+                            setPreviewError(null);
+                          }}
+                          className="flex-1 py-3 rounded-md border font-medium text-[15px]"
+                          style={{ borderColor: "#E5E7EB", color: "#6B7280" }}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleGeneratePreview}
+                          disabled={previewLoading || !selectedPreviewEmail}
+                          className="flex-1 py-3 rounded-md font-medium text-white text-[15px] disabled:opacity-50"
+                          style={{ backgroundColor: BRAND }}
+                        >
+                          {previewLoading ? "Generating..." : "Start Preview"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {previewError && (
+                    <div className="w-full bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm font-medium">
+                      {previewError}
+                    </div>
+                  )}
+
+                  {previewResult && (
+                    <div className="w-full space-y-4">
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div className="flex items-start gap-3 mb-3">
+                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                            <Check className="w-5 h-5 text-green-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-green-800">
+                              Preview Generated
+                            </p>
+                            <p className="text-xs text-green-600 mt-1">
+                              For: {previewResult.email}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-4">
+                          <label className="text-xs font-medium text-green-800 block mb-2">
+                            Personalized Email:
+                          </label>
+                          <div className="bg-white border border-green-200 rounded-md p-4 text-sm text-gray-900 whitespace-pre-wrap">
+                            {previewResult.email_body}
+                          </div>
+                        </div>
+                      </div>
+
                       <button
                         type="button"
                         onClick={() => {
                           setShowPreview(false);
                           setPreviewEmails([]);
                           setSelectedPreviewEmail("");
+                          setPreviewResult(null);
                           setPreviewError(null);
                         }}
-                        className="flex-1 py-3 rounded-md border font-medium text-[15px]"
-                        style={{ borderColor: "#E5E7EB", color: "#6B7280" }}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleGeneratePreview}
-                        disabled={previewLoading || !selectedPreviewEmail}
-                        className="flex-1 py-3 rounded-md font-medium text-white text-[15px] disabled:opacity-50"
+                        className="w-full py-3 rounded-md font-medium text-white text-[15px]"
                         style={{ backgroundColor: BRAND }}
                       >
-                        {previewLoading ? "Generating..." : "Start Preview"}
+                        Generate Another Preview
                       </button>
                     </div>
-                  </div>
-                )}
-
-                {previewError && (
-                  <div className="w-full bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm font-medium">
-                    {previewError}
-                  </div>
-                )}
-
-                {previewResult && (
-                  <div className="w-full space-y-4">
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                      <div className="flex items-start gap-3 mb-3">
-                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                          <Check className="w-5 h-5 text-green-600" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-green-800">
-                            Preview Generated
-                          </p>
-                          <p className="text-xs text-green-600 mt-1">
-                            For: {previewResult.email}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="mt-4">
-                        <label className="text-xs font-medium text-green-800 block mb-2">
-                          Personalized Email:
-                        </label>
-                        <div className="bg-white border border-green-200 rounded-md p-4 text-sm text-gray-900 whitespace-pre-wrap">
-                          {previewResult.email_body}
-                        </div>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowPreview(false);
-                        setPreviewEmails([]);
-                        setSelectedPreviewEmail("");
-                        setPreviewResult(null);
-                        setPreviewError(null);
-                      }}
-                      className="w-full py-3 rounded-md font-medium text-white text-[15px]"
-                      style={{ backgroundColor: BRAND }}
-                    >
-                      Generate Another Preview
-                    </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
 
