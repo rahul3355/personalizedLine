@@ -490,7 +490,7 @@ class ServiceComponents(BaseModel):
     core_offer: str
     key_differentiator: str
     cta: str
-    include_fallback: Optional[bool] = True
+    include_fallback: Optional[bool] = None
     timeline: Optional[str] = None
     goal: Optional[str] = None
     fallback_action: Optional[str] = None

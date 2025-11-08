@@ -32,16 +32,13 @@ const BRAND_HOVER = "#3D42D8";
 const BRAND_TINT = "rgba(79,85,241,0.12)";
 const BRAND_SOFT = "rgba(79,85,241,0.22)";
 
-const DEFAULT_INCLUDE_FALLBACK = true;
-
-const DEFAULT_SERVICE_COMPONENTS = {
-  core_offer: "AI-powered personalized email outreach at scale",
-  key_differentiator:
-    "Researches prospect data in depth, writes human-sounding emails",
-  cta: "Demo invitation",
+const INITIAL_SERVICE_COMPONENTS = {
+  core_offer: "",
+  key_differentiator: "",
+  cta: "",
 } as const;
 
-type ServiceFieldKey = keyof typeof DEFAULT_SERVICE_COMPONENTS;
+type ServiceFieldKey = keyof typeof INITIAL_SERVICE_COMPONENTS;
 type ServiceComponents = Record<ServiceFieldKey, string>;
 type ServiceHelpKey = ServiceFieldKey | "include_fallback";
 
@@ -49,17 +46,17 @@ const SERVICE_FIELDS: { key: ServiceFieldKey; label: string; placeholder: string
   {
     key: "core_offer",
     label: "Core Offer",
-    placeholder: DEFAULT_SERVICE_COMPONENTS.core_offer,
+    placeholder: "Explain the core product or service you're offering",
   },
   {
     key: "key_differentiator",
     label: "Key Differentiator",
-    placeholder: DEFAULT_SERVICE_COMPONENTS.key_differentiator,
+    placeholder: "Share what makes this offering unique",
   },
   {
     key: "cta",
     label: "Call to Action",
-    placeholder: DEFAULT_SERVICE_COMPONENTS.cta,
+    placeholder: "Describe the next step you'd like the reader to take",
   },
 ];
 
@@ -245,11 +242,9 @@ export default function UploadPage() {
   const [emailCol, setEmailCol] = useState("");
 
   const [serviceComponents, setServiceComponents] = useState<ServiceComponents>(
-    () => ({ ...DEFAULT_SERVICE_COMPONENTS })
+    () => ({ ...INITIAL_SERVICE_COMPONENTS })
   );
-  const [includeFallback, setIncludeFallback] = useState<boolean>(
-    DEFAULT_INCLUDE_FALLBACK
-  );
+  const [includeFallback, setIncludeFallback] = useState<boolean>(false);
 
   const [loading, setLoading] = useState(false);
   const [jobCreated, setJobCreated] = useState(false);
@@ -369,8 +364,8 @@ export default function UploadPage() {
       setJobCreated(false);
       setStep(0);
       setEmailCol("");
-      setServiceComponents({ ...DEFAULT_SERVICE_COMPONENTS });
-      setIncludeFallback(DEFAULT_INCLUDE_FALLBACK);
+      setServiceComponents({ ...INITIAL_SERVICE_COMPONENTS });
+      setIncludeFallback(false);
       setRefreshingCredits(false);
     },
     []
