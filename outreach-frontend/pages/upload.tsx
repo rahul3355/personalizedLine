@@ -220,7 +220,7 @@ const HelpTooltip = ({
         >
           <div
             className="space-y-2.5 text-sm leading-relaxed"
-            style={{ color: "#dbdee1" }}
+            style={{ color: "#dbdee1", ...(isPreviewTooltip && { fontWeight: 600 }) }}
           >
             <p>{help.what}</p>
             <p>{help.why}</p>
