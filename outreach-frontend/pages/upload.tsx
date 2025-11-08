@@ -28,6 +28,7 @@ import {
   Flame,
   TrendingUp,
   Sparkles,
+  ListChecks,
 } from "lucide-react";
 import { useAuth } from "../lib/AuthProvider";
 import { useRouter } from "next/router";
@@ -849,7 +850,7 @@ export default function UploadPage() {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <span className="text-xs font-semibold text-gray-700 flex items-center gap-1">
-              <span className="font-semibold">Include fallback?</span>
+              <span className="font-semibold">Include 'Forward to right person' text?</span>
               <HelpTooltip fieldKey="include_fallback" />
             </span>
             <div className="flex items-center gap-3 text-xs font-semibold text-gray-700">
@@ -888,7 +889,7 @@ export default function UploadPage() {
               }}
               aria-expanded={showExamples}
             >
-              <Sparkles className="w-3.5 h-3.5" />
+              <ListChecks className="w-3.5 h-3.5" />
               <span className="relative inline-block">
                 View Examples
                 <span
