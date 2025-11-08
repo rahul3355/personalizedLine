@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 
 import InlineLoader from "../../components/InlineLoader";
+import ThinkingIndicator from "../../components/ThinkingIndicator";
 import { API_URL } from "../../lib/api";
 import { useAuth } from "../../lib/AuthProvider";
 import { useRouter } from "next/router";
@@ -732,7 +733,8 @@ function JobsPage() {
                             const isActive = job.id === selectedJobId;
                             const isFirst = idx === 0;
                             const isLast = idx === group.jobs.length - 1;
-                            const formattedMessage = formatJobMessage(job.message);
+                            const indicatorMessage =
+                              formatJobMessage(job.message) || job.message || undefined;
                             const radius =
                               isFirst && isLast
                                 ? "rounded-[18px]"
@@ -780,6 +782,11 @@ function JobsPage() {
                                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#8B8DA1]">
                                       <StatusPill status={job.status} progress={job.progress} />
                                       <span>{job.rows.toLocaleString()} rows</span>
+                                      <ThinkingIndicator
+                                        status={job.status}
+                                        progress={job.progress}
+                                        message={indicatorMessage}
+                                      />
                                       {job.status === "failed" && job.error ? (
                                         <span className="text-[#DC2F2F]">{job.error}</span>
                                       ) : null}
