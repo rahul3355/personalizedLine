@@ -27,6 +27,7 @@ import {
   Send,
   Flame,
   TrendingUp,
+  Sparkles,
 } from "lucide-react";
 import { useAuth } from "../lib/AuthProvider";
 import { useRouter } from "next/router";
@@ -845,40 +846,58 @@ export default function UploadPage() {
           ))}
         </div>
 
-        <div className="flex flex-wrap items-center gap-4">
-          <span className="text-xs font-semibold text-gray-700 flex items-center gap-1">
-            <span className="font-semibold">Include fallback?</span>
-            <HelpTooltip fieldKey="include_fallback" />
-          </span>
-          <div className="flex items-center gap-3 text-xs font-semibold text-gray-700">
-            <Switch
-              checked={includeFallback}
-              onChange={setIncludeFallback}
-              className={`${
-                includeFallback ? "bg-[#4F55F1]" : "bg-gray-200"
-              } relative inline-flex h-6 w-11 items-center rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4F55F1]`}
-            >
-              <span className="sr-only">Toggle fallback forwarding request</span>
-              <span
-                aria-hidden="true"
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <span className="text-xs font-semibold text-gray-700 flex items-center gap-1">
+              <span className="font-semibold">Include fallback?</span>
+              <HelpTooltip fieldKey="include_fallback" />
+            </span>
+            <div className="flex items-center gap-3 text-xs font-semibold text-gray-700">
+              <Switch
+                checked={includeFallback}
+                onChange={setIncludeFallback}
                 className={`${
-                  includeFallback ? "translate-x-6" : "translate-x-1"
-                } inline-block h-4 w-4 transform rounded-full bg-white transition`}
-              />
-            </Switch>
-            <span>{includeFallback ? "On" : "Off"}</span>
+                  includeFallback ? "bg-[#4F55F1]" : "bg-gray-200"
+                } relative inline-flex h-6 w-11 items-center rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4F55F1]`}
+              >
+                <span className="sr-only">Toggle fallback forwarding request</span>
+                <span
+                  aria-hidden="true"
+                  className={`${
+                    includeFallback ? "translate-x-6" : "translate-x-1"
+                  } inline-block h-4 w-4 transform rounded-full bg-white transition`}
+                />
+              </Switch>
+              <span>{includeFallback ? "On" : "Off"}</span>
+            </div>
           </div>
-        </div>
 
-        <div className="flex items-center justify-end">
-          <button
-            type="button"
-            onClick={() => setShowExamples((prev) => !prev)}
-            className="text-xs font-semibold text-[#4F55F1] transition hover:text-[#3D42D8] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#4F55F1]"
-            aria-expanded={showExamples}
-          >
-            View Examples
-          </button>
+          <div className="relative inline-block group">
+            <button
+              type="button"
+              onClick={() => setShowExamples((prev) => !prev)}
+              className="relative inline-flex items-center gap-2 h-6 px-3 text-sm font-semibold text-[#4F55F1] transition-all duration-200 ease-out focus:outline-none rounded-full group-hover:scale-105"
+              style={{
+                background: 'transparent',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(79, 85, 241, 0.08)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+              }}
+              aria-expanded={showExamples}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span className="relative inline-block">
+                View Examples
+                <span
+                  className="absolute bottom-0 left-0 w-0 h-[2px] bg-[#4F55F1] transition-all duration-300 group-hover:w-full"
+                  style={{ bottom: '-2px' }}
+                />
+              </span>
+            </button>
+          </div>
         </div>
 
         <AnimatePresence>
