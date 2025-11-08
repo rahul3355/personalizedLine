@@ -318,7 +318,7 @@ function ExamplesDrawerPanel({
 
   return (
     <div
-      className={`relative flex min-h-full flex-col ${radiusClass} bg-[#FCFCFC] shadow-[0_12px_30px_rgba(0,0,0,0.08)]`}
+      className={`relative flex h-full flex-col ${radiusClass} bg-[#FCFCFC] shadow-[0_12px_30px_rgba(0,0,0,0.08)]`}
     >
       <button
         type="button"
@@ -505,9 +505,9 @@ export default function UploadPage() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 60 }}
                 transition={{ type: "spring", stiffness: 260, damping: 30 }}
-                className="pointer-events-none absolute inset-y-0 right-0 hidden w-full max-w-xs md:flex md:max-w-sm lg:max-w-md z-40"
+                className="pointer-events-none fixed top-0 right-0 bottom-0 hidden w-full max-w-xs md:flex md:max-w-sm lg:max-w-md z-40"
               >
-                <div className="pointer-events-auto flex-1">
+                <div className="pointer-events-auto">
                   <ExamplesDrawerPanel onClose={closeExamples} />
                 </div>
               </motion.div>
