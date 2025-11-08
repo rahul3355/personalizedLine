@@ -22,6 +22,11 @@ import {
   Mail,
   FileText,
   HelpCircle,
+  Search,
+  MessageCircle,
+  Send,
+  Flame,
+  TrendingUp,
 } from "lucide-react";
 import { useAuth } from "../lib/AuthProvider";
 import { useRouter } from "next/router";
@@ -116,6 +121,82 @@ const COPY = {
   dz_selected: "",
   proceed: "Next",
 };
+
+type ExampleCategory = "outreach" | "sales" | "marketing" | "recruitment";
+
+type ExampleItem = {
+  id: string;
+  category: ExampleCategory;
+  core_offer: string;
+  key_differentiator: string;
+  cta: string;
+};
+
+const EXAMPLE_CATEGORIES = [
+  { id: "outreach" as const, label: "Outreach", icon: MessageCircle },
+  { id: "sales" as const, label: "Sales", icon: Send },
+  { id: "marketing" as const, label: "Marketing", icon: Flame },
+  { id: "recruitment" as const, label: "Recruitment", icon: TrendingUp },
+];
+
+const EXAMPLE_DATA: ExampleItem[] = [
+  {
+    id: "ex1",
+    category: "outreach",
+    core_offer: "AI-powered email personalization for sales teams",
+    key_differentiator: "Generates personalized lines 10x faster than manual research",
+    cta: "Book a 15-minute demo to see it in action",
+  },
+  {
+    id: "ex2",
+    category: "outreach",
+    core_offer: "Automated lead enrichment and data validation",
+    key_differentiator: "99% accuracy with real-time email verification",
+    cta: "Start your free trial today",
+  },
+  {
+    id: "ex3",
+    category: "sales",
+    core_offer: "CRM integration that syncs with your existing workflow",
+    key_differentiator: "Zero setup time - plug and play in under 5 minutes",
+    cta: "Schedule a walkthrough with our team",
+  },
+  {
+    id: "ex4",
+    category: "sales",
+    core_offer: "Sales intelligence platform for B2B teams",
+    key_differentiator: "Access to 50M+ verified contacts across all industries",
+    cta: "Get started with 100 free credits",
+  },
+  {
+    id: "ex5",
+    category: "marketing",
+    core_offer: "Multi-channel campaign automation",
+    key_differentiator: "Increases conversion rates by 3x with smart segmentation",
+    cta: "See our case studies and ROI calculator",
+  },
+  {
+    id: "ex6",
+    category: "marketing",
+    core_offer: "Content personalization engine for websites",
+    key_differentiator: "Real-time visitor analytics and dynamic content delivery",
+    cta: "Request a personalized demo",
+  },
+  {
+    id: "ex7",
+    category: "recruitment",
+    core_offer: "AI-powered candidate screening and matching",
+    key_differentiator: "Reduces time-to-hire by 60% with intelligent automation",
+    cta: "Book a consultation with our hiring experts",
+  },
+  {
+    id: "ex8",
+    category: "recruitment",
+    core_offer: "Talent sourcing platform with passive candidate reach",
+    key_differentiator: "2x larger talent pool than traditional job boards",
+    cta: "Start sourcing top talent in 48 hours",
+  },
+];
 
 // Step-specific titles/subtitles shown *under* the stepper
 const STEP_META = [
@@ -310,28 +391,194 @@ const StepTracker = ({
 function ExamplesDrawerPanel({
   onClose,
   isMobile = false,
+  onUseExample,
 }: {
   onClose: () => void;
   isMobile?: boolean;
+  onUseExample: (example: ExampleItem) => void;
 }) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<ExampleCategory | "all">("all");
+
   const radiusClass = isMobile ? "rounded-l-3xl" : "rounded-[24px]";
+
+  // Filter examples based on search and category
+  const filteredExamples = EXAMPLE_DATA.filter((example) => {
+    const matchesCategory = selectedCategory === "all" || example.category === selectedCategory;
+    const matchesSearch =
+      searchQuery === "" ||
+      example.core_offer.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      example.key_differentiator.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      example.cta.toLowerCase().includes(searchQuery.toLowerCase());
+
+    return matchesCategory && matchesSearch;
+  });
 
   return (
     <div
-      className={`relative flex min-h-full flex-col ${radiusClass} bg-[#F3F3F3] shadow-[0_12px_30px_rgba(0,0,0,0.08)]`}
+      className={`relative flex min-h-full flex-col ${radiusClass} bg-[#F5F5F5] shadow-[0_12px_30px_rgba(0,0,0,0.08)]`}
+      style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}
     >
+      {/* Close Button */}
       <button
         type="button"
         onClick={onClose}
         aria-label="Close"
-        className="absolute left-2 top-6 -translate-y-1/2 inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-100"
+        className="absolute left-4 top-4 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-200 transition-colors"
       >
-        <XIcon className="h-4 w-4" />
+        <XIcon className="h-4 w-4 text-gray-600" />
       </button>
 
-      <div className="px-6 pt-8 pb-4" />
-      <div className="flex-1 px-5 pb-4" />
-      <div className="px-5 pb-6" />
+      {/* Header Section */}
+      <div className="px-6 pt-6 pb-4">
+        <h2 className="text-center text-lg font-semibold text-gray-900 mb-4">
+          Examples
+        </h2>
+
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-300"
+          />
+        </div>
+      </div>
+
+      {/* Main Content Area with Sidebar */}
+      <div className="flex flex-1 gap-3 px-4 pb-4 overflow-hidden">
+        {/* Left Sidebar */}
+        <div className="flex flex-col gap-3 pt-2">
+          {EXAMPLE_CATEGORIES.map((category) => {
+            const Icon = category.icon;
+            const isSelected = selectedCategory === category.id;
+
+            return (
+              <button
+                key={category.id}
+                type="button"
+                onClick={() => setSelectedCategory(category.id)}
+                className={`
+                  flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all
+                  ${isSelected
+                    ? 'bg-white border-gray-400 shadow-sm'
+                    : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                  }
+                `}
+                title={category.label}
+                aria-label={category.label}
+              >
+                <Icon
+                  className={`h-4 w-4 ${isSelected ? 'text-gray-700' : 'text-gray-500'}`}
+                />
+              </button>
+            );
+          })}
+
+          {/* All Categories Button */}
+          <button
+            type="button"
+            onClick={() => setSelectedCategory("all")}
+            className={`
+              flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all text-xs font-semibold
+              ${selectedCategory === "all"
+                ? 'bg-white border-gray-400 shadow-sm text-gray-700'
+                : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm text-gray-500'
+              }
+            `}
+            title="All Categories"
+            aria-label="All Categories"
+          >
+            All
+          </button>
+        </div>
+
+        {/* Scrollable Content Area */}
+        <div className="flex-1 overflow-y-auto pr-2 space-y-3" style={{ scrollbarWidth: 'thin', scrollbarColor: '#D1D5DB #F5F5F5' }}>
+          {filteredExamples.length === 0 ? (
+            <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+              No examples found
+            </div>
+          ) : (
+            filteredExamples.map((example) => (
+              <div
+                key={example.id}
+                className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-shadow"
+              >
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 block mb-1">
+                      Core offer:
+                    </label>
+                    <p className="text-sm text-gray-700">
+                      {example.core_offer}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 block mb-1">
+                      Key differentiator:
+                    </label>
+                    <p className="text-sm text-gray-700">
+                      {example.key_differentiator}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 block mb-1">
+                      CTA:
+                    </label>
+                    <p className="text-sm text-gray-700">
+                      {example.cta}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Use this button */}
+                <div className="mt-4 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => onUseExample(example)}
+                    className="px-4 py-2 rounded-md text-sm font-medium text-white transition-colors"
+                    style={{
+                      backgroundColor: '#C026D3',
+                      ':hover': { backgroundColor: '#A21CAF' }
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.target as HTMLButtonElement).style.backgroundColor = '#A21CAF';
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.target as HTMLButtonElement).style.backgroundColor = '#C026D3';
+                    }}
+                  >
+                    Use this
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Custom scrollbar styles */}
+      <style jsx>{`
+        div::-webkit-scrollbar {
+          width: 6px;
+        }
+        div::-webkit-scrollbar-track {
+          background: #F5F5F5;
+        }
+        div::-webkit-scrollbar-thumb {
+          background: #D1D5DB;
+          border-radius: 3px;
+        }
+        div::-webkit-scrollbar-thumb:hover {
+          background: #9CA3AF;
+        }
+      `}</style>
     </div>
   );
 }
@@ -412,6 +659,15 @@ export default function UploadPage() {
 
   const renderServiceInputs = () => {
     const closeExamples = () => setShowExamples(false);
+
+    const handleUseExample = (example: ExampleItem) => {
+      setServiceComponents({
+        core_offer: example.core_offer,
+        key_differentiator: example.key_differentiator,
+        cta: example.cta,
+      });
+      closeExamples();
+    };
 
     return (
       <div className="relative space-y-5">
@@ -495,7 +751,7 @@ export default function UploadPage() {
                   className="absolute inset-y-0 right-0 w-full max-w-md bg-white"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <ExamplesDrawerPanel onClose={closeExamples} isMobile />
+                  <ExamplesDrawerPanel onClose={closeExamples} isMobile onUseExample={handleUseExample} />
                 </motion.div>
               </motion.div>
 
@@ -508,7 +764,7 @@ export default function UploadPage() {
                 className="pointer-events-none absolute inset-y-0 right-0 hidden w-full max-w-xs md:flex md:max-w-sm lg:max-w-md z-40"
               >
                 <div className="pointer-events-auto flex-1">
-                  <ExamplesDrawerPanel onClose={closeExamples} />
+                  <ExamplesDrawerPanel onClose={closeExamples} onUseExample={handleUseExample} />
                 </div>
               </motion.div>
             </>
