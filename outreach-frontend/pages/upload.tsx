@@ -8,6 +8,7 @@ import {
   type DragEvent as ReactDragEvent,
   type ReactNode,
 } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Switch } from "@headlessui/react";
 import { API_URL } from "../lib/api";
 import {
@@ -306,6 +307,37 @@ const StepTracker = ({
 
 
 
+function ExamplesDrawerPanel({
+  onClose,
+  isMobile = false,
+}: {
+  onClose: () => void;
+  isMobile?: boolean;
+}) {
+  const radiusClass = isMobile ? "rounded-l-3xl" : "rounded-[24px]";
+
+  return (
+    <div
+      className={`relative flex min-h-full flex-col ${radiusClass} bg-[#FCFCFC] shadow-[0_12px_30px_rgba(0,0,0,0.08)]`}
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Close"
+        className="absolute left-2 top-6 -translate-y-1/2 inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-100"
+      >
+        <XIcon className="h-4 w-4" />
+      </button>
+
+      <div className="px-6 pt-8 pb-4" />
+      <div className="flex-1 px-5 pb-4" />
+      <div className="px-5 pb-6" />
+    </div>
+  );
+}
+
+
+
 export default function UploadPage() {
   const { session, loading: authLoading, refreshUserInfo } = useAuth();
   const router = useRouter();
@@ -379,31 +411,10 @@ export default function UploadPage() {
   };
 
   const renderServiceInputs = () => {
-    const exampleEntries = SERVICE_FIELDS.reduce(
-      (entries, field) => {
-        const help = HELP_CONTENT[field.key];
-        if (help.example) {
-          entries.push({
-            key: field.key,
-            label: field.label,
-            what: help.what,
-            example: help.example,
-          });
-        }
-        return entries;
-      },
-      [] as {
-        key: ServiceFieldKey;
-        label: string;
-        what: string;
-        example: string;
-      }[]
-    );
-
-    const fallbackExample = HELP_CONTENT.include_fallback.example;
+    const closeExamples = () => setShowExamples(false);
 
     return (
-      <div className="space-y-5">
+      <div className="relative space-y-5">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {SERVICE_FIELDS.map((field) => (
             <div
@@ -465,33 +476,44 @@ export default function UploadPage() {
           </button>
         </div>
 
-        {showExamples && (
-          <div className="space-y-4 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4">
-            {exampleEntries.map((entry) => (
-              <div key={entry.key} className="space-y-1">
-                <p className="text-xs font-semibold text-gray-800">{entry.label}</p>
-                {entry.what && (
-                  <p className="text-xs text-gray-500">{entry.what}</p>
-                )}
-                <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700">
-                  {entry.example}
-                </div>
-              </div>
-            ))}
+        <AnimatePresence>
+          {showExamples && (
+            <>
+              <motion.div
+                key="examples-drawer-mobile"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm md:hidden"
+                onClick={closeExamples}
+              >
+                <motion.div
+                  initial={{ x: "100%" }}
+                  animate={{ x: 0 }}
+                  exit={{ x: "100%" }}
+                  transition={{ type: "spring", stiffness: 260, damping: 30 }}
+                  className="absolute inset-y-0 right-0 w-full max-w-md bg-white"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ExamplesDrawerPanel onClose={closeExamples} isMobile />
+                </motion.div>
+              </motion.div>
 
-            {fallbackExample && (
-              <div className="space-y-1 border-t border-gray-200 pt-3">
-                <p className="text-xs font-semibold text-gray-800">Fallback Request</p>
-                <p className="text-xs text-gray-500">
-                  {HELP_CONTENT.include_fallback.what}
-                </p>
-                <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700">
-                  {fallbackExample}
+              <motion.div
+                key="examples-drawer-desktop"
+                initial={{ opacity: 0, x: 60 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 60 }}
+                transition={{ type: "spring", stiffness: 260, damping: 30 }}
+                className="pointer-events-none absolute inset-y-0 right-0 hidden w-full max-w-xs md:flex md:max-w-sm lg:max-w-md z-40"
+              >
+                <div className="pointer-events-auto flex-1">
+                  <ExamplesDrawerPanel onClose={closeExamples} />
                 </div>
-              </div>
-            )}
-          </div>
-        )}
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
       </div>
     );
   };
