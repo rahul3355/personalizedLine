@@ -8,7 +8,7 @@ import { FcGoogle } from "react-icons/fc";
 import Image from "next/image";
 import logo from "../pages/logo.png";
 
-export default function LoginPage() {
+function LoginPage() {
   const { session } = useAuth();
   const router = useRouter();
 
@@ -125,3 +125,7 @@ export default function LoginPage() {
     </div>
   );
 }
+
+LoginPage.disableWhiteCard = true;
+
+export default LoginPage;
