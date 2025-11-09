@@ -541,8 +541,8 @@ function ExamplesDrawerPanel({
       className={`relative flex flex-col ${radiusClass} bg-[#F5F5F5] shadow-[0_12px_30px_rgba(0,0,0,0.08)]`}
       style={{
         fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui',
-        height: '450px',
-        maxHeight: '450px'
+        height: isMobile ? '100vh' : '450px',
+        maxHeight: isMobile ? '100vh' : '450px'
       }}
     >
       {/* Close Button */}
@@ -550,7 +550,7 @@ function ExamplesDrawerPanel({
         type="button"
         onClick={onClose}
         aria-label="Close"
-        className="absolute left-4 top-4 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-200 transition-colors"
+        className={`absolute left-4 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-200 transition-colors ${isMobile ? 'top-20' : 'top-4'}`}
       >
         <XIcon className="h-4 w-4 text-gray-600" />
       </button>
@@ -911,7 +911,7 @@ export default function UploadPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm md:hidden"
+                className="fixed inset-0 z-40 md:hidden"
                 onClick={closeExamples}
               >
                 <motion.div
@@ -919,7 +919,7 @@ export default function UploadPage() {
                   animate={{ x: 0 }}
                   exit={{ x: "100%" }}
                   transition={{ type: "spring", stiffness: 260, damping: 30 }}
-                  className="absolute inset-y-0 right-0 w-full max-w-md bg-white"
+                  className="absolute inset-0 w-full h-full"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <ExamplesDrawerPanel onClose={closeExamples} isMobile onUseExample={handleUseExample} />
@@ -2097,7 +2097,7 @@ export default function UploadPage() {
           <div className="max-w-md w-full space-y-6" style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}>
             <h2 className="text-lg font-semibold text-gray-900 text-center">Confirm Email Column</h2>
             {renderCreditBanner(true)}
-            <div className="rounded-xl border p-6 space-y-3" style={{ borderColor: "#E5E7EB" }}>
+            <div className="space-y-3">
               <label className="text-xs text-gray-500 block">Email Column</label>
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4" style={{ color: BRAND }} />
@@ -2139,7 +2139,7 @@ export default function UploadPage() {
         <div className="block md:hidden w-full h-[calc(100vh-69px)] px-4 flex items-start justify-center pt-[64px] bg-white overflow-y-auto">
           <div className="max-w-md w-full space-y-6 pb-8" style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}>
             <h2 className="text-lg font-semibold text-gray-900 text-center">Describe Your Service</h2>
-            <div className="rounded-3xl border border-gray-200 bg-white px-5 py-6 shadow-sm space-y-6">
+            <div className="space-y-6">
               {renderServiceInputs()}
               {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm font-medium">
@@ -2255,7 +2255,7 @@ export default function UploadPage() {
                           <label className="text-xs font-medium text-green-800 block mb-2">
                             Personalized Email:
                           </label>
-                          <div className="bg-white border border-green-200 rounded-md p-4 text-sm text-gray-900 whitespace-pre-wrap">
+                          <div className="bg-white border border-green-200 rounded-md p-4 text-xs text-gray-900 whitespace-pre-wrap leading-relaxed">
                             {previewResult.email_body}
                           </div>
                         </div>
