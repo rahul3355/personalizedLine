@@ -320,8 +320,8 @@ const STEP_META = [
     sub: "CSV or XLSX • up to 100k rows • header row required",
   },
   {
-    title: "Email column",
-    sub: "Choose which column contains the email address.",
+    title: "Select your email column",
+    sub: "",
   },
   {
     title: "Context",
@@ -1755,7 +1755,7 @@ export default function UploadPage() {
 
                   <div className="space-y-2">
                     <label className="text-xs text-gray-500 block">
-                      Email Column
+                      Choose which column contains the email address.
                     </label>
                     <div className="flex items-center gap-2">
                       <Mail className="h-4 w-4" style={{ color: BRAND }} />
@@ -1785,9 +1785,6 @@ export default function UploadPage() {
                         ))}
                       </select>
                     </div>
-                    <p className="text-xs text-gray-500">
-                      We&apos;ll only send the selected email column to generate your personalized lines.
-                    </p>
                   </div>
                   {error && (
                     <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm font-medium">
@@ -2094,7 +2091,9 @@ export default function UploadPage() {
             <h2 className="text-lg font-semibold text-gray-900 text-center">Confirm Email Column</h2>
             {renderCreditBanner(true)}
             <div className="space-y-3">
-              <label className="text-xs text-gray-500 block">Email Column</label>
+              <label className="text-xs text-gray-500 block">
+                Choose which column contains the email address.
+              </label>
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4" style={{ color: BRAND }} />
                 <select
