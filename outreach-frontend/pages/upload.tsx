@@ -36,6 +36,7 @@ import { useOptimisticJobs } from "../lib/OptimisticJobsProvider";
 import { useRouter } from "next/router";
 import { useToast } from "@/components/Toast";
 import { supabase } from "../lib/supabaseClient";
+import { FilePreviewSkeleton } from "@/components/SkeletonScreens";
 // replace
 
 
@@ -1805,6 +1806,11 @@ export default function UploadPage() {
                   </div>
                 )}
 
+                {/* Show skeleton while parsing */}
+                {loading && file && (
+                  <FilePreviewSkeleton />
+                )}
+
                 {/* Only render footer button if file exists */}
                 {file && (
                   <div className="mt-6 flex items-center justify-center">
@@ -2147,6 +2153,11 @@ export default function UploadPage() {
                 </span>
               )}
             </div>
+
+            {/* Show skeleton while parsing on mobile */}
+            {loading && file && (
+              <FilePreviewSkeleton />
+            )}
 
             <button
               onClick={handleParseHeaders}
