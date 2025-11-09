@@ -25,9 +25,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex h-dvh overflow-hidden font-sans">
+    <div className="flex h-dvh w-full overflow-hidden font-sans">
       {/* Left Section */}
-      <div className="w-full lg:w-1/2 flex flex-col border-r border-gray-100">
+      <div className="w-full lg:w-1/2 flex flex-col border-r border-gray-100 bg-white">
         {/* Centered Content */}
         <div className="flex-1 flex flex-col items-center justify-center px-6 sm:px-8 gap-y-6">
           <div className="w-full max-w-md flex flex-col gap-y-6">
