@@ -1797,12 +1797,12 @@ export default function UploadPage() {
                   <button
                     type="button"
                     onClick={() => setStep(0)}
-                    className="inline-flex items-center gap-2 h-9 px-3 rounded-md border text-sm hover:bg-[rgba(79,85,241,0.04)]"
-                    style={{ borderColor: BRAND_SOFT, color: BRAND }}
-                    title="Previous"
+                    className="inline-flex items-center gap-2 h-9 px-3 rounded-md text-sm hover:bg-[rgba(79,85,241,0.04)]"
+                    style={{ border: "none", color: "#f3f4f6" }}
+                    title="Back"
                   >
                     <ArrowLeft className="w-4 h-4" />
-                    Previous
+                    Back
                   </button>
                   <button
                     onClick={handleConfirmHeaders}
@@ -1986,12 +1986,12 @@ export default function UploadPage() {
                   <button
                     type="button"
                     onClick={() => setStep(1)}
-                    className="inline-flex items-center gap-2 h-9 px-3 rounded-md border text-sm hover:bg-[rgba(79,85,241,0.04)]"
-                    style={{ borderColor: BRAND_SOFT, color: BRAND }}
-                    title="Previous"
+                    className="inline-flex items-center gap-2 h-9 px-3 rounded-md text-sm hover:bg-[rgba(79,85,241,0.04)]"
+                    style={{ border: "none", color: "#f3f4f6" }}
+                    title="Back"
                   >
                     <ArrowLeft className="w-4 h-4" />
-                    Previous
+                    Back
                   </button>
                   <button
                     onClick={handleCreateJob}
