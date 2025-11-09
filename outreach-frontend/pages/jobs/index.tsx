@@ -932,7 +932,7 @@ function DetailPanel({
 
   return (
     <div
-      className={`relative flex min-h-full flex-col ${radiusClass} bg-[#FCFCFC] shadow-[0_12px_30px_rgba(0,0,0,0.08)]`}
+      className={`relative flex flex-col ${radiusClass} bg-[#FCFCFC] shadow-[0_12px_30px_rgba(0,0,0,0.08)]`}
     >
       {isLoading ? (
         <div
@@ -952,14 +952,13 @@ function DetailPanel({
         type="button"
         onClick={onClose}
         aria-label="Close"
-        className={`absolute left-2 inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-100 ${isMobile ? 'top-20' : 'top-6 -translate-y-1/2'}`}
+        className={`absolute left-2 inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-100 ${isMobile ? 'top-16' : 'top-5 -translate-y-1/2'}`}
       >
         <X className="h-4 w-4" />
       </button>
-      <br />
 
       {/* Title + status icon */}
-      <div className="px-6 pt-8 pb-4">
+      <div className="px-6 pt-6 pb-2">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <h1 className="truncate text-2xl font-semibold leading-tight text-gray-900">
@@ -978,7 +977,7 @@ function DetailPanel({
 
 
       {/* Info box (white card inside a light surface) */}
-      <div className="px-5 pb-4">
+      <div className="px-5 pb-3">
         <div className="rounded-2xl bg-[#F6F7F9] p-1">
           <div className="rounded-xl bg-white">
             {isLoading ? (
@@ -1023,10 +1022,10 @@ function DetailPanel({
       </div>
 
       {/* Bottom "Get help" card */}
-      <div className="px-5 pb-6">
+      <div className="px-5 pb-4">
         <button
           type="button"
-          className="flex w-full items-center justify-between rounded-xl bg-white px-4 py-3 text-[15px] font-medium text-gray-900 ring-1 ring-black/[0.06] hover:bg-gray-50"
+          className="flex w-full items-center justify-between rounded-xl bg-white px-4 py-2.5 text-[15px] font-medium text-gray-900 ring-1 ring-black/[0.06] hover:bg-gray-50"
         >
           <span>Get help</span>
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1070,7 +1069,7 @@ function InfoRow({
   mono?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between px-4 py-3">
+    <div className="flex items-center justify-between px-4 py-2">
       <span className="text-[15px] text-gray-500">{label}</span>
       <div
         className={`ml-4 max-w-[60%] text-right text-[15px] text-gray-900 ${mono ? "font-mono break-all" : ""
@@ -1096,7 +1095,7 @@ function DetailSkeleton() {
   ];
 
   return (
-    <div className="animate-pulse px-4 py-3">
+    <div className="animate-pulse px-4 py-2">
       {rows.map((row, index) => (
         <div key={`detail-skeleton-${index}`} className="flex items-center justify-between py-2">
           <SkeletonLine className={row.labelWidth} />
