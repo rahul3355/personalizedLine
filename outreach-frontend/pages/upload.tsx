@@ -972,6 +972,8 @@ export default function UploadPage() {
                 <div
                   ref={desktopExamplesRef}
                   className="pointer-events-auto flex-1"
+                  onClick={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => e.stopPropagation()}
                 >
                   <ExamplesDrawerPanel onClose={closeExamples} onUseExample={handleUseExample} />
                 </div>
