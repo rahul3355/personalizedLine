@@ -795,6 +795,11 @@ export default function UploadPage() {
     if (!showExamples) return;
 
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      // Only use document-level click-outside detection on desktop (md breakpoint: 768px)
+      // Mobile uses backdrop onClick in the AnimatePresence section instead
+      const isDesktop = window.matchMedia("(min-width: 768px)").matches;
+      if (!isDesktop) return;
+
       const target = event.target as Node | null;
 
       if (
@@ -941,7 +946,7 @@ export default function UploadPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-40 md:hidden"
+                className="fixed inset-0 z-40 md:hidden bg-black/20"
                 onClick={closeExamples}
               >
                 <motion.div
@@ -949,7 +954,7 @@ export default function UploadPage() {
                   animate={{ x: 0 }}
                   exit={{ x: "100%" }}
                   transition={{ type: "spring", stiffness: 260, damping: 30 }}
-                  className="absolute inset-0 w-full h-full"
+                  className="absolute right-0 top-0 h-full w-full"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <ExamplesDrawerPanel onClose={closeExamples} isMobile onUseExample={handleUseExample} />
