@@ -747,7 +747,7 @@ function JobsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white md:bg-[#F7F7F7] bg-none">
+      <div className="min-h-screen overflow-x-hidden bg-white md:bg-[#F7F7F7] md:overflow-visible bg-none">
         <div className="relative w-full px-4 sm:px-8 md:px-10 lg:px-12 pt-6 pb-16">
           <div className="space-y-10">
             <div className="space-y-12">
@@ -764,7 +764,7 @@ function JobsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white md:bg-[#F7F7F7] bg-none">
+    <div className="min-h-screen overflow-x-hidden bg-white md:bg-[#F7F7F7] md:overflow-visible bg-none">
       <div ref={layoutRef} className="relative w-full px-4 sm:px-8 md:px-10 lg:px-12 pt-6 pb-16">
         <div
           className={`transition-all duration-300 ${selectedJobId ? "md:pr-[344px] lg:pr-[422px]" : ""}`}
