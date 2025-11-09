@@ -32,6 +32,8 @@ interface AuthContextProps {
   userInfo: UserInfo | null;
   loading: boolean;
   refreshUserInfo: () => Promise<void>;
+  optimisticallyDeductCredits: (amount: number) => void;
+  revertOptimisticCredits: (amount: number) => void;
 }
 
 const AuthContext = createContext<AuthContextProps>({
@@ -40,6 +42,8 @@ const AuthContext = createContext<AuthContextProps>({
   userInfo: null,
   loading: true,
   refreshUserInfo: async () => {},
+  optimisticallyDeductCredits: () => {},
+  revertOptimisticCredits: () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -132,6 +136,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [fetchUserInfo, session]);
 
+  // Optimistically deduct credits from the UI
+  const optimisticallyDeductCredits = useCallback((amount: number) => {
+    setUserInfo((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        credits_remaining: Math.max(0, prev.credits_remaining - amount),
+      };
+    });
+  }, []);
+
+  // Revert optimistic credit deduction (on error)
+  const revertOptimisticCredits = useCallback((amount: number) => {
+    setUserInfo((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        credits_remaining: prev.credits_remaining + amount,
+      };
+    });
+  }, []);
+
   useEffect(() => {
     let mounted = true;
 
@@ -181,6 +207,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     userInfo,
     loading,
     refreshUserInfo,
+    optimisticallyDeductCredits,
+    revertOptimisticCredits,
   };
 
   return (

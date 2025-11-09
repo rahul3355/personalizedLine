@@ -2,6 +2,7 @@ import "../styles/globals.css";
 import type { AppProps } from "next/app";
 import Navbar from "../components/Navbar";
 import { AuthProvider, useAuth } from "../lib/AuthProvider";
+import { OptimisticJobsProvider } from "../lib/OptimisticJobsProvider";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import AuthorityPointLoader from "../components/AuthorityPointLoader";
@@ -111,9 +112,11 @@ interface MyAppProps extends AppProps {
 export default function MyApp({ Component, pageProps }: MyAppProps) {
   return (
     <AuthProvider>
-      <ToastProvider>
-        <Layout Component={Component} pageProps={pageProps} />
-      </ToastProvider>
+      <OptimisticJobsProvider>
+        <ToastProvider>
+          <Layout Component={Component} pageProps={pageProps} />
+        </ToastProvider>
+      </OptimisticJobsProvider>
     </AuthProvider>
   );
 }
