@@ -2045,8 +2045,8 @@ export default function UploadPage() {
 
       {/* Mobile sections kept intact for functionality; desktop changes satisfy requirements */}
       {step === 0 && !jobCreated && (
-        <div className="block md:hidden w-full h-[calc(100vh-159px)] px-4 flex items-center justify-center overflow-hidden relative -mt-[64px] pt-[64px] bg-white">
-          <div className="max-w-md w-full space-y-6 mt-0" style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}>
+        <div className="block md:hidden w-full min-h-[calc(100vh-159px)] px-4 flex items-center justify-center overflow-hidden bg-white">
+          <div className="max-w-md w-full space-y-6 mt-0 bg-white" style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}>
             <h1 className="text-xl font-semibold text-gray-900 text-center">
               Upload Outreach File
             </h1>
@@ -2055,7 +2055,7 @@ export default function UploadPage() {
             </p>
             {renderCreditBanner(true)}
 
-            <div className="rounded-xl border-2 border-dashed p-8 text-center"
+            <div className="rounded-xl border-2 border-dashed p-8 text-center bg-white"
               style={{ borderColor: "#E5E7EB" }}
               onClick={() => document.getElementById("mobile-file-input")?.click()}
             >
