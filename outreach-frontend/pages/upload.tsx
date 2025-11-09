@@ -325,7 +325,7 @@ const STEP_META = [
   },
   {
     title: "Context",
-    sub: "Describe your service so we can personalize outputs.",
+    sub: "Describe your product/service so we can personalize outputs.",
   },
 ] as const;
 
@@ -1798,7 +1798,7 @@ export default function UploadPage() {
                     type="button"
                     onClick={() => setStep(0)}
                     className="inline-flex items-center gap-2 h-9 px-3 rounded-md text-sm hover:bg-[rgba(79,85,241,0.04)]"
-                    style={{ border: "none", color: "#f3f4f6" }}
+                    style={{ border: "none", color: "#8b8b8bff" }}
                     title="Back"
                   >
                     <ArrowLeft className="w-4 h-4" />
@@ -1987,7 +1987,7 @@ export default function UploadPage() {
                     type="button"
                     onClick={() => setStep(1)}
                     className="inline-flex items-center gap-2 h-9 px-3 rounded-md text-sm hover:bg-[rgba(79,85,241,0.04)]"
-                    style={{ border: "none", color: "#f3f4f6" }}
+                    style={{ border: "none", color: "#8b8b8bff" }}
                     title="Back"
                   >
                     <ArrowLeft className="w-4 h-4" />
