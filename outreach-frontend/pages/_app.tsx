@@ -56,6 +56,7 @@ function Layout({ Component, pageProps }: LayoutProps) {
   }
   const backgroundClassName = Component.backgroundClassName ?? "bg-[#F7F7F7]";
   const disableWhiteCard = Component.disableWhiteCard ?? false;
+  const isLoginPage = router.pathname === "/login";
 
   const renderPage = () => {
     if (pageLoading) {
@@ -79,7 +80,7 @@ function Layout({ Component, pageProps }: LayoutProps) {
         <div
           className={`flex min-h-0 flex-1 flex-col ${
             disableWhiteCard
-              ? "overflow-visible ml-0 mr-0 lg:ml-[108px]"
+              ? `overflow-visible ml-0 mr-0 ${isLoginPage ? "" : "lg:ml-[108px]"}`
               : "overflow-hidden rounded-[32px] bg-white shadow-sm ml-0 mr-4 lg:ml-[108px]"
             }`}
         >
