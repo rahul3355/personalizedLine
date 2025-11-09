@@ -1221,11 +1221,7 @@ export default function UploadPage() {
               </p>
               <p className="text-sm">
                 {hasEnoughCredits ? (
-                  <>
-                    You&apos;re good to go — you have {formatNumber(creditsRemaining)}
-                    credits available. Running this job will use
-                    {" "}{formatNumber(rowCount)} credits.
-                  </>
+                  <>Running this job will use {formatNumber(rowCount)} credits.</>
                 ) : (
                   <>
                     You have {formatNumber(creditsRemaining)} credits remaining, so
