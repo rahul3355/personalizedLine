@@ -952,14 +952,13 @@ function DetailPanel({
         type="button"
         onClick={onClose}
         aria-label="Close"
-        className={`absolute left-2 inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-100 ${isMobile ? 'top-20' : 'top-6 -translate-y-1/2'}`}
+        className={`absolute z-10 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/80 backdrop-blur-sm hover:bg-gray-100 transition-colors ${isMobile ? 'top-4 right-4 shadow-sm' : 'left-2 top-6 -translate-y-1/2'}`}
       >
-        <X className="h-4 w-4" />
+        <X className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'}`} />
       </button>
-      <br />
 
       {/* Title + status icon */}
-      <div className="px-6 pt-8 pb-4">
+      <div className={`px-6 pb-4 ${isMobile ? 'pt-16' : 'pt-8'}`}>
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <h1 className="truncate text-2xl font-semibold leading-tight text-gray-900">
