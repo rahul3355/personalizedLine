@@ -25,7 +25,19 @@ function LoginPage() {
   };
 
   return (
-    <div className="flex h-dvh w-full overflow-hidden font-sans bg-white">
+    <div className="relative flex h-dvh w-full overflow-hidden font-sans bg-white">
+      <div className="absolute left-1/2 top-10 hidden -translate-x-1/2 lg:flex">
+        <div className="rounded-full bg-gradient-to-r from-black via-black to-[#7a3cff] p-[2px]">
+          <div className="rounded-full bg-white px-5 py-1">
+            <span
+              className="text-sm font-medium text-black"
+              style={{ fontFamily: '"Aeonik Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}
+            >
+              Beta
+            </span>
+          </div>
+        </div>
+      </div>
       {/* Left Section */}
       <div className="w-full lg:w-1/2 flex flex-col border-r border-gray-100 bg-white">
         {/* Centered Content */}
