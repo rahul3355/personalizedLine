@@ -936,27 +936,36 @@ function JobsPage() {
                 </motion.div>
               </motion.div>
 
-              {/* Desktop: floating card aligned with first job card */}
+              {/* Desktop: overlay + floating card aligned with selected job */}
               <motion.div
                 key="drawer-desktop"
-                initial={{ opacity: 0, x: 60 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 60 }}
-                transition={{ type: "spring", stiffness: 260, damping: 30 }}
-                className="pointer-events-none absolute right-0 hidden w-full max-w-xs md:flex md:max-w-sm lg:max-w-md"
-                style={{ top: drawerTop, minHeight: drawerHeight ?? undefined }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-40 hidden md:block"
+                onClick={handleOverlayClick}
               >
-                <div className="pointer-events-auto">
-                  <DetailPanel
-                    job={selectedJob}
-                    isLoading={detailLoading && Boolean(selectedJobId)}
-                    error={detailError}
-                    onClose={closeDrawer}
-                    onRetry={handleRetry}
-                    onDownload={handleDownload}
-                    downloading={downloading}
-                  />
-                </div>
+                <motion.div
+                  initial={{ opacity: 0, x: 60 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 60 }}
+                  transition={{ type: "spring", stiffness: 260, damping: 30 }}
+                  className="absolute right-0 w-full max-w-xs md:max-w-sm lg:max-w-md"
+                  style={{ top: drawerTop, minHeight: drawerHeight ?? undefined }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="mr-4 sm:mr-8 md:mr-10 lg:mr-12">
+                    <DetailPanel
+                      job={selectedJob}
+                      isLoading={detailLoading && Boolean(selectedJobId)}
+                      error={detailError}
+                      onClose={closeDrawer}
+                      onRetry={handleRetry}
+                      onDownload={handleDownload}
+                      downloading={downloading}
+                    />
+                  </div>
+                </motion.div>
               </motion.div>
             </>
           )}
