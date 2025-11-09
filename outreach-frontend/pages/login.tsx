@@ -32,25 +32,28 @@ function LoginPage() {
           style={{
             background: 'linear-gradient(180deg, #f0f0f0 0%, #d4d4d4 25%, #b0b0b0 50%, #c8c8c8 75%, #e0e0e0 100%)',
             boxShadow: `
-              inset 0 3px 6px rgba(255, 255, 255, 0.9),
-              inset 0 -2px 4px rgba(0, 0, 0, 0.3),
-              inset 3px 0 4px rgba(0, 0, 0, 0.15),
-              inset -3px 0 4px rgba(0, 0, 0, 0.15),
+              inset 0 3px 6px rgba(255, 255, 255, 0.85),
+              inset 0 -2px 6px rgba(0, 0, 0, 0.35),
+              inset 3px 0 4px rgba(0, 0, 0, 0.2),
+              inset -3px 0 4px rgba(0, 0, 0, 0.2),
               0 4px 8px rgba(0, 0, 0, 0.25),
-              0 2px 4px rgba(0, 0, 0, 0.2)
+              0 2px 4px rgba(0, 0, 0, 0.18)
             `,
-            border: '1px solid rgba(0, 0, 0, 0.2)',
+            border: '1px solid rgba(0, 0, 0, 0.25)',
           }}
         >
           <span
-            className="text-sm font-semibold text-black"
+            className="text-sm font-semibold uppercase"
             style={{
-              fontFamily: '"Aeonik Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+              fontFamily: 'Consolas, "Courier New", monospace',
+              color: '#2d2d2d',
+              letterSpacing: '0.18em',
               textShadow: `
-                0 1px 2px rgba(255, 255, 255, 0.9),
-                0 -1px 1px rgba(0, 0, 0, 0.6)
+                0 -1px 1px rgba(255, 255, 255, 0.75),
+                0 1px 2px rgba(0, 0, 0, 0.65),
+                0 0 2px rgba(0, 0, 0, 0.4)
               `,
-              letterSpacing: '0.05em'
+              transform: 'translateY(1px)',
             }}
           >
             BETA
