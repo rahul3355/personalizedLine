@@ -5,6 +5,7 @@ import { buyCredits } from "../lib/api";
 import { loadStripe } from "@stripe/stripe-js";
 import { CreditCard } from "lucide-react";
 import InlineLoader from "@/components/InlineLoader";
+import { TransactionHistorySkeleton } from "@/components/SkeletonScreens";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
@@ -15,9 +16,32 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-      <InlineLoader />
-    </div>
+      <div className="max-w-4xl mx-auto px-6 py-10 space-y-10 animate-pulse">
+        {/* Welcome Skeleton */}
+        <div>
+          <div className="h-9 bg-gray-200/80 rounded-lg w-96 mb-2" />
+          <div className="h-6 bg-gray-200/80 rounded-lg w-64" />
+        </div>
+
+        {/* Account Overview Skeleton */}
+        <section className="bg-white rounded-2xl shadow-sm border p-6 space-y-6">
+          <div>
+            <div className="h-7 bg-gray-200/80 rounded-lg w-48 mb-4" />
+            <div className="grid grid-cols-2 gap-y-3">
+              <div className="h-5 bg-gray-200/80 rounded w-32" />
+              <div className="h-5 bg-gray-200/80 rounded w-28" />
+              <div className="h-5 bg-gray-200/80 rounded w-40" />
+              <div className="h-5 bg-gray-200/80 rounded w-36" />
+            </div>
+          </div>
+
+          {/* Transactions Skeleton */}
+          <div>
+            <div className="h-6 bg-gray-200/80 rounded-lg w-48 mb-3" />
+            <TransactionHistorySkeleton count={5} />
+          </div>
+        </section>
+      </div>
     );
   }
 

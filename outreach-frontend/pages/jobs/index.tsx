@@ -25,6 +25,7 @@ import {
 
 import InlineLoader from "../../components/InlineLoader";
 import ThinkingIndicator from "../../components/ThinkingIndicator";
+import { JobListSkeleton } from "../../components/SkeletonScreens";
 import { API_URL } from "../../lib/api";
 import { useAuth } from "../../lib/AuthProvider";
 import { useOptimisticJobs } from "../../lib/OptimisticJobsProvider";
@@ -746,8 +747,18 @@ function JobsPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white md:bg-[#F7F7F7]">
-        <InlineLoader />
+      <div className="min-h-screen bg-white md:bg-[#F7F7F7] bg-none">
+        <div className="relative w-full px-4 sm:px-8 md:px-10 lg:px-12 pt-6 pb-16">
+          <div className="space-y-10">
+            <div className="space-y-12">
+              <section className="space-y-3">
+                <div className="w-full max-w-none overflow-hidden rounded-[18px] bg-white shadow-none">
+                  <JobListSkeleton count={8} />
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
