@@ -7,6 +7,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type MouseEvent,
   type ReactNode,
 } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -641,6 +642,15 @@ function JobsPage() {
     router.replace({ pathname: "/jobs", query }, undefined, { shallow: true });
   }, [router]);
 
+  const handleOverlayClick = useCallback(
+    (event: MouseEvent<HTMLDivElement>) => {
+      if (event.target === event.currentTarget) {
+        closeDrawer();
+      }
+    },
+    [closeDrawer]
+  );
+
   const handleRetry = useCallback(() => {
     if (selectedJobId) {
       loadJobDetail(selectedJobId);
@@ -903,7 +913,7 @@ function JobsPage() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm md:hidden"
-                onClick={closeDrawer}
+                onClick={handleOverlayClick}
               >
                 <motion.div
                   initial={{ x: "100%" }}
