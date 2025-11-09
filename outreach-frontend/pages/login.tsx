@@ -27,7 +27,7 @@ export default function LoginPage() {
   return (
     <div className="flex h-dvh overflow-hidden font-sans">
       {/* Left Section */}
-      <div className="w-full lg:w-1/2 flex flex-col border-r border-gray-100">
+      <div className="w-full lg:w-1/2 flex flex-col border-r border-gray-100 bg-gray-50">
         {/* Centered Content */}
         <div className="flex-1 flex flex-col items-center justify-center px-6 sm:px-8 gap-y-6">
           <div className="w-full max-w-md flex flex-col gap-y-6">
@@ -109,7 +109,7 @@ export default function LoginPage() {
       </div>
 
       {/* Right Section - Testimonial (desktop only) */}
-      <div className="hidden lg:flex w-1/2 items-center justify-center bg-gray-50">
+      <div className="hidden lg:flex w-1/2 items-center justify-center bg-white">
         <div className="max-w-lg px-12">
           <blockquote className="text-[22px] font-medium text-gray-900 leading-snug tracking-tight">
             “Mailite has transformed how we manage outreach. It’s fast,
