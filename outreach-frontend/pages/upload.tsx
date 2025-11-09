@@ -2297,3 +2297,6 @@ export default function UploadPage() {
     </>
   );
 }
+
+// Override default grey background with white for mobile
+UploadPage.backgroundClassName = "bg-white";
