@@ -32,6 +32,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { useAuth } from "../lib/AuthProvider";
+import { useOptimisticJobs } from "../lib/OptimisticJobsProvider";
 import { useRouter } from "next/router";
 import { useToast } from "@/components/Toast";
 import { supabase } from "../lib/supabaseClient";
@@ -738,7 +739,8 @@ function ExamplesDrawerPanel({
 
 
 export default function UploadPage() {
-  const { session, loading: authLoading, refreshUserInfo } = useAuth();
+  const { session, loading: authLoading, refreshUserInfo, optimisticallyDeductCredits, revertOptimisticCredits } = useAuth();
+  const { addOptimisticJob, removeOptimisticJob } = useOptimisticJobs();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -1382,6 +1384,28 @@ export default function UploadPage() {
     setLoading(true);
     setError(null);
 
+    // Generate temporary ID for optimistic job
+    const optimisticJobId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const creditsToDeduct = creditInfo?.rowCount || 0;
+
+    // Create optimistic job
+    const optimisticJob = {
+      id: optimisticJobId,
+      status: "in_progress" as const,
+      filename: file?.name || "upload.xlsx",
+      rows: creditInfo?.rowCount || 0,
+      created_at: Date.now(),
+      finished_at: null,
+      error: null,
+      progress: 0,
+      message: null,
+      isOptimistic: true as const,
+    };
+
+    // Optimistically update UI
+    addOptimisticJob(optimisticJob);
+    optimisticallyDeductCredits(creditsToDeduct);
+
     try {
       const payload = {
         user_id: session?.user.id || "",
@@ -1400,6 +1424,10 @@ export default function UploadPage() {
       });
 
       if (!res.ok) {
+        // Revert optimistic updates on error
+        removeOptimisticJob(optimisticJobId);
+        revertOptimisticCredits(creditsToDeduct);
+
         if (res.status === 402) {
           let detail: any = null;
           try {
@@ -1422,6 +1450,9 @@ export default function UploadPage() {
 
       await res.json();
 
+      // Remove optimistic job (real job will appear from server)
+      removeOptimisticJob(optimisticJobId);
+
       try {
         await refreshUserInfo();
       } catch (refreshErr) {
@@ -1437,6 +1468,10 @@ export default function UploadPage() {
 
       return true;
     } catch (err: any) {
+      // Revert optimistic updates on error
+      removeOptimisticJob(optimisticJobId);
+      revertOptimisticCredits(creditsToDeduct);
+
       setError(err.message || "Something went wrong");
       return false;
     } finally {

@@ -13,12 +13,17 @@ export default function AnimatedDownloadButton({ onDownload }: Props) {
 
   const handleClick = async () => {
     if (status !== "idle") return;
-    setStatus("loading");
+
+    // Optimistically show done state immediately
+    setStatus("done");
+
     try {
+      // Start download in background
       await onDownload();
-      setStatus("done");
-      setTimeout(() => setStatus("idle"), 2000); // reset after 2s
+      // Keep done state for 2s
+      setTimeout(() => setStatus("idle"), 2000);
     } catch {
+      // Revert to idle if download fails
       setStatus("idle");
     }
   };

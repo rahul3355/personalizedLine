@@ -27,6 +27,7 @@ import InlineLoader from "../../components/InlineLoader";
 import ThinkingIndicator from "../../components/ThinkingIndicator";
 import { API_URL } from "../../lib/api";
 import { useAuth } from "../../lib/AuthProvider";
+import { useOptimisticJobs } from "../../lib/OptimisticJobsProvider";
 import { useRouter } from "next/router";
 
 type JobStatus = "pending" | "in_progress" | "succeeded" | "failed";
@@ -41,6 +42,7 @@ interface Job {
   error: string | null;
   progress?: number;
   message?: string | null;
+  isOptimistic?: boolean;
 }
 
 function formatJobMessage(message?: string | null) {
@@ -218,7 +220,7 @@ function ProgressBar({ value }: { value: number }) {
 function JobsPage() {
   const router = useRouter();
   const { session } = useAuth();
-
+  const { optimisticJobs } = useOptimisticJobs();
 
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -235,6 +237,7 @@ function JobsPage() {
   const [detailError, setDetailError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [downloadingJobs, setDownloadingJobs] = useState<Record<string, boolean>>({});
+  const [downloadedJobs, setDownloadedJobs] = useState<Record<string, boolean>>({});
 
   const jobsRef = useRef<Job[]>([]);
   const historyHasDrawer = useRef(false);
@@ -472,9 +475,17 @@ function JobsPage() {
     }
   }, [jobs, selectedJobId]);
 
+  // Merge optimistic jobs with real jobs
+  const allJobs = useMemo(() => {
+    // Cast optimistic jobs to regular Job type (they're compatible)
+    const optimisticAsJobs = optimisticJobs as Job[];
+    // Combine with real jobs, optimistic jobs will appear first due to their recent timestamps
+    return [...optimisticAsJobs, ...jobs];
+  }, [optimisticJobs, jobs]);
+
   const sortedJobs = useMemo(() => {
-    return [...jobs].sort((a, b) => b.created_at - a.created_at);
-  }, [jobs]);
+    return [...allJobs].sort((a, b) => b.created_at - a.created_at);
+  }, [allJobs]);
 
   const monthTabs = useMemo<MonthTab[]>(() => {
     const seen = new Map<string, string>();
@@ -694,31 +705,38 @@ function JobsPage() {
 
   const handleDownloadFromList = useCallback(
     async (job: Job) => {
-      let alreadyDownloading = false;
-      setDownloadingJobs((prev) => {
-        if (prev[job.id]) {
-          alreadyDownloading = true;
-          return prev;
-        }
-        return { ...prev, [job.id]: true };
-      });
-      if (alreadyDownloading) {
+      // Check if already downloading or downloaded
+      if (downloadingJobs[job.id] || downloadedJobs[job.id]) {
         return;
       }
+
+      // Optimistically show downloaded state immediately
+      setDownloadedJobs((prev) => ({ ...prev, [job.id]: true }));
+
       try {
+        // Start download in background
         await downloadJobFile(job.id, job.filename || "result.xlsx");
+
+        // Keep downloaded state for 2 seconds
+        setTimeout(() => {
+          setDownloadedJobs((prev) => {
+            const next = { ...prev };
+            delete next[job.id];
+            return next;
+          });
+        }, 2000);
       } catch (error) {
         console.error("Download error:", error);
         alert("Download failed");
-      } finally {
-        setDownloadingJobs((prev) => {
+        // Revert downloaded state on error
+        setDownloadedJobs((prev) => {
           const next = { ...prev };
           delete next[job.id];
           return next;
         });
       }
     },
-    [downloadJobFile]
+    [downloadJobFile, downloadingJobs, downloadedJobs]
   );
 
   const handleLoadMore = useCallback(() => {
@@ -860,11 +878,17 @@ function JobsPage() {
                                           event.preventDefault();
                                           handleDownloadFromList(job);
                                         }}
-                                        disabled={Boolean(downloadingJobs[job.id])}
-                                        className="flex h-9 w-9 items-center justify-center rounded-full border border-[#D8DAE6] text-[#4F55F1] transition-colors hover:bg-[#4F55F1] hover:text-white disabled:cursor-not-allowed disabled:opacity-70"
+                                        disabled={Boolean(downloadingJobs[job.id] || downloadedJobs[job.id])}
+                                        className={`flex h-9 w-9 items-center justify-center rounded-full border transition-colors ${
+                                          downloadedJobs[job.id]
+                                            ? "border-emerald-500 bg-emerald-500 text-white"
+                                            : "border-[#D8DAE6] text-[#4F55F1] hover:bg-[#4F55F1] hover:text-white"
+                                        } disabled:cursor-not-allowed disabled:opacity-70`}
                                         aria-label="Download results"
                                       >
-                                        {downloadingJobs[job.id] ? (
+                                        {downloadedJobs[job.id] ? (
+                                          <CheckCircle2 className="h-4 w-4" />
+                                        ) : downloadingJobs[job.id] ? (
                                           <Loader2 className="h-4 w-4 animate-spin" />
                                         ) : (
                                           <Download className="h-4 w-4" />
