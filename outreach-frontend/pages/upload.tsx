@@ -1829,7 +1829,7 @@ export default function UploadPage() {
             {/* Step 2: Confirm Service (compact) */}
             {step === 2 && !jobCreated && (
               <div className="flex flex-col">
-                <div className="rounded-3xl border border-gray-200 bg-white px-8 py-8 shadow-sm space-y-6 min-h-[540px]">
+                <div className="rounded-3xl bg-white px-8 py-8 shadow-sm space-y-6 min-h-[540px]">
 
                   {renderServiceInputs()}
                   {error && (
