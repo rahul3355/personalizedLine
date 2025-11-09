@@ -783,11 +783,40 @@ export default function UploadPage() {
 
   const emptyInputRef = useRef<HTMLInputElement>(null);
   const replaceInputRef = useRef<HTMLInputElement>(null);
+  const examplesTriggerRef = useRef<HTMLButtonElement>(null);
+  const desktopExamplesRef = useRef<HTMLDivElement>(null);
 
   const clearFileInputs = () => {
     if (emptyInputRef.current) emptyInputRef.current.value = "";
     if (replaceInputRef.current) replaceInputRef.current.value = "";
   };
+
+  useEffect(() => {
+    if (!showExamples) return;
+
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node | null;
+
+      if (
+        (desktopExamplesRef.current &&
+          desktopExamplesRef.current.contains(target)) ||
+        (examplesTriggerRef.current &&
+          examplesTriggerRef.current.contains(target))
+      ) {
+        return;
+      }
+
+      setShowExamples(false);
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [showExamples]);
 
   const updateServiceComponent = (key: ServiceFieldKey, value: string) => {
     setServiceComponents((prev) => ({ ...prev, [key]: value }));
@@ -879,6 +908,7 @@ export default function UploadPage() {
             <button
               type="button"
               onClick={() => setShowExamples((prev) => !prev)}
+              ref={examplesTriggerRef}
               className="relative inline-flex items-center gap-2 h-6 px-3 text-sm font-semibold text-[#4F55F1] transition-all duration-200 ease-out focus:outline-none rounded-full group-hover:scale-105"
               style={{
                 background: 'transparent',
@@ -934,7 +964,10 @@ export default function UploadPage() {
                 transition={{ type: "spring", stiffness: 260, damping: 30 }}
                 className="pointer-events-none absolute inset-y-0 right-0 hidden w-full max-w-xs md:flex md:max-w-sm lg:max-w-md z-40"
               >
-                <div className="pointer-events-auto flex-1">
+                <div
+                  ref={desktopExamplesRef}
+                  className="pointer-events-auto flex-1"
+                >
                   <ExamplesDrawerPanel onClose={closeExamples} onUseExample={handleUseExample} />
                 </div>
               </motion.div>
