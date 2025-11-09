@@ -21,6 +21,7 @@ import { PiMoneyWavyFill } from "react-icons/pi";
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { PiPlus } from "react-icons/pi";
 
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthProvider";
@@ -38,6 +39,7 @@ export default function Navbar() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [shinePlayed, setShinePlayed] = useState(false); // kept for parity (unused in rail now)
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showAddCreditsTooltip, setShowAddCreditsTooltip] = useState(false);
   const iconWrapperRef = useRef<HTMLSpanElement | null>(null);
 
   const { userInfo, loading } = useAuth();
@@ -278,11 +280,42 @@ export default function Navbar() {
         <div className="flex items-center gap-[10px]">
           <div
             className="inline-flex items-center h-8 px-3 rounded-full bg-white border border-[#E6E6E6]
-               text-[12px] font-medium text-[#111827] tracking-tight tabular-nums"
+               text-[12px] font-medium text-[#111827] tracking-tight tabular-nums gap-2"
             aria-label="Credits"
           >
             <span className="opacity-70 mr-2">Credits</span>
             {credits.toLocaleString()}
+
+            {/* Add Credits Button with Tooltip */}
+            <div className="relative inline-block">
+              <button
+                type="button"
+                onMouseEnter={() => setShowAddCreditsTooltip(true)}
+                onMouseLeave={() => setShowAddCreditsTooltip(false)}
+                onClick={() => window.location.href = '/billing'}
+                className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#E9ECF2] hover:bg-[#4F55F1] active:bg-[#3D42D8] transition-colors group"
+                aria-label="Add Credits"
+              >
+                <PiPlus className="w-3 h-3 text-[#717173] group-hover:text-white transition-colors" />
+              </button>
+
+              {/* Tooltip */}
+              {showAddCreditsTooltip && (
+                <div
+                  className="absolute z-50 px-3 py-2 rounded-md whitespace-nowrap pointer-events-none"
+                  style={{
+                    top: "calc(100% + 8px)",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    backgroundColor: "rgba(24, 25, 28, 0.95)",
+                    boxShadow: "0px 5px 15px rgba(0, 0, 0, 0.3)",
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                  }}
+                >
+                  <p className="text-sm font-bold text-white">Add Credits</p>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="relative" ref={dropdownRef}>
