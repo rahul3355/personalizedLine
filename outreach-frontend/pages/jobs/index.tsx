@@ -959,7 +959,7 @@ function DetailPanel({
 
       {/* Title + status icon */}
       <div className="px-6 pt-6 pb-2">
-        <div className="mt-4 flex items-start justify-between gap-4">
+        <div className="mt-9 flex items-start justify-between gap-4">
           <div className="min-w-0">
             <h1 className="truncate text-2xl font-semibold leading-tight text-gray-900">
               {job?.filename ?? "—"}
