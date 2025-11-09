@@ -239,8 +239,20 @@ function JobsPage() {
   const historyHasDrawer = useRef(false);
   const layoutRef = useRef<HTMLDivElement | null>(null);
   const firstGroupRef = useRef<HTMLUListElement | null>(null);
+  const jobRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [drawerTop, setDrawerTop] = useState<number>(96);
   const [drawerHeight, setDrawerHeight] = useState<number | null>(null);
+
+  const setJobRef = useCallback(
+    (id: string) => (element: HTMLDivElement | null) => {
+      if (element) {
+        jobRefs.current[id] = element;
+      } else {
+        delete jobRefs.current[id];
+      }
+    },
+    []
+  );
 
 
   useEffect(() => {
@@ -530,24 +542,54 @@ function JobsPage() {
 
   useLayoutEffect(() => {
     const update = () => {
-      if (!layoutRef.current || !firstGroupRef.current) {
+      if (!layoutRef.current) {
         setDrawerHeight(null);
         return;
       }
+
       const layoutRect = layoutRef.current.getBoundingClientRect();
-      const groupRect = firstGroupRef.current.getBoundingClientRect();
-      const top = groupRect.top - layoutRect.top;
-      setDrawerTop(top);
-      setDrawerHeight(groupRect.height);
+
+      if (selectedJobId) {
+        const jobElement = jobRefs.current[selectedJobId];
+        if (jobElement) {
+          const jobRect = jobElement.getBoundingClientRect();
+          setDrawerTop(jobRect.top - layoutRect.top);
+          setDrawerHeight(jobRect.height);
+          return;
+        }
+      }
+
+      if (firstGroupRef.current) {
+        const groupRect = firstGroupRef.current.getBoundingClientRect();
+        setDrawerTop(groupRect.top - layoutRect.top);
+        setDrawerHeight(groupRect.height);
+      } else {
+        setDrawerHeight(null);
+      }
     };
 
-    update();
-    window.addEventListener("resize", update);
-    window.addEventListener("scroll", update, { passive: true });
+    let frame: number | null = null;
+
+    const scheduleUpdate = () => {
+      if (frame !== null) {
+        cancelAnimationFrame(frame);
+      }
+      frame = requestAnimationFrame(() => {
+        frame = null;
+        update();
+      });
+    };
+
+    scheduleUpdate();
+    window.addEventListener("resize", scheduleUpdate);
+    window.addEventListener("scroll", scheduleUpdate, { passive: true });
 
     return () => {
-      window.removeEventListener("resize", update);
-      window.removeEventListener("scroll", update);
+      if (frame !== null) {
+        cancelAnimationFrame(frame);
+      }
+      window.removeEventListener("resize", scheduleUpdate);
+      window.removeEventListener("scroll", scheduleUpdate);
     };
   }, [groupedJobs, selectedJobId]);
 
@@ -746,6 +788,7 @@ function JobsPage() {
                                 <div
                                   role="button"
                                   tabIndex={0}
+                                  ref={setJobRef(job.id)}
                                   onClick={() => openJob(job.id)}
                                   onKeyDown={(event) => {
                                     if (event.key === "Enter" || event.key === " ") {
