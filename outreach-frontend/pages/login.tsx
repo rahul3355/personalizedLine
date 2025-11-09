@@ -27,15 +27,34 @@ function LoginPage() {
   return (
     <div className="relative flex h-dvh w-full overflow-hidden font-sans bg-white">
       <div className="absolute left-1/2 top-10 hidden -translate-x-1/2 lg:flex">
-        <div className="rounded-full bg-gradient-to-r from-black via-black to-[#7a3cff] p-[2px]">
-          <div className="rounded-full bg-white px-5 py-1">
-            <span
-              className="text-sm font-medium text-black"
-              style={{ fontFamily: '"Aeonik Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}
-            >
-              Beta
-            </span>
-          </div>
+        <div
+          className="rounded-full px-6 py-1.5"
+          style={{
+            background: 'linear-gradient(180deg, #f0f0f0 0%, #d4d4d4 25%, #b0b0b0 50%, #c8c8c8 75%, #e0e0e0 100%)',
+            boxShadow: `
+              inset 0 3px 6px rgba(255, 255, 255, 0.9),
+              inset 0 -2px 4px rgba(0, 0, 0, 0.3),
+              inset 3px 0 4px rgba(0, 0, 0, 0.15),
+              inset -3px 0 4px rgba(0, 0, 0, 0.15),
+              0 4px 8px rgba(0, 0, 0, 0.25),
+              0 2px 4px rgba(0, 0, 0, 0.2)
+            `,
+            border: '1px solid rgba(0, 0, 0, 0.2)',
+          }}
+        >
+          <span
+            className="text-sm font-semibold text-black"
+            style={{
+              fontFamily: '"Aeonik Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+              textShadow: `
+                0 1px 2px rgba(255, 255, 255, 0.9),
+                0 -1px 1px rgba(0, 0, 0, 0.6)
+              `,
+              letterSpacing: '0.05em'
+            }}
+          >
+            BETA
+          </span>
         </div>
       </div>
       {/* Left Section */}
