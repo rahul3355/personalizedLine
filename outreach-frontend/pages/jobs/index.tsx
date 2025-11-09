@@ -676,15 +676,15 @@ function JobsPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F7F7F7]">
+      <div className="flex min-h-screen items-center justify-center bg-white md:bg-[#F7F7F7]">
         <InlineLoader />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F7F7F7] bg-none">
-      <div ref={layoutRef} className="relative w-full px-8 sm:px-10 lg:px-12 pt-6 pb-16">
+    <div className="min-h-screen bg-white md:bg-[#F7F7F7] bg-none">
+      <div ref={layoutRef} className="relative w-full px-4 sm:px-8 md:px-10 lg:px-12 pt-6 pb-16">
         <div
           className={`transition-all duration-300 ${selectedJobId ? "md:pr-[344px] lg:pr-[422px]" : ""}`}
         >
@@ -779,11 +779,13 @@ function JobsPage() {
                                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#8B8DA1]">
                                       <StatusPill status={job.status} />
                                       <span>{job.rows.toLocaleString()} rows</span>
-                                      <ThinkingIndicator
-                                        status={job.status}
-                                        progress={job.progress}
-                                        message={indicatorMessage}
-                                      />
+                                      <div className="hidden md:block">
+                                        <ThinkingIndicator
+                                          status={job.status}
+                                          progress={job.progress}
+                                          message={indicatorMessage}
+                                        />
+                                      </div>
                                       {job.status === "failed" && job.error ? (
                                         <span className="text-[#DC2F2F]">{job.error}</span>
                                       ) : null}
@@ -950,7 +952,7 @@ function DetailPanel({
         type="button"
         onClick={onClose}
         aria-label="Close"
-        className="absolute left-2 top-6 -translate-y-1/2 inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-100"
+        className={`absolute left-2 inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-100 ${isMobile ? 'top-20' : 'top-6 -translate-y-1/2'}`}
       >
         <X className="h-4 w-4" />
       </button>
