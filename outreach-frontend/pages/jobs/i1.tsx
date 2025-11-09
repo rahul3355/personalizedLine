@@ -6,6 +6,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type MouseEvent,
   type ReactNode,
 } from "react";
 import { useRouter } from "next/router";
@@ -581,6 +582,15 @@ export default function JobsPage() {
     }
   }, [router]);
 
+  const handleOverlayClick = useCallback(
+    (event: MouseEvent<HTMLDivElement>) => {
+      if (event.target === event.currentTarget) {
+        closeDrawer();
+      }
+    },
+    [closeDrawer]
+  );
+
   const handleRetry = useCallback(() => {
     if (selectedJobId) {
       loadJobDetail(selectedJobId);
@@ -781,7 +791,7 @@ export default function JobsPage() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="fixed inset-0 z-40 bg-black/30 md:hidden"
-                onClick={closeDrawer}
+                onClick={handleOverlayClick}
               >
                 <motion.div
                   initial={{ x: "100%" }}
