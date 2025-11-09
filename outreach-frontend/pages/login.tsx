@@ -25,7 +25,7 @@ function LoginPage() {
   };
 
   return (
-    <div className="flex h-dvh w-full overflow-hidden font-sans">
+    <div className="flex h-dvh w-full overflow-hidden font-sans bg-white">
       {/* Left Section */}
       <div className="w-full lg:w-1/2 flex flex-col border-r border-gray-100 bg-white">
         {/* Centered Content */}
