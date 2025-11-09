@@ -36,7 +36,6 @@ import { useOptimisticJobs } from "../lib/OptimisticJobsProvider";
 import { useRouter } from "next/router";
 import { useToast } from "@/components/Toast";
 import { supabase } from "../lib/supabaseClient";
-import { FilePreviewSkeleton } from "@/components/SkeletonScreens";
 // replace
 
 
@@ -1806,11 +1805,6 @@ export default function UploadPage() {
                   </div>
                 )}
 
-                {/* Show skeleton while parsing */}
-                {loading && file && (
-                  <FilePreviewSkeleton />
-                )}
-
                 {/* Only render footer button if file exists */}
                 {file && (
                   <div className="mt-6 flex items-center justify-center">
@@ -1820,8 +1814,43 @@ export default function UploadPage() {
                       className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-md text-white font-medium disabled:cursor-not-allowed"
                       style={{ backgroundColor: loading ? "#D1D5DB" : BRAND }}
                     >
-                      Upload & Continue
-                      <ArrowRight className="w-4 h-4" />
+                      {loading ? (
+                        <>
+                          <svg
+                            className="animate-spin h-5 w-5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                          >
+                            {/* Bold white strip */}
+                            <circle
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="white"
+                              strokeWidth="3"
+                              strokeDasharray="31.4 31.4"
+                              strokeLinecap="round"
+                            />
+                            {/* Thin white strip */}
+                            <circle
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="white"
+                              strokeWidth="1"
+                              strokeDasharray="15.7 47.1"
+                              strokeDashoffset="15.7"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          Upload & Continue
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      )}
                     </button>
                   </div>
                 )}
@@ -2154,18 +2183,46 @@ export default function UploadPage() {
               )}
             </div>
 
-            {/* Show skeleton while parsing on mobile */}
-            {loading && file && (
-              <FilePreviewSkeleton />
-            )}
-
             <button
               onClick={handleParseHeaders}
               disabled={loading || !file}
-              className="w-full py-3 rounded-md font-medium text-white text-[15px] tracking-tight disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 rounded-md font-medium text-white text-[15px] tracking-tight disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
               style={{ backgroundColor: BRAND }}
             >
-              {loading ? "Parsing..." : "Proceed"}
+              {loading ? (
+                <>
+                  <svg
+                    className="animate-spin h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    {/* Bold white strip */}
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="white"
+                      strokeWidth="3"
+                      strokeDasharray="31.4 31.4"
+                      strokeLinecap="round"
+                    />
+                    {/* Thin white strip */}
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="white"
+                      strokeWidth="1"
+                      strokeDasharray="15.7 47.1"
+                      strokeDashoffset="15.7"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  Uploading...
+                </>
+              ) : (
+                "Proceed"
+              )}
             </button>
           </div>
         </div>
