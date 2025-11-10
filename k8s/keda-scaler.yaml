@@ -1,0 +1,16 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: rq-worker-scaler
+spec:
+  scaleTargetRef:
+    name: rq-worker
+  minReplicaCount: 1
+  maxReplicaCount: 100
+  triggers:
+  - type: redis
+    metadata:
+      address: redis.personalizedline.svc.cluster.local:6379
+      listName: default
+      listLength: "10"
+      activationListLength: "5"

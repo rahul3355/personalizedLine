@@ -11,6 +11,7 @@ data/
 venv/
 .env
 
+/k8s/secrets.yaml
 
 /backend/app/python_generation_to_test_new_features/
 
