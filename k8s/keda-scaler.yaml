@@ -5,12 +5,12 @@ metadata:
 spec:
   scaleTargetRef:
     name: rq-worker
-  minReplicaCount: 1
-  maxReplicaCount: 100
+  minReplicaCount: 2
+  maxReplicaCount: 15
   triggers:
   - type: redis
     metadata:
       address: redis.personalizedline.svc.cluster.local:6379
       listName: default
-      listLength: "10"
-      activationListLength: "5"
+      listLength: "1"
+      activationListLength: "1"
