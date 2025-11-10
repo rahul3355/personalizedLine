@@ -5,7 +5,9 @@ metadata:
 spec:
   scaleTargetRef:
     name: rq-worker
-  minReplicaCount: 2
+  pollingInterval: 5  # Check every 5 seconds (default is 30)
+  cooldownPeriod: 60  # Wait 60 sec before scaling down
+  minReplicaCount: 1  # Start with 1 instead of 2
   maxReplicaCount: 15
   triggers:
   - type: redis
