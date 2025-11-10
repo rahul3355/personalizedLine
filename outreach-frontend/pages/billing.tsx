@@ -22,6 +22,7 @@ import { TbHelpCircle } from "react-icons/tb";
 import { Switch } from "@headlessui/react";
 
 import { useAuth } from "../lib/AuthProvider";
+import { API_URL } from "../lib/api";
 
 type BillingCycle = "monthly" | "yearly";
 type AudienceSegment = "individual" | "business";
@@ -280,8 +281,6 @@ export default function BillingPage() {
   const [selectedPlanId, setSelectedPlanId] = useState<string>(
     () => planConfigurations.find((plan) => plan.popular)?.id ?? planConfigurations[0]?.id ?? ""
   );
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
   const closeBilling = () => {
     if (window.history.length > 1) {
       router.back();

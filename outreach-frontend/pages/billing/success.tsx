@@ -1,5 +1,6 @@
 
 import { useAuth } from "../../lib/AuthProvider";
+import { API_URL } from "../../lib/api";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
@@ -9,7 +10,6 @@ const AEONIK_FONT_FAMILY =
 export default function BillingSuccessPage() {
   const { session, refreshUserInfo } = useAuth();
   const router = useRouter();
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
