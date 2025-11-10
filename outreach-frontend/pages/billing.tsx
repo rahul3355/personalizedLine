@@ -2,6 +2,7 @@ import { CSSProperties, useEffect, useRef, useState } from "react";
 import { AnimatePresence, LayoutGroup, motion, useSpring } from "framer-motion";
 import { useRouter } from "next/router";
 import { loadStripe } from "@stripe/stripe-js";
+import { API_URL } from "../lib/api";
 import {
   ArrowLeft,
   X,
@@ -280,7 +281,6 @@ export default function BillingPage() {
   const [selectedPlanId, setSelectedPlanId] = useState<string>(
     () => planConfigurations.find((plan) => plan.popular)?.id ?? planConfigurations[0]?.id ?? ""
   );
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
   const closeBilling = () => {
     if (window.history.length > 1) {

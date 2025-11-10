@@ -1,5 +1,14 @@
-export const API_URL = process.env.NEXT_PUBLIC_API_URL!;
-console.log("API_URL = ", process.env.NEXT_PUBLIC_API_URL);
+// Auto-upgrade HTTP to HTTPS in production for security
+let apiUrl = process.env.NEXT_PUBLIC_API_URL!;
+
+// If we're in production (HTTPS) and API URL is HTTP, upgrade to HTTPS
+if (typeof window !== 'undefined' && window.location.protocol === 'https:' && apiUrl.startsWith('http://')) {
+  apiUrl = apiUrl.replace('http://', 'https://');
+  console.warn('⚠️ Auto-upgraded API_URL from HTTP to HTTPS for production:', apiUrl);
+}
+
+export const API_URL = apiUrl;
+console.log("API_URL = ", apiUrl);
 
 
 /**

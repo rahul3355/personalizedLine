@@ -5,6 +5,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { ArrowLeft, X } from "lucide-react";
 
 import { useAuth } from "../lib/AuthProvider";
+import { API_URL } from "../lib/api";
 
 const AEONIK_FONT_FAMILY =
   '"Aeonik Pro","Aeonik",-apple-system,BlinkMacSystemFont,"Segoe UI","Roboto","Helvetica Neue",Arial,sans-serif';
@@ -19,7 +20,6 @@ export default function AddOnCreditsPage() {
   const router = useRouter();
   const dialogRef = useRef<HTMLDivElement>(null);
   const [addonCount, setAddonCount] = useState(1);
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
   const currentPlan = useMemo(
     () => userInfo?.user?.plan_type || userInfo?.plan_type || "free",

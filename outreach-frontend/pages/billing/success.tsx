@@ -2,6 +2,7 @@
 import { useAuth } from "../../lib/AuthProvider";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
+import { API_URL } from "../../lib/api";
 
 const AEONIK_FONT_FAMILY =
   '"Aeonik Pro","Aeonik",-apple-system,BlinkMacSystemFont,"Segoe UI","Roboto","Helvetica Neue",Arial,sans-serif';
@@ -9,7 +10,6 @@ const AEONIK_FONT_FAMILY =
 export default function BillingSuccessPage() {
   const { session, refreshUserInfo } = useAuth();
   const router = useRouter();
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -52,7 +52,7 @@ export default function BillingSuccessPage() {
     return () => {
       cancelled = true;
     };
-  }, [API_URL, refreshUserInfo, router, session]);
+  }, [refreshUserInfo, router, session]);
 
   return (
     <div
