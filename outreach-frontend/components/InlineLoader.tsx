@@ -26,7 +26,7 @@ export default function InlineLoader() {
       <div className="relative w-[160px] h-[40px] mb-4">
         <Image
           src="/logo.png"
-          alt="AuthorityPoint Logo"
+          alt="SendItFast Logo"
           fill
           className="object-contain"
         />

@@ -321,7 +321,7 @@ const STEP_META = [
   },
   {
     title: "Select your email column",
-    sub: "",
+    sub: "Pick the column that lists your recipients' email addresses.",
   },
   {
     title: "Context",
@@ -1864,7 +1864,7 @@ export default function UploadPage() {
 
                   <div className="space-y-2">
                     <label className="text-xs text-gray-500 block">
-                      Choose which column contains the email address.
+                      Tell us which column holds the email addresses.
                     </label>
                     <div className="flex items-center gap-2">
                       <Mail className="h-4 w-4" style={{ color: BRAND }} />
