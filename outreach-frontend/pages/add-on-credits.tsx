@@ -1,8 +1,6 @@
-"use client";
-
 import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { motion, useSpring } from "framer-motion";
-import { useRouter } from "next/navigation";
+import { useRouter } from "next/router";
 import { loadStripe } from "@stripe/stripe-js";
 import { ArrowLeft, X } from "lucide-react";
 

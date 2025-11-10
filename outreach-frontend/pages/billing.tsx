@@ -1,8 +1,6 @@
-"use client";
-
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { AnimatePresence, LayoutGroup, motion, useSpring } from "framer-motion";
-import { useRouter } from "next/navigation";
+import { useRouter } from "next/router";
 import { loadStripe } from "@stripe/stripe-js";
 import {
   ArrowLeft,

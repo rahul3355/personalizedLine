@@ -3,7 +3,6 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import logo from "../pages/logo.png";
 
 export default function InlineLoader() {
   const [progress, setProgress] = useState(0);
@@ -26,7 +25,7 @@ export default function InlineLoader() {
       {/* Logo */}
       <div className="relative w-[160px] h-[40px] mb-4">
         <Image
-          src={logo}
+          src="/logo.png"
           alt="AuthorityPoint Logo"
           fill
           className="object-contain"
