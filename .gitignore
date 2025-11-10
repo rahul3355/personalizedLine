@@ -24,3 +24,28 @@ __pycache__/
 # Ignore OS/filesystem junk
 .DS_Store
 Thumbs.db
+
+# Terraform
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform/
+.terraform.lock.hcl
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Kubernetes secrets
+k8s/secrets.yaml
+!k8s/secrets.yaml.example
+
+# GCP service account keys
+github-key.json
+*-key.json
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
