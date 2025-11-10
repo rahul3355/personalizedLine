@@ -5,7 +5,7 @@ import { AuthProvider, useAuth } from "../lib/AuthProvider";
 import { OptimisticJobsProvider } from "../lib/OptimisticJobsProvider";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import AuthorityPointLoader from "../components/AuthorityPointLoader";
+import SendItFastLoader from "../components/SendItFastLoader";
 import InlineLoader from "@/components/InlineLoader";
 import { ToastProvider } from "@/components/Toast";
 
@@ -51,9 +51,7 @@ function Layout({ Component, pageProps }: LayoutProps) {
 
   // Block render until session is resolved
   if (loading) {
-    return (
-      <AuthorityPointLoader />
-    );
+    return <SendItFastLoader />;
   }
   const backgroundClassName = Component.backgroundClassName ?? "bg-[#F7F7F7]";
   const disableWhiteCard = Component.disableWhiteCard ?? false;

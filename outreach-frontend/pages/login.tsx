@@ -68,7 +68,7 @@ function LoginPage() {
             <div className="flex justify-center lg:justify-start">
               <Image
                 src="/logo.png"
-                alt="AuthorityPoint Logo"
+                alt="SendItFast Logo"
                 width={140}
                 height={36}
                 priority
@@ -136,7 +136,7 @@ function LoginPage() {
             <span>Made in United Kingdom</span>
           </div>
           <p className="mt-2 text-xs text-gray-400 text-center">
-            © {new Date().getFullYear()} AuthorityPoint. All rights reserved.
+            © {new Date().getFullYear()} SendItFast. All rights reserved.
           </p>
         </div>
       </div>
