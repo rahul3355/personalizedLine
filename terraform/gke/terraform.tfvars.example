@@ -1,0 +1,19 @@
+# GCP Configuration
+project_id   = "your-gcp-project-id"
+region       = "us-central1"
+cluster_name = "personalizedline"
+
+# Cluster Type
+autopilot_enabled = true  # Set to false for standard cluster
+
+# Environment
+environment = "production"
+
+# Release Channel (RAPID, REGULAR, STABLE)
+release_channel = "REGULAR"
+
+# Standard Cluster Settings (only used if autopilot_enabled = false)
+machine_type     = "n1-standard-2"
+min_nodes        = 1
+max_nodes        = 10
+use_preemptible  = false  # Set to true for 80% cost savings
