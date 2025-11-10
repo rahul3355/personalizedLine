@@ -1,0 +1,18 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: rq-worker-scaler
+spec:
+  scaleTargetRef:
+    name: rq-worker
+  minReplicaCount: 2           # Always keep 2 workers running
+  maxReplicaCount: 1000        # Scale up to 1000 workers
+  pollingInterval: 5           # Check queue every 5 seconds
+  cooldownPeriod: 30           # Wait 30s before scaling down
+  triggers:
+  - type: redis
+    metadata:
+      address: redis:6379
+      listName: rq:queue:default
+      listLength: "10"          # 1 worker per 10 jobs (1:10 ratio)
+      activationListLength: "5" # Start scaling when 5+ jobs
