@@ -32,7 +32,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { useAuth } from "../lib/AuthProvider";
-import { useOptimisticJobs } from "../lib/OptimisticJobsProvider";
+import { useOptimisticJobs, type OptimisticJob } from "../lib/OptimisticJobsProvider";
 import { useRouter } from "next/router";
 import { useToast } from "@/components/Toast";
 import { supabase } from "../lib/supabaseClient";
@@ -1389,17 +1389,17 @@ export default function UploadPage() {
     const creditsToDeduct = creditInfo?.rowCount || 0;
 
     // Create optimistic job
-    const optimisticJob = {
+    const optimisticJob: OptimisticJob = {
       id: optimisticJobId,
-      status: "in_progress" as const,
+      status: "in_progress",
       filename: file?.name || "upload.xlsx",
       rows: creditInfo?.rowCount || 0,
       created_at: Date.now(),
       finished_at: null,
       error: null,
-      progress: 0 as const,
+      progress: 0,
       message: null,
-      isOptimistic: true as const,
+      isOptimistic: true,
     };
 
     // Optimistically update UI
