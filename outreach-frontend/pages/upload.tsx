@@ -1397,7 +1397,7 @@ export default function UploadPage() {
       created_at: Date.now(),
       finished_at: null,
       error: null,
-      progress: 0,
+      progress: 0 as const,
       message: null,
       isOptimistic: true as const,
     };
