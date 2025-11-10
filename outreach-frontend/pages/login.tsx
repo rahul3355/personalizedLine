@@ -1,4 +1,3 @@
-"use client";
 
 import { useAuth } from "../lib/AuthProvider";
 import { supabase } from "../lib/supabaseClient";
@@ -6,7 +5,6 @@ import { useRouter } from "next/router";
 import { useEffect } from "react";
 import { FcGoogle } from "react-icons/fc";
 import Image from "next/image";
-import logo from "../pages/logo.png";
 
 function LoginPage() {
   const { session } = useAuth();
@@ -69,7 +67,7 @@ function LoginPage() {
             {/* Logo */}
             <div className="flex justify-center lg:justify-start">
               <Image
-                src={logo}
+                src="/logo.png"
                 alt="AuthorityPoint Logo"
                 width={140}
                 height={36}
