@@ -1,5 +1,33 @@
-export const API_URL = process.env.NEXT_PUBLIC_API_URL!;
-console.log("API_URL = ", process.env.NEXT_PUBLIC_API_URL);
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+if (!rawApiUrl) {
+  throw new Error(
+    "NEXT_PUBLIC_API_URL is not defined. Please configure the backend endpoint in your environment variables."
+  );
+}
+
+function normalizeUrl(url: string) {
+  return url.endsWith("/") ? url.slice(0, -1) : url;
+}
+
+function resolveBrowserApiUrl(url: string) {
+  if (typeof window === "undefined") {
+    return normalizeUrl(url);
+  }
+
+  const normalizedUrl = normalizeUrl(url);
+
+  if (window.location.protocol === "https:" && normalizedUrl.startsWith("http://")) {
+    console.warn(
+      `NEXT_PUBLIC_API_URL is using an insecure protocol. Routing requests through '/api/proxy' to avoid mixed-content issues.`
+    );
+    return "/api/proxy";
+  }
+
+  return normalizedUrl;
+}
+
+export const API_URL = resolveBrowserApiUrl(rawApiUrl);
 
 
 /**
