@@ -150,7 +150,7 @@ export default function Navbar() {
         <div className="w-full flex items-center justify-center pt-4 pb-2">
           <div className="h-9 w-9 rounded-[14px] bg-white flex items-center justify-center">
             <Link href="/">
-              <Image src={siflogo} alt="AuthorityPoint" width={18} height={18} priority />
+              <Image src={siflogo} alt="SendItFast" width={18} height={18} priority />
             </Link>
           </div>
         </div>
@@ -455,7 +455,7 @@ export default function Navbar() {
 
           <Image
             src="/logo.png"
-            alt="AuthorityPoint Logo"
+            alt="SendItFast Logo"
             width={120}
             height={28}
             priority
