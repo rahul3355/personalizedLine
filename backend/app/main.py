@@ -131,7 +131,7 @@ if not ALLOWED_ORIGINS:
     # Always fall back to localhost origins for development if no explicit list was provided.
     ALLOWED_ORIGINS = DEFAULT_ALLOWED_ORIGINS
 
-APP_BASE_URL = os.getenv("APP_BASE_URL", "http://localhost:3000").rstrip("/")
+APP_BASE_URL = os.getenv("APP_BASE_URL", "https://senditfast.ai").rstrip("/")
 SUCCESS_RETURN_PATH = os.getenv("STRIPE_SUCCESS_PATH", "/billing/success")
 SUCCESS_URL = f"{APP_BASE_URL}{SUCCESS_RETURN_PATH}"
 CANCEL_URL = f"{APP_BASE_URL}/billing?canceled=true"
