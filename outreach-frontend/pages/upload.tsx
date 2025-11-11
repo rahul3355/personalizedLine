@@ -1654,10 +1654,10 @@ export default function UploadPage() {
       className="text-[22px] font-semibold text-gray-900 tracking-tight"
       style={{ letterSpacing: "-0.01em" }}
     >
-      Enrich Your Leads
+      Upload lead list
     </h1>
     <p className="text-[14px] text-gray-600 font-light mt-1">
-      We’ll scan your file, detect key details, and prepare it for mapping.
+      Make sure it has the email column
     </p>
   </header>
 )}
@@ -1724,7 +1724,7 @@ export default function UploadPage() {
                         Upload Your File
                       </p>
                       <p className="text-xs text-gray-500">
-                        CSV/XLSX up to 100k rows
+                        CSV/XLSX up to 10k rows
                       </p>
                       <button
                         type="button"

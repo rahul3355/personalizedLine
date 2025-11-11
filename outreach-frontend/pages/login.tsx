@@ -65,16 +65,7 @@ function LoginPage() {
         <div className="flex-1 flex flex-col items-center justify-center px-6 sm:px-8 gap-y-6">
           <div className="w-full max-w-md flex flex-col gap-y-6">
             {/* Logo */}
-            <div className="flex justify-center lg:justify-start">
-              <Image
-                src="/logo.png"
-                alt="SendItFast Logo"
-                width={140}
-                height={36}
-                priority
-                className="lg:w-[180px] lg:h-[40px]"
-              />
-            </div>
+            
 
             {/* Headings */}
             <div className="text-center lg:text-left">
@@ -111,30 +102,16 @@ function LoginPage() {
           <div className="flex lg:hidden w-full mt-10">
             <div className="w-full max-w-sm mx-auto text-center">
               <blockquote className="text-[16px] font-medium text-gray-900 leading-relaxed">
-                “Mailite has transformed how we manage outreach. It’s fast,
-                intuitive, and incredibly effective — streamlining our workflow
-                into one sleek experience.”
+                Cold emails that prove you did your homework
               </blockquote>
-              <div className="mt-4">
-                <p className="text-gray-900 font-semibold">Alex Carter</p>
-                <p className="text-gray-500 text-sm">Founder, GrowthForge</p>
-              </div>
+              
             </div>
           </div>
         </div>
 
         {/* Footer */}
         <div className="mt-auto pb-4">
-          <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
-            <Image
-              src="https://upload.wikimedia.org/wikipedia/en/a/ae/Flag_of_the_United_Kingdom.svg"
-              alt="UK Flag"
-              width={24}   // set width only
-              height={0}   // let aspect ratio calculate height
-              className="h-auto w-[24px] rounded-[2px] object-contain"
-            />
-            <span>Made in United Kingdom</span>
-          </div>
+         
           <p className="mt-2 text-xs text-gray-400 text-center">
             © {new Date().getFullYear()} SendItFast. All rights reserved.
           </p>
@@ -144,15 +121,10 @@ function LoginPage() {
       {/* Right Section - Testimonial (desktop only) */}
       <div className="hidden lg:flex w-1/2 items-center justify-center bg-gray-50">
         <div className="max-w-lg px-12">
-          <blockquote className="text-[22px] font-medium text-gray-900 leading-snug tracking-tight">
-            “Mailite has transformed how we manage outreach. It’s fast,
-            intuitive, and incredibly effective — streamlining our workflow
-            into one sleek experience.”
+          <blockquote className="text-[20px] font-medium text-gray-900 leading-snug tracking-tight">
+            Cold emails that prove you did your homework
           </blockquote>
-          <div className="mt-6">
-            <p className="text-gray-900 font-semibold">Alex Carter</p>
-            <p className="text-gray-500 text-sm">Founder, GrowthForge</p>
-          </div>
+         
         </div>
       </div>
     </div>

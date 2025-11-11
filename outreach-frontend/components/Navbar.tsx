@@ -368,23 +368,11 @@ export default function Navbar() {
                     </div>
                   </div>
 
-                  <div className="my-2 border-t border-[#EAECEE]" />
-
                   {/* Rows (transparent icons, no border) */}
                   <div className="flex flex-col gap-1">
-                    <Link href="/help" role="menuitem" className="group flex items-center h-11 px-2.5 rounded-[12px] hover:bg-[#F7F7F7]">
-                      <span className="mr-3 inline-flex items-center justify-center min-w-[20px] bg-transparent text-[#4F55F1]">
-                        <PiQuestionBold className="w-5 h-5" />
-                      </span>
-                      <span className="text-[15px] text-[#111827]">Help</span>
-                    </Link>
+                    
 
-                    <Link href="/settings" role="menuitem" className="group flex items-center h-11 px-2.5 rounded-[12px] hover:bg-[#F7F7F7]">
-                      <span className="mr-3 inline-flex items-center justify-center min-w-[20px] bg-transparent text-[#4F55F1]">
-                        <PiGearSixFill className="w-5 h-5" />
-                      </span>
-                      <span className="text-[15px] text-[#111827]">Settings</span>
-                    </Link>
+                   
 
                     <div className="my-1 border-t border-[#EAECEE]" />
 
@@ -404,14 +392,9 @@ export default function Navbar() {
 
                     <div className="my-1 border-t border-[#EAECEE]" />
 
-                    <Link href="/about" role="menuitem" className="group flex items-center h-11 px-2.5 rounded-[12px] hover:bg-[#F7F7F7]">
-                      <span className="mr-3 inline-flex items-center justify-center min-w-[20px] bg-transparent text-[#4F55F1]">
-                        <PiNavigationArrowFill className="w-5 h-5" />
-                      </span>
-                      <span className="text-[15px] text-[#111827]">About us</span>
-                    </Link>
+                    
 
-                    <div className="my-1 border-t border-[#EAECEE]" />
+                    {/* <div className="my-1 border-t border-[#EAECEE]" /> */}
 
                     <button onClick={handleLogout} role="menuitem" className="group flex items-center h-11 px-2.5 rounded-[12px] hover:bg-[#F7F7F7] w-full text-left">
                       <span className="mr-3 inline-flex items-center justify-center min-w-[20px] bg-transparent text-[#4F55F1]">
