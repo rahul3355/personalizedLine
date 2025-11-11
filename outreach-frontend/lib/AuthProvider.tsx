@@ -95,8 +95,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             avatar_url: avatarUrl,
             plan_type: "free",
             subscription_status: "inactive",
-            credits_remaining: 0,
-            max_credits: 0,
+            credits_remaining: 500,
+            max_credits: 5000,
             created_at: new Date().toISOString(),
           })
           .select()
