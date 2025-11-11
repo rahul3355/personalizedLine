@@ -79,13 +79,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (fetchError) {
         console.error("Error fetching profile:", fetchError);
-        return;
+        // Don't return early - try to create profile via backend
       }
 
       let profile = existing;
 
-      // 2. If no profile exists, insert defaults
+      // 2. If no profile exists, try to insert defaults with retries
       if (!existing) {
+        console.log(`[AuthProvider] Creating new profile for user ${userId} with 500 initial credits`);
+
         const { data: inserted, error: insertError } = await supabase
           .from("profiles")
           .insert({
@@ -94,7 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             full_name: fullName,
             avatar_url: avatarUrl,
             plan_type: "free",
-            subscription_status: "inactive",
+            subscription_status: "active", // Changed from "inactive" to match backend
             credits_remaining: 500,
             max_credits: 5000,
             created_at: new Date().toISOString(),
@@ -104,13 +106,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (insertError) {
           console.error("Profile insert error:", insertError);
-          return;
-        }
+          console.error("This may be due to RLS policies. Attempting to fetch via backend /me endpoint...");
 
-        profile = inserted;
+          // FALLBACK: Try to create profile via backend /me endpoint
+          // The backend has service role access and can bypass RLS
+          try {
+            const token = session.access_token;
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/me`, {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            });
+
+            if (response.ok) {
+              const backendProfile = await response.json();
+              console.log("[AuthProvider] Successfully created profile via backend:", backendProfile);
+              profile = backendProfile;
+            } else {
+              console.error("Backend /me endpoint also failed:", await response.text());
+              // Last resort: set a temporary profile so user isn't blocked
+              profile = {
+                id: userId,
+                email,
+                full_name: fullName,
+                avatar_url: avatarUrl,
+                plan_type: "free",
+                subscription_status: "active",
+                credits_remaining: 0, // Will be fixed when backend is called
+                max_credits: 5000,
+              };
+            }
+          } catch (backendError) {
+            console.error("Failed to create profile via backend:", backendError);
+            // Set temporary profile
+            profile = {
+              id: userId,
+              email,
+              full_name: fullName,
+              avatar_url: avatarUrl,
+              plan_type: "free",
+              subscription_status: "active",
+              credits_remaining: 0,
+              max_credits: 5000,
+            };
+          }
+        } else {
+          console.log("[AuthProvider] Successfully created profile with 500 credits:", inserted);
+          profile = inserted;
+        }
       }
 
-      // 3. Use whatever is in Supabase (don’t overwrite Stripe updates)
+      if (!profile) {
+        console.error("[AuthProvider] CRITICAL: No profile available after all attempts");
+        return;
+      }
+
+      // 3. Use whatever is in Supabase (don't overwrite Stripe updates)
       setUserInfo({
         id: profile.id,
         email,
@@ -125,6 +176,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         avatar_url: profile.avatar_url,
         ledger: [], // could be filled with another query
       });
+
+      console.log(`[AuthProvider] User info set: ${profile.credits_remaining} credits remaining`);
     } catch (err) {
       console.error("Failed to fetch/create user info", err);
     }

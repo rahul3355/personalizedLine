@@ -108,33 +108,60 @@ CREDITS_MAP = {
     "pro": 25000,
 }
 
-FRONTEND_BASE_URLS = os.getenv(
-    "FRONTEND_BASE_URLS",
-    "http://localhost:3000,http://127.0.0.1:3000",
-)
+# Environment detection
+ENV = os.getenv("ENV", "development").lower()
+IS_PRODUCTION = ENV in {"prod", "production"}
 
+# Frontend URLs configuration
+FRONTEND_BASE_URLS_RAW = os.getenv("FRONTEND_BASE_URLS", "")
 DEFAULT_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
 
-ALLOWED_ORIGINS = [url.strip().rstrip("/") for url in FRONTEND_BASE_URLS.split(",") if url.strip()]
+if FRONTEND_BASE_URLS_RAW:
+    ALLOWED_ORIGINS = [url.strip().rstrip("/") for url in FRONTEND_BASE_URLS_RAW.split(",") if url.strip()]
+else:
+    if IS_PRODUCTION:
+        # CRITICAL: In production, we MUST have FRONTEND_BASE_URLS set
+        raise RuntimeError(
+            "FATAL: FRONTEND_BASE_URLS environment variable is not set in production. "
+            "This will cause CORS issues. Please set it to your production frontend URL."
+        )
+    ALLOWED_ORIGINS = DEFAULT_ALLOWED_ORIGINS
+    logging.warning("FRONTEND_BASE_URLS not set, using localhost defaults (development only)")
 
-if not ALLOWED_ORIGINS:
-    env_value = os.getenv("ENV", "").lower()
-    debug_value = os.getenv("DEBUG", "").lower()
-    if env_value in {"prod", "production"} or debug_value in {"0", "false", "no", "off"}:
-        logging.warning(
-            "FRONTEND_BASE_URLS resolved to an empty list in a production-like environment."
+# App base URL for Stripe redirects
+APP_BASE_URL_RAW = os.getenv("APP_BASE_URL", "")
+if not APP_BASE_URL_RAW:
+    if IS_PRODUCTION:
+        # CRITICAL: In production, we MUST have APP_BASE_URL set for Stripe redirects
+        raise RuntimeError(
+            "FATAL: APP_BASE_URL environment variable is not set in production. "
+            "Stripe payment redirects will fail. Please set it to your production URL (e.g., https://senditfast.ai)."
+        )
+    # Development fallback
+    APP_BASE_URL = "http://localhost:3000"
+    logging.warning("APP_BASE_URL not set, using localhost:3000 (development only)")
+else:
+    APP_BASE_URL = APP_BASE_URL_RAW.rstrip("/")
+    # Validate that production APP_BASE_URL is not localhost
+    if IS_PRODUCTION and ("localhost" in APP_BASE_URL.lower() or "127.0.0.1" in APP_BASE_URL):
+        raise RuntimeError(
+            f"FATAL: APP_BASE_URL is set to '{APP_BASE_URL}' in production. "
+            "This will cause payment redirects to fail. Please set it to your production URL."
         )
 
-    # Always fall back to localhost origins for development if no explicit list was provided.
-    ALLOWED_ORIGINS = DEFAULT_ALLOWED_ORIGINS
-
-APP_BASE_URL = os.getenv("APP_BASE_URL", "https://senditfast.ai").rstrip("/")
 SUCCESS_RETURN_PATH = os.getenv("STRIPE_SUCCESS_PATH", "/billing/success")
 SUCCESS_URL = f"{APP_BASE_URL}{SUCCESS_RETURN_PATH}"
 CANCEL_URL = f"{APP_BASE_URL}/billing?canceled=true"
+
+# Log configuration on startup
+logging.info(f"Environment: {ENV}")
+logging.info(f"ALLOWED_ORIGINS: {ALLOWED_ORIGINS}")
+logging.info(f"APP_BASE_URL: {APP_BASE_URL}")
+logging.info(f"Stripe SUCCESS_URL: {SUCCESS_URL}")
+logging.info(f"Stripe CANCEL_URL: {CANCEL_URL}")
 
 STRIPE_SYNC_EVENTS = {
     "checkout.session.completed",
@@ -311,8 +338,60 @@ def start_worker():
 @app.on_event("startup")
 async def startup_event():
     print("[Main] Running startup_event")
+    print("=" * 60)
+    print("STARTUP VALIDATION")
+    print("=" * 60)
+
+    # Validate critical environment variables
+    critical_vars = {
+        "SUPABASE_URL": os.getenv("SUPABASE_URL"),
+        "SUPABASE_SERVICE_ROLE_KEY": os.getenv("SUPABASE_SERVICE_ROLE_KEY"),
+        "SUPABASE_JWT_SECRET": os.getenv("SUPABASE_JWT_SECRET"),
+    }
+
+    missing_vars = [var for var, value in critical_vars.items() if not value]
+    if missing_vars:
+        error_msg = f"FATAL: Missing critical environment variables: {', '.join(missing_vars)}"
+        print(f"❌ {error_msg}")
+        raise RuntimeError(error_msg)
+
+    print("✅ All critical environment variables are set")
+
+    # Validate Stripe configuration if Stripe is being used
+    if STRIPE_SECRET:
+        print("✅ Stripe Secret Key is configured")
+        if not STRIPE_WEBHOOK_SECRET:
+            print("⚠️  WARNING: STRIPE_WEBHOOK_SECRET is not set. Webhook verification will fail!")
+        else:
+            print("✅ Stripe Webhook Secret is configured")
+
+        # Check if plan price IDs are configured
+        missing_prices = [plan for plan, price_id in PLAN_PRICE_MAP.items() if not price_id]
+        if missing_prices:
+            print(f"⚠️  WARNING: Missing Stripe price IDs for plans: {', '.join(missing_prices)}")
+        else:
+            print("✅ All plan Stripe price IDs are configured")
+
+        # Check if addon price IDs are configured
+        missing_addons = [plan for plan, price_id in ADDON_PRICE_MAP.items() if not price_id]
+        if missing_addons:
+            print(f"⚠️  WARNING: Missing Stripe addon price IDs for plans: {', '.join(missing_addons)}")
+        else:
+            print("✅ All addon Stripe price IDs are configured")
+    else:
+        print("⚠️  WARNING: Stripe is not configured (STRIPE_SECRET_KEY not set)")
+
+    print("=" * 60)
+    print(f"Environment: {ENV}")
+    print(f"ALLOWED_ORIGINS: {ALLOWED_ORIGINS}")
+    print(f"APP_BASE_URL: {APP_BASE_URL}")
+    print(f"Stripe SUCCESS_URL: {SUCCESS_URL}")
+    print(f"Stripe CANCEL_URL: {CANCEL_URL}")
+    print("=" * 60)
+
     start_worker()
     print("[Main] Worker started")
+    print("=" * 60)
 
 
 app.add_middleware(
@@ -562,6 +641,10 @@ def list_jobs(
 def get_me(current_user: AuthenticatedUser = Depends(get_current_user)):
     try:
         user_id = current_user.user_id
+        user_email = current_user.claims.get("email", "unknown@example.com")
+
+        print(f"[/me] Fetching profile for user {user_id}")
+
         res = (
             supabase.table("profiles")
             .select("id, email, credits_remaining, max_credits, plan_type, subscription_status, renewal_date")
@@ -572,16 +655,43 @@ def get_me(current_user: AuthenticatedUser = Depends(get_current_user)):
 
         if not res.data:
             # bootstrap default profile
+            print(f"[/me] No profile found for user {user_id}. Creating new profile with 500 credits.")
             profile = {
                 "id": user_id,
-                "email": "unknown@example.com",
+                "email": user_email,
                 "credits_remaining": 500,
                 "max_credits": 5000,
                 "plan_type": "free",
                 "subscription_status": "active",
                 "renewal_date": (datetime.utcnow() + timedelta(days=30)).isoformat()
             }
-            supabase.table("profiles").insert(profile).execute()
+
+            try:
+                insert_res = supabase.table("profiles").insert(profile).execute()
+                print(f"[/me] Successfully created profile for user {user_id} with 500 credits")
+
+                # Record initial credit allocation in ledger
+                ledger_payload = {
+                    "user_id": user_id,
+                    "change": 500,
+                    "amount": 0.0,
+                    "reason": "initial signup credits",
+                    "ts": datetime.utcnow().isoformat(),
+                }
+                try:
+                    supabase.table("ledger").insert(ledger_payload).execute()
+                    print(f"[/me] Recorded initial credit allocation in ledger for user {user_id}")
+                except Exception as ledger_err:
+                    print(f"[/me] WARNING: Failed to record ledger entry for user {user_id}: {ledger_err}")
+                    # Don't fail the request if ledger insert fails
+
+            except Exception as insert_err:
+                print(f"[/me] ERROR: Failed to insert profile for user {user_id}: {insert_err}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to create user profile: {str(insert_err)}"
+                )
+
             res = (
                 supabase.table("profiles")
                 .select("*")
@@ -590,13 +700,24 @@ def get_me(current_user: AuthenticatedUser = Depends(get_current_user)):
                 .execute()
             )
 
+            if not res.data:
+                print(f"[/me] CRITICAL: Profile still not found after insert for user {user_id}")
+                raise HTTPException(
+                    status_code=500,
+                    detail="Failed to create and retrieve user profile"
+                )
+        else:
+            print(f"[/me] Found existing profile for user {user_id}: {res.data.get('credits_remaining', 0)} credits")
+
         return res.data
     except HTTPException:
         raise
     except FileStreamingError as exc:
+        print(f"[/me] FileStreamingError for user {current_user.user_id}: {exc}")
         raise HTTPException(status_code=500, detail=str(exc))
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        print(f"[/me] Unexpected error for user {current_user.user_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
     
 @app.get("/jobs")
 def list_jobs(current_user: AuthenticatedUser = Depends(get_current_user)):
@@ -1346,6 +1467,21 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
     payload = await request.body()
     print("========== STRIPE WEBHOOK ==========")
 
+    # Validate webhook secret is configured
+    if not STRIPE_WEBHOOK_SECRET:
+        print("[ERROR] STRIPE_WEBHOOK_SECRET is not configured!")
+        raise HTTPException(
+            status_code=500,
+            detail="Stripe webhook secret is not configured on the server"
+        )
+
+    if not stripe_signature:
+        print("[ERROR] No stripe-signature header provided")
+        raise HTTPException(
+            status_code=400,
+            detail="Missing stripe-signature header"
+        )
+
     try:
         event = stripe.Webhook.construct_event(
             payload, stripe_signature, STRIPE_WEBHOOK_SECRET
@@ -1378,6 +1514,8 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
         if metadata.get("addon") == "true":
             qty = int(metadata.get("quantity", 1))
             credits = qty * 1000
+            print(f"[ADDON] Processing addon purchase: user={user_id}, qty={qty}, credits={credits}")
+
             try:
                 current = (
                     supabase.table("profiles")
@@ -1387,7 +1525,10 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                     .execute()
                 )
                 current_credits = current.data.get("credits_remaining") if current.data else 0
+                print(f"[ADDON] Current credits for user {user_id}: {current_credits}")
+
                 new_total = (current_credits or 0) + credits
+                print(f"[ADDON] New total credits for user {user_id}: {new_total}")
 
                 res_update = (
                     supabase.table("profiles")
@@ -1396,6 +1537,11 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                     .execute()
                 )
                 log_db("update_addon_credits", res_update)
+
+                if not res_update.data:
+                    print(f"[ADDON] ERROR: Failed to update credits for user {user_id}")
+                else:
+                    print(f"[ADDON] ✅ Successfully updated credits for user {user_id}")
 
                 res_ledger = (
                     supabase.table("ledger")
@@ -1411,11 +1557,19 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                     .execute()
                 )
                 log_db("insert_ledger_addon", res_ledger)
+
+                if not res_ledger.data:
+                    print(f"[ADDON] WARNING: Failed to record ledger entry for user {user_id}")
+                else:
+                    print(f"[ADDON] ✅ Successfully recorded ledger entry for user {user_id}")
+
             except Exception as exc:  # pragma: no cover - supabase availability
-                print(f"[Stripe] Failed to record add-on purchase: {exc}")
+                print(f"[Stripe] CRITICAL ERROR: Failed to record add-on purchase for user {user_id}: {exc}")
+                import traceback
+                traceback.print_exc()
 
             print(
-                f"[ADDON] user={user_id}, qty={qty}, credits={credits}, customer={customer_id}"
+                f"[ADDON] ✅ Completed addon processing: user={user_id}, qty={qty}, credits={credits}, customer={customer_id}"
             )
         else:
             subscription_id = obj.get("subscription")
@@ -1425,6 +1579,11 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                 renewal_date = subscription.get("current_period_end")
 
             credits = CREDITS_MAP.get(plan, 0)
+            print(f"[PLAN] Processing plan purchase: user={user_id}, plan={plan}, credits={credits}")
+
+            if credits == 0:
+                print(f"[PLAN] WARNING: No credits configured for plan '{plan}'. Check CREDITS_MAP.")
+
             try:
                 res_update = (
                     supabase.table("profiles")
@@ -1441,6 +1600,11 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                 )
                 log_db("update_profile_plan", res_update)
 
+                if not res_update.data:
+                    print(f"[PLAN] ERROR: Failed to update plan for user {user_id}")
+                else:
+                    print(f"[PLAN] ✅ Successfully updated plan for user {user_id}")
+
                 res_ledger = (
                     supabase.table("ledger")
                     .insert(
@@ -1455,11 +1619,19 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                     .execute()
                 )
                 log_db("insert_ledger_plan", res_ledger)
+
+                if not res_ledger.data:
+                    print(f"[PLAN] WARNING: Failed to record ledger entry for user {user_id}")
+                else:
+                    print(f"[PLAN] ✅ Successfully recorded ledger entry for user {user_id}")
+
             except Exception as exc:  # pragma: no cover - supabase availability
-                print(f"[Stripe] Failed to update plan purchase: {exc}")
+                print(f"[Stripe] CRITICAL ERROR: Failed to update plan purchase for user {user_id}: {exc}")
+                import traceback
+                traceback.print_exc()
 
             print(
-                f"[PLAN] user={user_id}, plan={plan}, credits={credits}, renewal={renewal_date}"
+                f"[PLAN] ✅ Completed plan processing: user={user_id}, plan={plan}, credits={credits}, renewal={renewal_date}"
             )
 
     if event_type in STRIPE_SYNC_EVENTS and customer_id:
