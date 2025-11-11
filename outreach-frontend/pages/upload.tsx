@@ -426,13 +426,7 @@ const HelpTooltip = ({
                 e.g., "{help.example}"
               </p>
             )}
-            {!isPreviewTooltip && (
-              <div className="pt-2 border-t" style={{ borderColor: "rgba(255, 255, 255, 0.08)" }}>
-                <p style={{ color: "#949ba4", fontSize: "0.8125rem" }}>
-                  Leave blank if not relevant to you.
-                </p>
-              </div>
-            )}
+            
           </div>
         </div>
       )}
@@ -887,7 +881,7 @@ export default function UploadPage() {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <span className="text-xs font-semibold text-gray-700 flex items-center gap-1">
-              <span className="font-semibold">Include 'Forward to right person' text?</span>
+              <span className="font-semibold">Include fallback?</span>
               <HelpTooltip fieldKey="include_fallback" />
             </span>
             <div className="flex items-center gap-3 text-xs font-semibold text-gray-700">
