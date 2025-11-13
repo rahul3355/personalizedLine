@@ -5,7 +5,7 @@ import {
   useCallback,
   useContext,
   useState,
-  ReactNode,
+  type ReactNode,
 } from "react";
 
 export interface OptimisticJob {
