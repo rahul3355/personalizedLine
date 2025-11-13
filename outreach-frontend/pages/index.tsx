@@ -6,9 +6,13 @@ import { CreditCard } from "lucide-react";
 import InlineLoader from "@/components/InlineLoader";
 import { TransactionHistorySkeleton } from "@/components/SkeletonScreens";
 
-const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
-);
+const STRIPE_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+
+if (!STRIPE_KEY) {
+  console.error("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is not set. Stripe payments will not work.");
+}
+
+const stripePromise = STRIPE_KEY ? loadStripe(STRIPE_KEY) : null;
 
 export default function Home() {
   const { session, loading, userInfo } = useAuth();

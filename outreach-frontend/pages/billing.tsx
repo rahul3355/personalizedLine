@@ -268,9 +268,13 @@ function DiscordTooltip({ message }: { message: string }) {
 }
 
 // Initialize Stripe with publishable key from env
-const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
-);
+const STRIPE_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+
+if (!STRIPE_KEY) {
+  console.error("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is not set. Stripe payments will not work.");
+}
+
+const stripePromise = STRIPE_KEY ? loadStripe(STRIPE_KEY) : null;
 
 export default function BillingPage() {
   const { session, userInfo } = useAuth();
@@ -331,7 +335,11 @@ export default function BillingPage() {
       const data = await res.json();
       if (data.id) {
         const stripe = await stripePromise;
-        if (!stripe) throw new Error("Stripe failed to initialize");
+        if (!stripe) {
+          throw new Error(
+            "Stripe failed to initialize. Please check that NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is configured correctly."
+          );
+        }
         await stripe.redirectToCheckout({ sessionId: data.id });
       } else {
         console.error("Plan checkout error", data);
@@ -339,7 +347,8 @@ export default function BillingPage() {
       }
     } catch (err) {
       console.error("Checkout error", err);
-      alert("Something went wrong starting checkout");
+      const errorMsg = err instanceof Error ? err.message : "Something went wrong starting checkout";
+      alert(errorMsg);
     }
   };
 

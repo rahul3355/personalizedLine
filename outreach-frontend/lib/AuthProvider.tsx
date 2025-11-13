@@ -104,10 +104,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (insertError) {
           console.error("Profile insert error:", insertError);
-          return;
+          // Throw error to trigger the catch block and alert the user
+          throw new Error(
+            `Failed to create user profile: ${insertError.message || "Unknown database error"}. Please try signing out and signing in again, or contact support if the issue persists.`
+          );
+        }
+
+        if (!inserted) {
+          throw new Error(
+            "Failed to create user profile: No data returned from database. Please try signing out and signing in again."
+          );
         }
 
         profile = inserted;
+        console.log(`[Auth] Successfully created new profile for user ${userId} with 500 credits`);
       }
 
       // 3. Use whatever is in Supabase (don’t overwrite Stripe updates)
@@ -127,6 +137,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
     } catch (err) {
       console.error("Failed to fetch/create user info", err);
+      // Alert user if profile creation/fetch fails - this is critical
+      if (typeof window !== "undefined") {
+        const errorMessage =
+          err instanceof Error
+            ? err.message
+            : "Failed to load your account information. Please try signing out and signing in again.";
+        alert(errorMessage);
+      }
     }
   }, []);
 
