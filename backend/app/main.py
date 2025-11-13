@@ -132,9 +132,26 @@ if not ALLOWED_ORIGINS:
     ALLOWED_ORIGINS = DEFAULT_ALLOWED_ORIGINS
 
 APP_BASE_URL = os.getenv("APP_BASE_URL", "https://senditfast.ai").rstrip("/")
+
+# Validate APP_BASE_URL in production to prevent localhost redirect issues
+env_value = os.getenv("ENV", "").lower()
+is_production = env_value in {"prod", "production"}
+if is_production and "localhost" in APP_BASE_URL.lower():
+    logging.error(
+        f"CRITICAL: APP_BASE_URL is set to '{APP_BASE_URL}' in production environment. "
+        "This will cause payment redirects to fail. Please set APP_BASE_URL to your production domain."
+    )
+    # In production, this is a critical error - log it prominently
+    print("=" * 80)
+    print("CRITICAL CONFIGURATION ERROR")
+    print(f"APP_BASE_URL contains 'localhost': {APP_BASE_URL}")
+    print("Payment redirects will FAIL in production!")
+    print("Please set APP_BASE_URL environment variable to your production domain.")
+    print("=" * 80)
+
 SUCCESS_RETURN_PATH = os.getenv("STRIPE_SUCCESS_PATH", "/billing/success")
 SUCCESS_URL = f"{APP_BASE_URL}{SUCCESS_RETURN_PATH}"
-CANCEL_URL = f"{APP_BASE_URL}/billing?canceled=true"
+CANCEL_URL = f"{APP_BASE_URL}/billing?canceled=true}"
 
 STRIPE_SYNC_EVENTS = {
     "checkout.session.completed",
@@ -156,6 +173,57 @@ STRIPE_SYNC_EVENTS = {
     "payment_intent.payment_failed",
     "payment_intent.canceled",
 }
+
+
+# Validate critical environment variables at startup
+def _validate_env_vars():
+    """Validate that all critical environment variables are set."""
+    warnings = []
+
+    # Check Stripe configuration
+    if not STRIPE_SECRET:
+        warnings.append("STRIPE_SECRET_KEY is not set - payments will not work")
+
+    if not STRIPE_WEBHOOK_SECRET:
+        warnings.append("STRIPE_WEBHOOK_SECRET is not set - webhook verification will fail")
+
+    # Check if all price IDs are configured
+    missing_prices = []
+    for plan, price_id in PLAN_PRICE_MAP.items():
+        if not price_id:
+            missing_prices.append(f"STRIPE_PRICE_{plan.upper()}")
+
+    for plan, price_id in ADDON_PRICE_MAP.items():
+        if not price_id:
+            missing_prices.append(f"STRIPE_PRICE_ADDON_{plan.upper()}")
+
+    if missing_prices:
+        warnings.append(f"Missing Stripe price IDs: {', '.join(missing_prices)}")
+
+    # Check Supabase configuration
+    if not os.getenv("SUPABASE_URL"):
+        warnings.append("SUPABASE_URL is not set - database operations will fail")
+
+    if not os.getenv("SUPABASE_SERVICE_ROLE_KEY"):
+        warnings.append("SUPABASE_SERVICE_ROLE_KEY is not set - database operations will fail")
+
+    if not os.getenv("SUPABASE_JWT_SECRET"):
+        warnings.append("SUPABASE_JWT_SECRET is not set - JWT validation will fail")
+
+    # Log all warnings
+    if warnings:
+        print("=" * 80)
+        print("ENVIRONMENT CONFIGURATION WARNINGS:")
+        for warning in warnings:
+            print(f"  ⚠️  {warning}")
+            logging.warning(warning)
+        print("=" * 80)
+    else:
+        logging.info("All critical environment variables are configured")
+
+
+# Run validation on startup
+_validate_env_vars()
 
 
 def _fetch_profile(user_id: str, columns: str = "id,email,stripe_customer_id") -> Optional[Dict[str, Any]]:
