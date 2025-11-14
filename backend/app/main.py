@@ -1591,7 +1591,12 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
     elif event_type == "invoice.paid":
         # Get subscription details from the invoice
         subscription_id = obj.get("subscription")
-        if not subscription_id:
+        billing_reason = obj.get("billing_reason")
+
+        # Skip initial subscription invoice (already handled by checkout.session.completed)
+        if billing_reason == "subscription_create":
+            print(f"[INVOICE] Skipping subscription_create invoice (already handled by checkout)")
+        elif not subscription_id:
             print(f"[INVOICE] No subscription_id in invoice, skipping")
         else:
             try:
@@ -1624,14 +1629,34 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                         plan_type = profile.data.get("plan_type", "free")
                         subscription_status = profile.data.get("subscription_status")
 
+                        # For plan changes, get the new plan from subscription
+                        if billing_reason == "subscription_update":
+                            # Get plan from subscription items
+                            items = subscription.get("items", {}).get("data", [])
+                            if items:
+                                price_id = items[0].get("price", {}).get("id")
+                                new_plan = PRICE_TO_PLAN.get(price_id, plan_type)
+                                if new_plan != plan_type:
+                                    print(f"[UPGRADE/DOWNGRADE] {plan_type} → {new_plan}")
+                                    plan_type = new_plan
+
                         # Only reset credits for active subscriptions with paid plans
                         if subscription_status == "active" and plan_type in CREDITS_MAP:
                             # RESET credits to monthly allocation (not add)
                             monthly_credits = CREDITS_MAP.get(plan_type, 0)
 
+                            # Determine ledger reason based on billing_reason
+                            if billing_reason == "subscription_update":
+                                ledger_reason = f"plan change - {plan_type}"
+                            else:
+                                ledger_reason = f"monthly renewal - {plan_type}"
+
                             res_update = (
                                 supabase.table("profiles")
-                                .update({"credits_remaining": monthly_credits})
+                                .update({
+                                    "credits_remaining": monthly_credits,
+                                    "plan_type": plan_type,  # Update plan for upgrades/downgrades
+                                })
                                 .eq("id", user_id)
                                 .execute()
                             )
@@ -1645,7 +1670,7 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                                     "user_id": user_id,
                                     "change": monthly_credits,
                                     "amount": invoice_amount,
-                                    "reason": f"monthly renewal - {plan_type}",
+                                    "reason": ledger_reason,
                                     "ts": datetime.utcnow().isoformat(),
                                 })
                                 .execute()
@@ -1654,7 +1679,8 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
 
                             print(
                                 f"[RENEWAL] user={user_id}, plan={plan_type}, "
-                                f"credits_reset_to={monthly_credits}, amount=${invoice_amount}"
+                                f"credits_reset_to={monthly_credits}, amount=${invoice_amount}, "
+                                f"reason={billing_reason}"
                             )
                         else:
                             print(
