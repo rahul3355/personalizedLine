@@ -6,6 +6,8 @@ import { useEffect } from "react";
 import { FcGoogle } from "react-icons/fc";
 import Image from "next/image";
 import { Globe } from "@/components/ui/globe";
+import { Button } from "@/components/ui/button";
+import { BorderBeam } from "@/components/magicui/border-beam";
 
 function LoginPage() {
   const { session } = useAuth();
@@ -25,40 +27,21 @@ function LoginPage() {
 
   return (
     <div className="relative flex h-dvh w-full overflow-hidden font-sans bg-white">
-      <div className="absolute left-1/2 top-10 hidden -translate-x-1/2 lg:flex">
-        <div
-  className="rounded-full px-6 py-1.5"
-  style={{
-    background: 'linear-gradient(180deg, #e8e8e8 0%, #f2f2f2 25%, #f8f8f8 50%, #f0f0f0 75%, #ebebeb 100%)',
-    boxShadow: `
-      inset 0 2px 6px rgba(0, 0, 0, 0.15),
-      inset 0 -1px 3px rgba(255, 255, 255, 0.6),
-      inset 3px 0 6px rgba(0, 0, 0, 0.12),
-      inset -3px 0 4px rgba(255, 255, 255, 0.3),
-      0 1px 0 rgba(255, 255, 255, 0.8),
-      0 1px 2px rgba(0, 0, 0, 0.05)
-    `,
-    border: '1px solid rgba(0, 0, 0, 0.08)',
-  }}
->
-  <span
-    className="text-sm font-semibold"
-    style={{
-      fontFamily: 'Consolas, "Courier New", monospace',
-      color: '#000000ff',
-      textShadow: `
-        0 -1px 0 rgba(255, 255, 255, 0.4),
-        0 1px 1px rgba(0, 0, 0, 0.25),
-        1px 0 1px rgba(0, 0, 0, 0.15),
-        -1px 0 1px rgba(255, 255, 255, 0.2)
-      `,
-      letterSpacing: '0.08em',
-      opacity: 0.5
-    }}
-  >
-    beta
-  </span>
-</div>
+      {/* Beta Button with BorderBeam - positioned over the dividing line */}
+      <div className="absolute left-1/2 top-10 hidden -translate-x-1/2 lg:flex z-50">
+        <Button className="relative overflow-hidden text-black bg-white" size="lg" variant="outline">
+          Beta
+          <BorderBeam
+            size={40}
+            initialOffset={20}
+            className="from-transparent via-yellow-500 to-transparent"
+            transition={{
+              type: "spring",
+              stiffness: 60,
+              damping: 20,
+            }}
+          />
+        </Button>
       </div>
       {/* Left Section */}
       <div className="w-full lg:w-1/2 flex flex-col border-r border-gray-100 bg-white">
