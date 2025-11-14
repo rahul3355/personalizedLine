@@ -291,13 +291,17 @@ def ensure_stripe_customer_id(user_id: str, email: Optional[str] = None) -> Opti
     if email:
         customer_payload["email"] = email
 
-    customer = stripe.Customer.create(**customer_payload)
-    stripe_customer_id = customer.get("id")
+    try:
+        customer = stripe.Customer.create(**customer_payload)
+        stripe_customer_id = customer.get("id")
 
-    if stripe_customer_id:
-        _update_profile(user_id, {"stripe_customer_id": stripe_customer_id})
+        if stripe_customer_id:
+            _update_profile(user_id, {"stripe_customer_id": stripe_customer_id})
 
-    return stripe_customer_id
+        return stripe_customer_id
+    except Exception as e:
+        print(f"[ERROR] Failed to create Stripe customer for user {user_id}: {e}")
+        return None
 
 
 def sync_stripe_customer(customer_id: str, user_id: Optional[str] = None) -> Dict[str, Any]:
@@ -1497,6 +1501,12 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
         plan = metadata.get("plan")
         linked_user_id = user_id
 
+        # CRITICAL: Validate user_id exists
+        if not user_id:
+            print(f"[ERROR] No user_id in checkout.session.completed metadata for event {event_id}")
+            _mark_event_processed(event_id, event_type)
+            return {"status": "error", "message": "missing_user_id"}
+
         if customer_id and user_id:
             _update_profile(user_id, {"stripe_customer_id": customer_id})
 
@@ -1504,23 +1514,33 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
             qty = int(metadata.get("quantity", 1))
             credits = qty * 1000
             try:
-                current = (
-                    supabase.table("profiles")
-                    .select("credits_remaining")
-                    .eq("id", user_id)
-                    .single()
-                    .execute()
-                )
-                current_credits = current.data.get("credits_remaining") if current.data else 0
-                new_total = (current_credits or 0) + credits
+                # Use atomic increment via RPC to prevent race conditions
+                try:
+                    res_update = supabase.rpc(
+                        "increment_credits",
+                        {"user_id_param": user_id, "credit_amount": credits}
+                    ).execute()
+                    log_db("increment_addon_credits", res_update)
+                except Exception as rpc_error:
+                    # Fallback to read-modify-write if RPC function doesn't exist
+                    print(f"[WARNING] RPC increment_credits failed, using fallback: {rpc_error}")
+                    current = (
+                        supabase.table("profiles")
+                        .select("credits_remaining")
+                        .eq("id", user_id)
+                        .single()
+                        .execute()
+                    )
+                    current_credits = current.data.get("credits_remaining") if current.data else 0
+                    new_total = (current_credits or 0) + credits
 
-                res_update = (
-                    supabase.table("profiles")
-                    .update({"credits_remaining": new_total})
-                    .eq("id", user_id)
-                    .execute()
-                )
-                log_db("update_addon_credits", res_update)
+                    res_update = (
+                        supabase.table("profiles")
+                        .update({"credits_remaining": new_total})
+                        .eq("id", user_id)
+                        .execute()
+                    )
+                    log_db("update_addon_credits", res_update)
 
                 res_ledger = (
                     supabase.table("ledger")
@@ -1543,6 +1563,12 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                 f"[ADDON] user={user_id}, qty={qty}, credits={credits}, customer={customer_id}"
             )
         else:
+            # Validate plan exists
+            if plan not in CREDITS_MAP:
+                print(f"[ERROR] Invalid plan '{plan}' in checkout.session.completed for event {event_id}")
+                _mark_event_processed(event_id, event_type)
+                return {"status": "error", "message": "invalid_plan"}
+
             subscription_id = obj.get("subscription")
             renewal_date = None
             if subscription_id:
@@ -1591,7 +1617,12 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
     elif event_type == "invoice.paid":
         # Get subscription details from the invoice
         subscription_id = obj.get("subscription")
-        if not subscription_id:
+        billing_reason = obj.get("billing_reason")
+
+        # Skip initial subscription invoice (already handled by checkout.session.completed)
+        if billing_reason == "subscription_create":
+            print(f"[INVOICE] Skipping subscription_create invoice (already handled by checkout)")
+        elif not subscription_id:
             print(f"[INVOICE] No subscription_id in invoice, skipping")
         else:
             try:
@@ -1624,14 +1655,34 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                         plan_type = profile.data.get("plan_type", "free")
                         subscription_status = profile.data.get("subscription_status")
 
+                        # For plan changes, get the new plan from subscription
+                        if billing_reason == "subscription_update":
+                            # Get plan from subscription items
+                            items = subscription.get("items", {}).get("data", [])
+                            if items:
+                                price_id = items[0].get("price", {}).get("id")
+                                new_plan = PRICE_TO_PLAN.get(price_id, plan_type)
+                                if new_plan != plan_type:
+                                    print(f"[UPGRADE/DOWNGRADE] {plan_type} → {new_plan}")
+                                    plan_type = new_plan
+
                         # Only reset credits for active subscriptions with paid plans
                         if subscription_status == "active" and plan_type in CREDITS_MAP:
                             # RESET credits to monthly allocation (not add)
                             monthly_credits = CREDITS_MAP.get(plan_type, 0)
 
+                            # Determine ledger reason based on billing_reason
+                            if billing_reason == "subscription_update":
+                                ledger_reason = f"plan change - {plan_type}"
+                            else:
+                                ledger_reason = f"monthly renewal - {plan_type}"
+
                             res_update = (
                                 supabase.table("profiles")
-                                .update({"credits_remaining": monthly_credits})
+                                .update({
+                                    "credits_remaining": monthly_credits,
+                                    "plan_type": plan_type,  # Update plan for upgrades/downgrades
+                                })
                                 .eq("id", user_id)
                                 .execute()
                             )
@@ -1645,7 +1696,7 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                                     "user_id": user_id,
                                     "change": monthly_credits,
                                     "amount": invoice_amount,
-                                    "reason": f"monthly renewal - {plan_type}",
+                                    "reason": ledger_reason,
                                     "ts": datetime.utcnow().isoformat(),
                                 })
                                 .execute()
@@ -1654,7 +1705,8 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
 
                             print(
                                 f"[RENEWAL] user={user_id}, plan={plan_type}, "
-                                f"credits_reset_to={monthly_credits}, amount=${invoice_amount}"
+                                f"credits_reset_to={monthly_credits}, amount=${invoice_amount}, "
+                                f"reason={billing_reason}"
                             )
                         else:
                             print(
@@ -1690,6 +1742,8 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                 print(f"[CANCELED] user={user_id}, subscription={subscription_id}")
             except Exception as exc:
                 print(f"[CANCEL] Error updating canceled subscription: {exc}")
+        else:
+            print(f"[CANCEL] Could not find user_id for subscription {subscription_id}, skipping")
 
     if event_type in STRIPE_SYNC_EVENTS and customer_id:
         sync_result = sync_stripe_customer(customer_id, user_id=linked_user_id)
