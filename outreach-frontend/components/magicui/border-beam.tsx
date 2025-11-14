@@ -1,19 +1,18 @@
-import { motion, type Transition } from "framer-motion"
-import { CSSProperties } from "react"
-
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
+import { motion, type Transition } from "framer-motion";
+import { CSSProperties } from "react";
 
 interface BorderBeamProps {
-  className?: string
-  size?: number
-  duration?: number
-  delay?: number
-  colorFrom?: string
-  colorTo?: string
-  transition?: Transition
-  style?: CSSProperties
-  reverse?: boolean
-  initialOffset?: number
+  className?: string;
+  size?: number;
+  duration?: number;
+  delay?: number;
+  colorFrom?: string;
+  colorTo?: string;
+  transition?: Transition;
+  style?: CSSProperties;
+  reverse?: boolean;
+  initialOffset?: number;
 }
 
 export function BorderBeam({
@@ -21,28 +20,27 @@ export function BorderBeam({
   size = 50,
   duration = 6,
   delay = 0,
-  colorFrom = "#ffaa40",
-  colorTo = "#9c40ff",
-  transition,
-  style,
   reverse = false,
   initialOffset = 0,
+  transition,
+  style,
 }: BorderBeamProps) {
   return (
     <div
       className={cn(
         "pointer-events-none absolute inset-0 rounded-[inherit] border border-transparent",
-        "[mask-composite:intersect] [mask:linear-gradient(transparent,transparent),linear-gradient(#000,#000)]",
-        "[mask-clip:padding-box,border-box]",
+        "[mask-clip:padding-box,border-box] [mask-composite:intersect] [mask:linear-gradient(transparent,transparent),linear-gradient(#000,#000)]",
         className
       )}
     >
       <motion.div
-        className="absolute aspect-square"
+        className={cn(
+          "absolute aspect-square bg-gradient-to-l",
+          className
+        )}
         style={{
           width: `${size}px`,
           offsetPath: `rect(0 auto auto 0 round ${size}px)`,
-          background: `linear-gradient(to left, ${colorFrom}, ${colorTo}, transparent)`,
           ...style,
         }}
         initial={{
@@ -62,5 +60,5 @@ export function BorderBeam({
         }}
       />
     </div>
-  )
+  );
 }
