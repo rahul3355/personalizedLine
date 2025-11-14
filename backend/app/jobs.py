@@ -8,6 +8,8 @@ import pandas as pd
 import traceback
 import tempfile
 import shutil
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from threading import Lock
 from backend.app.gpt_helpers import generate_full_email_body
 from backend.app.research import perform_research
 from backend.app.email_cleaning import clean_email_body
@@ -31,6 +33,8 @@ queue = rq.Queue("default", connection=redis_conn)
 RAW_CHUNK_BASE_DIR = "/data/raw_chunks"
 RAW_CHUNK_BUCKET = "inputs"
 
+# Parallel processing configuration
+PARALLEL_ROWS_PER_WORKER = int(os.getenv('PARALLEL_ROWS_PER_WORKER', '20'))
 
 GENERATED_OUTPUT_COLUMNS = ("research_components", "email_body")
 
@@ -615,6 +619,80 @@ def next_queued_job():
     return res.data[0] if res.data else None
 
 
+def _process_single_row(
+    row_index: int,
+    row: dict,
+    row_headers: List[str],
+    email_header: Optional[str],
+    meta: dict,
+    job_id: str,
+    chunk_id: int,
+) -> Tuple[int, dict, Optional[str]]:
+    """
+    Process a single row in a thread.
+
+    Returns:
+        tuple: (row_index, normalized_row_dict, error_message)
+    """
+    try:
+        email_value = row.get(email_header, "") if email_header else ""
+
+        # Perform research
+        research_components = "Research unavailable: unexpected error."
+        try:
+            research_components = perform_research(email_value)
+        except Exception as research_exc:
+            error_msg = f"Research error: {research_exc}"
+            print(f"[Worker] Job {job_id} | Chunk {chunk_id} | Row {row_index + 1} | {error_msg}")
+            research_components = f"Research unavailable: {str(research_exc)}"
+
+        # Generate email body
+        email_body = "Email body unavailable: unexpected error."
+        try:
+            service_context = meta.get("service", "{}")
+            email_body = generate_full_email_body(
+                research_components,
+                service_context,
+            )
+            # Apply cleaning pipeline
+            email_body = clean_email_body(email_body)
+        except Exception as email_exc:
+            error_msg = f"Email generation error: {email_exc}"
+            print(f"[Worker] Job {job_id} | Chunk {chunk_id} | Row {row_index + 1} | {error_msg}")
+            email_body = f"Email unavailable: {str(email_exc)}"
+
+        # Build normalized row
+        normalized_row = {}
+        for header in row_headers:
+            value = row.get(header, "")
+            normalized_row[header] = "" if value is None else value
+
+        if email_header:
+            normalized_row[email_header] = "" if email_value is None else email_value
+
+        normalized_row["research_components"] = research_components
+        normalized_row["email_body"] = email_body
+
+        return (row_index, normalized_row, None)
+
+    except Exception as exc:
+        # Return error row if anything fails
+        error_msg = f"Row processing error: {exc}"
+        print(f"[Worker] Job {job_id} | Chunk {chunk_id} | Row {row_index + 1} | CRITICAL ERROR: {error_msg}")
+        traceback.print_exc()
+
+        # Build error row with empty values
+        error_row = {}
+        for header in row_headers:
+            error_row[header] = row.get(header, "")
+        if email_header:
+            error_row[email_header] = row.get(email_header, "")
+        error_row["research_components"] = f"Error: {str(exc)}"
+        error_row["email_body"] = f"Error: {str(exc)}"
+
+        return (row_index, error_row, str(exc))
+
+
 def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: dict, user_id: str, total_rows: int):
     """Process a chunk of rows for a given job, with global progress logging."""
     sub_start = time.time()
@@ -653,84 +731,75 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
         os.makedirs(local_dir, exist_ok=True)
         out_path = os.path.join(local_dir, f"chunk_{chunk_id}.csv")
 
-        with open(chunk_input_path, newline="", encoding="utf-8-sig") as in_f, open(
-            out_path, "w", newline="", encoding="utf-8"
-        ) as out_f:
+        # Read input CSV and prepare for parallel processing
+        with open(chunk_input_path, newline="", encoding="utf-8-sig") as in_f:
             reader = csv.DictReader(in_f)
             input_headers = reader.fieldnames or headers
             meta = _ensure_dict(meta)
             row_headers, email_header, output_headers, _ = _resolve_output_header_order(
                 input_headers, meta
             )
-            writer = csv.DictWriter(out_f, fieldnames=output_headers)
-            writer.writeheader()
+            # Load all rows into memory for parallel processing
+            rows = list(reader)
 
-            for i, row in enumerate(reader, start=1):
+        print(f"[Worker] Job {job_id} | Chunk {chunk_id} | Processing {len(rows)} rows in parallel with {PARALLEL_ROWS_PER_WORKER} workers")
+
+        # Parallel processing with ThreadPoolExecutor
+        results = []
+        completed_count = 0
+        rows_since_last_report = 0
+        last_reported = 0
+        progress_lock = Lock()
+
+        with ThreadPoolExecutor(max_workers=PARALLEL_ROWS_PER_WORKER) as executor:
+            # Submit all rows to thread pool
+            futures = {}
+            for i, row in enumerate(rows):
+                future = executor.submit(
+                    _process_single_row,
+                    i,  # row_index
+                    row,  # row dict
+                    row_headers,
+                    email_header,
+                    meta,
+                    job_id,
+                    chunk_id,
+                )
+                futures[future] = i
+
+            # Collect results as they complete
+            for future in as_completed(futures):
                 try:
-                    print(
-                        f"[Worker] Job {job_id} | Chunk {chunk_id} | Row {i}/{chunk_total_rows} -> {row}"
-                    )
-                    email_value = row.get(email_header, "") if email_header else ""
-
-                    research_components = "Research unavailable: unexpected error."
-                    email_body = "Email body unavailable: unexpected error."
-
-                    try:
-                        research_components = perform_research(email_value)
-                        print(f"\n📋 RESEARCH COMPONENTS:")
-                        print(research_components)
-                    except Exception as research_exc:
-                        print(
-                            f"[Worker] Research error for job {job_id} | Chunk {chunk_id} | Row {i}: {research_exc}"
-                        )
-                        traceback.print_exc()
-
-                    try:
-                        # Get service components from meta
-                        service_context = meta.get("service", "{}")
-                        print(f"\n📧 SERVICE COMPONENTS:")
-                        print(service_context)
-
-                        email_body = generate_full_email_body(
-                            research_components,
-                            service_context,
-                        )
-                        print(f"\n✉️  FINAL EMAIL BODY (before cleaning):")
-                        print(email_body)
-
-                        # Apply cleaning pipeline
-                        email_body = clean_email_body(email_body)
-                        print(f"\n🧹 CLEANED EMAIL BODY:")
-                        print(email_body)
-                    except Exception as email_exc:
-                        print(
-                            f"[Worker] Email generation error for job {job_id} | Chunk {chunk_id} | Row {i}: {email_exc}"
-                        )
-                        traceback.print_exc()
-                except Exception as e:
-                    print(f"[Worker] ERROR row {i}: {e}")
+                    result = future.result()
+                    results.append(result)
+                except Exception as exc:
+                    # This should never happen because _process_single_row catches everything
+                    row_idx = futures[future]
+                    print(f"[Worker] Job {job_id} | Chunk {chunk_id} | CRITICAL: Thread {row_idx} exception: {exc}")
                     traceback.print_exc()
+                    # Add error result
+                    error_row = {header: "" for header in row_headers}
+                    if email_header:
+                        error_row[email_header] = ""
+                    error_row["research_components"] = f"Critical error: {str(exc)}"
+                    error_row["email_body"] = f"Critical error: {str(exc)}"
+                    results.append((row_idx, error_row, str(exc)))
 
-                normalized_row = {}
-                for header in row_headers:
-                    value = row.get(header, "")
-                    normalized_row[header] = "" if value is None else value
-                if email_header:
-                    normalized_row[email_header] = "" if email_value is None else email_value
-                normalized_row["research_components"] = research_components
-                normalized_row["email_body"] = email_body
-                writer.writerow(normalized_row)
+                # Update progress atomically
+                with progress_lock:
+                    completed_count += 1
+                    rows_since_last_report += 1
+                    current = completed_count
+                    rows_since = rows_since_last_report
 
-                processed_in_chunk += 1
-                rows_since_last_report += 1
-
-                is_last_row = processed_in_chunk == chunk_total_rows
-                if rows_since_last_report >= 5 or is_last_row:
+                # Update progress every 5 rows or on last row
+                is_last_row = current == chunk_total_rows
+                if rows_since >= 5 or is_last_row:
                     try:
                         last_reported, progress_info = _update_job_progress(
                             job_id,
                             total_rows,
-                            processed_in_chunk,
+                            current,
                             last_reported,
                         )
                     except RuntimeError as exc:
@@ -738,7 +807,8 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                             f"[Worker] Job {job_id} | Chunk {chunk_id} | Progress update failed: {exc}"
                         )
                     else:
-                        rows_since_last_report = 0
+                        with progress_lock:
+                            rows_since_last_report = 0
                         if progress_info:
                             new_done = progress_info["new_done"]
                             percent = progress_info["percent"]
@@ -756,6 +826,19 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                                     ),
                                 }
                             ).execute()
+
+        # Sort results by original row index to preserve order
+        results.sort(key=lambda x: x[0])
+
+        # Write all results to output CSV (sequential, thread-safe)
+        with open(out_path, "w", newline="", encoding="utf-8") as out_f:
+            writer = csv.DictWriter(out_f, fieldnames=output_headers)
+            writer.writeheader()
+
+            for row_index, normalized_row, error in results:
+                writer.writerow(normalized_row)
+                if error:
+                    print(f"[Worker] Job {job_id} | Chunk {chunk_id} | Row {row_index + 1} had error: {error}")
 
         print(f"[Worker] Saved local chunk {chunk_id} at {out_path}")
 
