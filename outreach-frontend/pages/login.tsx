@@ -5,6 +5,7 @@ import { useRouter } from "next/router";
 import { useEffect } from "react";
 import { FcGoogle } from "react-icons/fc";
 import Image from "next/image";
+import { Globe } from "@/components/ui/globe";
 
 function LoginPage() {
   const { session } = useAuth();
@@ -118,13 +119,15 @@ function LoginPage() {
         </div>
       </div>
 
-      {/* Right Section - Testimonial (desktop only) */}
-      <div className="hidden lg:flex w-1/2 items-center justify-center bg-gray-50">
-        <div className="max-w-lg px-12">
+      {/* Right Section - Globe (desktop only) */}
+      <div className="hidden lg:flex w-1/2 flex-col items-center justify-center bg-gray-50 relative">
+        <div className="max-w-lg px-12 text-center mb-8 z-10">
           <blockquote className="text-[20px] font-medium text-gray-900 leading-snug tracking-tight">
             Cold emails that prove you did your homework
           </blockquote>
-         
+        </div>
+        <div className="relative w-full max-w-[600px] h-[600px] flex items-center justify-center">
+          <Globe className="top-0" />
         </div>
       </div>
     </div>
