@@ -8,6 +8,10 @@ import Image from "next/image";
 import { Globe } from "@/components/ui/globe";
 import { Button } from "@/components/ui/button";
 import { BorderBeam } from "@/components/ui/border-beam";
+import { LightRays } from "@/components/ui/light-rays";
+import { DotPattern } from "@/components/ui/dot-pattern";
+import { cn } from "@/lib/utils";
+import { InteractiveGridPattern } from "@/components/ui/interactive-grid-pattern";
 
 function LoginPage() {
   const { session } = useAuth();
@@ -27,7 +31,10 @@ function LoginPage() {
 
   return (
     <div className="relative flex h-dvh w-full overflow-hidden font-sans bg-white">
-      {/* Beta Button with BorderBeam - positioned over the dividing line */}
+      
+      
+      
+{/* Beta Button with BorderBeam - positioned over the dividing line */}
       <div className="absolute left-1/2 top-10 hidden -translate-x-1/2 lg:flex z-50">
         <Button
           className="relative overflow-hidden bg-white text-gray-900 border border-gray-200 pointer-events-none"
@@ -53,10 +60,14 @@ function LoginPage() {
       {/* Left Section */}
       <div className="w-full lg:w-1/2 flex flex-col border-r border-gray-100 bg-white">
         {/* Centered Content */}
+        
+        
         <div className="flex-1 flex flex-col items-center justify-center px-6 sm:px-8 gap-y-6">
+          
           <div className="w-full max-w-md flex flex-col gap-y-6">
             {/* Logo */}
             
+             
 
             {/* Headings */}
             <div className="text-center lg:text-left">
@@ -66,6 +77,7 @@ function LoginPage() {
               <p className="text-gray-500 text-[14px] sm:text-[15px]">
                 Sign in or sign up with your Google account to continue.
               </p>
+              
             </div>
 
             {/* Button */}
@@ -87,6 +99,7 @@ function LoginPage() {
               <FcGoogle className="w-5 h-5 mr-2 rounded-full" />
               Sign in with Google
             </button>
+            
           </div>
 
           {/* Mobile Testimonial */}
@@ -111,12 +124,21 @@ function LoginPage() {
 
       {/* Right Section - Globe (desktop only) */}
       <div className="hidden lg:flex w-1/2 flex-col items-center justify-center bg-gray-50 relative">
+         <InteractiveGridPattern
+        className={cn(
+          "[mask-image:radial-gradient(400px_circle_at_center,white,transparent)]"
+        )}
+        width={120}
+        height={120}
+        squares={[14, 14]}
+        squaresClassName="hover:fill-[#F2FCFF]"
+      />
         <div className="max-w-lg px-12 text-center mb-8 z-10">
           <blockquote className="text-[20px] font-medium text-gray-900 leading-snug tracking-tight">
             Cold emails that prove you did your homework
           </blockquote>
         </div>
-        <div className="relative w-full max-w-[600px] h-[600px] flex items-center justify-center">
+        <div className="relative w-full max-w-[200px] h-[200px] flex items-center justify-center">
           <Globe className="top-0" />
         </div>
       </div>
