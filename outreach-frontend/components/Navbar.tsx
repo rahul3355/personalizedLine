@@ -236,25 +236,7 @@ export default function Navbar() {
             </div>
           </Link>
 
-          {/* Test UI button */}
-          <Link href="/test-button" className={`${hit} group`} aria-current={isActive("/test-button") ? "page" : undefined} title="Test UI button">
-            <div
-              className={`${iconSizeBox} flex items-center justify-center
-      ${isActive("/test-button") ? squircleActive : "group-hover:bg-[#E2E2E7] group-hover:rounded-[14px]"}
-    `}
-            >
-              <PiMoneyWavyFill
-                className={`h-5 w-5 ${isActive("/test-button") ? iconActive : iconInactive
-                  }`}
-              />
-            </div>
-            <div
-              className={`${iconLabel} ${isActive("/test-button") ? labelActive : labelInactive
-                }`}
-            >
-              Test
-            </div>
-          </Link>
+          
         </nav>
 
 
