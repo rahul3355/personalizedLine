@@ -25,6 +25,10 @@ COMMENT ON TABLE processed_stripe_events IS 'Tracks processed Stripe webhook eve
 -- Function: Atomic credit increment
 -- Prevents race conditions when multiple add-on purchases happen simultaneously
 -- ============================================================================
+
+-- Drop existing function if it has wrong signature
+DROP FUNCTION IF EXISTS public.increment_credits(uuid, integer);
+
 CREATE OR REPLACE FUNCTION public.increment_credits(
     user_id_param UUID,
     credit_amount INTEGER
