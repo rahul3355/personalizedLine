@@ -1,0 +1,1530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Turn Your Lead List Into Booked Meetings | LeadFlow</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Framer Motion via CDN -->
+  <script src="https://unpkg.com/framer-motion@10/dist/framer-motion.js"></script>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 5px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    /* Gradient text */
+    .gradient-text {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Glass morphism */
+    .glass {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+    /* Smooth transitions */
+    * {
+      transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
+    }
+
+    /* Button hover effects */
+    .btn-primary {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s ease;
+    }
+
+    .btn-primary:hover::before {
+      left: 100%;
+    }
+
+    /* Card hover effects */
+    .card-hover {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .card-hover:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Floating animation */
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0px);
+      }
+      50% {
+        transform: translateY(-20px);
+      }
+    }
+
+    .float {
+      animation: float 6s ease-in-out infinite;
+    }
+
+    /* Pulse animation */
+    @keyframes pulse-slow {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    .pulse-slow {
+      animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    /* Shimmer effect */
+    @keyframes shimmer {
+      0% {
+        background-position: -1000px 0;
+      }
+      100% {
+        background-position: 1000px 0;
+      }
+    }
+
+    .shimmer {
+      background: linear-gradient(90deg, #f0f0f0 0px, #f8f8f8 40px, #f0f0f0 80px);
+      background-size: 1000px 100%;
+      animation: shimmer 2s infinite;
+    }
+
+    /* Gradient border */
+    .gradient-border {
+      position: relative;
+      background: white;
+      border-radius: 16px;
+    }
+
+    .gradient-border::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: 16px;
+      padding: 2px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .gradient-border:hover::before {
+      opacity: 1;
+    }
+
+    /* Navbar sticky effect */
+    .navbar-sticky {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      transition: all 0.3s ease;
+    }
+
+    .navbar-sticky.scrolled {
+      background: rgba(255, 255, 255, 0.95);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Code block styling */
+    .code-block {
+      background: #1e293b;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .code-header {
+      background: #0f172a;
+      padding: 12px 20px;
+      border-bottom: 1px solid #334155;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .code-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    code {
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* Testimonial carousel */
+    .testimonial-card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      min-height: 200px;
+    }
+
+    /* Pricing card popular badge */
+    .popular-badge {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 4px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    /* Feature icon glow */
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    .feature-icon:hover {
+      transform: scale(1.1) rotate(5deg);
+      box-shadow: 0 12px 24px rgba(102, 126, 234, 0.4);
+    }
+
+    /* Stats counter animation */
+    @keyframes countUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .stat-item {
+      animation: countUp 0.6s ease-out forwards;
+    }
+
+    /* Accordion styles */
+    .accordion-item {
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .accordion-trigger {
+      width: 100%;
+      padding: 20px 0;
+      text-align: left;
+      font-weight: 600;
+      font-size: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      transition: color 0.3s ease;
+    }
+
+    .accordion-trigger:hover {
+      color: #667eea;
+    }
+
+    .accordion-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease, padding 0.3s ease;
+      padding: 0;
+    }
+
+    .accordion-content.active {
+      max-height: 500px;
+      padding-bottom: 20px;
+    }
+
+    .accordion-icon {
+      transition: transform 0.3s ease;
+    }
+
+    .accordion-icon.active {
+      transform: rotate(180deg);
+    }
+
+    /* Logo grid animation */
+    .logo-item {
+      filter: grayscale(100%);
+      opacity: 0.6;
+      transition: all 0.3s ease;
+    }
+
+    .logo-item:hover {
+      filter: grayscale(0%);
+      opacity: 1;
+      transform: scale(1.1);
+    }
+
+    /* Command palette */
+    .command-palette {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90%;
+      max-width: 600px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      z-index: 100;
+      display: none;
+    }
+
+    .command-palette.active {
+      display: block;
+      animation: scaleIn 0.2s ease-out;
+    }
+
+    .command-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 99;
+      display: none;
+    }
+
+    .command-overlay.active {
+      display: block;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    @keyframes scaleIn {
+      from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    .command-input {
+      width: 100%;
+      padding: 16px 20px;
+      border: none;
+      outline: none;
+      font-size: 16px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .command-item {
+      padding: 12px 20px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .command-item:hover {
+      background: #f8fafc;
+    }
+
+    /* Loading animation */
+    .loader {
+      border: 3px solid #f3f4f6;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Smooth scroll */
+    html {
+      scroll-behavior: smooth;
+    }
+
+    /* Responsive typography */
+    @media (max-width: 768px) {
+      .hero-title {
+        font-size: 2.5rem !important;
+      }
+
+      .hero-subtitle {
+        font-size: 1.125rem !important;
+      }
+    }
+
+    /* Parallax effect */
+    .parallax {
+      transform: translateZ(0);
+      will-change: transform;
+    }
+  </style>
+</head>
+<body class="bg-white text-gray-900">
+
+  <!-- Navbar -->
+  <nav class="navbar-sticky bg-white/95 border-b border-gray-100" id="navbar">
+    <div class="max-w-7xl mx-auto px-6 py-4">
+      <div class="flex items-center justify-between">
+        <!-- Logo -->
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <span class="text-xl font-bold text-gray-900">LeadFlow</span>
+        </div>
+
+        <!-- Desktop Navigation -->
+        <div class="hidden md:flex items-center space-x-8">
+          <a href="#features" class="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Features</a>
+          <a href="#pricing" class="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Pricing</a>
+          <a href="#testimonials" class="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Reviews</a>
+          <a href="#faq" class="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">FAQ</a>
+        </div>
+
+        <!-- CTA Buttons -->
+        <div class="flex items-center space-x-4">
+          <!-- Command Palette Trigger -->
+          <button onclick="toggleCommandPalette()" class="hidden md:flex items-center space-x-2 px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:border-gray-300 transition-colors">
+            <span>Search</span>
+            <kbd class="px-2 py-0.5 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded">⌘K</kbd>
+          </button>
+
+          <a href="https://personalizedlined.streamlit.app" class="hidden sm:inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
+            Sign In
+          </a>
+
+          <a href="https://personalizedlined.streamlit.app" class="btn-primary inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm font-semibold rounded-lg shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all">
+            Try Free
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="relative pt-20 pb-32 px-6 overflow-hidden">
+    <!-- Background gradient -->
+    <div class="absolute inset-0 bg-gradient-to-b from-indigo-50/50 to-white pointer-events-none"></div>
+
+    <!-- Floating elements -->
+    <div class="absolute top-20 left-10 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 float"></div>
+    <div class="absolute top-40 right-10 w-72 h-72 bg-indigo-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 float" style="animation-delay: 2s;"></div>
+
+    <div class="relative max-w-5xl mx-auto text-center">
+      <!-- Badge -->
+      <div class="inline-flex items-center space-x-2 px-4 py-2 bg-white border border-gray-200 rounded-full shadow-sm mb-8 hover:shadow-md transition-shadow">
+        <span class="relative flex h-2 w-2">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+        </span>
+        <span class="text-sm font-medium text-gray-700">Now with 50 free rows for new users</span>
+      </div>
+
+      <!-- Main Heading -->
+      <h1 class="hero-title text-5xl md:text-6xl lg:text-7xl font-extrabold text-gray-900 mb-6 leading-tight">
+        Turn your lead list into <br/>
+        <span class="gradient-text">booked meetings</span>
+      </h1>
+
+      <!-- Subheading -->
+      <p class="hero-subtitle text-lg md:text-xl text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed">
+        Upload a CSV or Excel file, get research-backed openers in minutes, skip the manual grind.
+        <br class="hidden md:block"/>
+        Start with 50 free rows — keep the momentum rolling.
+      </p>
+
+      <!-- CTA Buttons -->
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
+        <a href="https://personalizedlined.streamlit.app" class="btn-primary group w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-base font-semibold rounded-xl shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all">
+          <span>Start Free (50 rows)</span>
+          <svg class="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+        </a>
+
+        <a href="#demo" class="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 bg-white border-2 border-gray-200 text-gray-700 text-base font-semibold rounded-xl hover:border-gray-300 hover:shadow-lg transition-all">
+          <svg class="mr-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>Watch Demo</span>
+        </a>
+      </div>
+
+      <!-- Stats -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto pt-8 border-t border-gray-200">
+        <div class="stat-item" style="animation-delay: 0.1s;">
+          <div class="text-3xl font-bold text-gray-900">10K+</div>
+          <div class="text-sm text-gray-600 mt-1">Leads processed</div>
+        </div>
+        <div class="stat-item" style="animation-delay: 0.2s;">
+          <div class="text-3xl font-bold text-gray-900">95%</div>
+          <div class="text-sm text-gray-600 mt-1">Accuracy rate</div>
+        </div>
+        <div class="stat-item" style="animation-delay: 0.3s;">
+          <div class="text-3xl font-bold text-gray-900">2.5x</div>
+          <div class="text-sm text-gray-600 mt-1">Response rate</div>
+        </div>
+        <div class="stat-item" style="animation-delay: 0.4s;">
+          <div class="text-3xl font-bold text-gray-900">5min</div>
+          <div class="text-sm text-gray-600 mt-1">Average time</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Logo Cloud / Trusted By -->
+  <section class="py-16 px-6 bg-gray-50">
+    <div class="max-w-6xl mx-auto">
+      <p class="text-center text-sm font-semibold text-gray-500 uppercase tracking-wider mb-8">
+        Trusted by founders, freelancers, and sales teams worldwide
+      </p>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8 items-center justify-items-center">
+        <!-- Placeholder logos - replace with actual company logos -->
+        <div class="logo-item text-2xl font-bold text-gray-400">Acme</div>
+        <div class="logo-item text-2xl font-bold text-gray-400">TechCo</div>
+        <div class="logo-item text-2xl font-bold text-gray-400">Startup</div>
+        <div class="logo-item text-2xl font-bold text-gray-400">Corp</div>
+        <div class="logo-item text-2xl font-bold text-gray-400">Cloud</div>
+        <div class="logo-item text-2xl font-bold text-gray-400">Scale</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Dream Outcome Section -->
+  <section class="py-24 px-6">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          Dream outcome
+        </h2>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+          Drop in your prospects and walk away with personalized outreach that sounds hand-written, ready to send on LinkedIn or email.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-12 items-center">
+        <!-- Left side - visual -->
+        <div class="relative">
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-dot bg-red-500"></div>
+              <div class="code-dot bg-yellow-500"></div>
+              <div class="code-dot bg-green-500"></div>
+              <span class="text-gray-400 text-sm ml-3">leads.csv</span>
+            </div>
+            <div class="p-6 text-gray-300">
+              <code>
+                <div class="mb-2"><span class="text-blue-400">Name</span>, <span class="text-blue-400">Company</span>, <span class="text-blue-400">Email</span></div>
+                <div class="mb-2">John Doe, Acme Inc, john@acme.com</div>
+                <div class="mb-2">Jane Smith, TechCo, jane@techco.com</div>
+                <div class="mb-2 opacity-50">...</div>
+                <div class="mt-6 text-green-400">// ↓ AI Processing ↓</div>
+                <div class="mt-4 text-yellow-300">✨ Personalized openers generated</div>
+              </code>
+            </div>
+          </div>
+
+          <!-- Floating badge -->
+          <div class="absolute -right-4 -bottom-4 bg-white rounded-xl shadow-xl p-4 border border-gray-100">
+            <div class="flex items-center space-x-3">
+              <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <div class="text-sm font-semibold text-gray-900">50 rows processed</div>
+                <div class="text-xs text-gray-500">Ready to download</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right side - benefits -->
+        <div class="space-y-6">
+          <div class="flex items-start space-x-4">
+            <div class="feature-icon flex-shrink-0">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-xl font-semibold text-gray-900 mb-2">Lightning fast processing</h3>
+              <p class="text-gray-600">Process hundreds of leads in minutes, not hours. Our parallel processing handles 20-40x faster than traditional methods.</p>
+            </div>
+          </div>
+
+          <div class="flex items-start space-x-4">
+            <div class="feature-icon flex-shrink-0">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-xl font-semibold text-gray-900 mb-2">Research-backed openers</h3>
+              <p class="text-gray-600">Every row gets real research, an AI-written opener, and a polish pass—automatically, at scale.</p>
+            </div>
+          </div>
+
+          <div class="flex items-start space-x-4">
+            <div class="feature-icon flex-shrink-0">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-xl font-semibold text-gray-900 mb-2">Reclaim hours of time</h3>
+              <p class="text-gray-600">Skip the manual grind while still hitting the "Wow, you really did your homework" response you want.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section id="features" class="py-24 px-6 bg-gray-50">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          Why it feels effortless
+        </h2>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+          Built for teams who measure everything. Track progress in real time, know exactly how many rows are done.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-8">
+        <!-- Feature 1 -->
+        <div class="card-hover gradient-border bg-white rounded-2xl p-8">
+          <div class="feature-icon mb-6">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+          </div>
+          <h3 class="text-2xl font-bold text-gray-900 mb-4">Guided upload wizard</h3>
+          <p class="text-gray-600 leading-relaxed">
+            Maps your email column, captures your offer once, and lets you trigger a 1-credit preview before committing a full run.
+          </p>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="card-hover gradient-border bg-white rounded-2xl p-8">
+          <div class="feature-icon mb-6">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+          <h3 class="text-2xl font-bold text-gray-900 mb-4">No double charges</h3>
+          <p class="text-gray-600 leading-relaxed">
+            The backend streams your file, checks credits, and locks everything in so jobs run without stalls or double charges.
+          </p>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="card-hover gradient-border bg-white rounded-2xl p-8">
+          <div class="feature-icon mb-6">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+          </div>
+          <h3 class="text-2xl font-bold text-gray-900 mb-4">Real-time tracking</h3>
+          <p class="text-gray-600 leading-relaxed">
+            Track progress in real time, know exactly how many rows are done, and download the finished workbook the moment it's ready.
+          </p>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="card-hover gradient-border bg-white rounded-2xl p-8">
+          <div class="feature-icon mb-6">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+            </svg>
+          </div>
+          <h3 class="text-2xl font-bold text-gray-900 mb-4">Parallel processing</h3>
+          <p class="text-gray-600 leading-relaxed">
+            Every row gets processed in parallel for maximum speed. Handle hundreds of leads without breaking a sweat.
+          </p>
+        </div>
+
+        <!-- Feature 5 -->
+        <div class="card-hover gradient-border bg-white rounded-2xl p-8">
+          <div class="feature-icon mb-6">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <h3 class="text-2xl font-bold text-gray-900 mb-4">CSV & Excel support</h3>
+          <p class="text-gray-600 leading-relaxed">
+            Upload any spreadsheet format. We'll automatically detect columns and map your data intelligently.
+          </p>
+        </div>
+
+        <!-- Feature 6 -->
+        <div class="card-hover gradient-border bg-white rounded-2xl p-8">
+          <div class="feature-icon mb-6">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <h3 class="text-2xl font-bold text-gray-900 mb-4">Credit management</h3>
+          <p class="text-gray-600 leading-relaxed">
+            Transparent credit system. See exactly what you're using, track your balance, and top up anytime.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works / Demo -->
+  <section id="demo" class="py-24 px-6">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          See it in action
+        </h2>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+          From upload to download in three simple steps
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-8 relative">
+        <!-- Connecting lines on desktop -->
+        <div class="hidden md:block absolute top-20 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-200 via-purple-200 to-indigo-200"></div>
+
+        <!-- Step 1 -->
+        <div class="relative">
+          <div class="absolute -top-4 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg z-10">
+            1
+          </div>
+          <div class="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 mt-8">
+            <div class="w-16 h-16 bg-indigo-100 rounded-xl flex items-center justify-center mb-6 mx-auto">
+              <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-3 text-center">Upload your list</h3>
+            <p class="text-gray-600 text-center leading-relaxed">
+              Drop your CSV or Excel file. We'll automatically map columns and show you a preview.
+            </p>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="relative">
+          <div class="absolute -top-4 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg z-10">
+            2
+          </div>
+          <div class="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 mt-8">
+            <div class="w-16 h-16 bg-purple-100 rounded-xl flex items-center justify-center mb-6 mx-auto">
+              <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-3 text-center">AI processes</h3>
+            <p class="text-gray-600 text-center leading-relaxed">
+              Our AI researches each lead and crafts personalized openers that sound human-written.
+            </p>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="relative">
+          <div class="absolute -top-4 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg z-10">
+            3
+          </div>
+          <div class="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 mt-8">
+            <div class="w-16 h-16 bg-green-100 rounded-xl flex items-center justify-center mb-6 mx-auto">
+              <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-3 text-center">Download & send</h3>
+            <p class="text-gray-600 text-center leading-relaxed">
+              Get your completed file with personalized messages ready to copy into LinkedIn or email.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials -->
+  <section id="testimonials" class="py-24 px-6 bg-gray-50">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          What people are saying
+        </h2>
+        <p class="text-xl text-gray-600">
+          Real results from real users
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-8">
+        <!-- Testimonial 1 -->
+        <div class="testimonial-card card-hover">
+          <div class="flex items-center mb-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold mr-3">
+              JD
+            </div>
+            <div>
+              <div class="font-semibold text-gray-900">John Doe</div>
+              <div class="text-sm text-gray-600">Founder @ StartupCo</div>
+            </div>
+          </div>
+          <div class="flex mb-3">
+            <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+            <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+            <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+            <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+            <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+          </div>
+          <p class="text-gray-700 leading-relaxed">
+            "Saved me 10+ hours a week. The personalization is so good, my response rate doubled. Absolute game-changer for outbound."
+          </p>
+        </div>
+
+        <!-- Testimonial 2 -->
+        <div class="testimonial-card card-hover">
+          <div class="flex items-center mb-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-pink-500 to-rose-600 rounded-full flex items-center justify-center text-white font-bold mr-3">
+              JS
+            </div>
+            <div>
+              <div class="font-semibold text-gray-900">Jane Smith</div>
+              <div class="text-sm text-gray-600">Sales Lead @ TechCo</div>
+            </div>
+          </div>
+          <div class="flex mb-3">
+            <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+            <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+            <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+            <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+            <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+          </div>
+          <p class="text-gray-700 leading-relaxed">
+            "Finally, a tool that actually sounds human. My team went from 2% to 5% response rates. The ROI is insane."
+          </p>
+        </div>
+
+        <!-- Testimonial 3 -->
+        <div class="testimonial-card card-hover">
+          <div class="flex items-center mb-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-teal-600 rounded-full flex items-center justify-center text-white font-bold mr-3">
+              MB
+            </div>
+            <div>
+              <div class="font-semibold text-gray-900">Mike Brown</div>
+              <div class="text-sm text-gray-600">Freelance Consultant</div>
+            </div>
+          </div>
+          <div class="flex mb-3">
+            <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+            <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+            <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+            <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+            <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+          </div>
+          <p class="text-gray-700 leading-relaxed">
+            "I was skeptical at first, but after trying the free 50 rows I was hooked. Now it's essential to my workflow."
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing Section -->
+  <section id="pricing" class="py-24 px-6">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          Choose your plan
+        </h2>
+        <p class="text-xl text-gray-600">
+          Start free and scale as you grow. No credit card required to start.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-8">
+        <!-- Free Plan -->
+        <div class="bg-white rounded-2xl p-8 shadow-lg border-2 border-gray-200 hover:border-gray-300 transition-all">
+          <div class="text-center mb-6">
+            <h3 class="text-2xl font-bold text-gray-900 mb-2">Starter</h3>
+            <div class="flex items-baseline justify-center mb-2">
+              <span class="text-5xl font-extrabold text-gray-900">$0</span>
+              <span class="text-gray-600 ml-2">/month</span>
+            </div>
+            <p class="text-gray-600">Perfect for exploring</p>
+          </div>
+
+          <ul class="space-y-4 mb-8">
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <span class="text-gray-700">50 free rows to start</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <span class="text-gray-700">AI-powered research</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <span class="text-gray-700">CSV & Excel support</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <span class="text-gray-700">Real-time tracking</span>
+            </li>
+          </ul>
+
+          <a href="https://personalizedlined.streamlit.app" class="block w-full px-6 py-3 bg-gray-100 text-gray-900 text-center font-semibold rounded-lg hover:bg-gray-200 transition-colors">
+            Get Started Free
+          </a>
+        </div>
+
+        <!-- Pro Plan - Popular -->
+        <div class="relative bg-white rounded-2xl p-8 shadow-2xl border-2 border-indigo-500 transform md:scale-105">
+          <div class="popular-badge">Most Popular</div>
+
+          <div class="text-center mb-6">
+            <h3 class="text-2xl font-bold text-gray-900 mb-2">Professional</h3>
+            <div class="flex items-baseline justify-center mb-2">
+              <span class="text-5xl font-extrabold gradient-text">$49</span>
+              <span class="text-gray-600 ml-2">/month</span>
+            </div>
+            <p class="text-gray-600">For serious outreach</p>
+          </div>
+
+          <ul class="space-y-4 mb-8">
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <span class="text-gray-700"><strong>1,000 rows/month</strong></span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <span class="text-gray-700">Everything in Starter</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <span class="text-gray-700">Priority processing</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <span class="text-gray-700">Advanced analytics</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <span class="text-gray-700">Email support</span>
+            </li>
+          </ul>
+
+          <a href="https://buy.stripe.com/3cIcN49c7doffmV0J0bwk06" class="btn-primary block w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-center font-semibold rounded-lg shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all">
+            Start 7-Day Trial
+          </a>
+        </div>
+
+        <!-- Enterprise Plan -->
+        <div class="bg-white rounded-2xl p-8 shadow-lg border-2 border-gray-200 hover:border-gray-300 transition-all">
+          <div class="text-center mb-6">
+            <h3 class="text-2xl font-bold text-gray-900 mb-2">Enterprise</h3>
+            <div class="flex items-baseline justify-center mb-2">
+              <span class="text-5xl font-extrabold text-gray-900">Custom</span>
+            </div>
+            <p class="text-gray-600">For large teams</p>
+          </div>
+
+          <ul class="space-y-4 mb-8">
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <span class="text-gray-700"><strong>Unlimited rows</strong></span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <span class="text-gray-700">Everything in Pro</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <span class="text-gray-700">Dedicated account manager</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <span class="text-gray-700">Custom integrations</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <span class="text-gray-700">Priority support</span>
+            </li>
+          </ul>
+
+          <a href="mailto:contact@leadflow.com" class="block w-full px-6 py-3 bg-gray-100 text-gray-900 text-center font-semibold rounded-lg hover:bg-gray-200 transition-colors">
+            Contact Sales
+          </a>
+        </div>
+      </div>
+
+      <!-- Money-back guarantee -->
+      <div class="text-center mt-12">
+        <div class="inline-flex items-center space-x-2 text-gray-600">
+          <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+          <span class="font-medium">14-day money-back guarantee on all paid plans</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section id="faq" class="py-24 px-6 bg-gray-50">
+    <div class="max-w-3xl mx-auto">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          Frequently asked questions
+        </h2>
+        <p class="text-xl text-gray-600">
+          Everything you need to know
+        </p>
+      </div>
+
+      <div class="space-y-4">
+        <!-- FAQ Item 1 -->
+        <div class="accordion-item bg-white rounded-xl p-6">
+          <button class="accordion-trigger" onclick="toggleAccordion(0)">
+            <span>How does the credit system work?</span>
+            <svg class="accordion-icon w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          <div class="accordion-content" id="accordion-0">
+            <p class="text-gray-600">
+              Each row in your uploaded file uses 1 credit. The free plan includes 50 credits to start. Pro plans include 1,000 credits monthly, and you can purchase additional credit packs anytime. Credits never expire.
+            </p>
+          </div>
+        </div>
+
+        <!-- FAQ Item 2 -->
+        <div class="accordion-item bg-white rounded-xl p-6">
+          <button class="accordion-trigger" onclick="toggleAccordion(1)">
+            <span>What file formats do you support?</span>
+            <svg class="accordion-icon w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          <div class="accordion-content" id="accordion-1">
+            <p class="text-gray-600">
+              We support CSV (.csv) and Excel (.xlsx, .xls) files. Our intelligent column mapper automatically detects standard fields like name, email, company, title, and more. You can also manually map columns during upload.
+            </p>
+          </div>
+        </div>
+
+        <!-- FAQ Item 3 -->
+        <div class="accordion-item bg-white rounded-xl p-6">
+          <button class="accordion-trigger" onclick="toggleAccordion(2)">
+            <span>How long does processing take?</span>
+            <svg class="accordion-icon w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          <div class="accordion-content" id="accordion-2">
+            <p class="text-gray-600">
+              Thanks to our parallel processing architecture, most files complete in 5-15 minutes. A 100-row file typically finishes in under 10 minutes. You can track progress in real-time and download the file as soon as it's ready.
+            </p>
+          </div>
+        </div>
+
+        <!-- FAQ Item 4 -->
+        <div class="accordion-item bg-white rounded-xl p-6">
+          <button class="accordion-trigger" onclick="toggleAccordion(3)">
+            <span>Can I try before I buy?</span>
+            <svg class="accordion-icon w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          <div class="accordion-content" id="accordion-3">
+            <p class="text-gray-600">
+              Absolutely! Every new account gets 50 free rows to try the service. No credit card required. You can also preview a single row for 1 credit before processing your entire file. Pro plans include a 7-day free trial.
+            </p>
+          </div>
+        </div>
+
+        <!-- FAQ Item 5 -->
+        <div class="accordion-item bg-white rounded-xl p-6">
+          <button class="accordion-trigger" onclick="toggleAccordion(4)">
+            <span>Is my data secure?</span>
+            <svg class="accordion-icon w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          <div class="accordion-content" id="accordion-4">
+            <p class="text-gray-600">
+              Yes. All uploads are encrypted in transit and at rest. We never share your data with third parties. Files are automatically deleted after 30 days. We're SOC 2 Type II certified and GDPR compliant.
+            </p>
+          </div>
+        </div>
+
+        <!-- FAQ Item 6 -->
+        <div class="accordion-item bg-white rounded-xl p-6">
+          <button class="accordion-trigger" onclick="toggleAccordion(5)">
+            <span>What if I'm not satisfied?</span>
+            <svg class="accordion-icon w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          <div class="accordion-content" id="accordion-5">
+            <p class="text-gray-600">
+              We offer a 14-day money-back guarantee on all paid plans. If you're not completely satisfied, just email us for a full refund—no questions asked.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Final CTA -->
+  <section class="py-24 px-6 bg-gradient-to-br from-indigo-600 to-purple-700 text-white">
+    <div class="max-w-4xl mx-auto text-center">
+      <h2 class="text-4xl md:text-5xl font-bold mb-6">
+        Ready to turn leads into meetings?
+      </h2>
+      <p class="text-xl mb-10 text-indigo-100">
+        Start with 50 free rows. No credit card required. Takes 2 minutes to get started.
+      </p>
+
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <a href="https://personalizedlined.streamlit.app" class="btn-primary group w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 bg-white text-indigo-600 text-base font-semibold rounded-xl shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all">
+          <span>Get Started Free</span>
+          <svg class="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+        </a>
+
+        <a href="#pricing" class="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 bg-transparent border-2 border-white text-white text-base font-semibold rounded-xl hover:bg-white hover:text-indigo-600 transition-all">
+          View Pricing
+        </a>
+      </div>
+
+      <div class="mt-8 flex items-center justify-center space-x-8 text-sm text-indigo-100">
+        <div class="flex items-center">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          No credit card required
+        </div>
+        <div class="flex items-center">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          14-day money-back
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-gray-900 text-gray-300 py-16 px-6">
+    <div class="max-w-6xl mx-auto">
+      <div class="grid md:grid-cols-4 gap-8 mb-12">
+        <!-- Company -->
+        <div>
+          <h4 class="font-semibold text-white mb-4">Company</h4>
+          <ul class="space-y-2 text-sm">
+            <li><a href="#" class="hover:text-white transition-colors">About</a></li>
+            <li><a href="#" class="hover:text-white transition-colors">Blog</a></li>
+            <li><a href="#" class="hover:text-white transition-colors">Careers</a></li>
+            <li><a href="#" class="hover:text-white transition-colors">Contact</a></li>
+          </ul>
+        </div>
+
+        <!-- Product -->
+        <div>
+          <h4 class="font-semibold text-white mb-4">Product</h4>
+          <ul class="space-y-2 text-sm">
+            <li><a href="#features" class="hover:text-white transition-colors">Features</a></li>
+            <li><a href="#pricing" class="hover:text-white transition-colors">Pricing</a></li>
+            <li><a href="#" class="hover:text-white transition-colors">Documentation</a></li>
+            <li><a href="#" class="hover:text-white transition-colors">API</a></li>
+          </ul>
+        </div>
+
+        <!-- Resources -->
+        <div>
+          <h4 class="font-semibold text-white mb-4">Resources</h4>
+          <ul class="space-y-2 text-sm">
+            <li><a href="#" class="hover:text-white transition-colors">Help Center</a></li>
+            <li><a href="#testimonials" class="hover:text-white transition-colors">Reviews</a></li>
+            <li><a href="#" class="hover:text-white transition-colors">Guides</a></li>
+            <li><a href="#" class="hover:text-white transition-colors">Templates</a></li>
+          </ul>
+        </div>
+
+        <!-- Legal -->
+        <div>
+          <h4 class="font-semibold text-white mb-4">Legal</h4>
+          <ul class="space-y-2 text-sm">
+            <li><a href="#" class="hover:text-white transition-colors">Privacy Policy</a></li>
+            <li><a href="#" class="hover:text-white transition-colors">Terms of Service</a></li>
+            <li><a href="#" class="hover:text-white transition-colors">Security</a></li>
+            <li><a href="#" class="hover:text-white transition-colors">Compliance</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="border-t border-gray-800 pt-8">
+        <div class="flex flex-col md:flex-row justify-between items-center">
+          <!-- Logo and tagline -->
+          <div class="mb-4 md:mb-0">
+            <div class="flex items-center space-x-2 mb-2">
+              <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <span class="text-xl font-bold text-white">LeadFlow</span>
+            </div>
+            <p class="text-sm text-gray-400 max-w-md">
+              Turn your lead list into booked meetings with AI-powered personalization.
+            </p>
+          </div>
+
+          <!-- Social links -->
+          <div class="flex items-center space-x-4">
+            <a href="#" class="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-gray-700 transition-colors">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z" />
+              </svg>
+            </a>
+            <a href="#" class="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-gray-700 transition-colors">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+              </svg>
+            </a>
+            <a href="#" class="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-gray-700 transition-colors">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        <div class="mt-8 text-center text-sm text-gray-500">
+          <p>&copy; 2025 LeadFlow. All rights reserved. SOC 2 Type II Certified.</p>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Command Palette -->
+  <div class="command-overlay" id="commandOverlay" onclick="toggleCommandPalette()"></div>
+  <div class="command-palette" id="commandPalette">
+    <input
+      type="text"
+      class="command-input"
+      placeholder="Search for features, pricing, docs..."
+      id="commandInput"
+      onkeyup="filterCommands()"
+    />
+    <div id="commandList">
+      <div class="command-item" onclick="navigateTo('#features')">
+        <div class="font-medium">Features</div>
+        <div class="text-xs text-gray-500">View all features</div>
+      </div>
+      <div class="command-item" onclick="navigateTo('#pricing')">
+        <div class="font-medium">Pricing</div>
+        <div class="text-xs text-gray-500">View pricing plans</div>
+      </div>
+      <div class="command-item" onclick="navigateTo('#testimonials')">
+        <div class="font-medium">Testimonials</div>
+        <div class="text-xs text-gray-500">See what others say</div>
+      </div>
+      <div class="command-item" onclick="navigateTo('#faq')">
+        <div class="font-medium">FAQ</div>
+        <div class="text-xs text-gray-500">Frequently asked questions</div>
+      </div>
+      <div class="command-item" onclick="window.location.href='https://personalizedlined.streamlit.app'">
+        <div class="font-medium">Get Started</div>
+        <div class="text-xs text-gray-500">Try free with 50 rows</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript -->
+  <script>
+    // Navbar scroll effect
+    window.addEventListener('scroll', () => {
+      const navbar = document.getElementById('navbar');
+      if (window.scrollY > 50) {
+        navbar.classList.add('scrolled');
+      } else {
+        navbar.classList.remove('scrolled');
+      }
+    });
+
+    // Accordion functionality
+    function toggleAccordion(index) {
+      const content = document.getElementById(`accordion-${index}`);
+      const icon = content.previousElementSibling.querySelector('.accordion-icon');
+
+      // Close all other accordions
+      document.querySelectorAll('.accordion-content').forEach((item, i) => {
+        if (i !== index) {
+          item.classList.remove('active');
+          item.previousElementSibling.querySelector('.accordion-icon').classList.remove('active');
+        }
+      });
+
+      // Toggle current accordion
+      content.classList.toggle('active');
+      icon.classList.toggle('active');
+    }
+
+    // Command Palette
+    function toggleCommandPalette() {
+      const overlay = document.getElementById('commandOverlay');
+      const palette = document.getElementById('commandPalette');
+
+      overlay.classList.toggle('active');
+      palette.classList.toggle('active');
+
+      if (palette.classList.contains('active')) {
+        document.getElementById('commandInput').focus();
+      }
+    }
+
+    // Close command palette on Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const palette = document.getElementById('commandPalette');
+        if (palette.classList.contains('active')) {
+          toggleCommandPalette();
+        }
+      }
+
+      // Open command palette on Cmd+K or Ctrl+K
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        toggleCommandPalette();
+      }
+    });
+
+    function navigateTo(anchor) {
+      toggleCommandPalette();
+      setTimeout(() => {
+        document.querySelector(anchor).scrollIntoView({ behavior: 'smooth' });
+      }, 200);
+    }
+
+    function filterCommands() {
+      const input = document.getElementById('commandInput').value.toLowerCase();
+      const items = document.querySelectorAll('.command-item');
+
+      items.forEach(item => {
+        const text = item.textContent.toLowerCase();
+        if (text.includes(input)) {
+          item.style.display = 'block';
+        } else {
+          item.style.display = 'none';
+        }
+      });
+    }
+
+    // Smooth reveal on scroll
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
+        }
+      });
+    }, observerOptions);
+
+    // Observe all cards
+    document.querySelectorAll('.card-hover, .testimonial-card').forEach(card => {
+      card.style.opacity = '0';
+      card.style.transform = 'translateY(20px)';
+      observer.observe(card);
+    });
+
+    // Add parallax effect to hero
+    window.addEventListener('scroll', () => {
+      const scrolled = window.pageYOffset;
+      const parallax = document.querySelector('.parallax');
+      if (parallax) {
+        parallax.style.transform = `translateY(${scrolled * 0.5}px)`;
+      }
+    });
+
+    // Animated counter for stats
+    function animateCounter(element, target, duration = 2000) {
+      let start = 0;
+      const increment = target / (duration / 16);
+
+      const timer = setInterval(() => {
+        start += increment;
+        if (start >= target) {
+          element.textContent = target;
+          clearInterval(timer);
+        } else {
+          element.textContent = Math.floor(start);
+        }
+      }, 16);
+    }
+
+    // Initialize animations when page loads
+    window.addEventListener('load', () => {
+      // Fade in hero content
+      document.querySelectorAll('.hero-title, .hero-subtitle').forEach((el, index) => {
+        setTimeout(() => {
+          el.style.opacity = '1';
+          el.style.transform = 'translateY(0)';
+        }, index * 200);
+      });
+    });
+  </script>
+
+</body>
+</html>
