@@ -157,6 +157,8 @@ STRIPE_SYNC_EVENTS = {
     "checkout.session.completed",
     "customer.subscription.created",
     "customer.subscription.updated",
+    "invoice.paid",
+    "customer.subscription.deleted",
     "customer.subscription.deleted",
     "customer.subscription.paused",
     "customer.subscription.resumed",
@@ -1409,6 +1411,48 @@ STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 def log_db(label, res):
     print(f"[DB:{label}] {res}")
 
+def _is_event_processed(event_id: str) -> bool:
+    """Check if a Stripe event has already been processed (idempotency check)"""
+    try:
+        result = (
+            supabase.table("processed_stripe_events")
+            .select("event_id")
+            .eq("event_id", event_id)
+            .maybeSingle()
+            .execute()
+        )
+        return result.data is not None
+    except Exception as e:
+        print(f"[IDEMPOTENCY] Error checking event {event_id}: {e}")
+        # If table doesn't exist or error, allow processing (fail open)
+        return False
+
+def _mark_event_processed(event_id: str, event_type: str) -> None:
+    """Mark a Stripe event as processed"""
+    try:
+        supabase.table("processed_stripe_events").insert({
+            "event_id": event_id,
+            "event_type": event_type,
+            "processed_at": datetime.utcnow().isoformat(),
+        }).execute()
+    except Exception as e:
+        print(f"[IDEMPOTENCY] Error marking event {event_id}: {e}")
+
+def _verify_payment_status(obj) -> bool:
+    """Verify that payment was actually successful"""
+    # For checkout sessions
+    if obj.get("object") == "checkout.session":
+        payment_status = obj.get("payment_status")
+        return payment_status == "paid"
+
+    # For invoices
+    if obj.get("object") == "invoice":
+        status = obj.get("status")
+        paid = obj.get("paid")
+        return status == "paid" and paid == True
+
+    return False
+
 @app.post("/stripe-webhook")
 async def stripe_webhook(request: Request, stripe_signature: str = Header(None)):
     payload = await request.body()
@@ -1424,7 +1468,13 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
 
     event_type = event["type"]
     obj = event["data"]["object"]
-    print(f"[EVENT] {event_type} id={event['id']}")
+    event_id = event["id"]
+    print(f"[EVENT] {event_type} id={event_id}")
+
+    # Idempotency check - prevent processing the same event twice
+    if _is_event_processed(event_id):
+        print(f"[IDEMPOTENCY] Event {event_id} already processed, skipping")
+        return {"status": "duplicate", "event_id": event_id}
 
     def log_db(label, res):
         print(f"[DB:{label}] {res}")
@@ -1434,6 +1484,13 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
         metadata = metadata.to_dict()
     customer_id = obj.get("customer") if hasattr(obj, "get") else None
     linked_user_id: Optional[str] = None
+
+    # Payment verification - ensure payment was actually successful before granting credits
+    payment_verified = _verify_payment_status(obj)
+    if event_type in ["checkout.session.completed", "invoice.paid"] and not payment_verified:
+        print(f"[WARNING] Payment not verified for event {event_id}, skipping credit allocation")
+        _mark_event_processed(event_id, event_type)
+        return {"status": "payment_not_verified", "event_id": event_id}
 
     if event_type == "checkout.session.completed":
         user_id = metadata.get("user_id")
@@ -1530,9 +1587,116 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                 f"[PLAN] user={user_id}, plan={plan}, credits={credits}, renewal={renewal_date}"
             )
 
+    # Handle monthly renewals (invoice.paid event)
+    elif event_type == "invoice.paid":
+        # Get subscription details from the invoice
+        subscription_id = obj.get("subscription")
+        if not subscription_id:
+            print(f"[INVOICE] No subscription_id in invoice, skipping")
+        else:
+            try:
+                # Retrieve subscription to get metadata with user_id
+                subscription = stripe.Subscription.retrieve(subscription_id)
+                sub_metadata = subscription.get("metadata", {})
+                user_id = sub_metadata.get("user_id")
+
+                if not user_id and customer_id:
+                    # Fallback: find user by customer_id
+                    user_id = _find_user_by_customer(customer_id)
+
+                if not user_id:
+                    print(f"[INVOICE] Could not find user_id for subscription {subscription_id}")
+                else:
+                    linked_user_id = user_id
+
+                    # Get the user's current plan
+                    profile = (
+                        supabase.table("profiles")
+                        .select("plan_type, subscription_status")
+                        .eq("id", user_id)
+                        .single()
+                        .execute()
+                    )
+
+                    if not profile.data:
+                        print(f"[INVOICE] Profile not found for user {user_id}")
+                    else:
+                        plan_type = profile.data.get("plan_type", "free")
+                        subscription_status = profile.data.get("subscription_status")
+
+                        # Only reset credits for active subscriptions with paid plans
+                        if subscription_status == "active" and plan_type in CREDITS_MAP:
+                            # RESET credits to monthly allocation (not add)
+                            monthly_credits = CREDITS_MAP.get(plan_type, 0)
+
+                            res_update = (
+                                supabase.table("profiles")
+                                .update({"credits_remaining": monthly_credits})
+                                .eq("id", user_id)
+                                .execute()
+                            )
+                            log_db("reset_monthly_credits", res_update)
+
+                            # Record in ledger
+                            invoice_amount = (obj.get("amount_paid") or 0) / 100.0
+                            res_ledger = (
+                                supabase.table("ledger")
+                                .insert({
+                                    "user_id": user_id,
+                                    "change": monthly_credits,
+                                    "amount": invoice_amount,
+                                    "reason": f"monthly renewal - {plan_type}",
+                                    "ts": datetime.utcnow().isoformat(),
+                                })
+                                .execute()
+                            )
+                            log_db("insert_ledger_renewal", res_ledger)
+
+                            print(
+                                f"[RENEWAL] user={user_id}, plan={plan_type}, "
+                                f"credits_reset_to={monthly_credits}, amount=${invoice_amount}"
+                            )
+                        else:
+                            print(
+                                f"[INVOICE] Skipping credit reset for user {user_id}: "
+                                f"status={subscription_status}, plan={plan_type}"
+                            )
+            except Exception as exc:
+                print(f"[INVOICE] Error processing monthly renewal: {exc}")
+
+    # Handle subscription cancellation
+    elif event_type == "customer.subscription.deleted":
+        subscription_id = obj.get("id")
+        sub_metadata = obj.get("metadata", {})
+        user_id = sub_metadata.get("user_id")
+
+        if not user_id and customer_id:
+            user_id = _find_user_by_customer(customer_id)
+
+        if user_id:
+            linked_user_id = user_id
+            try:
+                res_update = (
+                    supabase.table("profiles")
+                    .update({
+                        "subscription_status": "canceled",
+                        "plan_type": "free",
+                    })
+                    .eq("id", user_id)
+                    .execute()
+                )
+                log_db("cancel_subscription", res_update)
+
+                print(f"[CANCELED] user={user_id}, subscription={subscription_id}")
+            except Exception as exc:
+                print(f"[CANCEL] Error updating canceled subscription: {exc}")
+
     if event_type in STRIPE_SYNC_EVENTS and customer_id:
         sync_result = sync_stripe_customer(customer_id, user_id=linked_user_id)
         print(f"[SYNC] {sync_result}")
+
+    # Mark event as processed to prevent duplicate processing
+    _mark_event_processed(event_id, event_type)
 
     print("========== END WEBHOOK ==========")
     return {"status": "success"}
