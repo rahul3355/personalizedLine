@@ -7,7 +7,7 @@ import { FcGoogle } from "react-icons/fc";
 import Image from "next/image";
 import { Globe } from "@/components/ui/globe";
 import { Button } from "@/components/ui/button";
-import { BorderBeam } from "@/components/magicui/border-beam";
+import { BorderBeam } from "@/components/ui/border-beam";
 
 function LoginPage() {
   const { session } = useAuth();
@@ -29,7 +29,7 @@ function LoginPage() {
     <div className="relative flex h-dvh w-full overflow-hidden font-sans bg-white">
       {/* Beta Button with BorderBeam - positioned over the dividing line */}
       <div className="absolute left-1/2 top-10 hidden -translate-x-1/2 lg:flex z-50">
-        <Button className="relative overflow-hidden text-black bg-white" size="lg" variant="outline">
+        <Button className="relative overflow-hidden" size="lg" variant="outline">
           Beta
           <BorderBeam
             size={40}
