@@ -29,7 +29,14 @@ function LoginPage() {
     <div className="relative flex h-dvh w-full overflow-hidden font-sans bg-white">
       {/* Beta Button with BorderBeam - positioned over the dividing line */}
       <div className="absolute left-1/2 top-10 hidden -translate-x-1/2 lg:flex z-50">
-        <Button className="relative overflow-hidden" size="lg" variant="outline">
+        <Button
+          className="relative overflow-hidden bg-white text-gray-900 border border-gray-200 pointer-events-none"
+          size="lg"
+          variant="outline"
+          type="button"
+          tabIndex={-1}
+          aria-disabled
+        >
           Beta
           <BorderBeam
             size={40}
