@@ -151,7 +151,7 @@ if is_production and "localhost" in APP_BASE_URL.lower():
 
 SUCCESS_RETURN_PATH = os.getenv("STRIPE_SUCCESS_PATH", "/billing/success")
 SUCCESS_URL = f"{APP_BASE_URL}{SUCCESS_RETURN_PATH}"
-CANCEL_URL = f"{APP_BASE_URL}/billing?canceled=true}"
+CANCEL_URL = f"{APP_BASE_URL}/billing?canceled=true"
 
 STRIPE_SYNC_EVENTS = {
     "checkout.session.completed",
@@ -405,6 +405,51 @@ def health():
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> AuthenticatedUser:
     token = credentials.credentials
 
+    secret = os.getenv("SUPABASE_JWT_SECRET")
+    if not secret:
+        raise HTTPException(status_code=500, detail="SUPABASE_JWT_SECRET is not configured")
+
+    supabase_url = os.getenv("SUPABASE_URL", "").rstrip("/")
+    issuer = os.getenv("SUPABASE_JWT_ISS", f"{supabase_url}/auth/v1" if supabase_url else None)
+    audience = os.getenv("SUPABASE_JWT_AUD", os.getenv("SUPABASE_JWT_AUDIENCE", "authenticated"))
+
+    options = {"require": ["exp"]}
+    if issuer:
+        options["require"].append("iss")
+    if audience:
+        options["require"].append("aud")
+
+    try:
+        payload = jwt.decode(
+            token,
+            secret,
+            algorithms=["HS256"],
+            audience=audience if audience else None,
+            issuer=issuer if issuer else None,
+            options={**options, "verify_aud": bool(audience)},
+        )
+    except ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token has expired")
+    except (InvalidAudienceError, InvalidIssuerError) as exc:
+        raise HTTPException(status_code=401, detail=str(exc))
+    except InvalidTokenError as exc:
+        raise HTTPException(status_code=401, detail=f"Invalid token: {exc}")
+
+    user_id = payload.get("sub")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Token missing subject")
+
+    return AuthenticatedUser(user_id=user_id, claims=payload)
+
+
+def get_current_user_optional(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False))
+) -> Optional[AuthenticatedUser]:
+    """Optional authentication - returns None if no credentials provided, otherwise validates token."""
+    if not credentials:
+        return None
+
+    token = credentials.credentials
     secret = os.getenv("SUPABASE_JWT_SECRET")
     if not secret:
         raise HTTPException(status_code=500, detail="SUPABASE_JWT_SECRET is not configured")
@@ -1109,9 +1154,12 @@ async def get_preview_emails(
 @app.post("/preview/generate")
 async def generate_preview(
     payload: GeneratePreviewRequest = Body(...),
-    current_user: AuthenticatedUser = Depends(get_current_user),
+    current_user: Optional[AuthenticatedUser] = Depends(get_current_user_optional),
 ):
-    """Generate a preview email using the full pipeline (SERP + 3 Groq calls) and deduct 1 credit."""
+    """Generate a preview email using the full pipeline (SERP + 3 Groq calls).
+    - Authenticated users: deduct 1 credit
+    - Unauthenticated users: free preview (for marketing/login page)
+    """
     from .research import perform_research
     from .gpt_helpers import generate_full_email_body
     from .email_cleaning import clean_email_body
@@ -1123,84 +1171,89 @@ async def generate_preview(
         if not selected_email or "@" not in selected_email:
             raise HTTPException(status_code=400, detail="Valid email required")
 
-        # Verify user owns the file
-        file_path = assert_user_owns_path(payload.file_path, current_user.user_id)
+        # File ownership verification (only if user is authenticated and file_path is provided)
+        file_path = None
+        if current_user and payload.file_path:
+            file_path = assert_user_owns_path(payload.file_path, current_user.user_id)
 
-        # Deduct 1 credit using the same atomic pattern
-        supabase_client = get_supabase()
-        user_id = current_user.user_id
+        # Credit deduction (only for authenticated users)
+        new_balance = 0  # default for unauthenticated users
+        if current_user:
+            supabase_client = get_supabase()
+            user_id = current_user.user_id
 
-        # Atomic credit deduction
-        max_attempts = 5
-        credit_deducted = False
-        for attempt in range(max_attempts):
-            profile_res = (
-                supabase_client.table("profiles")
-                .select("credits_remaining")
-                .eq("id", user_id)
-                .limit(1)
-                .execute()
-            )
-            profile = _parse_profile_response(profile_res) or {}
-            try:
-                credits_remaining = int(profile.get("credits_remaining") or 0)
-            except (TypeError, ValueError):
-                credits_remaining = 0
-
-            if credits_remaining < 1:
-                raise HTTPException(
-                    status_code=402,
-                    detail={
-                        "error": "insufficient_credits",
-                        "credits_remaining": credits_remaining,
-                        "message": "You need at least 1 credit to generate a preview"
-                    }
+            # Atomic credit deduction
+            max_attempts = 5
+            credit_deducted = False
+            for attempt in range(max_attempts):
+                profile_res = (
+                    supabase_client.table("profiles")
+                    .select("credits_remaining")
+                    .eq("id", user_id)
+                    .limit(1)
+                    .execute()
                 )
+                profile = _parse_profile_response(profile_res) or {}
+                try:
+                    credits_remaining = int(profile.get("credits_remaining") or 0)
+                except (TypeError, ValueError):
+                    credits_remaining = 0
 
-            new_balance = credits_remaining - 1
-            update_res = (
-                supabase_client.table("profiles")
-                .update({"credits_remaining": new_balance})
-                .eq("id", user_id)
-                .eq("credits_remaining", credits_remaining)
-                .execute()
-            )
-
-            if getattr(update_res, "error", None):
-                raise HTTPException(status_code=500, detail="Unable to deduct credits")
-
-            updated_rows = getattr(update_res, "data", None) or []
-            if updated_rows:
-                # Record ledger entry
-                ledger_payload = {
-                    "user_id": user_id,
-                    "change": -1,
-                    "amount": 0.0,
-                    "reason": "preview generation",
-                    "ts": datetime.utcnow().isoformat(),
-                }
-                ledger_res = (
-                    supabase_client.table("ledger").insert(ledger_payload).execute()
-                )
-                if getattr(ledger_res, "error", None):
-                    # Rollback credit deduction
-                    supabase_client.table("profiles").update(
-                        {"credits_remaining": credits_remaining}
-                    ).eq("id", user_id).execute()
+                if credits_remaining < 1:
                     raise HTTPException(
-                        status_code=500, detail="Unable to record credit deduction"
+                        status_code=402,
+                        detail={
+                            "error": "insufficient_credits",
+                            "credits_remaining": credits_remaining,
+                            "message": "You need at least 1 credit to generate a preview"
+                        }
                     )
 
-                credit_deducted = True
-                break
+                new_balance = credits_remaining - 1
+                update_res = (
+                    supabase_client.table("profiles")
+                    .update({"credits_remaining": new_balance})
+                    .eq("id", user_id)
+                    .eq("credits_remaining", credits_remaining)
+                    .execute()
+                )
 
-            time.sleep(0.1)
+                if getattr(update_res, "error", None):
+                    raise HTTPException(status_code=500, detail="Unable to deduct credits")
 
-        if not credit_deducted:
-            raise HTTPException(status_code=500, detail="Unable to deduct credits")
+                updated_rows = getattr(update_res, "data", None) or []
+                if updated_rows:
+                    # Record ledger entry
+                    ledger_payload = {
+                        "user_id": user_id,
+                        "change": -1,
+                        "amount": 0.0,
+                        "reason": "preview generation",
+                        "ts": datetime.utcnow().isoformat(),
+                    }
+                    ledger_res = (
+                        supabase_client.table("ledger").insert(ledger_payload).execute()
+                    )
+                    if getattr(ledger_res, "error", None):
+                        # Rollback credit deduction
+                        supabase_client.table("profiles").update(
+                            {"credits_remaining": credits_remaining}
+                        ).eq("id", user_id).execute()
+                        raise HTTPException(
+                            status_code=500, detail="Unable to record credit deduction"
+                        )
+
+                    credit_deducted = True
+                    break
+
+                time.sleep(0.1)
+
+            if not credit_deducted:
+                raise HTTPException(status_code=500, detail="Unable to deduct credits")
 
         # Run the exact same pipeline as the main job
-        print(f"\n[Preview] Generating preview for email: {selected_email}")
+        user_type = "authenticated" if current_user else "unauthenticated (free preview)"
+        print(f"\n[Preview] Generating preview for email: {selected_email} (user: {user_type})")
 
         # Step 1: Research (SERP + Groq synthesis)
         research_components = perform_research(selected_email)
