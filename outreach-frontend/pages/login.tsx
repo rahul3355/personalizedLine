@@ -131,7 +131,7 @@ function LoginPage() {
         width={120}
         height={120}
         squares={[14, 14]}
-        squaresClassName="hover:fill-[#F2FCFF]"
+        squaresClassName="hover:fill-[#F79481]"
       />
         <div className="max-w-lg px-12 text-center mb-8 z-10">
           <blockquote className="text-[20px] font-medium text-gray-900 leading-snug tracking-tight">
