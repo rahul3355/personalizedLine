@@ -1199,7 +1199,7 @@ def process_job(job_id: str):
 
         timings["setup"] = record_time("Setup (credits + DB updates)", setup_start, job_id)
 
-        # --- Chunking ---
+        # --- Chunking (Parallelized) ---
         chunk_start = time.time()
         try:
             num_workers = int(os.getenv("WORKER_COUNT", "1"))
@@ -1208,6 +1208,7 @@ def process_job(job_id: str):
 
         subjob_refs = []
         chunk_buffer = []
+        chunks_to_persist = []  # List of (chunk_id, rows) tuples
         chunk_count = 0
 
         job_timeout = _get_job_timeout()
@@ -1215,53 +1216,76 @@ def process_job(job_id: str):
         if total > 0:
             num_chunks = min(total, num_workers) or 1
             chunk_size = max(1, math.ceil(total / num_chunks))
+
+            # Phase 1: Collect all chunks in memory
+            print(f"[Worker] Job {job_id} | Collecting chunks for parallel persistence...")
             for row in row_iter:
                 chunk_buffer.append(row)
                 if len(chunk_buffer) >= chunk_size:
                     chunk_count += 1
-                    storage_chunk_path = _persist_chunk_rows(
-                        job_id,
-                        chunk_count,
-                        chunk_headers,
-                        chunk_buffer,
-                        user_id,
-                    )
+                    # Store chunk data for later parallel persistence
+                    chunks_to_persist.append((chunk_count, list(chunk_buffer)))
+                    chunk_buffer = []
+
+            # Handle remaining rows
+            if chunk_buffer:
+                chunk_count += 1
+                chunks_to_persist.append((chunk_count, list(chunk_buffer)))
+                chunk_buffer = []
+
+            # Phase 2: Persist all chunks in parallel
+            def persist_chunk_task(chunk_id, rows):
+                """Persist a single chunk to storage (runs in thread pool)."""
+                storage_path = _persist_chunk_rows(
+                    job_id,
+                    chunk_id,
+                    chunk_headers,
+                    rows,
+                    user_id,
+                )
+                return (chunk_id, storage_path)
+
+            chunk_storage_paths = {}  # Map chunk_id -> storage_path
+
+            if chunks_to_persist:
+                # Use ThreadPoolExecutor to persist chunks in parallel
+                max_parallel_uploads = min(len(chunks_to_persist), 10)  # Cap at 10 concurrent uploads
+                print(f"[Worker] Job {job_id} | Persisting {len(chunks_to_persist)} chunks in parallel (max {max_parallel_uploads} workers)...")
+
+                persist_start = time.time()
+                with ThreadPoolExecutor(max_workers=max_parallel_uploads) as executor:
+                    futures = {
+                        executor.submit(persist_chunk_task, chunk_id, rows): chunk_id
+                        for chunk_id, rows in chunks_to_persist
+                    }
+
+                    for future in as_completed(futures):
+                        chunk_id, storage_path = future.result()
+                        chunk_storage_paths[chunk_id] = storage_path
+
+                timings["parallel_chunk_persistence"] = record_time(
+                    f"Parallel chunk persistence ({len(chunks_to_persist)} chunks)",
+                    persist_start,
+                    job_id
+                )
+
+                # Phase 3: Enqueue all subjobs (in order)
+                print(f"[Worker] Job {job_id} | Enqueuing {len(chunk_storage_paths)} subjobs...")
+                for chunk_id in sorted(chunk_storage_paths.keys()):
+                    storage_path = chunk_storage_paths[chunk_id]
                     job_ref = queue.enqueue(
                         process_subjob,
                         job_id,
-                        chunk_count,
-                        storage_chunk_path,
+                        chunk_id,
+                        storage_path,
                         meta,
                         user_id,
                         total,
                         job_timeout=job_timeout,
                     )
                     subjob_refs.append(job_ref)
-                    chunk_buffer = []
 
-            if chunk_buffer:
-                chunk_count += 1
-                storage_chunk_path = _persist_chunk_rows(
-                    job_id,
-                    chunk_count,
-                    chunk_headers,
-                    chunk_buffer,
-                    user_id,
-                )
-                job_ref = queue.enqueue(
-                    process_subjob,
-                    job_id,
-                    chunk_count,
-                    storage_chunk_path,
-                    meta,
-                    user_id,
-                    total,
-                    job_timeout=job_timeout,
-                )
-                subjob_refs.append(job_ref)
-                chunk_buffer = []
-
-        timings["chunking"] = record_time("Chunking + enqueue", chunk_start, job_id)
+        timings["chunking_total"] = record_time("Chunking + parallel persist + enqueue", chunk_start, job_id)
 
         if chunk_count > 0:
             queue.enqueue(
