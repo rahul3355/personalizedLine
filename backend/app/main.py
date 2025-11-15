@@ -870,6 +870,7 @@ async def create_job(
             "file_path": file_path,
             "email_col": email_col,
             "service": service_str,
+            "total_rows": row_count,  # Cache row count to avoid re-counting in worker
         }
 
         lock_name = f"credits_lock:{current_user.user_id}"

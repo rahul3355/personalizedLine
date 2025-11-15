@@ -252,6 +252,14 @@ def _csv_headers_and_total(path: str):
     return headers, total
 
 
+def _csv_headers_only(path: str):
+    """Get CSV headers without counting rows (fast)."""
+    with open(path, newline="", encoding="utf-8-sig") as f:
+        reader = csv.reader(f)
+        headers = next(reader, None) or []
+    return headers
+
+
 def _iter_csv_rows(path: str):
     def generator():
         with open(path, newline="", encoding="utf-8-sig") as f:
@@ -272,6 +280,19 @@ def _xlsx_headers_and_total(path: str):
         max_row = ws.max_row or 0
         total = max(max_row - 1, 0) if headers else 0
         return headers, total
+    finally:
+        wb.close()
+
+
+def _xlsx_headers_only(path: str):
+    """Get XLSX headers without counting rows (fast)."""
+    wb = load_workbook(path, read_only=True, data_only=True)
+    try:
+        ws = wb.active
+        rows_iter = ws.iter_rows(values_only=True)
+        headers_row = next(rows_iter, None) or []
+        headers = [str(cell) if cell is not None else "" for cell in headers_row]
+        return headers
     finally:
         wb.close()
 
@@ -305,6 +326,21 @@ def _input_iterator(local_path: str):
     if ext in {".xlsx", ".xlsm", ".xltx", ".xltm"}:
         headers, total = _xlsx_headers_and_total(local_path)
         return headers, total, _iter_xlsx_rows(local_path, headers)
+    raise RuntimeError(f"Unsupported file type: {ext}")
+
+
+def _get_headers_and_iterator(local_path: str, cached_total: int):
+    """
+    Get headers and row iterator without counting rows (uses cached total).
+    This is significantly faster than _input_iterator for large files.
+    """
+    ext = os.path.splitext(local_path)[1].lower()
+    if ext == ".csv":
+        headers = _csv_headers_only(local_path)
+        return headers, cached_total, _iter_csv_rows(local_path)
+    if ext in {".xlsx", ".xlsm", ".xltx", ".xltm"}:
+        headers = _xlsx_headers_only(local_path)
+        return headers, cached_total, _iter_xlsx_rows(local_path, headers)
     raise RuntimeError(f"Unsupported file type: {ext}")
 
 
@@ -1117,7 +1153,16 @@ def process_job(job_id: str):
         with open(local_path, "wb") as f:
             f.write(resp.content)
 
-        headers, total, row_iter = _input_iterator(local_path)
+        # Optimize: Use cached row count from metadata if available (saves 2-10 seconds)
+        cached_total = meta.get("total_rows")
+        if cached_total is not None:
+            print(f"[Worker] Job {job_id} | Using cached row count: {cached_total} (skipping re-count)")
+            headers, total, row_iter = _get_headers_and_iterator(local_path, cached_total)
+        else:
+            # Legacy path: count rows manually (backwards compatibility)
+            print(f"[Worker] Job {job_id} | No cached row count found; counting rows from file")
+            headers, total, row_iter = _input_iterator(local_path)
+
         _, _, final_output_headers, chunk_headers = _resolve_output_header_order(
             headers, meta
         )
