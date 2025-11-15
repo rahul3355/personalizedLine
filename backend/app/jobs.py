@@ -1169,88 +1169,78 @@ def process_job(job_id: str):
 
         timings["download_input"] = record_time("Download input file", dl_start, job_id)
 
-        # --- Check credits and claim job ---
+        # --- Claim job (atomic via database) ---
         setup_start = time.time()
-        lock_name = f"credits_lock:{user_id}"
-        lock = redis_conn.lock(lock_name, timeout=30, blocking_timeout=10)
-        acquired = False
-        try:
-            acquired = lock.acquire(blocking=True)
-            if not acquired:
-                raise RuntimeError("Unable to acquire credit lock")
 
-            refreshed_job = (
-                supabase.table("jobs")
-                .select("status, meta_json")
-                .eq("id", job_id)
-                .limit(1)
-                .execute()
+        # Verify job is still queued and get latest metadata
+        refreshed_job = (
+            supabase.table("jobs")
+            .select("status, meta_json")
+            .eq("id", job_id)
+            .limit(1)
+            .execute()
+        )
+        if not refreshed_job.data:
+            print(f"[Worker] Job {job_id} disappeared before claiming; aborting")
+            return
+
+        current_row = refreshed_job.data[0]
+        current_status = current_row.get("status")
+        meta = _ensure_dict(current_row.get("meta_json"))
+        job["status"] = current_status
+        job["meta_json"] = meta
+
+        if current_status != "queued":
+            print(f"[Worker] Job {job_id} is already {current_status}; skipping claim")
+            return
+
+        # Optimize: Skip redundant credit deduction if already done in API
+        if meta.get("credits_deducted"):
+            print(f"[Worker] Job {job_id} credits already deducted in API; skipping worker deduction")
+            should_continue = True
+        else:
+            # Legacy path: deduct credits if not already done (backwards compatibility)
+            # Note: _deduct_job_credits has its own internal locking for credit safety
+            print(f"[Worker] Job {job_id} credits not yet deducted; processing deduction")
+            should_continue = _deduct_job_credits(
+                job_id, user_id, total, meta, supabase_client=supabase
             )
-            if not refreshed_job.data:
-                print(f"[Worker] Job {job_id} disappeared before claiming; aborting")
-                return
 
-            current_row = refreshed_job.data[0]
-            current_status = current_row.get("status")
-            meta = _ensure_dict(current_row.get("meta_json"))
-            job["status"] = current_status
-            job["meta_json"] = meta
+        if not should_continue:
+            print(f"[Worker] Skipping job {job_id} after credit check")
+            return
 
-            if current_status != "queued":
-                print(
-                    f"[Worker] Job {job_id} is already {current_status}; skipping claim"
-                )
-                return
-
-            # Optimize: Skip redundant credit deduction if already done in API
-            if meta.get("credits_deducted"):
-                print(f"[Worker] Job {job_id} credits already deducted in API; skipping worker deduction")
-                should_continue = True
-            else:
-                # Legacy path: deduct credits if not already done (backwards compatibility)
-                print(f"[Worker] Job {job_id} credits not yet deducted; processing deduction")
-                should_continue = _deduct_job_credits(
-                    job_id, user_id, total, meta, supabase_client=supabase
-                )
-
-            if not should_continue:
-                print(f"[Worker] Skipping job {job_id} after credit check")
-                return
-
-            claim_payload = {
-                "status": "in_progress",
-                "started_at": datetime.utcnow().isoformat() + "Z",
-                "rows_processed": 0,
-                "progress_percent": 0,
-            }
-            claim_res = (
-                supabase.table("jobs")
-                .update(claim_payload)
-                .eq("id", job_id)
-                .eq("status", "queued")
-                .execute()
-            )
-            updated_rows = getattr(claim_res, "data", None) or []
-            if not updated_rows:
-                print(f"[Worker] Failed to claim job {job_id}; refunding and aborting")
+        # Atomic claim: Only succeeds if job is still queued
+        # If another worker already claimed it, this update returns 0 rows
+        claim_payload = {
+            "status": "in_progress",
+            "started_at": datetime.utcnow().isoformat() + "Z",
+            "rows_processed": 0,
+            "progress_percent": 0,
+        }
+        claim_res = (
+            supabase.table("jobs")
+            .update(claim_payload)
+            .eq("id", job_id)
+            .eq("status", "queued")  # Atomic: only update if still queued
+            .execute()
+        )
+        updated_rows = getattr(claim_res, "data", None) or []
+        if not updated_rows:
+            print(f"[Worker] Job {job_id} was claimed by another worker; aborting")
+            # Only refund if we deducted credits (legacy path)
+            if not meta.get("credits_deducted"):
                 refund_job_credits(job_id, user_id, "claim failed")
-                return
+            return
 
-            job.update(updated_rows[0])
-            job["status"] = claim_payload["status"]
-            job["started_at"] = claim_payload["started_at"]
-            job["rows_processed"] = claim_payload["rows_processed"]
-            job["progress_percent"] = claim_payload["progress_percent"]
-            job["meta_json"] = meta
+        job.update(updated_rows[0])
+        job["status"] = claim_payload["status"]
+        job["started_at"] = claim_payload["started_at"]
+        job["rows_processed"] = claim_payload["rows_processed"]
+        job["progress_percent"] = claim_payload["progress_percent"]
+        job["meta_json"] = meta
 
-        finally:
-            if lock is not None and acquired:
-                try:
-                    lock.release()
-                except LockError:
-                    pass
-
-        timings["setup"] = record_time("Setup (credits + DB updates)", setup_start, job_id)
+        timings["setup"] = record_time("Setup (DB updates + job claim)", setup_start, job_id)
 
         # --- Chunking (Parallelized) ---
         chunk_start = time.time()
