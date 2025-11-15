@@ -1157,9 +1157,17 @@ def process_job(job_id: str):
                 )
                 return
 
-            should_continue = _deduct_job_credits(
-                job_id, user_id, total, meta, supabase_client=supabase
-            )
+            # Optimize: Skip redundant credit deduction if already done in API
+            if meta.get("credits_deducted"):
+                print(f"[Worker] Job {job_id} credits already deducted in API; skipping worker deduction")
+                should_continue = True
+            else:
+                # Legacy path: deduct credits if not already done (backwards compatibility)
+                print(f"[Worker] Job {job_id} credits not yet deducted; processing deduction")
+                should_continue = _deduct_job_credits(
+                    job_id, user_id, total, meta, supabase_client=supabase
+                )
+
             if not should_continue:
                 print(f"[Worker] Skipping job {job_id} after credit check")
                 return
