@@ -673,6 +673,118 @@ def next_queued_job():
     return res.data[0] if res.data else None
 
 
+def _process_small_job_inline(
+    job_id: str,
+    user_id: str,
+    local_path: str,
+    headers: List[str],
+    total: int,
+    row_iter,
+    meta: dict,
+    final_output_headers: List[str],
+    timings: dict,
+    job_start: float,
+):
+    """
+    Process small jobs (<100 rows) inline without chunking.
+
+    This fast path eliminates 60+ storage operations by processing rows
+    directly in the dispatcher worker instead of creating chunks and RQ subjobs.
+    """
+    inline_start = time.time()
+    print(f"[Worker] Job {job_id} | Using SMALL-FILE FAST PATH for {total} rows (inline processing)")
+
+    # Resolve headers for output
+    row_headers, email_header, _, _ = _resolve_output_header_order(headers, meta)
+
+    # Load all rows into memory
+    rows = list(row_iter)
+    print(f"[Worker] Job {job_id} | Processing {len(rows)} rows in parallel (inline, no chunks)")
+
+    # Process all rows in parallel
+    results = []
+    with ThreadPoolExecutor(max_workers=PARALLEL_ROWS_PER_WORKER) as executor:
+        futures = {}
+        for i, row in enumerate(rows):
+            future = executor.submit(
+                _process_single_row,
+                i,
+                row,
+                row_headers,
+                email_header,
+                meta,
+                job_id,
+                0,  # chunk_id (not used for inline)
+            )
+            futures[future] = i
+
+        # Collect results as they complete
+        for future in as_completed(futures):
+            try:
+                result = future.result()
+                results.append(result)
+            except Exception as exc:
+                row_idx = futures[future]
+                print(f"[Worker] Job {job_id} | Inline row {row_idx} failed: {exc}")
+                # Add error row
+                error_row = {header: "" for header in row_headers}
+                if email_header:
+                    error_row[email_header] = ""
+                error_row["research_components"] = f"Error: {str(exc)}"
+                error_row["email_body"] = f"Error: {str(exc)}"
+                results.append((row_idx, error_row, str(exc)))
+
+    # Sort by original row index
+    results.sort(key=lambda x: x[0])
+
+    timings["inline_processing"] = record_time(f"Inline processing ({total} rows)", inline_start, job_id)
+
+    # Write final result
+    output_start = time.time()
+    final_df = pd.DataFrame([normalized_row for _, normalized_row, _ in results])
+
+    # Ensure all output headers are present
+    for header in final_output_headers:
+        if header not in final_df.columns:
+            final_df[header] = ""
+
+    # Reorder columns to match expected output
+    ordered_cols = [col for col in final_output_headers if col in final_df.columns]
+    extra_cols = [col for col in final_df.columns if col not in ordered_cols]
+    final_df = final_df[ordered_cols + extra_cols]
+
+    # Write to temp files
+    local_dir = tempfile.mkdtemp()
+    out_xlsx = os.path.join(local_dir, f"{job_id}_final.xlsx")
+    try:
+        final_df.to_excel(out_xlsx, index=False, engine="openpyxl")
+
+        # Upload final result
+        storage_path = f"{user_id}/{job_id}/result.xlsx"
+        with open(out_xlsx, "rb") as f:
+            _upload_to_storage(storage_path, f, f"inline result for job {job_id}")
+
+        timings["inline_output"] = record_time("Write and upload final result", output_start, job_id)
+        timings["process_job_total"] = record_time("process_job total (inline)", job_start, job_id)
+
+        # Mark job as succeeded
+        supabase.table("jobs").update(
+            {
+                "status": "succeeded",
+                "finished_at": datetime.utcnow().isoformat() + "Z",
+                "result_path": storage_path,
+                "progress_percent": 100,
+                "rows_processed": total,
+                "timing_json": json.dumps(timings),
+            }
+        ).eq("id", job_id).execute()
+
+        print(f"[Worker] Job {job_id} | Completed inline processing successfully")
+
+    finally:
+        shutil.rmtree(local_dir, ignore_errors=True)
+
+
 def _process_single_row(
     row_index: int,
     row: dict,
@@ -1241,6 +1353,24 @@ def process_job(job_id: str):
         job["meta_json"] = meta
 
         timings["setup"] = record_time("Setup (DB updates + job claim)", setup_start, job_id)
+
+        # --- Small-file fast path: Process inline for files < 100 rows ---
+        SMALL_FILE_THRESHOLD = 100
+        if total > 0 and total < SMALL_FILE_THRESHOLD:
+            print(f"[Worker] Job {job_id} | Small file detected ({total} rows < {SMALL_FILE_THRESHOLD}), using inline processing")
+            _process_small_job_inline(
+                job_id,
+                user_id,
+                local_path,
+                headers,
+                total,
+                row_iter,
+                meta,
+                final_output_headers,
+                timings,
+                job_start,
+            )
+            return  # Job complete, skip chunking
 
         # --- Chunking (Parallelized) ---
         chunk_start = time.time()
