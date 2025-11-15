@@ -151,7 +151,7 @@ if is_production and "localhost" in APP_BASE_URL.lower():
 
 SUCCESS_RETURN_PATH = os.getenv("STRIPE_SUCCESS_PATH", "/billing/success")
 SUCCESS_URL = f"{APP_BASE_URL}{SUCCESS_RETURN_PATH}"
-CANCEL_URL = f"{APP_BASE_URL}/billing?canceled=true}"
+CANCEL_URL = f"{APP_BASE_URL}/billing?canceled=true"
 
 STRIPE_SYNC_EVENTS = {
     "checkout.session.completed",
@@ -913,6 +913,9 @@ async def create_job(
             raise RuntimeError("Failed to insert job")
 
         job = result.data[0]
+
+        # Publish job notification to Redis for instant worker pickup
+        jobs.publish_job_notification(job["id"])
 
         return {"id": job["id"], "status": job["status"], "rows": row_count}
 

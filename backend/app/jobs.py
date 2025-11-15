@@ -29,6 +29,24 @@ from openpyxl import load_workbook
 redis_conn = redis.Redis(host="redis", port=6379, decode_responses=False)
 queue = rq.Queue("default", connection=redis_conn)
 
+# Job notification channel
+JOB_NOTIFICATION_CHANNEL = "job_notifications"
+
+
+def publish_job_notification(job_id: str):
+    """
+    Publish a job notification to Redis pub/sub for instant worker pickup.
+
+    This eliminates the polling delay, allowing workers to start processing
+    jobs immediately when they are enqueued.
+    """
+    try:
+        redis_conn.publish(JOB_NOTIFICATION_CHANNEL, job_id)
+        print(f"[Jobs] Published notification for job {job_id}")
+    except Exception as exc:
+        # Non-critical: workers will still pick up jobs via fallback polling
+        print(f"[Jobs] Warning: Failed to publish job notification: {exc}")
+
 
 RAW_CHUNK_BASE_DIR = "/data/raw_chunks"
 RAW_CHUNK_BUCKET = "inputs"
@@ -1284,16 +1302,57 @@ def process_job(job_id: str):
         refund_job_credits(job_id, user_for_refund, "process_job error")
 
 
-def worker_loop(poll_interval: int = 5):
-    print("[Worker] Starting dispatcher loop...")
+def worker_loop(poll_interval: int = 30):
+    """
+    Worker loop that uses Redis pub/sub for instant job notifications with fallback polling.
+
+    The pub/sub approach eliminates the 0-5 second delay from polling, allowing jobs to start
+    immediately when enqueued. Fallback polling (every 30s) ensures reliability.
+    """
+    print("[Worker] Starting event-driven dispatcher loop with Redis pub/sub...")
+
+    # Create a separate Redis connection for pub/sub (blocking operations)
+    pubsub_conn = redis.Redis(host="redis", port=6379, decode_responses=True)
+    pubsub = pubsub_conn.pubsub(ignore_subscribe_messages=True)
+
+    # Subscribe to job notification channel
+    pubsub.subscribe(JOB_NOTIFICATION_CHANNEL)
+
+    print(f"[Worker] Subscribed to Redis channel: {JOB_NOTIFICATION_CHANNEL}")
+    print(f"[Worker] Fallback polling interval: {poll_interval}s")
+
     while True:
         try:
+            # Listen for pub/sub messages with timeout (non-blocking with fallback)
+            # This allows us to check for jobs every poll_interval seconds even without notifications
+            message = pubsub.get_message(timeout=poll_interval)
+
+            if message and message['type'] == 'message':
+                job_id = message['data']
+                print(f"[Worker] Received job notification for job_id: {job_id}")
+
+            # Always check for queued jobs (handles both notified and missed jobs)
             job = next_queued_job()
             if not job:
-                print("[Worker] No jobs found. Sleeping...")
-                time.sleep(poll_interval)
+                if not message:  # Only log if we polled (not notified)
+                    print("[Worker] No jobs found (polling)...")
                 continue
+
+            print(f"[Worker] Processing job {job['id']}")
             process_job(job["id"])
+
+        except redis.exceptions.ConnectionError as e:
+            print(f"[Worker] Redis connection error: {e}. Falling back to polling...")
+            time.sleep(poll_interval)
+            # Try to reconnect pub/sub
+            try:
+                pubsub.close()
+                pubsub_conn = redis.Redis(host="redis", port=6379, decode_responses=True)
+                pubsub = pubsub_conn.pubsub(ignore_subscribe_messages=True)
+                pubsub.subscribe(JOB_NOTIFICATION_CHANNEL)
+                print(f"[Worker] Reconnected to Redis channel: {JOB_NOTIFICATION_CHANNEL}")
+            except Exception as reconnect_exc:
+                print(f"[Worker] Failed to reconnect to pub/sub: {reconnect_exc}")
         except Exception as e:
             print("[Worker] Dispatcher ERROR:", str(e))
             traceback.print_exc()
