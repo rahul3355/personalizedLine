@@ -102,6 +102,76 @@ const EXAMPLE_DATA: ExampleItem[] = [
     key_differentiator: "Access to 50M+ verified contacts across all industries",
     cta: "Get started with 100 free credits",
   },
+  {
+    id: "ex6",
+    category: "sales",
+    core_offer: "AI-powered sales forecasting and pipeline management",
+    key_differentiator: "Predict deal closure with 95% accuracy using machine learning",
+    cta: "Book a personalized demo",
+  },
+  {
+    id: "ex7",
+    category: "sales",
+    core_offer: "Conversation intelligence for sales calls",
+    key_differentiator: "Real-time coaching and automated note-taking during calls",
+    cta: "Try it free for 30 days",
+  },
+  {
+    id: "ex8",
+    category: "marketing",
+    core_offer: "Marketing automation platform for growing businesses",
+    key_differentiator: "Set up campaigns in minutes with pre-built templates and AI assistance",
+    cta: "Start your free trial",
+  },
+  {
+    id: "ex9",
+    category: "marketing",
+    core_offer: "Content creation tool powered by AI",
+    key_differentiator: "Generate blog posts, social media, and ad copy 10x faster",
+    cta: "Create your first piece for free",
+  },
+  {
+    id: "ex10",
+    category: "marketing",
+    core_offer: "Email marketing with advanced segmentation",
+    key_differentiator: "Achieve 40% higher open rates with AI-optimized send times",
+    cta: "Schedule a walkthrough",
+  },
+  {
+    id: "ex11",
+    category: "marketing",
+    core_offer: "Social media management for agencies",
+    key_differentiator: "Manage 100+ client accounts from one unified dashboard",
+    cta: "Request a demo",
+  },
+  {
+    id: "ex12",
+    category: "recruitment",
+    core_offer: "Applicant tracking system for high-volume hiring",
+    key_differentiator: "Reduce time-to-hire by 50% with automated screening and scheduling",
+    cta: "See it in action today",
+  },
+  {
+    id: "ex13",
+    category: "recruitment",
+    core_offer: "AI-powered candidate sourcing platform",
+    key_differentiator: "Find passive candidates across 20+ job boards simultaneously",
+    cta: "Start sourcing for free",
+  },
+  {
+    id: "ex14",
+    category: "recruitment",
+    core_offer: "Video interviewing and assessment tool",
+    key_differentiator: "Screen candidates 3x faster with asynchronous video interviews",
+    cta: "Try it with your next hire",
+  },
+  {
+    id: "ex15",
+    category: "recruitment",
+    core_offer: "Employer branding and recruitment marketing",
+    key_differentiator: "Increase application rates by 60% with targeted career site optimization",
+    cta: "Get your free branding audit",
+  },
 ];
 
 function ExamplesDrawerPanel({
@@ -389,12 +459,6 @@ function LoginPage() {
   }, [showExamples]);
 
   const handleGeneratePreview = async () => {
-    // Check if user is logged in
-    if (!session?.access_token) {
-      setPreviewError("Please sign in to generate a preview");
-      return;
-    }
-
     if (!isServiceContextComplete()) {
       setPreviewError("Please provide your core offer to generate a preview");
       return;
@@ -405,12 +469,18 @@ function LoginPage() {
     setPreviewResult(null);
 
     try {
+      // Build headers - include Authorization only if session exists
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      if (session?.access_token) {
+        headers["Authorization"] = `Bearer ${session.access_token}`;
+      }
+
       const res = await fetch(`${API_URL}/preview/generate`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-        },
+        headers,
         body: JSON.stringify({
           file_path: null, // No file for login page preview
           email_col: null,
@@ -644,18 +714,11 @@ function LoginPage() {
             {/* Generate Preview Button */}
             <Button
               onClick={handleGeneratePreview}
-              disabled={previewLoading || !isServiceContextComplete() || !session}
+              disabled={previewLoading || !isServiceContextComplete()}
               className="w-full bg-[#4F55F1] hover:bg-[#3D42D8] text-white h-9 text-sm"
             >
               {previewLoading ? "Generating..." : "Generate Preview"}
             </Button>
-
-            {/* Auth Warning */}
-            {!session && (
-              <div className="bg-amber-50 border border-amber-200 text-amber-700 px-3 py-2 rounded-md text-xs text-center">
-                Please sign in to generate a preview
-              </div>
-            )}
 
             {/* Error Display */}
             {previewError && (
