@@ -39,7 +39,7 @@ app = FastAPI()
 
 import os
 redis_url = os.getenv("REDIS_URL", "redis://redis:6379")
-redis_conn = redis.from_url(redis_url)
+redis_conn = redis.from_url(redis_url, decode_responses=True)
   # use localhost when FastAPI runs on your host
 q = Queue(connection=redis_conn)
 
