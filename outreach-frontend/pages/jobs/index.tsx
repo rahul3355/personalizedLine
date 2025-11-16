@@ -550,7 +550,8 @@ function JobsPage() {
           logger.info(`WebSocket closed for job ${selectedJobId}`, event.code, event.reason);
 
           // Reconnect if not a normal closure and job still in progress
-          if (event.code !== 1000 && selectedJob?.status === "in_progress") {
+          const job = jobsRef.current.find(j => j.id === selectedJobId);
+          if (event.code !== 1000 && job?.status === "in_progress") {
             logger.info(`Reconnecting WebSocket in 3 seconds...`);
             reconnectTimeout = setTimeout(() => {
               connect();
@@ -575,7 +576,7 @@ function JobsPage() {
         ws.close();
       }
     };
-  }, [session, selectedJobId, selectedJob, updateJobInList]);
+  }, [session, selectedJobId, updateJobInList]);
 
   useEffect(() => {
     if (!session || !selectedJobId || !selectedJob) return;
