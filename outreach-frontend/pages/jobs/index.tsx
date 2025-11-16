@@ -463,6 +463,7 @@ function JobsPage() {
     let ws: WebSocket | null = null;
     let reconnectTimeout: NodeJS.Timeout | null = null;
     let cancelled = false;
+    let isConnected = false;
 
     const connect = () => {
       if (cancelled) return;
@@ -474,6 +475,7 @@ function JobsPage() {
         ws = new WebSocket(wsUrl);
 
         ws.onopen = () => {
+          isConnected = true;
           logger.info(`WebSocket connected for job ${selectedJobId}`);
         };
 
@@ -515,10 +517,12 @@ function JobsPage() {
         };
 
         ws.onerror = (error) => {
+          isConnected = false;
           logger.error("WebSocket error:", error);
         };
 
         ws.onclose = (event) => {
+          isConnected = false;
           if (cancelled) return;
 
           logger.info(`WebSocket closed for job ${selectedJobId}`, event.code, event.reason);
@@ -532,6 +536,7 @@ function JobsPage() {
           }
         };
       } catch (error) {
+        isConnected = false;
         logger.error("Error creating WebSocket connection:", error);
       }
     };
@@ -554,12 +559,10 @@ function JobsPage() {
     if (!session || !selectedJobId || !selectedJob) return;
     if (selectedJob.status === "succeeded" || selectedJob.status === "failed") return;
 
-    // Only use polling if WebSocket is disabled
+    // Fallback polling as safety net (runs alongside WebSocket)
+    // This ensures we catch completion even if WebSocket drops
     const enableWebSocket = process.env.NEXT_PUBLIC_ENABLE_WEBSOCKET !== 'false';
-    if (enableWebSocket) {
-      // WebSocket is handling progress, skip polling
-      return;
-    }
+    const pollingInterval = enableWebSocket ? 10000 : 3000; // 10s with WS, 3s without
 
     let cancelled = false;
     const interval = setInterval(async () => {
@@ -595,7 +598,7 @@ function JobsPage() {
       } catch (error) {
         logger.error("Error fetching progress:", error);
       }
-    }, 2000);
+    }, pollingInterval);
 
     return () => {
       cancelled = true;
