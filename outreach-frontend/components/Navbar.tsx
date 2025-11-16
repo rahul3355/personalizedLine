@@ -159,7 +159,7 @@ export default function Navbar() {
         {/* Nav items: icon with label under; active uses white squircle */}
         <nav className="mt-2 flex-1 flex flex-col items-center">
           {/* Home */}
-          <Link href="/" className={`${hit} group`} aria-current={isActive("/") ? "page" : undefined} title="Home">
+          <Link href="/" className={`${hit} group active:scale-[0.98]`} style={{ transform: "translateZ(0)", willChange: "transform" }} aria-current={isActive("/") ? "page" : undefined} title="Home">
             <div
               className={`${iconSizeBox} flex items-center justify-center
       ${isActive("/") ? squircleActive : "group-hover:bg-[#E2E2E7] group-hover:rounded-[14px]"}
@@ -195,7 +195,7 @@ export default function Navbar() {
           </Link>
 
           {/* Your Files */}
-          <Link href="/jobs" className={`${hit} group`} aria-current={isActive("/jobs") ? "page" : undefined} title="Your Files">
+          <Link href="/jobs" className={`${hit} group active:scale-[0.98]`} style={{ transform: "translateZ(0)", willChange: "transform" }} aria-current={isActive("/jobs") ? "page" : undefined} title="Your Files">
             <div
               className={`${iconSizeBox} flex items-center justify-center
       ${isActive("/jobs") ? squircleActive : "group-hover:bg-[#E2E2E7] group-hover:rounded-[14px]"}
@@ -217,7 +217,7 @@ export default function Navbar() {
           </Link>
 
           {/* Billing */}
-          <Link href="/billing" className={`${hit} group`} aria-current={isActive("/billing") ? "page" : undefined} title="Billing">
+          <Link href="/billing" className={`${hit} group active:scale-[0.98]`} style={{ transform: "translateZ(0)", willChange: "transform" }} aria-current={isActive("/billing") ? "page" : undefined} title="Billing">
             <div
               className={`${iconSizeBox} flex items-center justify-center
       ${isActive("/billing") ? squircleActive : "group-hover:bg-[#E2E2E7] group-hover:rounded-[14px]"}

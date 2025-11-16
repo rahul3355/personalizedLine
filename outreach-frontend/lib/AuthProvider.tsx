@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import { Session, User } from "@supabase/supabase-js";
@@ -219,15 +220,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [fetchUserInfo]);
 
-  const value: AuthContextProps = {
-    session,
-    user,
-    userInfo,
-    loading,
-    refreshUserInfo,
-    optimisticallyDeductCredits,
-    revertOptimisticCredits,
-  };
+  const value: AuthContextProps = useMemo(
+    () => ({
+      session,
+      user,
+      userInfo,
+      loading,
+      refreshUserInfo,
+      optimisticallyDeductCredits,
+      revertOptimisticCredits,
+    }),
+    [session, user, userInfo, loading, refreshUserInfo, optimisticallyDeductCredits, revertOptimisticCredits]
+  );
 
   return (
     <AuthContext.Provider value={value}>
