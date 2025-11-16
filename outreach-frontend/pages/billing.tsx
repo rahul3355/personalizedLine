@@ -525,7 +525,7 @@ export default function BillingPage() {
                     >
                       <span
                         aria-hidden="true"
-                        className={`pointer-events-none absolute inset-0 rounded-full transition-all duration-200 ease-out ${plan.popular ? "bg-black" : "bg-neutral-900"} group-hover:-inset-1 group-active:-inset-0.5`}
+                        className={`pointer-events-none absolute inset-0 rounded-full transition-all duration-200 ease-out ${plan.popular ? "bg-black" : "bg-neutral-900"} group-hover:-inset-1 group-hover:bg-neutral-800 group-active:-inset-0.5`}
                       />
                       <span className="relative z-10 inline-flex items-center justify-center w-full">
                         {plan.ctaLabel}
