@@ -1007,6 +1007,7 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                                     "message": f"Global progress: +{delta} rows -> {new_done}/{total_rows} ({percent}%)",
                                 }
                                 redis_conn.publish(f"job_progress:{job_id}", json.dumps(progress_data))
+                                print(f"[Worker] Published progress for job {job_id}: {percent}% to Redis channel job_progress:{job_id}")
                             except Exception as pub_error:
                                 # Non-critical: WebSocket clients will fall back to polling
                                 print(f"[Worker] Job {job_id} | Failed to publish progress to Redis: {pub_error}")
