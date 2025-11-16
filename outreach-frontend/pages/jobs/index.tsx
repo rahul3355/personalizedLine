@@ -421,10 +421,25 @@ function JobsPage() {
     fetchJobs(0, { reset: true });
   }, [session, fetchJobs]);
 
-  // REMOVED: 2-second global refresh interval
-  // This was causing race conditions with "Load More" button
-  // Jobs now update via WebSocket for in-progress jobs
-  // User can manually refresh if needed
+  // Smart polling for in-progress jobs in the list
+  // Only updates jobs that are actually in progress, no race condition with Load More
+  useEffect(() => {
+    if (!session) return;
+
+    const interval = setInterval(async () => {
+      // Get current count to maintain pagination
+      const currentCount = jobsRef.current.length;
+
+      // Fetch current jobs without reset (merges with existing)
+      await fetchJobs(0, {
+        reset: false,  // KEY: Don't reset, merge instead
+        silent: true,
+        limit: Math.max(currentCount, PAGE_SIZE),
+      });
+    }, 5000); // 5 seconds - slower than before but still responsive
+
+    return () => clearInterval(interval);
+  }, [session, fetchJobs]);
 
   const routerId = router.query?.id;
 
