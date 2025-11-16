@@ -982,6 +982,7 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                             print(
                                 f"[Worker] Job {job_id} | Chunk {chunk_id} | Progress +{delta} -> {new_done}/{total_rows} rows ({percent}%)"
                             )
+                            # Insert progress into job_logs (for history/recovery)
                             supabase.table("job_logs").insert(
                                 {
                                     "job_id": job_id,
@@ -992,6 +993,23 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                                     ),
                                 }
                             ).execute()
+
+                            # Publish real-time progress update to Redis pub/sub for WebSocket
+                            try:
+                                # Get current job status from database
+                                job_status_res = supabase.table("jobs").select("status").eq("id", job_id).single().execute()
+                                current_status = job_status_res.data.get("status", "in_progress") if job_status_res.data else "in_progress"
+
+                                progress_data = {
+                                    "job_id": job_id,
+                                    "status": current_status,
+                                    "percent": percent,
+                                    "message": f"Global progress: +{delta} rows -> {new_done}/{total_rows} ({percent}%)",
+                                }
+                                redis_conn.publish(f"job_progress:{job_id}", json.dumps(progress_data))
+                            except Exception as pub_error:
+                                # Non-critical: WebSocket clients will fall back to polling
+                                print(f"[Worker] Job {job_id} | Failed to publish progress to Redis: {pub_error}")
 
         # Sort results by original row index to preserve order
         results.sort(key=lambda x: x[0])
@@ -1195,6 +1213,19 @@ def finalize_job(
             }
         ).eq("id", job_id).execute()
 
+        # Publish final success status to Redis pub/sub for WebSocket
+        try:
+            success_data = {
+                "job_id": job_id,
+                "status": "succeeded",
+                "percent": 100,
+                "message": "Job completed successfully",
+            }
+            redis_conn.publish(f"job_progress:{job_id}", json.dumps(success_data))
+            print(f"[Worker] Published success status for job {job_id}")
+        except Exception as pub_error:
+            print(f"[Worker] Failed to publish success status to Redis: {pub_error}")
+
         # Cleanup local chunks
         local_job_dir = os.path.join("/data/chunks", job_id)
         if os.path.exists(local_job_dir):
@@ -1208,9 +1239,24 @@ def finalize_job(
     except Exception as e:
         print(f"[Worker] Finalize ERROR for job {job_id}: {e}")
         traceback.print_exc()
+        error_message = f"Finalize error: {e}"
         supabase.table("jobs").update(
-            {"status": "failed", "error": f"Finalize error: {e}"}
+            {"status": "failed", "error": error_message}
         ).eq("id", job_id).execute()
+
+        # Publish failure status to Redis pub/sub for WebSocket
+        try:
+            failure_data = {
+                "job_id": job_id,
+                "status": "failed",
+                "percent": 0,
+                "message": error_message,
+            }
+            redis_conn.publish(f"job_progress:{job_id}", json.dumps(failure_data))
+            print(f"[Worker] Published failure status for job {job_id}")
+        except Exception as pub_error:
+            print(f"[Worker] Failed to publish failure status to Redis: {pub_error}")
+
         refund_job_credits(job_id, user_id, "finalize error")
 
 

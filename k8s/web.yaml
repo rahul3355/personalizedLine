@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: web
 spec:
-  replicas: 2
+  replicas: 1  # Changed from 2 to match GCP quota limits
   selector:
     matchLabels:
       app: web
