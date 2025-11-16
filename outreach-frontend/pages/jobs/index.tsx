@@ -32,6 +32,11 @@ import { logger } from "../../lib/logger";
 import { useRouter } from "next/router";
 import { useToast } from "../../components/Toast";
 
+// Convert HTTP API URL to WebSocket URL
+const WS_URL = API_URL.replace(/^https?:\/\//, (match) =>
+  match === 'https://' ? 'wss://' : 'ws://'
+);
+
 type JobStatus = "pending" | "in_progress" | "succeeded" | "failed";
 
 interface Job {
@@ -416,13 +421,10 @@ function JobsPage() {
     fetchJobs(0, { reset: true });
   }, [session, fetchJobs]);
 
-  useEffect(() => {
-    if (!session) return;
-    const interval = setInterval(() => {
-      refreshJobs();
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [session, refreshJobs]);
+  // REMOVED: 2-second global refresh interval
+  // This was causing race conditions with "Load More" button
+  // Jobs now update via WebSocket for in-progress jobs
+  // User can manually refresh if needed
 
   const routerId = router.query?.id;
 
@@ -446,9 +448,118 @@ function JobsPage() {
     loadJobDetail(selectedJobId);
   }, [selectedJobId, loadJobDetail]);
 
+  // WebSocket connection for real-time job progress
   useEffect(() => {
     if (!session || !selectedJobId || !selectedJob) return;
     if (selectedJob.status === "succeeded" || selectedJob.status === "failed") return;
+
+    // Check if WebSocket is enabled
+    const enableWebSocket = process.env.NEXT_PUBLIC_ENABLE_WEBSOCKET !== 'false';
+    if (!enableWebSocket) {
+      // WebSocket disabled, fall back to polling
+      return;
+    }
+
+    let ws: WebSocket | null = null;
+    let reconnectTimeout: NodeJS.Timeout | null = null;
+    let cancelled = false;
+
+    const connect = () => {
+      if (cancelled) return;
+
+      try {
+        const token = session.access_token;
+        const wsUrl = `${WS_URL}/ws/jobs/${selectedJobId}?token=${encodeURIComponent(token)}`;
+
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+          logger.info(`WebSocket connected for job ${selectedJobId}`);
+        };
+
+        ws.onmessage = (event) => {
+          if (cancelled) return;
+
+          try {
+            const data = JSON.parse(event.data);
+
+            // Update selected job
+            setSelectedJob((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    status: data.status,
+                    progress: data.percent,
+                    message: data.message,
+                  }
+                : prev
+            );
+
+            // Update job in list
+            updateJobInList(selectedJobId, {
+              status: data.status,
+              progress: data.percent,
+              message: data.message,
+            });
+
+            // If job is complete, close connection
+            if (data.status === "succeeded" || data.status === "failed") {
+              logger.info(`Job ${selectedJobId} completed with status: ${data.status}`);
+              if (ws) {
+                ws.close();
+              }
+            }
+          } catch (error) {
+            logger.error("Error parsing WebSocket message:", error);
+          }
+        };
+
+        ws.onerror = (error) => {
+          logger.error("WebSocket error:", error);
+        };
+
+        ws.onclose = (event) => {
+          if (cancelled) return;
+
+          logger.info(`WebSocket closed for job ${selectedJobId}`, event.code, event.reason);
+
+          // Reconnect if not a normal closure and job still in progress
+          if (event.code !== 1000 && selectedJob?.status === "in_progress") {
+            logger.info(`Reconnecting WebSocket in 3 seconds...`);
+            reconnectTimeout = setTimeout(() => {
+              connect();
+            }, 3000);
+          }
+        };
+      } catch (error) {
+        logger.error("Error creating WebSocket connection:", error);
+      }
+    };
+
+    // Start connection
+    connect();
+
+    return () => {
+      cancelled = true;
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+      if (ws) {
+        ws.close();
+      }
+    };
+  }, [session, selectedJobId, selectedJob, updateJobInList]);
+
+  useEffect(() => {
+    if (!session || !selectedJobId || !selectedJob) return;
+    if (selectedJob.status === "succeeded" || selectedJob.status === "failed") return;
+
+    // Only use polling if WebSocket is disabled
+    const enableWebSocket = process.env.NEXT_PUBLIC_ENABLE_WEBSOCKET !== 'false';
+    if (enableWebSocket) {
+      // WebSocket is handling progress, skip polling
+      return;
+    }
 
     let cancelled = false;
     const interval = setInterval(async () => {

@@ -1,10 +1,10 @@
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request, Depends, Header
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request, Depends, Header, WebSocket, WebSocketDisconnect
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from dotenv import load_dotenv
 from typing import Union, Optional, Dict
-import uuid, shutil, os, tempfile, threading, json, stripe, time, re
+import uuid, shutil, os, tempfile, threading, json, stripe, time, re, asyncio
 from fastapi.responses import StreamingResponse
 import io
 from pydantic import BaseModel
@@ -1287,6 +1287,160 @@ def job_progress(
         "percent": percent,
         "message": message,
     }
+
+
+# WebSocket endpoint for real-time job progress
+@app.websocket("/ws/jobs/{job_id}")
+async def websocket_job_progress(websocket: WebSocket, job_id: str):
+    """
+    WebSocket endpoint for real-time job progress updates.
+    Authenticates via query param 'token', then subscribes to Redis pub/sub
+    for live updates on the specified job.
+    """
+    # Check if WebSocket is enabled via feature flag
+    enable_websocket = os.getenv("ENABLE_WEBSOCKET", "true").lower() == "true"
+    if not enable_websocket:
+        await websocket.close(code=1008, reason="WebSocket not enabled")
+        return
+
+    # Extract token from query params
+    query_params = dict(websocket.query_params)
+    token = query_params.get("token")
+
+    if not token:
+        await websocket.close(code=1008, reason="Missing authentication token")
+        return
+
+    # Validate JWT token
+    try:
+        secret = os.getenv("SUPABASE_JWT_SECRET")
+        if not secret:
+            await websocket.close(code=1011, reason="Server configuration error")
+            return
+
+        supabase_url = os.getenv("SUPABASE_URL", "").rstrip("/")
+        issuer = os.getenv("SUPABASE_JWT_ISS", f"{supabase_url}/auth/v1" if supabase_url else None)
+        audience = os.getenv("SUPABASE_JWT_AUD", "authenticated")
+
+        payload = jwt.decode(
+            token,
+            secret,
+            algorithms=["HS256"],
+            issuer=issuer,
+            audience=audience,
+            options={"verify_exp": True},
+        )
+        user_id = payload.get("sub")
+        if not user_id:
+            await websocket.close(code=1008, reason="Invalid token")
+            return
+
+    except ExpiredSignatureError:
+        await websocket.close(code=1008, reason="Token expired")
+        return
+    except (InvalidTokenError, InvalidAudienceError, InvalidIssuerError) as e:
+        await websocket.close(code=1008, reason="Invalid token")
+        return
+    except Exception as e:
+        logging.error(f"WebSocket auth error: {e}")
+        await websocket.close(code=1011, reason="Authentication failed")
+        return
+
+    # Verify user owns this job
+    try:
+        supabase_client = get_supabase()
+        job_res = (
+            supabase_client.table("jobs")
+            .select("id,user_id,status")
+            .eq("id", job_id)
+            .single()
+            .execute()
+        )
+        if not job_res.data:
+            await websocket.close(code=1008, reason="Job not found")
+            return
+
+        job = job_res.data
+        if job["user_id"] != user_id:
+            await websocket.close(code=1008, reason="Unauthorized")
+            return
+    except Exception as e:
+        logging.error(f"WebSocket job verification error: {e}")
+        await websocket.close(code=1011, reason="Verification failed")
+        return
+
+    # Accept the WebSocket connection
+    await websocket.accept()
+
+    # Create Redis pub/sub connection
+    pubsub = redis_conn.pubsub()
+    channel = f"job_progress:{job_id}"
+
+    try:
+        # Subscribe to job progress channel
+        pubsub.subscribe(channel)
+
+        # Send initial status
+        initial_status = {
+            "job_id": job_id,
+            "status": job["status"],
+            "percent": 0,
+            "message": "Connected to job progress stream",
+        }
+        await websocket.send_json(initial_status)
+
+        # Listen for Redis pub/sub messages in a background task
+        async def listen_redis():
+            """Listen to Redis pub/sub and forward to WebSocket"""
+            loop = asyncio.get_event_loop()
+
+            while True:
+                # Run blocking Redis get_message in executor
+                message = await loop.run_in_executor(
+                    None,
+                    pubsub.get_message,
+                    True,  # ignore_subscribe_messages
+                    1.0    # timeout in seconds
+                )
+
+                if message and message['type'] == 'message':
+                    try:
+                        # Parse the Redis message data
+                        data = json.loads(message['data'])
+                        await websocket.send_json(data)
+
+                        # If job is complete, close connection
+                        if data.get('status') in ['succeeded', 'failed']:
+                            await asyncio.sleep(1)  # Give client time to receive final message
+                            break
+                    except json.JSONDecodeError:
+                        logging.error(f"Failed to parse Redis message: {message['data']}")
+                    except Exception as e:
+                        logging.error(f"Error sending WebSocket message: {e}")
+                        break
+
+                await asyncio.sleep(0.1)  # Small delay to prevent tight loop
+
+        # Run the Redis listener
+        await listen_redis()
+
+    except WebSocketDisconnect:
+        logging.info(f"WebSocket disconnected for job {job_id}")
+    except Exception as e:
+        logging.error(f"WebSocket error for job {job_id}: {e}")
+    finally:
+        # Clean up
+        try:
+            pubsub.unsubscribe(channel)
+            pubsub.close()
+        except:
+            pass
+
+        try:
+            await websocket.close()
+        except:
+            pass
+
 
 # ✅ Stripe Checkout Session (subscription OR add-on)
 class CheckoutRequest(BaseModel):
