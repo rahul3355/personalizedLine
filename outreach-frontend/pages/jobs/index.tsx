@@ -579,8 +579,11 @@ function JobsPage() {
   }, [session, selectedJobId, updateJobInList]);
 
   useEffect(() => {
-    if (!session || !selectedJobId || !selectedJob) return;
-    if (selectedJob.status === "succeeded" || selectedJob.status === "failed") return;
+    if (!session || !selectedJobId) return;
+
+    // Check job status from ref to avoid re-running on every selectedJob change
+    const currentJob = jobsRef.current.find(j => j.id === selectedJobId);
+    if (!currentJob || currentJob.status === "succeeded" || currentJob.status === "failed") return;
 
     // Fallback polling as safety net (runs alongside WebSocket)
     // This ensures we catch completion even if WebSocket drops
@@ -629,7 +632,7 @@ function JobsPage() {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [session, selectedJobId, selectedJob, loadJobDetail, updateJobInList]);
+  }, [session, selectedJobId, loadJobDetail, updateJobInList]);
 
   useEffect(() => {
     if (!selectedJobId) return;
