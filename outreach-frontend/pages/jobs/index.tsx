@@ -465,8 +465,11 @@ function JobsPage() {
 
   // WebSocket connection for real-time job progress
   useEffect(() => {
-    if (!session || !selectedJobId || !selectedJob) return;
-    if (selectedJob.status === "succeeded" || selectedJob.status === "failed") return;
+    if (!session || !selectedJobId) return;
+
+    // Check job status from ref to avoid re-running on every selectedJob change
+    const currentJob = jobsRef.current.find(j => j.id === selectedJobId);
+    if (!currentJob || currentJob.status === "succeeded" || currentJob.status === "failed") return;
 
     // Check if WebSocket is enabled
     const enableWebSocket = process.env.NEXT_PUBLIC_ENABLE_WEBSOCKET !== 'false';
