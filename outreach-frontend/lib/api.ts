@@ -9,9 +9,6 @@ if (!rawApiUrl) {
 function resolveApiUrl(url: string) {
   if (typeof window !== "undefined" && window.location.protocol === "https:" && url.startsWith("http://")) {
     const httpsUrl = url.replace(/^http:\/\//i, "https://");
-    console.warn(
-      `NEXT_PUBLIC_API_URL is using an insecure protocol. Upgrading request target to '${httpsUrl}' to avoid mixed-content issues.`
-    );
     return httpsUrl;
   }
 
@@ -19,8 +16,6 @@ function resolveApiUrl(url: string) {
 }
 
 export const API_URL = resolveApiUrl(rawApiUrl);
-
-console.log("API_URL = ", API_URL);
 
 
 /**

@@ -1,5 +1,6 @@
 
 import { useAuth } from "../../lib/AuthProvider";
+import { logger } from "../../lib/logger";
 import { API_URL } from "../../lib/api";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
@@ -56,8 +57,8 @@ export default function BillingSuccessPage() {
         }
       } catch (err) {
         if (!cancelled) {
-          console.error("Stripe sync failed", err);
-          setError(err instanceof Error ? err.message : "Unknown error");
+          logger.error("Stripe sync failed", err);
+          setError("We encountered an issue processing your payment. Please contact support if this persists.");
           // Still redirect to home after error
           redirectTimeout = setTimeout(() => {
             if (!cancelled) {

@@ -36,6 +36,7 @@ import { useOptimisticJobs, type OptimisticJob } from "../lib/OptimisticJobsProv
 import { useRouter } from "next/router";
 import { useToast } from "@/components/Toast";
 import { supabase } from "../lib/supabaseClient";
+import { logger } from "../lib/logger";
 // replace
 
 
@@ -1210,7 +1211,8 @@ export default function UploadPage() {
 
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error(`Backend failed: ${res.status} - ${errText}`);
+      logger.error(`Backend failed: ${res.status}`, errText);
+      throw new Error("Failed to parse file headers. Please try again.");
     }
 
     const data = await res.json();
@@ -1229,7 +1231,7 @@ export default function UploadPage() {
       await refreshUserInfo();
       await parseStoredFile(tempPath, session.access_token, { autoMap: false });
     } catch (err: any) {
-      console.error("[Upload] Refresh credits error:", err);
+      logger.error("[Upload] Refresh credits error:", err);
       setError(err.message || "Unable to refresh credits");
     } finally {
       setRefreshingCredits(false);
@@ -1334,19 +1336,17 @@ export default function UploadPage() {
         .upload(storagePath, file, { upsert: true });
 
       if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
-      console.log("[Upload] File uploaded:", storagePath);
 
       const data = await parseStoredFile(storagePath, session.access_token, {
         autoMap: true,
       });
-      console.log("[Upload] Headers parsed:", data.headers);
       setTimeout(() => {
         setStep(1);
       }, 500);
 
       return true;
     } catch (err: any) {
-      console.error("[Upload] ParseHeaders error:", err);
+      logger.error("[Upload] ParseHeaders error:", err);
       setError(err.message || "Something went wrong");
       return false;
     } finally {
@@ -1436,7 +1436,7 @@ export default function UploadPage() {
             const body = await res.json();
             detail = typeof body.detail === "object" ? body.detail : body;
           } catch (jsonErr) {
-            console.error("[Upload] Failed to parse credit error:", jsonErr);
+            logger.error("[Upload] Failed to parse credit error:", jsonErr);
           }
 
           if (detail) {
@@ -1447,7 +1447,8 @@ export default function UploadPage() {
         }
 
         const errText = await res.text();
-        throw new Error(`Failed: ${res.status} - ${errText}`);
+        logger.error(`Job creation failed: ${res.status}`, errText);
+        throw new Error("Failed to create job. Please try again.");
       }
 
       await res.json();
@@ -1458,7 +1459,7 @@ export default function UploadPage() {
       try {
         await refreshUserInfo();
       } catch (refreshErr) {
-        console.error("[Upload] Failed to refresh user info after job creation", refreshErr);
+        logger.error("[Upload] Failed to refresh user info after job creation", refreshErr);
       }
 
       setJobCreated(true);
@@ -1491,8 +1492,6 @@ export default function UploadPage() {
     setPreviewError(null);
 
     try {
-      console.log("[Preview] Fetching emails with:", { tempPath, emailCol });
-
       const res = await fetch(`${API_URL}/preview/emails`, {
         method: "POST",
         headers: {
@@ -1514,15 +1513,14 @@ export default function UploadPage() {
               ? errorData.detail
               : JSON.stringify(errorData.detail);
           }
-        } catch {
+        } catch (parseErr) {
           const errText = await res.text();
-          errorMessage = errText || errorMessage;
+          logger.error("API error:", errText);
         }
         throw new Error(errorMessage);
       }
 
       const data = await res.json();
-      console.log("[Preview] Received emails:", data.emails);
 
       setPreviewEmails(data.emails || []);
       setShowPreview(true);
@@ -1533,7 +1531,7 @@ export default function UploadPage() {
         setPreviewError("No emails found in the file. Please check your data.");
       }
     } catch (err: any) {
-      console.error("[Upload] Preview emails error:", err);
+      logger.error("[Upload] Preview emails error:", err);
       setPreviewError(err.message || "Failed to load preview emails");
     } finally {
       setPreviewLoading(false);
@@ -1556,8 +1554,6 @@ export default function UploadPage() {
     setPreviewResult(null);
 
     try {
-      console.log("[Preview] Generating preview for:", selectedPreviewEmail);
-
       const res = await fetch(`${API_URL}/preview/generate`, {
         method: "POST",
         headers: {
@@ -1586,15 +1582,14 @@ export default function UploadPage() {
               ? errorData.detail
               : JSON.stringify(errorData.detail);
           }
-        } catch {
+        } catch (parseErr) {
           const errText = await res.text();
-          errorMessage = errText || errorMessage;
+          logger.error("API error:", errText);
         }
         throw new Error(errorMessage);
       }
 
       const data = await res.json();
-      console.log("[Preview] Generated preview:", data);
       setPreviewResult(data);
 
       // Update credit info
@@ -1609,10 +1604,10 @@ export default function UploadPage() {
       try {
         await refreshUserInfo();
       } catch (refreshErr) {
-        console.error("[Upload] Failed to refresh user info after preview", refreshErr);
+        logger.error("[Upload] Failed to refresh user info after preview", refreshErr);
       }
     } catch (err: any) {
-      console.error("[Upload] Preview generation error:", err);
+      logger.error("[Upload] Preview generation error:", err);
       setPreviewError(err.message || "Failed to generate preview");
     } finally {
       setPreviewLoading(false);

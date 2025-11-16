@@ -13,9 +13,6 @@ const AEONIK_FONT_FAMILY =
 // Initialize Stripe with publishable key from env
 const STRIPE_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 
-if (!STRIPE_KEY) {
-  console.error("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is not set. Stripe payments will not work.");
-}
 
 const stripePromise = STRIPE_KEY ? loadStripe(STRIPE_KEY) : null;
 
