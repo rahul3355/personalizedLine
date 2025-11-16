@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: web
-        image: ${DOCKER_IMAGE}:${VERSION}
+        image: gcr.io/personalizedline-prod/personalizedline:latest
         command: ["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
         ports:
         - containerPort: 8000
