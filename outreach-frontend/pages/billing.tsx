@@ -521,10 +521,13 @@ export default function BillingPage() {
                     <button
                       type="button"
                       onClick={() => handleCheckout(plan.id)}
-                      className={`relative mt-auto w-full rounded-full border-2 border-transparent px-6 py-3 text-sm font-semibold text-white transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-black hover:scale-105 hover:border-neutral-700/80 hover:bg-neutral-700 hover:ring-4 hover:ring-neutral-400/40 hover:ring-offset-2 hover:ring-offset-white active:bg-neutral-600 ${plan.popular ? "bg-black" : "bg-neutral-900"
-                        }`}
+                      className="group relative mt-auto w-full overflow-visible rounded-full px-6 py-3 text-sm font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
                     >
-                      <span className="inline-block">
+                      <span
+                        aria-hidden="true"
+                        className={`pointer-events-none absolute inset-0 rounded-full transition-all duration-200 ease-out ${plan.popular ? "bg-black" : "bg-neutral-900"} group-hover:bg-neutral-800 group-hover:-inset-1 group-active:-inset-0.5`}
+                      />
+                      <span className="relative z-10 inline-flex items-center justify-center w-full">
                         {plan.ctaLabel}
                       </span>
                     </button>
