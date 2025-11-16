@@ -29,6 +29,7 @@ import {
   Sparkles,
   ListChecks,
   ChevronDown,
+  AlertCircle,
 } from "lucide-react";
 import { useAuth } from "../lib/AuthProvider";
 import { useOptimisticJobs, type OptimisticJob } from "../lib/OptimisticJobsProvider";
@@ -535,8 +536,8 @@ function ExamplesDrawerPanel({
       className={`relative flex flex-col ${radiusClass} bg-[#F5F5F5] shadow-[0_12px_30px_rgba(0,0,0,0.08)]`}
       style={{
         fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui',
-        height: isMobile ? '100vh' : '450px',
-        maxHeight: isMobile ? '100vh' : '450px'
+        height: isMobile ? '100dvh' : '450px',
+        maxHeight: isMobile ? '100dvh' : '450px'
       }}
     >
       {/* Close Button */}
@@ -862,6 +863,7 @@ export default function UploadPage() {
             >
               <label className="text-xs font-semibold text-gray-700 flex items-center gap-1">
                 {field.label}
+                {field.key === "core_offer" && <span className="text-red-500">*</span>}
                 <HelpTooltip fieldKey={field.key} />
               </label>
               <textarea
@@ -873,7 +875,14 @@ export default function UploadPage() {
                 rows={field.key === "core_offer" ? 4 : 3}
                 required={field.key === "core_offer"}
                 maxLength={300}
+                aria-label={field.label}
+                aria-required={field.key === "core_offer"}
               />
+              <div className="flex justify-between items-center mt-1">
+                <span className={`text-xs ${serviceComponents[field.key].length > 280 ? 'text-amber-600' : 'text-gray-500'}`}>
+                  {serviceComponents[field.key].length}/300 characters
+                </span>
+              </div>
             </div>
           ))}
         </div>
@@ -1694,11 +1703,21 @@ export default function UploadPage() {
                   className={[
                     "relative rounded-2xl border-2 border-dashed transition-all duration-300 cursor-pointer bg-gray-50",
                     "px-6 py-14",
+                    "focus:outline-none focus:ring-2 focus:ring-[#4F55F1] focus:ring-offset-2",
                     dragActive
                       ? "border-[#4F55F1] bg-[rgba(79,85,241,0.06)]"
                       : "border-gray-400 hover:border-[#4F55F1] hover:bg-[rgba(79,85,241,0.04)]",
                   ].join(" ")}
                   onClick={() => { if (!file) emptyInputRef.current?.click(); }}
+                  onKeyDown={(e) => {
+                    if ((e.key === 'Enter' || e.key === ' ') && !file) {
+                      e.preventDefault();
+                      emptyInputRef.current?.click();
+                    }
+                  }}
+                  tabIndex={0}
+                  role="button"
+                  aria-label="Upload file area. Press Enter or Space to browse files, or drag and drop a file here"
                 >
                   <input
                     id="file-input-desktop-empty"
@@ -1728,8 +1747,14 @@ export default function UploadPage() {
                       </p>
                       <button
                         type="button"
-                        className="mt-4 px-6 py-2 rounded-full text-white font-medium"
+                        className="mt-4 px-6 py-2 rounded-full text-white font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg active:scale-95"
                         style={{ backgroundColor: BRAND }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = BRAND_HOVER;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = BRAND;
+                        }}
                         onClick={() => emptyInputRef.current?.click()}
                       >
                         Browse File
@@ -1793,8 +1818,11 @@ export default function UploadPage() {
                 </div>
 
                 {error && (
-                  <div className="mt-3 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm font-medium">
-                    {error}
+                  <div className="mt-3 rounded-xl bg-red-50 border border-red-200 px-4 py-3 flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-red-800">{error}</p>
+                    </div>
                   </div>
                 )}
 
@@ -1804,8 +1832,14 @@ export default function UploadPage() {
                     <button
                       onClick={handleParseHeaders}
                       disabled={loading}
-                      className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-md text-white font-medium disabled:cursor-not-allowed"
+                      className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-md text-white font-medium disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 hover:shadow-lg active:scale-95 disabled:hover:scale-100 disabled:hover:shadow-none"
                       style={{ backgroundColor: loading ? "#D1D5DB" : BRAND }}
+                      onMouseEnter={(e) => {
+                        if (!loading) e.currentTarget.style.backgroundColor = BRAND_HOVER;
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!loading) e.currentTarget.style.backgroundColor = BRAND;
+                      }}
                     >
                       {loading ? (
                         <>
@@ -2031,8 +2065,11 @@ export default function UploadPage() {
                       )}
 
                       {previewError && (
-                        <div className="w-full bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm font-medium text-center">
-                          {previewError}
+                        <div className="w-full rounded-xl bg-red-50 border border-red-200 px-4 py-3 flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                          <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-red-800">{previewError}</p>
+                          </div>
                         </div>
                       )}
 
@@ -2360,8 +2397,11 @@ export default function UploadPage() {
                   )}
 
                   {previewError && (
-                    <div className="w-full bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm font-medium">
-                      {previewError}
+                    <div className="w-full rounded-xl bg-red-50 border border-red-200 px-4 py-3 flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-red-800">{previewError}</p>
+                      </div>
                     </div>
                   )}
 

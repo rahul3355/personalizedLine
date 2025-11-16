@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useMemo,
   useState,
   ReactNode,
 } from "react";
@@ -52,12 +53,15 @@ export function OptimisticJobsProvider({ children }: { children: ReactNode }) {
     setOptimisticJobs([]);
   }, []);
 
-  const value: OptimisticJobsContextProps = {
-    optimisticJobs,
-    addOptimisticJob,
-    removeOptimisticJob,
-    clearOptimisticJobs,
-  };
+  const value: OptimisticJobsContextProps = useMemo(
+    () => ({
+      optimisticJobs,
+      addOptimisticJob,
+      removeOptimisticJob,
+      clearOptimisticJobs,
+    }),
+    [optimisticJobs, addOptimisticJob, removeOptimisticJob, clearOptimisticJobs]
+  );
 
   return (
     <OptimisticJobsContext.Provider value={value}>
