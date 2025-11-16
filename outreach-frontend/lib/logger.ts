@@ -1,0 +1,40 @@
+/**
+ * Logger utility for development-only logging
+ * In production, logs are silenced to prevent information leakage
+ */
+
+const isDevelopment = process.env.NODE_ENV === 'development';
+
+export const logger = {
+  log: (message: string, ...args: any[]) => {
+    if (isDevelopment) {
+      console.log(message, ...args);
+    }
+  },
+
+  error: (message: string, ...args: any[]) => {
+    if (isDevelopment) {
+      console.error(message, ...args);
+    }
+    // In production, you could send to error tracking service here
+    // e.g., Sentry.captureException()
+  },
+
+  warn: (message: string, ...args: any[]) => {
+    if (isDevelopment) {
+      console.warn(message, ...args);
+    }
+  },
+
+  info: (message: string, ...args: any[]) => {
+    if (isDevelopment) {
+      console.info(message, ...args);
+    }
+  },
+
+  debug: (message: string, ...args: any[]) => {
+    if (isDevelopment) {
+      console.debug(message, ...args);
+    }
+  },
+};

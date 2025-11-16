@@ -28,7 +28,9 @@ import { JobListSkeleton } from "../../components/SkeletonScreens";
 import { API_URL } from "../../lib/api";
 import { useAuth } from "../../lib/AuthProvider";
 import { useOptimisticJobs } from "../../lib/OptimisticJobsProvider";
+import { logger } from "../../lib/logger";
 import { useRouter } from "next/router";
+import { useToast } from "../../components/Toast";
 
 type JobStatus = "pending" | "in_progress" | "succeeded" | "failed";
 
@@ -221,6 +223,7 @@ function JobsPage() {
   const router = useRouter();
   const { session } = useAuth();
   const { optimisticJobs } = useOptimisticJobs();
+  const { toast } = useToast();
 
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -312,7 +315,7 @@ function JobsPage() {
         });
       } catch (error) {
         if (selectedJobIdRef.current !== jobId) return;
-        console.error("Error fetching job detail:", error);
+        logger.error("Error fetching job detail:", error);
         setDetailError("We couldn't load this job. Please try again.");
       } finally {
         if (!silent && selectedJobIdRef.current === jobId) {
@@ -366,7 +369,7 @@ function JobsPage() {
         setHasMore(data.length === limit);
         setOffset(reset ? data.length : offsetParam + data.length);
       } catch (error) {
-        console.error("Error fetching jobs:", error);
+        logger.error("Error fetching jobs:", error);
       } finally {
         if (showFullLoader || (reset && offsetParam === 0 && !silent)) {
           setLoading(false);
@@ -457,7 +460,7 @@ function JobsPage() {
           await loadJobDetail(selectedJobId, { silent: true });
         }
       } catch (error) {
-        console.error("Error fetching progress:", error);
+        logger.error("Error fetching progress:", error);
       }
     }, 2000);
 
@@ -696,12 +699,12 @@ function JobsPage() {
       setDownloading(true);
       await downloadJobFile(selectedJob.id, selectedJob.filename || "result.xlsx");
     } catch (error) {
-      console.error("Download error:", error);
-      alert("Download failed");
+      logger.error("Download error:", error);
+      toast({ type: "error", message: "Download failed. Please try again." });
     } finally {
       setDownloading(false);
     }
-  }, [selectedJob, downloading, downloadJobFile]);
+  }, [selectedJob, downloading, downloadJobFile, toast]);
 
   const handleDownloadFromList = useCallback(
     async (job: Job) => {
@@ -726,8 +729,8 @@ function JobsPage() {
           });
         }, 2000);
       } catch (error) {
-        console.error("Download error:", error);
-        alert("Download failed");
+        logger.error("Download error:", error);
+        toast({ type: "error", message: "Download failed. Please try again." });
         // Revert downloaded state on error
         setDownloadedJobs((prev) => {
           const next = { ...prev };
@@ -736,7 +739,7 @@ function JobsPage() {
         });
       }
     },
-    [downloadJobFile, downloadingJobs, downloadedJobs]
+    [downloadJobFile, downloadingJobs, downloadedJobs, toast]
   );
 
   const handleLoadMore = useCallback(() => {

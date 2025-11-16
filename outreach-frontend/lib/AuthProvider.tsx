@@ -10,6 +10,7 @@ import {
 } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabaseClient";
+import { logger } from "../lib/logger";
 
 interface UserInfo {
   id: string;
@@ -79,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle();
 
       if (fetchError) {
-        console.error("Error fetching profile:", fetchError);
+        logger.error("Error fetching profile:", fetchError);
         return;
       }
 
@@ -104,7 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .single();
 
         if (insertError) {
-          console.error("Profile insert error:", insertError);
+          logger.error("Profile insert error:", insertError);
           // Throw error to trigger the catch block and alert the user
           throw new Error(
             `Failed to create user profile: ${insertError.message || "Unknown database error"}. Please try signing out and signing in again, or contact support if the issue persists.`
@@ -118,10 +119,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         profile = inserted;
-        console.log(`[Auth] Successfully created new profile for user ${userId} with 500 credits`);
       }
 
-      // 3. Use whatever is in Supabase (don’t overwrite Stripe updates)
+      // 3. Use whatever is in Supabase (don't overwrite Stripe updates)
       setUserInfo({
         id: profile.id,
         email,
@@ -137,7 +137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ledger: [], // could be filled with another query
       });
     } catch (err) {
-      console.error("Failed to fetch/create user info", err);
+      logger.error("Failed to fetch/create user info", err);
       // Alert user if profile creation/fetch fails - this is critical
       if (typeof window !== "undefined") {
         const errorMessage =
