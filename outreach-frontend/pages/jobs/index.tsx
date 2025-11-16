@@ -472,10 +472,12 @@ function JobsPage() {
         const token = session.access_token;
         const wsUrl = `${WS_URL}/ws/jobs/${selectedJobId}?token=${encodeURIComponent(token)}`;
 
+        console.log(`[WebSocket] Attempting connection to:`, wsUrl.replace(/token=[^&]+/, 'token=***'));
         ws = new WebSocket(wsUrl);
 
         ws.onopen = () => {
           isConnected = true;
+          console.log(`[WebSocket] Connected for job ${selectedJobId}`);
           logger.info(`WebSocket connected for job ${selectedJobId}`);
         };
 
@@ -518,6 +520,7 @@ function JobsPage() {
 
         ws.onerror = (error) => {
           isConnected = false;
+          console.error("[WebSocket] Error:", error);
           logger.error("WebSocket error:", error);
         };
 
@@ -525,6 +528,7 @@ function JobsPage() {
           isConnected = false;
           if (cancelled) return;
 
+          console.log(`[WebSocket] Closed for job ${selectedJobId}`, 'code:', event.code, 'reason:', event.reason);
           logger.info(`WebSocket closed for job ${selectedJobId}`, event.code, event.reason);
 
           // Reconnect if not a normal closure and job still in progress
@@ -563,6 +567,8 @@ function JobsPage() {
     // This ensures we catch completion even if WebSocket drops
     const enableWebSocket = process.env.NEXT_PUBLIC_ENABLE_WEBSOCKET !== 'false';
     const pollingInterval = enableWebSocket ? 10000 : 3000; // 10s with WS, 3s without
+
+    console.log(`[Polling] Starting fallback polling for job ${selectedJobId} every ${pollingInterval}ms`);
 
     let cancelled = false;
     const interval = setInterval(async () => {
