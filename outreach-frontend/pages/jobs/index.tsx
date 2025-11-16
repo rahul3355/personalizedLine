@@ -875,7 +875,7 @@ function JobsPage() {
                                         className="flex-1 min-w-0 text-[15px] font-semibold text-[#101225]"
                                         title={job.filename}
                                       >
-                                        {truncateFilename(job.filename, 30)}
+                                        {truncateFilename(job.filename, 70)}
                                       </p>
                                       <span
                                         className="text-[12px] font-medium tracking-[-0.01em] text-[#0E0F12] flex-shrink-0"
@@ -1077,10 +1077,10 @@ function DetailPanel({
         <div className="mt-9 flex items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
             <h1
-              className="line-clamp-2 text-2xl font-semibold leading-tight text-gray-900 break-words"
+              className="text-2xl font-semibold leading-tight text-gray-900"
               title={job?.filename}
             >
-              {job?.filename ?? "—"}
+              {job?.filename ? truncateFilename(job.filename, 30) : "—"}
             </h1>
             <p className="mt-1 text-sm text-gray-500">
               {job?.created_at ? `${getDayLabel(new Date(job.created_at))}, ${formatTime(new Date(job.created_at))}` : "—"}
