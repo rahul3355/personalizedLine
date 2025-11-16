@@ -1080,7 +1080,7 @@ function DetailPanel({
               className="text-2xl font-semibold leading-tight text-gray-900"
               title={job?.filename}
             >
-              {job?.filename ? truncateFilename(job.filename, 30) : "—"}
+              {job?.filename ? truncateFilename(job.filename, 20) : "—"}
             </h1>
             <p className="mt-1 text-sm text-gray-500">
               {job?.created_at ? `${getDayLabel(new Date(job.created_at))}, ${formatTime(new Date(job.created_at))}` : "—"}
