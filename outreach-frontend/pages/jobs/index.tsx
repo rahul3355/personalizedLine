@@ -875,7 +875,7 @@ function JobsPage() {
                                         className="flex-1 min-w-0 text-[15px] font-semibold text-[#101225]"
                                         title={job.filename}
                                       >
-                                        {truncateFilename(job.filename, 70)}
+                                        {truncateFilename(job.filename, 71)}
                                       </p>
                                       <span
                                         className="text-[12px] font-medium tracking-[-0.01em] text-[#0E0F12] flex-shrink-0"
