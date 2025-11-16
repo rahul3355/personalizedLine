@@ -60,6 +60,28 @@ function formatJobMessage(message?: string | null) {
   return cleaned;
 }
 
+function truncateFilename(filename: string, maxLength: number = 30): string {
+  if (filename.length <= maxLength) return filename;
+
+  // Find the last dot to identify the extension
+  const lastDotIndex = filename.lastIndexOf('.');
+
+  // If no extension or extension is too long, just truncate normally
+  if (lastDotIndex === -1 || filename.length - lastDotIndex > 10) {
+    return filename.slice(0, maxLength - 3) + '...';
+  }
+
+  const extension = filename.slice(lastDotIndex);
+  const nameWithoutExt = filename.slice(0, lastDotIndex);
+  const availableLength = maxLength - extension.length - 3; // 3 for "..."
+
+  if (availableLength <= 0) {
+    return filename.slice(0, maxLength - 3) + '...';
+  }
+
+  return nameWithoutExt.slice(0, availableLength) + '...' + extension;
+}
+
 type JobDetail = Job & {
   result_path: string | null;
 };
@@ -849,11 +871,14 @@ function JobsPage() {
 
                                   <div className="min-w-0 flex-1 space-y-2">
                                     <div className="flex items-center gap-3">
-                                      <p className="flex-1 truncate text-[15px] font-semibold text-[#101225]">
-                                        {job.filename}
+                                      <p
+                                        className="flex-1 min-w-0 text-[15px] font-semibold text-[#101225]"
+                                        title={job.filename}
+                                      >
+                                        {truncateFilename(job.filename, 30)}
                                       </p>
                                       <span
-                                        className="text-[12px] font-medium tracking-[-0.01em] text-[#0E0F12]"
+                                        className="text-[12px] font-medium tracking-[-0.01em] text-[#0E0F12] flex-shrink-0"
                                         style={{ fontFamily: '"Aeonik Pro","Inter",sans-serif' }}
                                       >
                                         {formatTime(new Date(job.created_at))}
@@ -1050,8 +1075,11 @@ function DetailPanel({
       {/* Title + status icon */}
       <div className="px-6 pt-6 pb-2">
         <div className="mt-9 flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <h1 className="truncate text-2xl font-semibold leading-tight text-gray-900">
+          <div className="min-w-0 flex-1">
+            <h1
+              className="line-clamp-2 text-2xl font-semibold leading-tight text-gray-900 break-words"
+              title={job?.filename}
+            >
               {job?.filename ?? "—"}
             </h1>
             <p className="mt-1 text-sm text-gray-500">
@@ -1075,6 +1103,11 @@ function DetailPanel({
             ) : (
               <>
                 <InfoRow label="Status" value={config?.label ?? "—"} />
+                <InfoRow
+                  label="File name"
+                  value={job?.filename ?? "—"}
+                  breakWords
+                />
                 {typeof job?.rows === "number" && <InfoRow label="Rows" value={job.rows.toLocaleString()} />}
                 <InfoRow
                   label="Created"
@@ -1153,17 +1186,20 @@ function InfoRow({
   label,
   value,
   mono = false,
+  breakWords = false,
 }: {
   label: string;
   value: ReactNode;
   mono?: boolean;
+  breakWords?: boolean;
 }) {
   return (
     <div className="flex items-center justify-between px-4 py-2">
-      <span className="text-[15px] text-gray-500">{label}</span>
+      <span className="text-[15px] text-gray-500 flex-shrink-0">{label}</span>
       <div
-        className={`ml-4 max-w-[60%] text-right text-[15px] text-gray-900 ${mono ? "font-mono break-all" : ""
-          }`}
+        className={`ml-4 max-w-[60%] text-right text-[15px] text-gray-900 ${
+          mono ? "font-mono break-all" : breakWords ? "break-words" : ""
+        }`}
       >
         {value}
       </div>
