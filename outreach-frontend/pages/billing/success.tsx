@@ -4,6 +4,7 @@ import { logger } from "../../lib/logger";
 import { API_URL } from "../../lib/api";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
+import confetti from "canvas-confetti";
 
 const AEONIK_FONT_FAMILY =
   '"Aeonik Pro","Aeonik",-apple-system,BlinkMacSystemFont,"Segoe UI","Roboto","Helvetica Neue",Arial,sans-serif';
@@ -71,6 +72,21 @@ export default function BillingSuccessPage() {
       if (redirectTimeout) clearTimeout(redirectTimeout);
     };
   }, [API_URL, refreshUserInfo, router, session]);
+
+  // Trigger confetti when payment is successful
+  useEffect(() => {
+    if (synced) {
+      confetti({
+        particleCount: 100,
+        angle: 90,
+        spread: 60,
+        origin: { x: 0.5, y: 0.6 },
+        colors: ['#4f55f1', '#6c72ff', '#8a8fff', '#a8adff', '#c6caff'],
+        zIndex: 9999,
+        disableForReducedMotion: true,
+      });
+    }
+  }, [synced]);
 
   return (
     <div
