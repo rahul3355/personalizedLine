@@ -159,3 +159,5 @@ export default function BillingSuccessPage() {
     </div>
   );
 }
+
+BillingSuccessPage.disableWhiteCard = true;
