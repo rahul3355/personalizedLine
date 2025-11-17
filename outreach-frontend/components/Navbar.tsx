@@ -40,6 +40,7 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showAddCreditsTooltip, setShowAddCreditsTooltip] = useState(false);
   const iconWrapperRef = useRef<HTMLSpanElement | null>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const { userInfo, loading } = useAuth();
 
@@ -79,8 +80,13 @@ export default function Navbar() {
 
   // --- handlers (functionality unchanged) ---
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push("/login");
+    setLoggingOut(true);
+    try {
+      await supabase.auth.signOut();
+      router.push("/login");
+    } catch (error) {
+      setLoggingOut(false);
+    }
   };
 
   const handleHover = () => {
@@ -378,11 +384,39 @@ export default function Navbar() {
 
                     {/* <div className="my-1 border-t border-[#EAECEE]" /> */}
 
-                    <button onClick={handleLogout} role="menuitem" className="group flex items-center h-11 px-2.5 rounded-[12px] hover:bg-[#F7F7F7] w-full text-left">
+                    <button onClick={handleLogout} disabled={loggingOut} role="menuitem" className="group flex items-center h-11 px-2.5 rounded-[12px] hover:bg-[#F7F7F7] w-full text-left disabled:opacity-50 disabled:cursor-not-allowed">
                       <span className="mr-3 inline-flex items-center justify-center min-w-[20px] bg-transparent text-[#4F55F1]">
-                        <PiSignOutBold className="w-5 h-5" />
+                        {loggingOut ? (
+                          <svg
+                            className="animate-spin h-5 w-5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                          >
+                            <circle
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="#4F55F1"
+                              strokeWidth="3"
+                              strokeDasharray="31.4 31.4"
+                              strokeLinecap="round"
+                            />
+                            <circle
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="#4F55F1"
+                              strokeWidth="1"
+                              strokeDasharray="15.7 47.1"
+                              strokeDashoffset="15.7"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                        ) : (
+                          <PiSignOutBold className="w-5 h-5" />
+                        )}
                       </span>
-                      <span className="text-[15px] text-[#111827]">Log out</span>
+                      <span className="text-[15px] text-[#111827]">{loggingOut ? "Logging out..." : "Log out"}</span>
                     </button>
                   </div>
 

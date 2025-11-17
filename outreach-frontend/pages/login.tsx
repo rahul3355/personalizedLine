@@ -2,7 +2,7 @@
 import { useAuth } from "../lib/AuthProvider";
 import { supabase } from "../lib/supabaseClient";
 import { useRouter } from "next/router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { FcGoogle } from "react-icons/fc";
 import Image from "next/image";
 import { Globe } from "@/components/ui/globe";
@@ -16,6 +16,7 @@ import { InteractiveGridPattern } from "@/components/ui/interactive-grid-pattern
 function LoginPage() {
   const { session } = useAuth();
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (session) {
@@ -24,9 +25,14 @@ function LoginPage() {
   }, [session, router]);
 
   const handleGoogleLogin = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-    });
+    setLoading(true);
+    try {
+      await supabase.auth.signInWithOAuth({
+        provider: "google",
+      });
+    } catch (error) {
+      setLoading(false);
+    }
   };
 
   return (
@@ -83,21 +89,55 @@ function LoginPage() {
             {/* Button */}
             <button
               onClick={handleGoogleLogin}
-              className="w-full flex items-center justify-center py-3 px-4 rounded-xl font-medium text-white text-[15px] tracking-tight shadow-sm transition-all duration-300"
+              disabled={loading}
+              className="w-full flex items-center justify-center py-3 px-4 rounded-xl font-medium text-white text-[15px] tracking-tight shadow-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
-                background: "linear-gradient(#5a5a5a, #1c1c1c)",
+                background: loading ? "#D1D5DB" : "linear-gradient(#5a5a5a, #1c1c1c)",
                 fontFamily:
                   '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = "0 0 8px rgba(0,0,0,0.4)";
+                if (!loading) e.currentTarget.style.boxShadow = "0 0 8px rgba(0,0,0,0.4)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.boxShadow = "none";
               }}
             >
-              <FcGoogle className="w-5 h-5 mr-2 rounded-full" />
-              Sign in with Google
+              {loading ? (
+                <>
+                  <svg
+                    className="animate-spin h-5 w-5 mr-2"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="white"
+                      strokeWidth="3"
+                      strokeDasharray="31.4 31.4"
+                      strokeLinecap="round"
+                    />
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="white"
+                      strokeWidth="1"
+                      strokeDasharray="15.7 47.1"
+                      strokeDashoffset="15.7"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  <FcGoogle className="w-5 h-5 mr-2 rounded-full" />
+                  Sign in with Google
+                </>
+              )}
             </button>
             
           </div>

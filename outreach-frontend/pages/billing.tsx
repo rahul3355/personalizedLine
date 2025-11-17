@@ -281,6 +281,7 @@ export default function BillingPage() {
   const [selectedPlanId, setSelectedPlanId] = useState<string>(
     () => planConfigurations.find((plan) => plan.popular)?.id ?? planConfigurations[0]?.id ?? ""
   );
+  const [loadingPlanId, setLoadingPlanId] = useState<string | null>(null);
   const closeBilling = () => {
     if (window.history.length > 1) {
       router.back();
@@ -313,6 +314,7 @@ export default function BillingPage() {
 
   const handleCheckout = async (planId: string) => {
     if (!session || !userInfo?.id) return;
+    setLoadingPlanId(planId);
     try {
       const res = await fetch(`${API_URL}/create_checkout_session`, {
         method: "POST",
@@ -340,11 +342,13 @@ export default function BillingPage() {
       } else {
         console.error("Plan checkout error", data);
         alert("Failed to create checkout session");
+        setLoadingPlanId(null);
       }
     } catch (err) {
       console.error("Checkout error", err);
       const errorMsg = err instanceof Error ? err.message : "Something went wrong starting checkout";
       alert(errorMsg);
+      setLoadingPlanId(null);
     }
   };
 
@@ -517,14 +521,52 @@ export default function BillingPage() {
                     <button
                       type="button"
                       onClick={() => handleCheckout(plan.id)}
-                      className="group relative mt-auto w-full overflow-visible rounded-full px-6 py-3 text-sm font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                      disabled={loadingPlanId === plan.id}
+                      className="group relative mt-auto w-full overflow-visible rounded-full px-6 py-3 text-sm font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-black disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <span
                         aria-hidden="true"
-                        className={`pointer-events-none absolute inset-0 rounded-full transition-all duration-200 ease-out ${plan.popular ? "bg-black" : "bg-neutral-900"} group-hover:-inset-1 group-hover:bg-neutral-800 group-active:-inset-0.5`}
+                        className={`pointer-events-none absolute inset-0 rounded-full transition-all duration-200 ease-out ${
+                          loadingPlanId === plan.id
+                            ? "bg-neutral-400"
+                            : plan.popular
+                            ? "bg-black"
+                            : "bg-neutral-900"
+                        } ${loadingPlanId !== plan.id ? "group-hover:-inset-1 group-hover:bg-neutral-800 group-active:-inset-0.5" : ""}`}
                       />
-                      <span className="relative z-10 inline-flex items-center justify-center w-full">
-                        {plan.ctaLabel}
+                      <span className="relative z-10 inline-flex items-center justify-center w-full gap-2">
+                        {loadingPlanId === plan.id ? (
+                          <>
+                            <svg
+                              className="animate-spin h-5 w-5"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                            >
+                              <circle
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="white"
+                                strokeWidth="3"
+                                strokeDasharray="31.4 31.4"
+                                strokeLinecap="round"
+                              />
+                              <circle
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="white"
+                                strokeWidth="1"
+                                strokeDasharray="15.7 47.1"
+                                strokeDashoffset="15.7"
+                                strokeLinecap="round"
+                              />
+                            </svg>
+                            Processing...
+                          </>
+                        ) : (
+                          plan.ctaLabel
+                        )}
                       </span>
                     </button>
 
