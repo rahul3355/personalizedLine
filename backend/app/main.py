@@ -1226,8 +1226,8 @@ async def generate_preview(
 
         return {
             "email": selected_email,
-            "research_components": research_components,
-            "email_body": email_body,
+            "sif_research": research_components,
+            "sif_email": email_body,
             "credits_remaining": new_balance
         }
 
