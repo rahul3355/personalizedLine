@@ -4,8 +4,6 @@ import { logger } from "../../lib/logger";
 import { API_URL } from "../../lib/api";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import Confetti from "react-confetti";
-import useWindowSize from "react-use/lib/useWindowSize";
 
 const AEONIK_FONT_FAMILY =
   '"Aeonik Pro","Aeonik",-apple-system,BlinkMacSystemFont,"Segoe UI","Roboto","Helvetica Neue",Arial,sans-serif';
@@ -14,9 +12,7 @@ export default function BillingSuccessPage() {
   const { session, refreshUserInfo } = useAuth();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const [showConfetti, setShowConfetti] = useState(false);
   const [synced, setSynced] = useState(false);
-  const { width, height } = useWindowSize();
 
   useEffect(() => {
     let cancelled = false;
@@ -46,7 +42,6 @@ export default function BillingSuccessPage() {
         if (!cancelled) {
           await refreshUserInfo();
           setSynced(true);
-          setShowConfetti(true);
 
           // Redirect to home after 3 seconds
           redirectTimeout = setTimeout(() => {
@@ -79,19 +74,9 @@ export default function BillingSuccessPage() {
 
   return (
     <div
-      className="h-[calc(100vh-68px)] flex items-center justify-center px-4 overflow-hidden"
+      className="fixed inset-0 top-16 flex items-center justify-center overflow-hidden"
       style={{ fontFamily: AEONIK_FONT_FAMILY }}
     >
-      {showConfetti && (
-        <Confetti
-          width={width}
-          height={height}
-          colors={["#4f55f1", "#6c72ff", "#8a8fff", "#a8adff", "#c6caff"]}
-          numberOfPieces={synced ? 200 : 0}
-          recycle={false}
-          gravity={0.3}
-        />
-      )}
       <div className="bg-white rounded-2xl shadow-sm p-6 max-w-xs w-full">
         <div className="text-center space-y-3">
         {!synced && !error && (
