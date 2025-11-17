@@ -939,11 +939,11 @@ function JobsPage() {
           <div className="space-y-10">
 
             {groupedJobs.length === 0 ? (
-              <div className="flex flex-col items-center justify-center rounded-[18px] border border-dashed border-[#D8DAE6] bg-white/70 px-6 py-12 text-center shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
-                <FileText className="h-10 w-10 text-[#8B8DA1]" />
-                <h2 className="mt-4 text-lg font-semibold text-[#101225]">No jobs yet</h2>
-                <p className="mt-2 max-w-xs text-sm text-[#8B8DA1]">
-                  Upload a CSV to see your personalization jobs appear here in a Revolut-style timeline.
+              <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
+                <FileText className="h-12 w-12 text-[#8B8DA1]/60" />
+                <h2 className="mt-6 text-xl font-semibold text-[#101225]">No jobs yet</h2>
+                <p className="mt-2 max-w-sm text-[15px] leading-relaxed text-[#8B8DA1]">
+                  Upload a CSV file to start your first personalization job
                 </p>
               </div>
             ) : (
