@@ -1997,14 +1997,53 @@ export default function UploadPage() {
                                   disabled={previewLoading || !isServiceContextComplete()}
                                   className="group relative inline-flex items-center gap-2 px-4 py-2 rounded-md font-semibold transition-all duration-200 ease-out disabled:cursor-not-allowed disabled:opacity-50 text-gray-700 hover:text-gray-900 hover:bg-gray-100 hover:scale-105"
                                 >
-                                  <span className="relative">
-                                    {previewLoading ? "Loading..." : "Preview"}
-                                    <span
-                                      className="absolute bottom-0 left-0 w-0 h-[2px] bg-gray-900 transition-all duration-300 group-hover:w-full group-disabled:w-0"
-                                      style={{ bottom: '-2px' }}
-                                    />
-                                  </span>
-                                  <ChevronDown className="w-4 h-4 transition-transform duration-200" />
+                                  {previewLoading ? (
+                                    <>
+                                      <svg
+                                        className="animate-spin h-4 w-4"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                      >
+                                        <circle
+                                          cx="12"
+                                          cy="12"
+                                          r="10"
+                                          stroke="#374151"
+                                          strokeWidth="3"
+                                          strokeDasharray="31.4 31.4"
+                                          strokeLinecap="round"
+                                        />
+                                        <circle
+                                          cx="12"
+                                          cy="12"
+                                          r="10"
+                                          stroke="#374151"
+                                          strokeWidth="1"
+                                          strokeDasharray="15.7 47.1"
+                                          strokeDashoffset="15.7"
+                                          strokeLinecap="round"
+                                        />
+                                      </svg>
+                                      <span className="relative">
+                                        Loading...
+                                        <span
+                                          className="absolute bottom-0 left-0 w-0 h-[2px] bg-gray-900 transition-all duration-300 group-hover:w-full group-disabled:w-0"
+                                          style={{ bottom: '-2px' }}
+                                        />
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span className="relative">
+                                        Preview
+                                        <span
+                                          className="absolute bottom-0 left-0 w-0 h-[2px] bg-gray-900 transition-all duration-300 group-hover:w-full group-disabled:w-0"
+                                          style={{ bottom: '-2px' }}
+                                        />
+                                      </span>
+                                      <ChevronDown className="w-4 h-4 transition-transform duration-200" />
+                                    </>
+                                  )}
                                 </button>
                               </div>
                             )}
@@ -2051,9 +2090,40 @@ export default function UploadPage() {
                               onClick={handleGeneratePreview}
                               disabled={previewLoading || !selectedPreviewEmail}
                               className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-md text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                              style={{ backgroundColor: BRAND }}
+                              style={{ backgroundColor: previewLoading ? "#D1D5DB" : BRAND }}
                             >
-                              {previewLoading ? "Generating..." : "Start Preview (1 credit)"}
+                              {previewLoading ? (
+                                <>
+                                  <svg
+                                    className="animate-spin h-5 w-5"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                  >
+                                    <circle
+                                      cx="12"
+                                      cy="12"
+                                      r="10"
+                                      stroke="white"
+                                      strokeWidth="3"
+                                      strokeDasharray="31.4 31.4"
+                                      strokeLinecap="round"
+                                    />
+                                    <circle
+                                      cx="12"
+                                      cy="12"
+                                      r="10"
+                                      stroke="white"
+                                      strokeWidth="1"
+                                      strokeDasharray="15.7 47.1"
+                                      strokeDashoffset="15.7"
+                                      strokeLinecap="round"
+                                    />
+                                  </svg>
+                                  Generating...
+                                </>
+                              ) : (
+                                "Start Preview (1 credit)"
+                              )}
                             </button>
                           </div>
                         </div>
@@ -2133,18 +2203,53 @@ export default function UploadPage() {
                     disabled={loading || hasCreditShortage}
                     title={hasCreditShortage ? "Add credits to continue" : undefined}
                     className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-md text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none"
-                    style={{ backgroundColor: BRAND }}
-                    onMouseEnter={(e) =>
-                    ((e.currentTarget as HTMLButtonElement).style.backgroundColor =
-                      BRAND_HOVER)
-                    }
-                    onMouseLeave={(e) =>
-                    ((e.currentTarget as HTMLButtonElement).style.backgroundColor =
-                      BRAND)
-                    }
+                    style={{ backgroundColor: loading ? "#D1D5DB" : BRAND }}
+                    onMouseEnter={(e) => {
+                      if (!loading) {
+                        (e.currentTarget as HTMLButtonElement).style.backgroundColor = BRAND_HOVER;
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!loading) {
+                        (e.currentTarget as HTMLButtonElement).style.backgroundColor = BRAND;
+                      }
+                    }}
                   >
-                    {loading ? "Generating…" : "Generate"}
-                    <ArrowRight className="w-4 h-4" />
+                    {loading ? (
+                      <>
+                        <svg
+                          className="animate-spin h-5 w-5"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                        >
+                          <circle
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="white"
+                            strokeWidth="3"
+                            strokeDasharray="31.4 31.4"
+                            strokeLinecap="round"
+                          />
+                          <circle
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="white"
+                            strokeWidth="1"
+                            strokeDasharray="15.7 47.1"
+                            strokeDashoffset="15.7"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        Generating…
+                      </>
+                    ) : (
+                      <>
+                        Generate
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
                   </button>
                 </div>
               </div>

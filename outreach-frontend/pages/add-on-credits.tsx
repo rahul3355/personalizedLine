@@ -21,6 +21,7 @@ export default function AddOnCreditsPage() {
   const router = useRouter();
   const dialogRef = useRef<HTMLDivElement>(null);
   const [addonCount, setAddonCount] = useState(1);
+  const [loading, setLoading] = useState(false);
   const currentPlan = useMemo(
     () => userInfo?.user?.plan_type || userInfo?.plan_type || "free",
     [userInfo?.plan_type, userInfo?.user?.plan_type]
@@ -58,6 +59,7 @@ export default function AddOnCreditsPage() {
 
   const handleBuyAddons = async () => {
     if (!session || !userInfo?.id) return;
+    setLoading(true);
     try {
       const res = await fetch(`${API_URL}/create_checkout_session`, {
         method: "POST",
@@ -85,11 +87,13 @@ export default function AddOnCreditsPage() {
       } else {
         console.error("Add-on checkout error", data);
         alert("Failed to start add-on purchase");
+        setLoading(false);
       }
     } catch (err) {
       console.error("Add-on purchase error", err);
       const errorMsg = err instanceof Error ? err.message : "Something went wrong";
       alert(errorMsg);
+      setLoading(false);
     }
   };
 
@@ -204,9 +208,41 @@ export default function AddOnCreditsPage() {
               <button
                 type="button"
                 onClick={handleBuyAddons}
-                className="mt-6 w-full rounded-full bg-black px-6 py-3 text-sm font-semibold text-white transition hover:bg-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                disabled={loading}
+                className="mt-6 w-full rounded-full bg-black px-6 py-3 text-sm font-semibold text-white transition hover:bg-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-neutral-400"
               >
-                Purchase add-ons
+                {loading ? (
+                  <span className="inline-flex items-center justify-center gap-2">
+                    <svg
+                      className="animate-spin h-5 w-5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="white"
+                        strokeWidth="3"
+                        strokeDasharray="31.4 31.4"
+                        strokeLinecap="round"
+                      />
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="white"
+                        strokeWidth="1"
+                        strokeDasharray="15.7 47.1"
+                        strokeDashoffset="15.7"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    Processing...
+                  </span>
+                ) : (
+                  "Purchase add-ons"
+                )}
               </button>
             </section>
           </div>
