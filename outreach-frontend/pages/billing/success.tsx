@@ -73,22 +73,22 @@ export default function BillingSuccessPage() {
     };
   }, [API_URL, refreshUserInfo, router, session]);
 
-  // Trigger confetti when payment is successful
+  // Trigger rainbow confetti when payment is successful
   useEffect(() => {
     if (synced) {
       fireConfetti({
-        particleCount: 100,
+        particleCount: 150,
         angle: 90,
-        spread: 60,
+        spread: 70,
         startVelocity: 45,
         decay: 0.9,
         gravity: 1,
         origin: { x: 0.5, y: 0.6 },
-        colors: ['#4f55f1', '#6c72ff', '#8a8fff', '#a8adff', '#c6caff'],
-        shapes: ['circle', 'square'],
+        colors: ['#26ccff', '#a25afd', '#ff5e7e', '#88ff5a', '#fcff42', '#ffa62d', '#ff36ff'],
+        shapes: ['circle', 'square', 'star'],
         zIndex: 9999,
         disableForReducedMotion: true,
-        scalar: 1,
+        scalar: 1.2,
       });
     }
   }, [synced]);
@@ -98,13 +98,13 @@ export default function BillingSuccessPage() {
       className="fixed inset-0 top-16 flex items-center justify-center overflow-hidden"
       style={{ fontFamily: AEONIK_FONT_FAMILY }}
     >
-      <div className="bg-white rounded-2xl shadow-sm p-6 max-w-xs w-full">
-        <div className="text-center space-y-3">
+      <div className="bg-white rounded-2xl shadow-lg p-10 max-w-md w-full">
+        <div className="text-center space-y-5">
         {!synced && !error && (
           <>
-            <div className="animate-spin h-8 w-8 border-3 border-gray-300 border-t-[#4f55f1] rounded-full mx-auto" />
-            <h1 className="text-lg font-semibold text-gray-900">Processing your payment…</h1>
-            <p className="text-xs text-gray-600">
+            <div className="animate-spin h-12 w-12 border-4 border-green-200 border-t-green-500 rounded-full mx-auto" />
+            <h1 className="text-2xl font-semibold text-green-700">Processing your payment…</h1>
+            <p className="text-base text-green-600">
               We&apos;re finalizing your purchase. This will only take a moment.
             </p>
           </>
@@ -114,7 +114,7 @@ export default function BillingSuccessPage() {
           <>
             <div>
               <svg
-                className="mx-auto h-10 w-10 text-[#4f55f1]"
+                className="mx-auto h-20 w-20 text-green-500"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -127,8 +127,8 @@ export default function BillingSuccessPage() {
                 />
               </svg>
             </div>
-            <h1 className="text-lg font-semibold text-gray-900">Payment Successful!</h1>
-            <p className="text-xs text-gray-600">
+            <h1 className="text-3xl font-bold text-green-600">Payment Successful!</h1>
+            <p className="text-base text-green-500">
               Your credits have been added to your account. Redirecting you to the dashboard…
             </p>
           </>
@@ -138,7 +138,7 @@ export default function BillingSuccessPage() {
           <>
             <div>
               <svg
-                className="mx-auto h-10 w-10 text-yellow-500"
+                className="mx-auto h-20 w-20 text-green-400"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -151,11 +151,11 @@ export default function BillingSuccessPage() {
                 />
               </svg>
             </div>
-            <h1 className="text-base font-semibold text-gray-900">Payment Received</h1>
-            <p className="text-xs text-gray-600">
+            <h1 className="text-2xl font-semibold text-green-600">Payment Received</h1>
+            <p className="text-base text-green-500">
               Your payment was successful, but we encountered an issue syncing your account.
             </p>
-            <p className="text-xs text-gray-500">
+            <p className="text-sm text-green-400">
               {error}. Your credits will be available shortly. Redirecting you home…
             </p>
           </>
