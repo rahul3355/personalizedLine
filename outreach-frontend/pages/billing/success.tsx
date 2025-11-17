@@ -79,7 +79,7 @@ export default function BillingSuccessPage() {
 
   return (
     <div
-      className="h-[calc(100vh-68px)] flex items-center justify-center bg-[#F7F7F7] px-4 overflow-hidden"
+      className="h-[calc(100vh-68px)] flex items-center justify-center px-4 overflow-hidden"
       style={{ fontFamily: AEONIK_FONT_FAMILY }}
     >
       {showConfetti && (
