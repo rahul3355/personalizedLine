@@ -769,7 +769,7 @@ export default function UploadPage() {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewResult, setPreviewResult] = useState<{
     email: string;
-    email_body: string;
+    sif_email: string;
     credits_remaining: number;
   } | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
@@ -2090,7 +2090,7 @@ export default function UploadPage() {
                                 Personalized Email:
                               </label>
                               <div className="bg-white border border-green-200 rounded-md p-4 text-sm text-gray-900 whitespace-pre-wrap">
-                                {previewResult.email_body}
+                                {previewResult.sif_email}
                               </div>
                             </div>
                           </div>
@@ -2422,7 +2422,7 @@ export default function UploadPage() {
                             Personalized Email:
                           </label>
                           <div className="bg-white border border-green-200 rounded-md p-4 text-xs text-gray-900 whitespace-pre-wrap leading-relaxed">
-                            {previewResult.email_body}
+                            {previewResult.sif_email}
                           </div>
                         </div>
                       </div>
