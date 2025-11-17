@@ -92,12 +92,12 @@ export default function BillingSuccessPage() {
           gravity={0.3}
         />
       )}
-      <div className="max-w-md w-full text-center space-y-4">
+      <div className="max-w-xs w-full text-center space-y-3">
         {!synced && !error && (
           <>
-            <div className="animate-spin h-12 w-12 border-4 border-gray-300 border-t-[#4f55f1] rounded-full mx-auto" />
-            <h1 className="text-xl font-semibold text-gray-900">Processing your payment…</h1>
-            <p className="text-sm text-gray-600">
+            <div className="animate-spin h-8 w-8 border-3 border-gray-300 border-t-[#4f55f1] rounded-full mx-auto" />
+            <h1 className="text-lg font-semibold text-gray-900">Processing your payment…</h1>
+            <p className="text-xs text-gray-600">
               We&apos;re finalizing your purchase. This will only take a moment.
             </p>
           </>
@@ -107,7 +107,7 @@ export default function BillingSuccessPage() {
           <>
             <div>
               <svg
-                className="mx-auto h-14 w-14 text-[#4f55f1]"
+                className="mx-auto h-10 w-10 text-[#4f55f1]"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -120,8 +120,8 @@ export default function BillingSuccessPage() {
                 />
               </svg>
             </div>
-            <h1 className="text-2xl font-semibold text-gray-900">Payment Successful!</h1>
-            <p className="text-sm text-gray-600">
+            <h1 className="text-lg font-semibold text-gray-900">Payment Successful!</h1>
+            <p className="text-xs text-gray-600">
               Your credits have been added to your account. Redirecting you to the dashboard…
             </p>
           </>
@@ -131,7 +131,7 @@ export default function BillingSuccessPage() {
           <>
             <div>
               <svg
-                className="mx-auto h-14 w-14 text-yellow-500"
+                className="mx-auto h-10 w-10 text-yellow-500"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -144,8 +144,8 @@ export default function BillingSuccessPage() {
                 />
               </svg>
             </div>
-            <h1 className="text-xl font-semibold text-gray-900">Payment Received</h1>
-            <p className="text-sm text-gray-600">
+            <h1 className="text-base font-semibold text-gray-900">Payment Received</h1>
+            <p className="text-xs text-gray-600">
               Your payment was successful, but we encountered an issue syncing your account.
             </p>
             <p className="text-xs text-gray-500">
