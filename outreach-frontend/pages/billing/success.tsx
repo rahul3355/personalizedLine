@@ -76,18 +76,24 @@ export default function BillingSuccessPage() {
   useEffect(() => {
     if (synced) {
       fireConfetti({
-        particleCount: 150,
+        particleCount: 50,
         angle: 90,
-        spread: 70,
+        spread: 45,
         startVelocity: 45,
         decay: 0.9,
         gravity: 1,
-        origin: { x: 0.5, y: 0.6 },
+        drift: 0,
+        flat: false,
+        ticks: 200,
+        origin: { x: 0.5, y: 0.5 },
         colors: ['#26ccff', '#a25afd', '#ff5e7e', '#88ff5a', '#fcff42', '#ffa62d', '#ff36ff'],
-        shapes: ['circle', 'square', 'star'],
-        zIndex: 9999,
-        disableForReducedMotion: true,
-        scalar: 1.2,
+        shapes: ['square', 'circle'],
+        zIndex: 100,
+        disableForReducedMotion: false,
+        useWorker: true,
+        resize: true,
+        canvas: null,
+        scalar: 1,
       });
     }
   }, [synced]);
