@@ -79,7 +79,7 @@ export default function BillingSuccessPage() {
 
   return (
     <div
-      className="h-[calc(100vh-68px)] flex items-center justify-center bg-white px-4 overflow-hidden"
+      className="h-[calc(100vh-68px)] flex items-center justify-center bg-[#F7F7F7] px-4 overflow-hidden"
       style={{ fontFamily: AEONIK_FONT_FAMILY }}
     >
       {showConfetti && (
@@ -92,7 +92,8 @@ export default function BillingSuccessPage() {
           gravity={0.3}
         />
       )}
-      <div className="max-w-xs w-full text-center space-y-3">
+      <div className="bg-white rounded-2xl shadow-sm p-6 max-w-xs w-full">
+        <div className="text-center space-y-3">
         {!synced && !error && (
           <>
             <div className="animate-spin h-8 w-8 border-3 border-gray-300 border-t-[#4f55f1] rounded-full mx-auto" />
@@ -153,6 +154,7 @@ export default function BillingSuccessPage() {
             </p>
           </>
         )}
+        </div>
       </div>
     </div>
   );
