@@ -1,4 +1,3 @@
-
 import { useAuth } from "../../lib/AuthProvider";
 import { logger } from "../../lib/logger";
 import { API_URL } from "../../lib/api";
@@ -77,24 +76,18 @@ export default function BillingSuccessPage() {
   useEffect(() => {
     if (synced) {
       fireConfetti({
-        particleCount: 50,
+        particleCount: 150,
         angle: 90,
-        spread: 45,
+        spread: 70,
         startVelocity: 45,
         decay: 0.9,
         gravity: 1,
-        drift: 0,
-        flat: false,
-        ticks: 200,
-        origin: { x: 0.5, y: 0.5 },
+        origin: { x: 0.5, y: 0.6 },
         colors: ['#26ccff', '#a25afd', '#ff5e7e', '#88ff5a', '#fcff42', '#ffa62d', '#ff36ff'],
-        shapes: ['square', 'circle'],
-        zIndex: 100,
-        disableForReducedMotion: false,
-        useWorker: true,
-        resize: true,
-        canvas: null,
-        scalar: 1,
+        shapes: ['circle', 'square', 'star'],
+        zIndex: 9999,
+        disableForReducedMotion: true,
+        scalar: 1.2,
       });
     }
   }, [synced]);
@@ -104,68 +97,67 @@ export default function BillingSuccessPage() {
       className="fixed inset-0 top-16 flex items-start justify-center overflow-hidden pt-20"
       style={{ fontFamily: AEONIK_FONT_FAMILY }}
     >
-      <div className="bg-white rounded-2xl shadow-lg p-10 max-w-md w-full">
-        <div className="text-center space-y-5">
-          {!synced && !error && (
-            <>
-              <div className="animate-spin h-12 w-12 border-4 border-green-200 border-t-green-500 rounded-full mx-auto" />
-              <h1 className="text-2xl font-semibold text-green-700">Processing your payment…</h1>
-              <p className="text-base text-green-600">
-                We&apos;re finalizing your purchase. This will only take a moment.
-              </p>
-            </>
-          )}
+      <div className="bg-white rounded-lg p-10 max-w-2xl w-full">
+        <div className="text-center space-y-4">
+        {!synced && !error && (
+          <>
+            <div className="animate-spin h-12 w-12 border-4 border-green-200 border-t-green-600 rounded-full mx-auto" />
+            <h1 className="text-2xl font-bold text-green-800" style={{ fontFamily: 'Consolas, monospace' }}>PROCESSING PAYMENT</h1>
+            <p className="text-base text-green-700">
+              Finalizing your purchase...
+            </p>
+          </>
+        )}
 
-          {synced && !error && (
-            <>
-              <div>
-                <svg
-                  className="mx-auto h-20 w-20 text-green-500"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-              <h1 className="text-3xl font-bold text-green-600">Payment Successful!</h1>
-              <p className="text-base text-green-500">
-                Your credits have been added to your account. Redirecting you to the dashboard…
-              </p>
-            </>
-          )}
+        {synced && !error && (
+          <>
+            <div>
+              <svg
+                className="mx-auto h-20 w-20 text-green-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={3}
+              >
+                <path
+                  strokeLinecap="square"
+                  strokeLinejoin="miter"
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            </div>
+            <h1 className="text-4xl font-bold text-green-800" style={{ fontFamily: 'Consolas, monospace' }}>PAYMENT SUCCESSFUL</h1>
+            <p className="text-lg text-green-700">Credits added</p>
+            <p className="text-base text-green-600">Redirecting...</p>
+          </>
+        )}
 
-          {error && (
-            <>
-              <div>
-                <svg
-                  className="mx-auto h-20 w-20 text-green-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                  />
-                </svg>
-              </div>
-              <h1 className="text-2xl font-semibold text-green-600">Payment Received</h1>
-              <p className="text-base text-green-500">
-                Your payment was successful, but we encountered an issue syncing your account.
-              </p>
-              <p className="text-sm text-green-400">
-                {error}. Your credits will be available shortly. Redirecting you home…
-              </p>
-            </>
-          )}
+        {error && (
+          <>
+            <div>
+              <svg
+                className="mx-auto h-20 w-20 text-green-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={3}
+              >
+                <path
+                  strokeLinecap="square"
+                  strokeLinejoin="miter"
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+            </div>
+            <h1 className="text-3xl font-bold text-green-800" style={{ fontFamily: 'Consolas, monospace' }}>PAYMENT RECEIVED</h1>
+            <p className="text-base text-green-700">
+              Payment successful, but sync issue occurred.
+            </p>
+            <p className="text-sm text-green-600">
+              {error}. Credits will be available shortly. Redirecting...
+            </p>
+          </>
+        )}
         </div>
       </div>
     </div>
