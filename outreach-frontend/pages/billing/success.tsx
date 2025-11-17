@@ -101,7 +101,7 @@ export default function BillingSuccessPage() {
 
   return (
     <div
-      className="fixed inset-0 top-16 flex items-center justify-center overflow-hidden"
+      className="fixed inset-0 top-16 flex items-start justify-center overflow-hidden pt-20"
       style={{ fontFamily: AEONIK_FONT_FAMILY }}
     >
       <div className="bg-white rounded-2xl shadow-lg p-10 max-w-md w-full">
