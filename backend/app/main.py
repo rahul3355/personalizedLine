@@ -105,7 +105,7 @@ CREDITS_MAP = {
     "free": 500,
     "starter": 2000,
     "growth": 10000,
-    "pro": 25000,
+    "pro": 40000,
 }
 
 FRONTEND_BASE_URLS = os.getenv(
