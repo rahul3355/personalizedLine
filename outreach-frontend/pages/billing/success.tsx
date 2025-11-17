@@ -79,7 +79,7 @@ export default function BillingSuccessPage() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center bg-white px-4"
+      className="h-[calc(100vh-68px)] flex items-center justify-center bg-white px-4 overflow-hidden"
       style={{ fontFamily: AEONIK_FONT_FAMILY }}
     >
       {showConfetti && (
@@ -92,12 +92,12 @@ export default function BillingSuccessPage() {
           gravity={0.3}
         />
       )}
-      <div className="max-w-md w-full text-center">
+      <div className="max-w-md w-full text-center space-y-4">
         {!synced && !error && (
           <>
-            <div className="animate-spin h-12 w-12 border-4 border-gray-300 border-t-[#4f55f1] rounded-full mx-auto mb-6" />
+            <div className="animate-spin h-12 w-12 border-4 border-gray-300 border-t-[#4f55f1] rounded-full mx-auto" />
             <h1 className="text-xl font-semibold text-gray-900">Processing your payment…</h1>
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="text-sm text-gray-600">
               We&apos;re finalizing your purchase. This will only take a moment.
             </p>
           </>
@@ -105,9 +105,9 @@ export default function BillingSuccessPage() {
 
         {synced && !error && (
           <>
-            <div className="mb-6">
+            <div>
               <svg
-                className="mx-auto h-16 w-16 text-[#4f55f1]"
+                className="mx-auto h-14 w-14 text-[#4f55f1]"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -121,7 +121,7 @@ export default function BillingSuccessPage() {
               </svg>
             </div>
             <h1 className="text-2xl font-semibold text-gray-900">Payment Successful!</h1>
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="text-sm text-gray-600">
               Your credits have been added to your account. Redirecting you to the dashboard…
             </p>
           </>
@@ -129,9 +129,9 @@ export default function BillingSuccessPage() {
 
         {error && (
           <>
-            <div className="mb-6">
+            <div>
               <svg
-                className="mx-auto h-16 w-16 text-yellow-500"
+                className="mx-auto h-14 w-14 text-yellow-500"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -145,10 +145,10 @@ export default function BillingSuccessPage() {
               </svg>
             </div>
             <h1 className="text-xl font-semibold text-gray-900">Payment Received</h1>
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="text-sm text-gray-600">
               Your payment was successful, but we encountered an issue syncing your account.
             </p>
-            <p className="mt-2 text-xs text-gray-500">
+            <p className="text-xs text-gray-500">
               {error}. Your credits will be available shortly. Redirecting you home…
             </p>
           </>
