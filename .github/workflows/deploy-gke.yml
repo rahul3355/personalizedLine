@@ -1,0 +1,136 @@
+name: Deploy to GKE
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - 'k8s/**'
+      - '.github/workflows/deploy-gke.yml'
+
+env:
+  PROJECT_ID: personalizedline-prod
+  GKE_CLUSTER: personalized-cluster
+  GKE_REGION: us-central1
+  GKE_NAMESPACE: personalizedline
+  IMAGE_NAME: personalizedline
+
+jobs:
+  deploy:
+    name: Build and Deploy to GKE
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Configure Docker for GCR
+        run: |
+          gcloud auth configure-docker gcr.io
+
+      - name: Get GKE credentials
+        run: |
+          gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
+            --region ${{ env.GKE_REGION }} \
+            --project ${{ env.PROJECT_ID }}
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t gcr.io/${{ env.PROJECT_ID }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            -t gcr.io/${{ env.PROJECT_ID }}/${{ env.IMAGE_NAME }}:latest \
+            -f backend/app/Dockerfile \
+            .
+
+      - name: Push Docker image to GCR
+        run: |
+          docker push gcr.io/${{ env.PROJECT_ID }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker push gcr.io/${{ env.PROJECT_ID }}/${{ env.IMAGE_NAME }}:latest
+
+      - name: Deploy Web service to GKE
+        run: |
+          # Update web deployment with new image
+          kubectl set image deployment/web \
+            web=gcr.io/${{ env.PROJECT_ID }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            -n ${{ env.GKE_NAMESPACE }}
+
+          # Annotate deployment with git info for tracking
+          kubectl annotate deployment/web \
+            kubernetes.io/change-cause="Deploy ${{ github.sha }} - ${{ github.event.head_commit.message }}" \
+            -n ${{ env.GKE_NAMESPACE }} \
+            --overwrite
+
+      - name: Deploy Worker service to GKE
+        run: |
+          # Update worker deployment with new image
+          kubectl set image deployment/rq-worker \
+            worker=gcr.io/${{ env.PROJECT_ID }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            -n ${{ env.GKE_NAMESPACE }}
+
+          # Annotate deployment with git info for tracking
+          kubectl annotate deployment/rq-worker \
+            kubernetes.io/change-cause="Deploy ${{ github.sha }} - ${{ github.event.head_commit.message }}" \
+            -n ${{ env.GKE_NAMESPACE }} \
+            --overwrite
+
+      - name: Wait for Web rollout to complete
+        run: |
+          kubectl rollout status deployment/web \
+            -n ${{ env.GKE_NAMESPACE }} \
+            --timeout=5m
+
+      - name: Wait for Worker rollout to complete
+        run: |
+          kubectl rollout status deployment/rq-worker \
+            -n ${{ env.GKE_NAMESPACE }} \
+            --timeout=5m
+
+      - name: Verify deployments
+        run: |
+          echo "=== Web Deployment Status ==="
+          kubectl get deployment web -n ${{ env.GKE_NAMESPACE }}
+          kubectl get pods -l app=web -n ${{ env.GKE_NAMESPACE }}
+
+          echo ""
+          echo "=== Worker Deployment Status ==="
+          kubectl get deployment rq-worker -n ${{ env.GKE_NAMESPACE }}
+          kubectl get pods -l app=rq-worker -n ${{ env.GKE_NAMESPACE }}
+
+      - name: Deployment Summary
+        if: success()
+        run: |
+          echo "✅ Deployment successful!"
+          echo "📦 Image: gcr.io/${{ env.PROJECT_ID }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          echo "🔗 Commit: ${{ github.sha }}"
+          echo "💬 Message: ${{ github.event.head_commit.message }}"
+          echo ""
+          echo "To rollback, run:"
+          echo "  kubectl rollout undo deployment/web -n ${{ env.GKE_NAMESPACE }}"
+          echo "  kubectl rollout undo deployment/rq-worker -n ${{ env.GKE_NAMESPACE }}"
+
+      - name: Deployment Failed
+        if: failure()
+        run: |
+          echo "❌ Deployment failed!"
+          echo "Check the logs above for errors."
+          echo ""
+          echo "Current pod status:"
+          kubectl get pods -n ${{ env.GKE_NAMESPACE }}
+          echo ""
+          echo "Recent events:"
+          kubectl get events -n ${{ env.GKE_NAMESPACE }} --sort-by='.lastTimestamp' | tail -20

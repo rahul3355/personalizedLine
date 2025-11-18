@@ -13,6 +13,10 @@ venv/
 
 /k8s/secrets.yaml
 
+# Ignore GCP service account keys
+github-actions-key.json
+*.json.backup.*
+
 /backend/app/python_generation_to_test_new_features/
 
 # Ignore Python caches
