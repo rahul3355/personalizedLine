@@ -497,7 +497,7 @@ async def parse_headers(
 
         profile_res = (
             supabase_client.table("profiles")
-            .select("credits_remaining")
+            .select("credits_remaining, addon_credits")
             .eq("id", current_user.user_id)
             .single()
             .execute()
@@ -506,14 +506,18 @@ async def parse_headers(
         if isinstance(profile_data, list):
             profile_data = profile_data[0] if profile_data else None
         credits_remaining = 0
+        addon_credits = 0
         if isinstance(profile_data, dict):
             try:
                 credits_remaining = int(profile_data.get("credits_remaining") or 0)
+                addon_credits = int(profile_data.get("addon_credits") or 0)
             except (TypeError, ValueError):
                 credits_remaining = 0
+                addon_credits = 0
 
-        has_enough_credits = credits_remaining >= row_count
-        missing_credits = max(0, row_count - credits_remaining)
+        total_credits = credits_remaining + addon_credits
+        has_enough_credits = total_credits >= row_count
+        missing_credits = max(0, row_count - total_credits)
 
         email_guess = ""
         email_variants = {"email", "emails", "e-mail", "e-mails", "mail", "mails"}
@@ -533,14 +537,14 @@ async def parse_headers(
 
         print(
             f"[ParseHeaders] Parsed headers for {file_path}: {headers} — rows={row_count} "
-            f"credits={credits_remaining} enough={has_enough_credits} guess={email_guess!r}"
+            f"monthly={credits_remaining} addon={addon_credits} total={total_credits} enough={has_enough_credits} guess={email_guess!r}"
         )
 
         return {
             "headers": headers,
             "file_path": file_path,
             "row_count": row_count,
-            "credits_remaining": credits_remaining,
+            "credits_remaining": total_credits,
             "has_enough_credits": has_enough_credits,
             "missing_credits": missing_credits,
             "email_header_guess": email_guess,
@@ -638,7 +642,7 @@ def get_me(current_user: AuthenticatedUser = Depends(get_current_user)):
         user_id = current_user.user_id
         res = (
             supabase.table("profiles")
-            .select("id, email, credits_remaining, max_credits, plan_type, subscription_status, renewal_date")
+            .select("id, email, credits_remaining, addon_credits, max_credits, plan_type, subscription_status, renewal_date")
             .eq("id", user_id)
             .single()
             .execute()
@@ -729,7 +733,7 @@ def _reserve_credits_for_job(
     for attempt in range(max_attempts):
         profile_res = (
             supabase_client.table("profiles")
-            .select("credits_remaining")
+            .select("credits_remaining, addon_credits")
             .eq("id", user_id)
             .limit(1)
             .execute()
@@ -737,11 +741,15 @@ def _reserve_credits_for_job(
         profile = _parse_profile_response(profile_res) or {}
         try:
             credits_remaining = int(profile.get("credits_remaining") or 0)
+            addon_credits = int(profile.get("addon_credits") or 0)
         except (TypeError, ValueError):
             credits_remaining = 0
+            addon_credits = 0
 
-        if credits_remaining < row_count:
-            missing = row_count - credits_remaining
+        total_credits = credits_remaining + addon_credits
+
+        if total_credits < row_count:
+            missing = row_count - total_credits
             print(
                 f"[Credits] User {user_id} lacks {missing} credits for file {file_path}"
             )
@@ -750,17 +758,33 @@ def _reserve_credits_for_job(
                 detail={
                     "error": "insufficient_credits",
                     "row_count": row_count,
-                    "credits_remaining": credits_remaining,
+                    "credits_remaining": total_credits,
                     "missing_credits": missing,
                 },
             )
 
-        new_balance = credits_remaining - row_count
+        # Two-bucket deduction: use monthly credits first, then add-ons
+        if credits_remaining >= row_count:
+            # Use only monthly credits
+            new_monthly = credits_remaining - row_count
+            new_addon = addon_credits
+            deduction_source = "monthly"
+        else:
+            # Use all monthly + some add-on credits
+            remaining_needed = row_count - credits_remaining
+            new_monthly = 0
+            new_addon = addon_credits - remaining_needed
+            deduction_source = "monthly+addon"
+
         update_res = (
             supabase_client.table("profiles")
-            .update({"credits_remaining": new_balance})
+            .update({
+                "credits_remaining": new_monthly,
+                "addon_credits": new_addon
+            })
             .eq("id", user_id)
             .eq("credits_remaining", credits_remaining)
+            .eq("addon_credits", addon_credits)
             .execute()
         )
 
@@ -773,23 +797,24 @@ def _reserve_credits_for_job(
                 "user_id": user_id,
                 "change": -row_count,
                 "amount": 0.0,
-                "reason": f"job deduction: {job_id}",
+                "reason": f"job deduction: {job_id} ({deduction_source})",
                 "ts": datetime.utcnow().isoformat(),
             }
             ledger_res = (
                 supabase_client.table("ledger").insert(ledger_payload).execute()
             )
             if getattr(ledger_res, "error", None):
-                supabase_client.table("profiles").update(
-                    {"credits_remaining": credits_remaining}
-                ).eq("id", user_id).execute()
+                supabase_client.table("profiles").update({
+                    "credits_remaining": credits_remaining,
+                    "addon_credits": addon_credits
+                }).eq("id", user_id).execute()
                 raise HTTPException(
                     status_code=500, detail="Unable to record credit deduction"
                 )
 
             return {
-                "previous_balance": credits_remaining,
-                "new_balance": new_balance,
+                "previous_balance": credits_remaining + addon_credits,
+                "new_balance": new_monthly + new_addon,
                 "cost": row_count,
             }
 
@@ -1672,33 +1697,24 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
             qty = int(metadata.get("quantity", 1))
             credits = qty * 1000
             try:
-                # Use atomic increment via RPC to prevent race conditions
-                try:
-                    res_update = supabase.rpc(
-                        "increment_credits",
-                        {"user_id_param": user_id, "credit_amount": credits}
-                    ).execute()
-                    log_db("increment_addon_credits", res_update)
-                except Exception as rpc_error:
-                    # Fallback to read-modify-write if RPC function doesn't exist
-                    print(f"[WARNING] RPC increment_credits failed, using fallback: {rpc_error}")
-                    current = (
-                        supabase.table("profiles")
-                        .select("credits_remaining")
-                        .eq("id", user_id)
-                        .single()
-                        .execute()
-                    )
-                    current_credits = current.data.get("credits_remaining") if current.data else 0
-                    new_total = (current_credits or 0) + credits
+                # Add to addon_credits (separate bucket, preserved through renewals)
+                current = (
+                    supabase.table("profiles")
+                    .select("addon_credits")
+                    .eq("id", user_id)
+                    .single()
+                    .execute()
+                )
+                current_addon = current.data.get("addon_credits") if current.data else 0
+                new_addon_total = (current_addon or 0) + credits
 
-                    res_update = (
-                        supabase.table("profiles")
-                        .update({"credits_remaining": new_total})
-                        .eq("id", user_id)
-                        .execute()
-                    )
-                    log_db("update_addon_credits", res_update)
+                res_update = (
+                    supabase.table("profiles")
+                    .update({"addon_credits": new_addon_total})
+                    .eq("id", user_id)
+                    .execute()
+                )
+                log_db("update_addon_credits", res_update)
 
                 res_ledger = (
                     supabase.table("ledger")
