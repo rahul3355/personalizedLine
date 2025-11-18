@@ -120,7 +120,7 @@ export default function Home() {
               </p>
               <p>
                 <span className="font-medium">Credits Remaining:</span>{" "}
-                {userInfo?.credits_remaining ?? 0}
+                {(userInfo?.credits_remaining ?? 0) + (userInfo?.addon_credits ?? 0)}
               </p>
               <p>
                 <span className="font-medium">Renewal Date:</span>{" "}
@@ -133,7 +133,7 @@ export default function Home() {
             </div>
 
             {/* Buy Credits */}
-            {(userInfo?.credits_remaining ?? 0) <= 0 && (
+            {((userInfo?.credits_remaining ?? 0) + (userInfo?.addon_credits ?? 0)) <= 0 && (
               <div className="mt-6">
                 <button
                   onClick={handleBuyCredits}
