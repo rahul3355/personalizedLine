@@ -1,46 +1,17 @@
-
+import { useRouter } from "next/router";
 import { useAuth } from "../lib/AuthProvider";
-import { buyCredits } from "../lib/api";
-import { loadStripe } from "@stripe/stripe-js";
-import { CreditCard } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ArrowRight, Play, Check } from "lucide-react";
 import InlineLoader from "@/components/InlineLoader";
-import { TransactionHistorySkeleton } from "@/components/SkeletonScreens";
-
-const STRIPE_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-
-
-const stripePromise = STRIPE_KEY ? loadStripe(STRIPE_KEY) : null;
 
 export default function Home() {
-  const { session, loading, userInfo } = useAuth();
+  const { session, loading } = useAuth();
+  const router = useRouter();
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto px-6 py-10 space-y-10 animate-pulse">
-        {/* Welcome Skeleton */}
-        <div>
-          <div className="h-9 bg-gray-200/80 rounded-lg w-96 mb-2" />
-          <div className="h-6 bg-gray-200/80 rounded-lg w-64" />
-        </div>
-
-        {/* Account Overview Skeleton */}
-        <section className="bg-white rounded-2xl shadow-sm border p-6 space-y-6">
-          <div>
-            <div className="h-7 bg-gray-200/80 rounded-lg w-48 mb-4" />
-            <div className="grid grid-cols-2 gap-y-3">
-              <div className="h-5 bg-gray-200/80 rounded w-32" />
-              <div className="h-5 bg-gray-200/80 rounded w-28" />
-              <div className="h-5 bg-gray-200/80 rounded w-40" />
-              <div className="h-5 bg-gray-200/80 rounded w-36" />
-            </div>
-          </div>
-
-          {/* Transactions Skeleton */}
-          <div>
-            <div className="h-6 bg-gray-200/80 rounded-lg w-48 mb-3" />
-            <TransactionHistorySkeleton count={5} />
-          </div>
-        </section>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <InlineLoader />
       </div>
     );
   }
@@ -55,127 +26,67 @@ export default function Home() {
     );
   }
 
-  const handleBuyCredits = async () => {
-    try {
-      if (!session) {
-        throw new Error("No active session");
-      }
+  const handleStartFree = () => {
+    router.push("/upload");
+  };
 
-      const plan = (userInfo?.user?.plan_type || "free").toLowerCase();
-      const token = session.access_token;
-      const data = await buyCredits(token, {
-        plan,
-        addon: true,
-        quantity: 1,
-        user_id: userInfo?.id,
-      });
-
-      const stripe = await stripePromise;
-      if (!stripe) {
-        throw new Error("Stripe failed to initialize");
-      }
-
-      const { error } = await stripe.redirectToCheckout({
-        sessionId: data.id,
-      });
-
-      if (error) {
-        throw error;
-      }
-    } catch (err) {
-      console.error("Error buying credits:", err);
-      alert("Failed to start credit purchase");
-    }
+  const handleSeeHowItWorks = () => {
+    // Scroll to a how it works section if exists, or show modal/drawer
+    // For now, just scroll to bottom or navigate
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-10 space-y-10">
-      {/* Welcome */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Welcome to SendItFast
-        </h1>
-        <p className="text-gray-600">Hello, {session.user.email}</p>
+    <div className="max-w-5xl mx-auto px-6 lg:px-8 pt-12 pb-24">
+      {/* Hero Section */}
+      <div className="text-center space-y-8">
+        {/* Headline */}
+        <div className="space-y-4">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-gray-900 max-w-4xl mx-auto">
+            Turn your lead list into{" "}
+            <span className="text-[#4F55F1]">booked meetings</span>
+          </h1>
+          
+          {/* Subheadline */}
+          <p className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+            Upload CSV, get research-backed personalized openers in minutes
+          </p>
+        </div>
+
+        {/* CTAs */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+          <Button
+            onClick={handleStartFree}
+            size="lg"
+            className="bg-[#4F55F1] hover:bg-[#3D42D8] text-white px-8 py-6 text-base font-medium shadow-sm hover:shadow-md transition-all"
+          >
+            Start Free (500 rows)
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+          
+          <Button
+            onClick={handleSeeHowItWorks}
+            variant="outline"
+            size="lg"
+            className="px-8 py-6 text-base font-medium border-gray-300 hover:bg-gray-50 transition-all"
+          >
+            <Play className="mr-2 h-4 w-4" />
+            See How It Works
+          </Button>
+        </div>
+
+        {/* Trust Indicators */}
+        <div className="flex flex-wrap items-center justify-center gap-6 pt-2 text-sm text-gray-600">
+          <div className="flex items-center gap-2">
+            <Check className="h-4 w-4 text-green-600" />
+            <span>No credit card required</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Check className="h-4 w-4 text-green-600" />
+            <span>500 free rows</span>
+          </div>
+        </div>
       </div>
-
-      {/* Account Overview */}
-      {userInfo && (
-        <section className="bg-white rounded-2xl shadow-sm border p-6 space-y-6">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Account Overview
-            </h2>
-            <div className="grid grid-cols-2 gap-y-3 text-sm text-gray-700">
-              <p>
-                <span className="font-medium">Plan:</span>{" "}
-                {userInfo?.user && userInfo.user.plan_type
-                  ? userInfo.user.plan_type
-                  : "No plan"}
-              </p>
-              <p>
-                <span className="font-medium">Status:</span>{" "}
-                {userInfo?.user && userInfo.user.subscription_status
-                  ? userInfo.user.subscription_status
-                  : "inactive"}
-              </p>
-              <p>
-                <span className="font-medium">Credits Remaining:</span>{" "}
-                {userInfo?.credits_remaining ?? 0}
-              </p>
-              <p>
-                <span className="font-medium">Renewal Date:</span>{" "}
-                {userInfo?.user && userInfo.user.renewal_date
-                  ? new Date(
-                      userInfo.user.renewal_date * 1000
-                    ).toLocaleDateString()
-                  : "N/A"}
-              </p>
-            </div>
-
-            {/* Buy Credits */}
-            {(userInfo?.credits_remaining ?? 0) <= 0 && (
-              <div className="mt-6">
-                <button
-                  onClick={handleBuyCredits}
-                  className="flex items-center justify-center gap-2 px-6 py-3 w-full sm:w-auto rounded-full bg-gradient-to-b from-gray-100 to-gray-800 text-white font-medium shadow-sm hover:scale-[1.02] active:scale-[0.98] transition-transform"
-                >
-                  <CreditCard className="w-4 h-4" />
-                  Buy +1000 Credits ($10)
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Transactions */}
-          <div>
-            <h3 className="text-md font-semibold text-gray-900 mb-3">
-              Recent Transactions
-            </h3>
-            <div className="space-y-2">
-              {userInfo?.ledger && userInfo.ledger.length > 0 ? (
-                userInfo.ledger.map((entry: any, idx: number) => (
-                  <div
-                    key={idx}
-                    className="flex justify-between items-center text-sm text-gray-700 border-b last:border-0 py-2"
-                  >
-                    <span>
-                      {entry.change > 0 ? "+" : ""}
-                      {entry.change} credits — {entry.reason}
-                    </span>
-                    <span className="text-gray-500 text-xs">
-                      {new Date(entry.ts * 1000).toLocaleString()}
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-gray-500">
-                  No recent transactions
-                </p>
-              )}
-            </div>
-          </div>
-        </section>
-      )}
     </div>
   );
 }
