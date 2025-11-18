@@ -16,6 +16,7 @@ interface UserInfo {
   id: string;
   email: string;
   credits_remaining: number;
+  addon_credits: number;
   max_credits: number;
   user: {
     plan_type: string | null;
@@ -126,6 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         id: profile.id,
         email,
         credits_remaining: profile.credits_remaining ?? 0,
+        addon_credits: profile.addon_credits ?? 0,
         max_credits: profile.max_credits ?? 0,
         user: {
           plan_type: profile.plan_type,
@@ -155,18 +157,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [fetchUserInfo, session]);
 
-  // Optimistically deduct credits from the UI
+  // Optimistically deduct credits from the UI (monthly first, then addon)
   const optimisticallyDeductCredits = useCallback((amount: number) => {
     setUserInfo((prev) => {
       if (!prev) return prev;
+
+      let remaining = amount;
+      let newMonthly = prev.credits_remaining;
+      let newAddon = prev.addon_credits;
+
+      // Use monthly credits first
+      if (newMonthly >= remaining) {
+        newMonthly -= remaining;
+      } else {
+        // Use all monthly + some addon
+        remaining -= newMonthly;
+        newMonthly = 0;
+        newAddon = Math.max(0, newAddon - remaining);
+      }
+
       return {
         ...prev,
-        credits_remaining: Math.max(0, prev.credits_remaining - amount),
+        credits_remaining: newMonthly,
+        addon_credits: newAddon,
       };
     });
   }, []);
 
-  // Revert optimistic credit deduction (on error)
+  // Revert optimistic credit deduction (on error) - add back to monthly
   const revertOptimisticCredits = useCallback((amount: number) => {
     setUserInfo((prev) => {
       if (!prev) return prev;

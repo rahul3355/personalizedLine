@@ -97,7 +97,7 @@ export default function AddOnCreditsPage() {
     }
   };
 
-  const credits = userInfo?.credits_remaining ?? 0;
+  const credits = (userInfo?.credits_remaining ?? 0) + (userInfo?.addon_credits ?? 0);
   const maxCredits = userInfo?.max_credits ?? 25000;
 
   return (
