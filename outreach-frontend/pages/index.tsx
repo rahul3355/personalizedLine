@@ -45,7 +45,7 @@ export default function Home() {
           className="text-5xl sm:text-6xl lg:text-7xl font-normal text-black max-w-4xl mx-auto leading-tight tracking-tight"
           style={{ fontFamily: '"Aeonik Pro", "Aeonik", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}
         >
-          Turn your lead lists into{" "}
+          Turn your leads into{" "}
           <span className="relative inline-block px-1">
             <span className="relative z-10">well-researched</span>
             {[0, 1, 2].map((stroke) => (
