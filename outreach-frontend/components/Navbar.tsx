@@ -103,7 +103,7 @@ export default function Navbar() {
   };
 
   // --- derived (functionality unchanged) ---
-  const credits = userInfo?.credits_remaining ?? 0;
+  const credits = (userInfo?.credits_remaining ?? 0) + (userInfo?.addon_credits ?? 0);
   const userName = loading ? "" : userInfo?.full_name ? userInfo.full_name : "";
   const avatarUrl = loading ? null : userInfo?.avatar_url || null;
 
