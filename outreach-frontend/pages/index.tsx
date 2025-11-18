@@ -1,46 +1,19 @@
-
+import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import { useAuth } from "../lib/AuthProvider";
-import { buyCredits } from "../lib/api";
-import { loadStripe } from "@stripe/stripe-js";
-import { CreditCard } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ArrowRight, Check } from "lucide-react";
 import InlineLoader from "@/components/InlineLoader";
-import { TransactionHistorySkeleton } from "@/components/SkeletonScreens";
-
-const STRIPE_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-
-
-const stripePromise = STRIPE_KEY ? loadStripe(STRIPE_KEY) : null;
 
 export default function Home() {
-  const { session, loading, userInfo } = useAuth();
+  const { session, loading } = useAuth();
+  const router = useRouter();
+  const [underlinePlayed, setUnderlinePlayed] = useState(false);
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto px-6 py-10 space-y-10 animate-pulse">
-        {/* Welcome Skeleton */}
-        <div>
-          <div className="h-9 bg-gray-200/80 rounded-lg w-96 mb-2" />
-          <div className="h-6 bg-gray-200/80 rounded-lg w-64" />
-        </div>
-
-        {/* Account Overview Skeleton */}
-        <section className="bg-white rounded-2xl shadow-sm border p-6 space-y-6">
-          <div>
-            <div className="h-7 bg-gray-200/80 rounded-lg w-48 mb-4" />
-            <div className="grid grid-cols-2 gap-y-3">
-              <div className="h-5 bg-gray-200/80 rounded w-32" />
-              <div className="h-5 bg-gray-200/80 rounded w-28" />
-              <div className="h-5 bg-gray-200/80 rounded w-40" />
-              <div className="h-5 bg-gray-200/80 rounded w-36" />
-            </div>
-          </div>
-
-          {/* Transactions Skeleton */}
-          <div>
-            <div className="h-6 bg-gray-200/80 rounded-lg w-48 mb-3" />
-            <TransactionHistorySkeleton count={5} />
-          </div>
-        </section>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <InlineLoader />
       </div>
     );
   }
@@ -55,127 +28,141 @@ export default function Home() {
     );
   }
 
-  const handleBuyCredits = async () => {
-    try {
-      if (!session) {
-        throw new Error("No active session");
-      }
+  useEffect(() => {
+    setUnderlinePlayed(true);
+  }, []);
 
-      const plan = (userInfo?.user?.plan_type || "free").toLowerCase();
-      const token = session.access_token;
-      const data = await buyCredits(token, {
-        plan,
-        addon: true,
-        quantity: 1,
-        user_id: userInfo?.id,
-      });
-
-      const stripe = await stripePromise;
-      if (!stripe) {
-        throw new Error("Stripe failed to initialize");
-      }
-
-      const { error } = await stripe.redirectToCheckout({
-        sessionId: data.id,
-      });
-
-      if (error) {
-        throw error;
-      }
-    } catch (err) {
-      console.error("Error buying credits:", err);
-      alert("Failed to start credit purchase");
-    }
+  const handleStartFree = () => {
+    router.push("/upload");
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-10 space-y-10">
-      {/* Welcome */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Welcome to SendItFast
+    <div className="max-w-4xl mx-auto px-6 lg:px-8 pt-16 pb-24">
+      {/* Hero Section - Following shadcn 8pt grid system */}
+      <div className="text-center space-y-8">
+        {/* Headline - Times New Roman, bold, all black */}
+        <h1
+          className="text-5xl sm:text-6xl lg:text-7xl font-normal text-black max-w-4xl mx-auto leading-tight tracking-tight"
+          style={{ fontFamily: '"Aeonik Pro", "Aeonik", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}
+        >
+          Turn your leads into{" "}
+          <span className="relative inline-block px-1">
+            <span className="relative z-10">well-researched</span>
+            {[0, 1, 2].map((stroke) => (
+              <span
+                key={stroke}
+                aria-hidden="true"
+                className={`underline-stroke stroke-${stroke + 1} ${
+                  underlinePlayed ? "animate-marker-stroke" : ""
+                }`}
+                style={{
+                  animationDelay: underlinePlayed ? `${stroke * 0.35}s` : undefined,
+                }}
+              />
+            ))}
+          </span>{" "}
+          emails
         </h1>
-        <p className="text-gray-600">Hello, {session.user.email}</p>
+
+        {/* CTA Button - shadcn default black theme, centered, interactive */}
+        <div className="flex items-center justify-center pt-8">
+          <div className="relative inline-flex group">
+            <Button
+              onClick={handleStartFree}
+              size="lg"
+              variant="default"
+              className="relative rounded-full h-11 px-8 py-2.5 text-sm font-medium shadow-sm bg-black text-white hover:bg-black/90 hover:shadow-md transition-all duration-200 active:scale-[0.98] active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 z-10"
+            >
+              <span className="inline-flex items-center">
+                Start Free (500 rows)
+                <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-200 group-hover:translate-x-1 group-active:translate-x-0.5" />
+              </span>
+            </Button>
+            <span 
+              className="pointer-events-none absolute inset-0 rounded-full border-2 border-dashed border-black opacity-0 transition-all duration-300 group-hover:opacity-100"
+              style={{
+                top: '-4px',
+                left: '-4px',
+                right: '-4px',
+                bottom: '-4px',
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Trust Indicator - Times New Roman, all black */}
+        <div className="flex items-center justify-center gap-2 pt-4">
+          <Check className="h-4 w-4 text-black" />
+          <span 
+            className="text-sm text-black"
+            style={{ fontFamily: "'Times New Roman', serif" }}
+          >
+            No credit card required
+          </span>
+        </div>
       </div>
+      <style jsx>{`
+        .underline-stroke {
+          position: absolute;
+          left: 0;
+          right: 0;
+          transform: scaleX(0);
+          transform-origin: left;
+          border-radius: 2px;
+          background-image: linear-gradient(
+              90deg,
+              rgba(255, 235, 59, 0.95),
+              rgba(255, 220, 0, 0.95),
+              rgba(255, 245, 80, 0.9)
+            ),
+            repeating-linear-gradient(
+              -45deg,
+              rgba(255, 255, 255, 0.15) 0,
+              rgba(255, 255, 255, 0.15) 2px,
+              transparent 2px,
+              transparent 4px
+            );
+          filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.2));
+          mix-blend-mode: multiply;
+          opacity: 0.55;
+        }
 
-      {/* Account Overview */}
-      {userInfo && (
-        <section className="bg-white rounded-2xl shadow-sm border p-6 space-y-6">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Account Overview
-            </h2>
-            <div className="grid grid-cols-2 gap-y-3 text-sm text-gray-700">
-              <p>
-                <span className="font-medium">Plan:</span>{" "}
-                {userInfo?.user && userInfo.user.plan_type
-                  ? userInfo.user.plan_type
-                  : "No plan"}
-              </p>
-              <p>
-                <span className="font-medium">Status:</span>{" "}
-                {userInfo?.user && userInfo.user.subscription_status
-                  ? userInfo.user.subscription_status
-                  : "inactive"}
-              </p>
-              <p>
-                <span className="font-medium">Credits Remaining:</span>{" "}
-                {(userInfo?.credits_remaining ?? 0) + (userInfo?.addon_credits ?? 0)}
-              </p>
-              <p>
-                <span className="font-medium">Renewal Date:</span>{" "}
-                {userInfo?.user && userInfo.user.renewal_date
-                  ? new Date(
-                      userInfo.user.renewal_date * 1000
-                    ).toLocaleDateString()
-                  : "N/A"}
-              </p>
-            </div>
+        .stroke-1 {
+          bottom: 0.02em;
+          height: 0.18em;
+          transform-origin: left;
+        }
 
-            {/* Buy Credits */}
-            {((userInfo?.credits_remaining ?? 0) + (userInfo?.addon_credits ?? 0)) <= 0 && (
-              <div className="mt-6">
-                <button
-                  onClick={handleBuyCredits}
-                  className="flex items-center justify-center gap-2 px-6 py-3 w-full sm:w-auto rounded-full bg-gradient-to-b from-gray-100 to-gray-800 text-white font-medium shadow-sm hover:scale-[1.02] active:scale-[0.98] transition-transform"
-                >
-                  <CreditCard className="w-4 h-4" />
-                  Buy +1000 Credits ($10)
-                </button>
-              </div>
-            )}
-          </div>
+        .stroke-2 {
+          bottom: -0.01em;
+          height: 0.16em;
+          opacity: 0.88;
+          transform-origin: right;
+        }
 
-          {/* Transactions */}
-          <div>
-            <h3 className="text-md font-semibold text-gray-900 mb-3">
-              Recent Transactions
-            </h3>
-            <div className="space-y-2">
-              {userInfo?.ledger && userInfo.ledger.length > 0 ? (
-                userInfo.ledger.map((entry: any, idx: number) => (
-                  <div
-                    key={idx}
-                    className="flex justify-between items-center text-sm text-gray-700 border-b last:border-0 py-2"
-                  >
-                    <span>
-                      {entry.change > 0 ? "+" : ""}
-                      {entry.change} credits — {entry.reason}
-                    </span>
-                    <span className="text-gray-500 text-xs">
-                      {new Date(entry.ts * 1000).toLocaleString()}
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-gray-500">
-                  No recent transactions
-                </p>
-              )}
-            </div>
-          </div>
-        </section>
-      )}
+        .stroke-3 {
+          bottom: -0.04em;
+          height: 0.14em;
+          opacity: 0.85;
+          transform-origin: left;
+        }
+
+        .animate-marker-stroke {
+          animation: markerStroke 1.8s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+        }
+
+        @keyframes markerStroke {
+          0% {
+            transform: scaleX(0);
+          }
+          70% {
+            transform: scaleX(1.02);
+          }
+          100% {
+            transform: scaleX(1);
+          }
+        }
+      `}</style>
     </div>
   );
 }
