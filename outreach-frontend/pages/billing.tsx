@@ -425,36 +425,6 @@ export default function BillingPage() {
     }
   };
 
-  const handleDowngrade = async (planId: string) => {
-    if (!session) return;
-    if (!confirm(`Are you sure you want to downgrade to ${planId}? This will take effect at the end of your current billing period.`)) {
-      return;
-    }
-    setLoadingAction(`downgrade-${planId}`);
-    try {
-      const res = await fetch(`${API_URL}/subscription/downgrade`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ plan: planId }),
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        alert(data.message || "Plan downgrade scheduled successfully!");
-        await fetchSubscriptionInfo();
-      } else {
-        alert(data.detail || "Failed to downgrade plan");
-      }
-    } catch (err) {
-      console.error("Downgrade error:", err);
-      alert("Something went wrong during downgrade");
-    } finally {
-      setLoadingAction(null);
-    }
-  };
 
   const handleCancel = async () => {
     if (!session) return;
@@ -592,41 +562,46 @@ export default function BillingPage() {
                 )}
               </div>
 
-              <div className="mt-6 flex flex-wrap gap-3">
-                {plans.map((plan) => {
-                  const planCredits = plan.monthlyCredits;
-                  const currentCredits = PRICING[currentPlan as keyof typeof PRICING]?.credits || 0;
-                  const isCurrentPlan = plan.id === currentPlan;
-                  const isUpgrade = planCredits > currentCredits;
-                  const isDowngrade = planCredits < currentCredits;
+              <div className="mt-6 flex flex-col gap-3">
+                {/* Only show plan changes for monthly subscriptions */}
+                {!currentPlan.includes("annual") ? (
+                  <div className="flex flex-wrap gap-3">
+                    {plans.map((plan) => {
+                      const planCredits = plan.monthlyCredits;
+                      const currentCredits = PRICING[currentPlan as keyof typeof PRICING]?.credits || 0;
+                      const isCurrentPlan = plan.id === currentPlan;
+                      const isUpgrade = planCredits > currentCredits;
 
-                  if (isCurrentPlan) return null;
+                      // Only show upgrade options, skip current plan and lower tier plans
+                      if (isCurrentPlan || !isUpgrade) return null;
 
-                  return (
-                    <button
-                      key={plan.id}
-                      onClick={() => isUpgrade ? handleUpgrade(plan.id) : handleDowngrade(plan.id)}
-                      disabled={loadingAction === `${isUpgrade ? 'upgrade' : 'downgrade'}-${plan.id}`}
-                      className={`px-4 py-2 border font-medium text-sm transition disabled:opacity-50 disabled:cursor-not-allowed ${
-                        isUpgrade
-                          ? "border-gray-900 bg-gray-900 text-white hover:bg-gray-800"
-                          : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-                      }`}
-                    >
-                      {loadingAction === `${isUpgrade ? 'upgrade' : 'downgrade'}-${plan.id}` ? (
-                        <span className="inline-flex items-center gap-2">
-                          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="31.4 31.4" strokeLinecap="round" opacity="0.25"/>
-                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="15.7 47.1" strokeDashoffset="15.7" strokeLinecap="round"/>
-                          </svg>
-                          Processing...
-                        </span>
-                      ) : (
-                        `${isUpgrade ? 'Upgrade' : 'Downgrade'} to ${plan.name}`
-                      )}
-                    </button>
-                  );
-                })}
+                      return (
+                        <button
+                          key={plan.id}
+                          onClick={() => handleUpgrade(plan.id)}
+                          disabled={loadingAction === `upgrade-${plan.id}`}
+                          className="px-4 py-2 border border-gray-900 bg-gray-900 text-white font-medium text-sm hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {loadingAction === `upgrade-${plan.id}` ? (
+                            <span className="inline-flex items-center gap-2">
+                              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="31.4 31.4" strokeLinecap="round" opacity="0.25"/>
+                                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="15.7 47.1" strokeDashoffset="15.7" strokeLinecap="round"/>
+                              </svg>
+                              Processing...
+                            </span>
+                          ) : (
+                            `Upgrade to ${plan.name}`
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-600 italic">
+                    To change your annual plan, please contact support at founders@personalizedline.com
+                  </p>
+                )}
 
                 {subscriptionInfo.cancel_at_period_end ? (
                   <button

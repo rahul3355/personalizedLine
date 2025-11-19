@@ -815,6 +815,7 @@ def upgrade_subscription(
 ):
     """
     Upgrade subscription to a higher plan with immediate proration
+    Only supports monthly plans - annual plan users must contact support
     """
     supabase = get_supabase()
     user_id = current_user.user_id
@@ -841,6 +842,13 @@ def upgrade_subscription(
 
     if not stripe_customer_id:
         raise HTTPException(status_code=400, detail="No active subscription found")
+
+    # Reject annual plan upgrades
+    if "annual" in current_plan.lower():
+        raise HTTPException(
+            status_code=400,
+            detail="Annual plan upgrades are not supported. Please contact support at founders@personalizedline.com"
+        )
 
     # Validate it's an upgrade
     current_credits = CREDITS_MAP.get(current_plan, 0)
@@ -892,97 +900,6 @@ def upgrade_subscription(
             "message": f"Upgraded to {plan} plan",
             "subscription_id": updated_subscription.id,
             "new_plan": plan
-        }
-
-    except stripe.error.StripeError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-@app.post("/subscription/downgrade")
-def downgrade_subscription(
-    plan: str,
-    current_user: AuthenticatedUser = Depends(get_current_user)
-):
-    """
-    Downgrade subscription to a lower plan (takes effect at period end)
-    """
-    supabase = get_supabase()
-    user_id = current_user.user_id
-
-    # Validate plan
-    if plan not in CREDITS_MAP:
-        raise HTTPException(status_code=400, detail="Invalid plan")
-
-    # Get current profile
-    profile_res = (
-        supabase.table("profiles")
-        .select("*")
-        .eq("id", user_id)
-        .single()
-        .execute()
-    )
-
-    if not profile_res.data:
-        raise HTTPException(status_code=404, detail="Profile not found")
-
-    profile = profile_res.data
-    current_plan = profile.get("plan_type", "free")
-    stripe_customer_id = profile.get("stripe_customer_id")
-
-    if not stripe_customer_id:
-        raise HTTPException(status_code=400, detail="No active subscription found")
-
-    # Validate it's a downgrade
-    current_credits = CREDITS_MAP.get(current_plan, 0)
-    new_credits = CREDITS_MAP.get(plan, 0)
-
-    if new_credits >= current_credits:
-        raise HTTPException(status_code=400, detail="Can only downgrade to a lower plan")
-
-    # Get price ID for new plan
-    new_price_id = PLAN_PRICE_MAP.get(plan)
-    if not new_price_id:
-        raise HTTPException(status_code=400, detail="Plan price not configured")
-
-    try:
-        # Get current subscription
-        subscriptions = stripe.Subscription.list(
-            customer=stripe_customer_id,
-            status="active",
-            limit=1
-        )
-
-        if not subscriptions.data:
-            raise HTTPException(status_code=400, detail="No active subscription found")
-
-        subscription = subscriptions.data[0]
-        subscription_id = subscription.id
-
-        # Get current subscription item
-        if not subscription.items.data:
-            raise HTTPException(status_code=400, detail="No subscription items found")
-
-        item_id = subscription.items.data[0].id
-
-        # Downgrade at period end with no proration
-        updated_subscription = stripe.Subscription.modify(
-            subscription_id,
-            items=[{
-                "id": item_id,
-                "price": new_price_id,
-            }],
-            proration_behavior="none",  # No proration for downgrades
-            billing_cycle_anchor="unchanged",  # Keep same billing date
-            metadata={
-                "user_id": user_id,
-            }
-        )
-
-        return {
-            "status": "success",
-            "message": f"Downgrade to {plan} plan scheduled for next billing cycle",
-            "subscription_id": updated_subscription.id,
-            "new_plan": plan,
-            "effective_date": updated_subscription.current_period_end
         }
 
     except stripe.error.StripeError as e:
