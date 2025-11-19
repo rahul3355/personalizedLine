@@ -559,8 +559,7 @@ export default function BillingPage() {
                       // Normalize current plan name: remove annual suffix and convert to lowercase
                       const normalizedCurrentPlan = currentPlan
                         .toLowerCase()
-                        .replace("_annual", "")
-                        .replace("annual", "");
+                        .replace("_annual", "");
                       const currentCredits = PRICING[normalizedCurrentPlan as keyof typeof PRICING]?.credits || 0;
                       const isCurrentPlan = plan.id === normalizedCurrentPlan;
                       const isUpgrade = planCredits > currentCredits;
