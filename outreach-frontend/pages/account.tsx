@@ -82,7 +82,10 @@ export default function AccountPage() {
 
       if (res.ok) {
         const data = await res.json();
+        console.log("[DEBUG] Subscription Info:", data); // Debug log
         setSubscriptionInfo(data);
+      } else {
+        console.error("[DEBUG] Failed to fetch subscription info:", res.status);
       }
     } catch (err) {
       console.error("Failed to fetch subscription info:", err);
@@ -450,6 +453,17 @@ export default function AccountPage() {
             </div>
           )}
         </div>
+
+        {/* DEBUG: Show subscription data */}
+        {subscriptionInfo && (
+          <div className="mt-8 p-4 bg-yellow-50 border border-yellow-200">
+            <p className="text-xs font-mono">
+              DEBUG: plan_type={subscriptionInfo.plan_type},
+              status={subscriptionInfo.subscription_status},
+              cancel_at_period_end={subscriptionInfo.cancel_at_period_end ? "true" : "false"}
+            </p>
+          </div>
+        )}
 
         {/* Subscription Management Section */}
         {subscriptionInfo && subscriptionInfo.plan_type !== "free" && subscriptionInfo.subscription_status === "active" && (
