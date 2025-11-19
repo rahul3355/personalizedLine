@@ -32,7 +32,7 @@ export default function AccountPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
-  const [limit] = useState(50);
+  const [limit] = useState(10);
   const [offset, setOffset] = useState(0);
 
   // Subscription management state
