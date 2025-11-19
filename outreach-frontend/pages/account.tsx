@@ -3,14 +3,7 @@ import { useRouter } from "next/router";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../lib/AuthProvider";
 import { API_URL } from "../lib/api";
-import {
-  ArrowUpRight,
-  ArrowDownRight,
-  Calendar,
-  DollarSign,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Transaction {
   id: string | number;
@@ -64,70 +57,58 @@ export default function AccountPage() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-
     return date.toLocaleDateString("en-US", {
       month: "short",
-      day: "numeric",
-      year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
+      day: "2-digit",
+      year: "numeric",
     });
   };
 
-  const formatFullDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
+  const formatTime = (dateString: string) => {
+    return new Date(dateString).toLocaleTimeString("en-US", {
+      hour: "2-digit",
       minute: "2-digit",
       hour12: true,
     });
   };
 
-  const getCategoryFromReason = (reason: string) => {
+  const formatDescription = (reason: string, change: number): string => {
     const lower = reason.toLowerCase();
-    if (lower.includes("purchase")) return "purchase";
-    if (lower.includes("renewal")) return "renewal";
-    if (lower.includes("refund")) return "refund";
-    if (lower.includes("deduction") || lower.includes("job")) return "usage";
-    if (lower.includes("upgrade") || lower.includes("downgrade") || lower.includes("change")) return "plan_change";
-    if (lower.includes("addon")) return "addon";
-    return "other";
-  };
 
-  const getCategoryColor = (category: string) => {
-    const colors = {
-      purchase: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-      renewal: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-      refund: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-      usage: "bg-rose-500/10 text-rose-400 border-rose-500/20",
-      plan_change: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-      addon: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
-      other: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
-    };
-    return colors[category as keyof typeof colors] || colors.other;
-  };
+    // Remove job UUIDs (pattern: job-XXXXX or similar)
+    let cleaned = reason.replace(/job-[a-zA-Z0-9-]+/gi, "").trim();
 
-  const getCategoryLabel = (category: string) => {
-    const labels = {
-      purchase: "Purchase",
-      renewal: "Renewal",
-      refund: "Refund",
-      usage: "Usage",
-      plan_change: "Plan Change",
-      addon: "Add-on",
-      other: "Other",
-    };
-    return labels[category as keyof typeof labels] || "Transaction";
+    // Format standard billing statements
+    if (lower.includes("deduction") && lower.includes("monthly")) {
+      return "Monthly credits deducted for job processing";
+    }
+    if (lower.includes("deduction") && lower.includes("addon")) {
+      return "Add-on credits deducted for job processing";
+    }
+    if (lower.includes("deduction")) {
+      return "Credits deducted for job processing";
+    }
+    if (lower.includes("renewal") || lower.includes("subscription_cycle")) {
+      return "Monthly subscription renewal";
+    }
+    if (lower.includes("purchase") && lower.includes("addon")) {
+      return "Add-on credits purchase";
+    }
+    if (lower.includes("purchase") || lower.includes("checkout")) {
+      return "Subscription plan purchase";
+    }
+    if (lower.includes("refund")) {
+      return "Refund processed";
+    }
+    if (lower.includes("upgrade")) {
+      return "Plan upgrade";
+    }
+    if (lower.includes("downgrade")) {
+      return "Plan downgrade";
+    }
+
+    // Capitalize first letter if it's a custom reason
+    return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
   };
 
   const totalPages = Math.ceil(total / limit);
@@ -139,33 +120,27 @@ export default function AccountPage() {
 
   if (loading && transactions.length === 0) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-          <p className="text-sm text-white/60">Loading transactions...</p>
+          <div className="w-8 h-8 border-2 border-gray-200 border-t-gray-900 animate-spin" />
+          <p className="text-sm text-gray-500">Loading transactions...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <div className="border-b border-white/10">
+      <div className="border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <button
-            onClick={() => router.back()}
-            className="group inline-flex items-center gap-2 text-sm text-white/60 hover:text-white transition-colors mb-6"
-          >
-            <ChevronLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-            Back
-          </button>
-
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-4xl font-bold tracking-tight">Account</h1>
-              <p className="text-white/60 mt-2">
-                View your credit history and transactions
+              <h1 className="text-3xl font-semibold text-gray-900 tracking-tight">
+                Transactions
+              </h1>
+              <p className="text-gray-500 mt-1 text-sm">
+                Complete transaction history for your account
               </p>
             </div>
 
@@ -174,11 +149,12 @@ export default function AccountPage() {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-4 hover:bg-white/[0.07] transition-all duration-300"
+                className="border border-gray-200 bg-gray-50 p-4 min-w-[140px]"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                <p className="text-xs text-white/50 mb-1">Total Credits</p>
-                <p className="text-2xl font-bold tabular-nums">
+                <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-1.5">
+                  Total Credits
+                </p>
+                <p className="text-2xl font-semibold text-gray-900 tabular-nums">
                   {totalCredits.toLocaleString()}
                 </p>
               </motion.div>
@@ -186,12 +162,13 @@ export default function AccountPage() {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-4 hover:bg-white/[0.07] transition-all duration-300"
+                transition={{ delay: 0.05 }}
+                className="border border-gray-200 bg-gray-50 p-4 min-w-[140px]"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                <p className="text-xs text-white/50 mb-1">Monthly</p>
-                <p className="text-2xl font-bold tabular-nums text-blue-400">
+                <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-1.5">
+                  Monthly
+                </p>
+                <p className="text-2xl font-semibold text-gray-900 tabular-nums">
                   {monthlyCredits.toLocaleString()}
                 </p>
               </motion.div>
@@ -199,12 +176,13 @@ export default function AccountPage() {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-4 hover:bg-white/[0.07] transition-all duration-300"
+                transition={{ delay: 0.1 }}
+                className="border border-gray-200 bg-gray-50 p-4 min-w-[140px]"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                <p className="text-xs text-white/50 mb-1">Add-ons</p>
-                <p className="text-2xl font-bold tabular-nums text-cyan-400">
+                <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-1.5">
+                  Add-ons
+                </p>
+                <p className="text-2xl font-semibold text-gray-900 tabular-nums">
                   {addonCredits.toLocaleString()}
                 </p>
               </motion.div>
@@ -215,22 +193,19 @@ export default function AccountPage() {
 
       {/* Transactions Table */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="rounded-2xl border border-white/10 overflow-hidden bg-white/[0.02] backdrop-blur-sm">
+        <div className="border border-gray-200 overflow-hidden">
           {/* Table Header */}
-          <div className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-white/10 bg-white/5">
-            <div className="col-span-1 text-xs font-medium text-white/50 uppercase tracking-wider">
-              Type
-            </div>
-            <div className="col-span-4 text-xs font-medium text-white/50 uppercase tracking-wider">
+          <div className="grid grid-cols-12 gap-4 px-6 py-3.5 border-b border-gray-200 bg-gray-50">
+            <div className="col-span-5 text-xs font-semibold text-gray-600 uppercase tracking-wider">
               Description
             </div>
-            <div className="col-span-2 text-xs font-medium text-white/50 uppercase tracking-wider">
+            <div className="col-span-2 text-xs font-semibold text-gray-600 uppercase tracking-wider">
               Credits
             </div>
-            <div className="col-span-2 text-xs font-medium text-white/50 uppercase tracking-wider">
+            <div className="col-span-2 text-xs font-semibold text-gray-600 uppercase tracking-wider">
               Amount
             </div>
-            <div className="col-span-3 text-xs font-medium text-white/50 uppercase tracking-wider text-right">
+            <div className="col-span-3 text-xs font-semibold text-gray-600 uppercase tracking-wider text-right">
               Date
             </div>
           </div>
@@ -242,81 +217,62 @@ export default function AccountPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="px-6 py-16 text-center"
+                className="px-6 py-16 text-center border-b border-gray-100"
               >
-                <p className="text-white/40">No transactions yet</p>
+                <p className="text-gray-400">No transactions found</p>
               </motion.div>
             ) : (
-              <div className="divide-y divide-white/5">
+              <div className="divide-y divide-gray-100">
                 {transactions.map((txn, index) => {
-                  const category = getCategoryFromReason(txn.reason);
                   const isPositive = txn.change > 0;
+                  const description = formatDescription(txn.reason, txn.change);
 
                   return (
                     <motion.div
                       key={txn.id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.03 }}
-                      className="grid grid-cols-12 gap-4 px-6 py-4 group hover:bg-white/[0.03] transition-all duration-200"
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.02, duration: 0.2 }}
+                      className="grid grid-cols-12 gap-4 px-6 py-4 hover:bg-gray-50 transition-colors duration-150"
                     >
-                      {/* Category Badge */}
-                      <div className="col-span-1 flex items-center">
-                        <span
-                          className={`inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium border ${getCategoryColor(
-                            category
-                          )} group-hover:scale-105 transition-transform`}
-                        >
-                          {getCategoryLabel(category)}
-                        </span>
-                      </div>
-
                       {/* Description */}
-                      <div className="col-span-4 flex items-center">
-                        <p className="text-sm text-white/90 group-hover:text-white transition-colors">
-                          {txn.reason}
+                      <div className="col-span-5 flex items-center">
+                        <p className="text-sm text-gray-900 font-medium">
+                          {description}
                         </p>
                       </div>
 
                       {/* Credits Change */}
                       <div className="col-span-2 flex items-center">
-                        <div className="flex items-center gap-2">
-                          {isPositive ? (
-                            <ArrowUpRight className="w-4 h-4 text-emerald-400" />
-                          ) : (
-                            <ArrowDownRight className="w-4 h-4 text-rose-400" />
-                          )}
-                          <span
-                            className={`text-sm font-semibold tabular-nums ${
-                              isPositive ? "text-emerald-400" : "text-rose-400"
-                            }`}
-                          >
-                            {isPositive ? "+" : ""}
-                            {txn.change.toLocaleString()}
-                          </span>
-                        </div>
+                        <span
+                          className={`text-sm font-semibold tabular-nums ${
+                            isPositive ? "text-green-700" : "text-red-700"
+                          }`}
+                        >
+                          {isPositive ? "+" : ""}
+                          {txn.change.toLocaleString()}
+                        </span>
                       </div>
 
                       {/* USD Amount */}
                       <div className="col-span-2 flex items-center">
-                        {txn.amount > 0 && (
-                          <div className="flex items-center gap-1.5 text-white/60">
-                            <DollarSign className="w-3.5 h-3.5" />
-                            <span className="text-sm tabular-nums">
-                              {txn.amount.toFixed(2)}
-                            </span>
-                          </div>
+                        {txn.amount > 0 ? (
+                          <span className="text-sm text-gray-700 tabular-nums font-medium">
+                            ${txn.amount.toFixed(2)}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-gray-400">—</span>
                         )}
                       </div>
 
                       {/* Date */}
                       <div className="col-span-3 flex items-center justify-end">
                         <div className="text-right">
-                          <p className="text-sm text-white/60 group-hover:text-white/80 transition-colors">
+                          <p className="text-sm text-gray-900 font-medium">
                             {formatDate(txn.ts)}
                           </p>
-                          <p className="text-xs text-white/30 mt-0.5">
-                            {formatFullDate(txn.ts)}
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {formatTime(txn.ts)}
                           </p>
                         </div>
                       </div>
@@ -329,9 +285,9 @@ export default function AccountPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="px-6 py-4 border-t border-white/10 bg-white/5">
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-white/50">
+                <p className="text-sm text-gray-600">
                   Showing {offset + 1} to {Math.min(offset + limit, total)} of{" "}
                   {total} transactions
                 </p>
@@ -340,20 +296,20 @@ export default function AccountPage() {
                   <button
                     onClick={() => setOffset(Math.max(0, offset - limit))}
                     disabled={offset === 0}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-white/60 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    className="inline-flex items-center gap-1 px-4 py-2 border border-gray-300 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors"
                   >
                     <ChevronLeft className="w-4 h-4" />
                     Previous
                   </button>
 
-                  <span className="px-3 py-1.5 text-sm text-white/80">
+                  <span className="px-4 py-2 text-sm text-gray-700 font-medium">
                     Page {currentPage} of {totalPages}
                   </span>
 
                   <button
                     onClick={() => setOffset(offset + limit)}
                     disabled={offset + limit >= total}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-white/60 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    className="inline-flex items-center gap-1 px-4 py-2 border border-gray-300 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors"
                   >
                     Next
                     <ChevronRight className="w-4 h-4" />
