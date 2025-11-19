@@ -84,11 +84,18 @@ STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 if STRIPE_SECRET:
     stripe.api_key = STRIPE_SECRET
 
-# Base plan price mapping (subscriptions)
+# Base plan price mapping (monthly subscriptions)
 PLAN_PRICE_MAP = {
     "starter": os.getenv("STRIPE_PRICE_STARTER"),
     "growth": os.getenv("STRIPE_PRICE_GROWTH"),
     "pro": os.getenv("STRIPE_PRICE_PRO"),
+}
+
+# Annual plan price mapping (yearly subscriptions)
+PLAN_PRICE_MAP_ANNUAL = {
+    "starter_annual": os.getenv("STRIPE_PRICE_STARTER_ANNUAL"),
+    "growth_annual": os.getenv("STRIPE_PRICE_GROWTH_ANNUAL"),
+    "pro_annual": os.getenv("STRIPE_PRICE_PRO_ANNUAL"),
 }
 
 # Add-on product mapping
@@ -99,7 +106,12 @@ ADDON_PRICE_MAP = {
     "pro": os.getenv("STRIPE_PRICE_ADDON_PRO"),
 }
 
-PRICE_TO_PLAN = {pid: plan for plan, pid in PLAN_PRICE_MAP.items() if pid}
+# Map Stripe price IDs back to plan names
+# Annual plans map to base plan name (e.g., "starter_annual" -> "starter")
+PRICE_TO_PLAN = {
+    **{pid: plan for plan, pid in PLAN_PRICE_MAP.items() if pid},
+    **{pid: plan.replace("_annual", "") for plan, pid in PLAN_PRICE_MAP_ANNUAL.items() if pid}
+}
 
 CREDITS_MAP = {
     "free": 500,
@@ -1917,10 +1929,18 @@ async def create_checkout_session(
             ]
             mode = "payment"
         else:
-            price_id = PLAN_PRICE_MAP.get(data.plan)
+            # Check if annual plan (ends with "_annual")
+            if data.plan.endswith("_annual"):
+                price_id = PLAN_PRICE_MAP_ANNUAL.get(data.plan)
+                billing_type = "annual"
+            else:
+                price_id = PLAN_PRICE_MAP.get(data.plan)
+                billing_type = "monthly"
+
             if not price_id:
                 print(f"[ERROR] Invalid plan: {data.plan}")
                 return {"error": "Invalid plan"}
+
             line_items = [
                 {
                     "price": price_id,
@@ -1928,6 +1948,7 @@ async def create_checkout_session(
                 }
             ]
             mode = "subscription"
+            print(f"[INFO] Creating {billing_type} subscription for plan: {data.plan}")
 
         print(
             f"[INFO] Using price_id={price_id}, mode={mode}, user_id={user_id}, customer={stripe_customer_id}"
@@ -2142,9 +2163,14 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                 f"[ADDON] user={user_id}, qty={qty}, credits={credits}, customer={customer_id}"
             )
         else:
+            # Normalize plan name (strip "_annual" suffix for validation)
+            # Annual plans use same credit allocation as monthly plans
+            base_plan = plan.replace("_annual", "") if plan.endswith("_annual") else plan
+            billing_frequency = "annual" if plan.endswith("_annual") else "monthly"
+
             # Validate plan exists
-            if plan not in CREDITS_MAP:
-                print(f"[ERROR] Invalid plan '{plan}' in checkout.session.completed for event {event_id}")
+            if base_plan not in CREDITS_MAP:
+                print(f"[ERROR] Invalid plan '{plan}' (base: '{base_plan}') in checkout.session.completed for event {event_id}")
                 _mark_event_processed(event_id, event_type)
                 return {"status": "error", "message": "invalid_plan"}
 
@@ -2154,13 +2180,13 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                 subscription = stripe.Subscription.retrieve(subscription_id)
                 renewal_date = subscription.get("current_period_end")
 
-            credits = CREDITS_MAP.get(plan, 0)
+            credits = CREDITS_MAP.get(base_plan, 0)
             try:
                 res_update = (
                     supabase.table("profiles")
                     .update(
                         {
-                            "plan_type": plan,
+                            "plan_type": base_plan,  # Store base plan name (e.g., "starter", not "starter_annual")
                             "subscription_status": "active",
                             "renewal_date": renewal_date,
                             "credits_remaining": credits,
@@ -2178,7 +2204,7 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                             "user_id": user_id,
                             "change": credits,
                             "amount": (obj.get("amount_total") or 0) / 100.0,
-                            "reason": f"plan purchase - {plan}",
+                            "reason": f"plan purchase - {base_plan} ({billing_frequency})",
                             "ts": datetime.utcnow().isoformat(),
                         }
                     )
@@ -2189,7 +2215,7 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                 print(f"[Stripe] Failed to update plan purchase: {exc}")
 
             print(
-                f"[PLAN] user={user_id}, plan={plan}, credits={credits}, renewal={renewal_date}"
+                f"[PLAN] user={user_id}, plan={base_plan}, frequency={billing_frequency}, credits={credits}, renewal={renewal_date}"
             )
 
     # Handle monthly renewals (invoice.paid event)
