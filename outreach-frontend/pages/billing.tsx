@@ -377,50 +377,50 @@ export default function BillingPage() {
       const data = await res.json();
       if (data.id) {
         const stripe = await stripePromise;
-        if (!stripe) {
-          throw new Error(
-            "Stripe failed to initialize. Please check that NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is configured correctly."
-          );
+        if (stripe) {
+          await stripe.redirectToCheckout({ sessionId: data.id });
         }
-        await stripe.redirectToCheckout({ sessionId: data.id });
       } else {
         console.error("Plan checkout error", data);
-        alert("Failed to create checkout session");
         setLoadingPlanId(null);
       }
     } catch (err) {
       console.error("Checkout error", err);
-      const errorMsg = err instanceof Error ? err.message : "Something went wrong starting checkout";
-      alert(errorMsg);
       setLoadingPlanId(null);
     }
   };
 
   const handleUpgrade = async (planId: string) => {
-    if (!session) return;
+    if (!session || !userInfo?.id) return;
     setLoadingAction(`upgrade-${planId}`);
+
     try {
-      const res = await fetch(`${API_URL}/subscription/upgrade`, {
+      // Create checkout session for upgrade
+      const res = await fetch(`${API_URL}/create_checkout_session`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${session.access_token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ plan: planId }),
+        body: JSON.stringify({
+          plan: planId,
+          addon: false,
+          quantity: 1,
+          user_id: userInfo.id,
+        }),
       });
 
       const data = await res.json();
-      if (res.ok) {
-        alert(data.message || "Plan upgraded successfully!");
-        await fetchSubscriptionInfo();
-        window.location.reload(); // Refresh to show updated credits
-      } else {
-        alert(data.detail || "Failed to upgrade plan");
+
+      if (data.id) {
+        // Redirect to Stripe checkout
+        const stripe = await stripePromise;
+        if (stripe) {
+          await stripe.redirectToCheckout({ sessionId: data.id });
+        }
       }
     } catch (err) {
       console.error("Upgrade error:", err);
-      alert("Something went wrong during upgrade");
-    } finally {
       setLoadingAction(null);
     }
   };
@@ -428,10 +428,11 @@ export default function BillingPage() {
 
   const handleCancel = async () => {
     if (!session) return;
-    if (!confirm("Are you sure you want to cancel your subscription? You'll keep access until the end of your current billing period.")) {
+    if (!confirm("Cancel your subscription? You'll keep access until the end of your current billing period.")) {
       return;
     }
     setLoadingAction("cancel");
+
     try {
       const res = await fetch(`${API_URL}/subscription/cancel`, {
         method: "POST",
@@ -440,24 +441,18 @@ export default function BillingPage() {
         },
       });
 
-      const data = await res.json();
-      if (res.ok) {
-        alert(data.message || "Subscription canceled successfully!");
-        await fetchSubscriptionInfo();
-      } else {
-        alert(data.detail || "Failed to cancel subscription");
-      }
+      // Refresh page to show updated status
+      window.location.reload();
     } catch (err) {
       console.error("Cancel error:", err);
-      alert("Something went wrong during cancellation");
-    } finally {
-      setLoadingAction(null);
+      window.location.reload();
     }
   };
 
   const handleReactivate = async () => {
     if (!session) return;
     setLoadingAction("reactivate");
+
     try {
       const res = await fetch(`${API_URL}/subscription/reactivate`, {
         method: "POST",
@@ -466,18 +461,11 @@ export default function BillingPage() {
         },
       });
 
-      const data = await res.json();
-      if (res.ok) {
-        alert(data.message || "Subscription reactivated successfully!");
-        await fetchSubscriptionInfo();
-      } else {
-        alert(data.detail || "Failed to reactivate subscription");
-      }
+      // Refresh page to show updated status
+      window.location.reload();
     } catch (err) {
       console.error("Reactivate error:", err);
-      alert("Something went wrong during reactivation");
-    } finally {
-      setLoadingAction(null);
+      window.location.reload();
     }
   };
 
@@ -568,8 +556,9 @@ export default function BillingPage() {
                   <div className="flex flex-wrap gap-3">
                     {plans.map((plan) => {
                       const planCredits = plan.monthlyCredits;
-                      const currentCredits = PRICING[currentPlan as keyof typeof PRICING]?.credits || 0;
-                      const isCurrentPlan = plan.id === currentPlan;
+                      const normalizedCurrentPlan = currentPlan.replace("_annual", "").replace("annual", "");
+                      const currentCredits = PRICING[normalizedCurrentPlan as keyof typeof PRICING]?.credits || 0;
+                      const isCurrentPlan = plan.id === normalizedCurrentPlan;
                       const isUpgrade = planCredits > currentCredits;
 
                       // Only show upgrade options, skip current plan and lower tier plans
