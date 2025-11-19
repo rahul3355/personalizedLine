@@ -687,7 +687,11 @@ export default function AccountPage() {
               {/* Plan Options - Only show higher tier plans (upgrades only) */}
               <div className="space-y-3 mb-6">
                 {["starter", "growth", "pro"].map((plan) => {
-                  const currentPlan = (userInfo?.plan_type || "free").replace("_annual", "").replace("annual", "");
+                  // Normalize current plan name: remove annual suffix and convert to lowercase
+                  const currentPlan = (userInfo?.plan_type || "free")
+                    .toLowerCase()
+                    .replace("_annual", "")
+                    .replace("annual", "");
 
                   const planDetails: Record<string, { credits: number; price: number }> = {
                     starter: { credits: 2000, price: 49 },
@@ -698,9 +702,8 @@ export default function AccountPage() {
                   const details = planDetails[plan];
                   const currentPlanCredits = planDetails[currentPlan]?.credits || 0;
 
-                  // Only show plans with more credits than current plan (upgrades only)
-                  // Skip current plan entirely
-                  if (details.credits <= currentPlanCredits || plan === currentPlan) {
+                  // Skip current plan and lower tier plans (only show upgrades)
+                  if (plan === currentPlan || details.credits <= currentPlanCredits) {
                     return null;
                   }
 
