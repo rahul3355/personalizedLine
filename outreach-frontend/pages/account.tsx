@@ -690,8 +690,7 @@ export default function AccountPage() {
                   // Normalize current plan name: remove annual suffix and convert to lowercase
                   const currentPlan = (userInfo?.plan_type || "free")
                     .toLowerCase()
-                    .replace("_annual", "")
-                    .replace("annual", "");
+                    .replace("_annual", "");
 
                   const planDetails: Record<string, { credits: number; price: number }> = {
                     starter: { credits: 2000, price: 49 },
