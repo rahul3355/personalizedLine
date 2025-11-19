@@ -151,18 +151,15 @@ export default function AccountPage() {
   const handleChangePlan = async (newPlan: string) => {
     const currentPlan = userInfo?.plan_type || "free";
 
-    const planCredits: Record<string, number> = {
-      starter: 2000,
-      growth: 10000,
-      pro: 40000,
-    };
-
-    const isUpgrade = (planCredits[newPlan] || 0) > (planCredits[currentPlan] || 0);
-    const endpoint = isUpgrade ? "/subscription/upgrade" : "/subscription/downgrade";
+    // Check if user is on annual plan
+    if (currentPlan.includes("annual")) {
+      alert("Annual plan upgrades are not supported. Please contact support at founders@personalizedline.com");
+      return;
+    }
 
     setActionLoading(true);
     try {
-      const res = await fetch(`${API_URL}${endpoint}`, {
+      const res = await fetch(`${API_URL}/subscription/upgrade`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${session?.access_token}`,
@@ -173,25 +170,19 @@ export default function AccountPage() {
 
       if (!res.ok) {
         const error = await res.json();
-        alert(error.detail || `Failed to ${isUpgrade ? "upgrade" : "downgrade"} subscription`);
+        alert(error.detail || "Failed to upgrade subscription");
         return;
       }
 
       const data = await res.json();
       setShowPlanModal(false);
-
-      // Show success message
-      if (isUpgrade) {
-        alert(data.message || `Successfully upgraded to ${newPlan} plan!`);
-      } else {
-        alert(data.message || `Downgrade to ${newPlan} plan scheduled for next billing cycle.`);
-      }
+      alert(data.message || `Successfully upgraded to ${newPlan} plan!`);
 
       // Reload page to refresh all data
       window.location.reload();
     } catch (err) {
-      console.error("Error changing plan:", err);
-      alert("Failed to change plan. Please try again.");
+      console.error("Error upgrading plan:", err);
+      alert("Failed to upgrade plan. Please try again.");
     } finally {
       setActionLoading(false);
     }
@@ -462,17 +453,6 @@ export default function AccountPage() {
           )}
         </div>
 
-        {/* DEBUG: Show subscription data */}
-        {subscriptionInfo && (
-          <div className="mt-8 p-4 bg-yellow-50 border border-yellow-200">
-            <p className="text-xs font-mono">
-              DEBUG: plan_type={subscriptionInfo.plan_type},
-              status={subscriptionInfo.subscription_status},
-              cancel_at_period_end={subscriptionInfo.cancel_at_period_end ? "true" : "false"}
-            </p>
-          </div>
-        )}
-
         {/* Subscription Management Section */}
         {subscriptionInfo && subscriptionInfo.plan_type !== "free" && subscriptionInfo.subscription_status === "active" && (
           <motion.div
@@ -557,7 +537,7 @@ export default function AccountPage() {
               )}
 
               {/* Action Buttons */}
-              <div className="mt-6 flex gap-3">
+              <div className="mt-6 flex flex-col gap-3">
                 {subscriptionInfo.cancel_at_period_end ? (
                   <button
                     onClick={handleReactivateSubscription}
@@ -568,18 +548,35 @@ export default function AccountPage() {
                   </button>
                 ) : (
                   <>
-                    <button
-                      onClick={() => setShowPlanModal(true)}
-                      className="px-4 py-2 bg-black text-white font-medium hover:bg-gray-800 transition-colors"
-                    >
-                      Change Plan
-                    </button>
-                    <button
-                      onClick={() => setShowCancelModal(true)}
-                      className="px-4 py-2 border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
-                    >
-                      Cancel Subscription
-                    </button>
+                    {/* Show plan change button only for monthly plans */}
+                    {!subscriptionInfo.plan_type.includes("annual") ? (
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => setShowPlanModal(true)}
+                          className="px-4 py-2 bg-black text-white font-medium hover:bg-gray-800 transition-colors"
+                        >
+                          Change Plan
+                        </button>
+                        <button
+                          onClick={() => setShowCancelModal(true)}
+                          className="px-4 py-2 border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                        >
+                          Cancel Subscription
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => setShowCancelModal(true)}
+                          className="px-4 py-2 border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                        >
+                          Cancel Subscription
+                        </button>
+                        <p className="text-sm text-gray-600 italic">
+                          To change your annual plan, please contact support at founders@personalizedline.com
+                        </p>
+                      </>
+                    )}
                   </>
                 )}
               </div>
@@ -686,9 +683,9 @@ export default function AccountPage() {
             >
               <div className="flex items-start justify-between mb-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Change Plan</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">Upgrade Plan</h3>
                   <p className="text-sm text-gray-600 mt-1">
-                    Select a new plan for your subscription
+                    Choose a higher tier plan to upgrade your subscription
                   </p>
                 </div>
                 <button
@@ -699,12 +696,11 @@ export default function AccountPage() {
                 </button>
               </div>
 
-              {/* Plan Options */}
+              {/* Plan Options - Only show higher tier plans (upgrades only) */}
               <div className="space-y-3 mb-6">
                 {["starter", "growth", "pro"].map((plan) => {
                   const currentPlan = userInfo?.plan_type || "free";
                   const isCurrentPlan = plan === currentPlan;
-                  const currentCredits = (userInfo?.credits_remaining || 0) + (userInfo?.addon_credits || 0);
 
                   const planDetails: Record<string, { credits: number; price: number }> = {
                     starter: { credits: 2000, price: 49 },
@@ -713,23 +709,20 @@ export default function AccountPage() {
                   };
 
                   const details = planDetails[plan];
-                  const isDowngrade = details.credits < (planDetails[currentPlan]?.credits || 0);
-                  const willLoseCredits = isDowngrade && currentCredits > details.credits;
+                  const currentPlanCredits = planDetails[currentPlan]?.credits || 0;
+
+                  // Only show plans with more credits than current plan (upgrades only)
+                  if (details.credits <= currentPlanCredits) {
+                    return null;
+                  }
 
                   return (
                     <button
                       key={plan}
-                      onClick={() => {
-                        if (!isCurrentPlan) {
-                          setSelectedPlan(plan);
-                        }
-                      }}
-                      disabled={isCurrentPlan}
+                      onClick={() => setSelectedPlan(plan)}
                       className={`w-full text-left p-4 border-2 transition-all ${
                         selectedPlan === plan
                           ? "border-black bg-gray-50"
-                          : isCurrentPlan
-                          ? "border-gray-200 bg-gray-100 cursor-not-allowed"
                           : "border-gray-200 hover:border-gray-400"
                       }`}
                     >
@@ -737,35 +730,13 @@ export default function AccountPage() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <h4 className="text-lg font-semibold text-gray-900 capitalize">{plan}</h4>
-                            {isCurrentPlan && (
-                              <span className="px-2 py-0.5 bg-black text-white text-xs font-medium">
-                                Current
-                              </span>
-                            )}
                           </div>
                           <p className="text-sm text-gray-600 mt-1">
                             {details.credits.toLocaleString()} credits/month • ${details.price}/month
                           </p>
-
-                          {willLoseCredits && selectedPlan === plan && (
-                            <div className="mt-3 p-3 bg-orange-50 border border-orange-200 flex items-start gap-2">
-                              <AlertTriangle className="w-4 h-4 text-orange-600 flex-shrink-0 mt-0.5" />
-                              <div>
-                                <p className="text-xs font-medium text-orange-900">Warning: Credit Loss</p>
-                                <p className="text-xs text-orange-700 mt-0.5">
-                                  You have {currentCredits.toLocaleString()} credits but {plan} plan only includes{" "}
-                                  {details.credits.toLocaleString()} credits. You'll lose{" "}
-                                  {(currentCredits - details.credits).toLocaleString()} credits when downgrading.
-                                </p>
-                              </div>
-                            </div>
-                          )}
-
-                          {isDowngrade && selectedPlan === plan && (
-                            <p className="text-xs text-gray-600 mt-2">
-                              Downgrade takes effect at the end of your current billing period
-                            </p>
-                          )}
+                          <p className="text-xs text-gray-500 mt-2">
+                            Upgrade takes effect immediately with prorated billing
+                          </p>
                         </div>
 
                         <div className={`w-5 h-5 border-2 flex items-center justify-center flex-shrink-0 ${
@@ -791,7 +762,7 @@ export default function AccountPage() {
                   disabled={!selectedPlan || actionLoading}
                   className="flex-1 px-4 py-2 bg-black text-white font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  {actionLoading ? "Processing..." : "Confirm Change"}
+                  {actionLoading ? "Processing..." : "Upgrade Plan"}
                 </button>
               </div>
             </motion.div>
