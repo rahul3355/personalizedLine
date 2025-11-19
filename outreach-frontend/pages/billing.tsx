@@ -556,7 +556,11 @@ export default function BillingPage() {
                   <div className="flex flex-wrap gap-3">
                     {plans.map((plan) => {
                       const planCredits = plan.monthlyCredits;
-                      const normalizedCurrentPlan = currentPlan.replace("_annual", "").replace("annual", "");
+                      // Normalize current plan name: remove annual suffix and convert to lowercase
+                      const normalizedCurrentPlan = currentPlan
+                        .toLowerCase()
+                        .replace("_annual", "")
+                        .replace("annual", "");
                       const currentCredits = PRICING[normalizedCurrentPlan as keyof typeof PRICING]?.credits || 0;
                       const isCurrentPlan = plan.id === normalizedCurrentPlan;
                       const isUpgrade = planCredits > currentCredits;
