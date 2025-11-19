@@ -1866,9 +1866,12 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                         print(f"[INVOICE] Profile not found for user {user_id}")
                     else:
                         plan_type = profile.data.get("plan_type", "free")
+                        current_credits = profile.data.get("credits_remaining", 0)
                         subscription_status = profile.data.get("subscription_status")
 
                         # For plan changes, get the new plan from subscription
+                        old_plan_type = plan_type
+                        is_plan_change = False
                         if billing_reason == "subscription_update":
                             # Get plan from subscription items
                             items = subscription.get("items", {}).get("data", [])
@@ -1876,51 +1879,71 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                                 price_id = items[0].get("price", {}).get("id")
                                 new_plan = PRICE_TO_PLAN.get(price_id, plan_type)
                                 if new_plan != plan_type:
-                                    print(f"[UPGRADE/DOWNGRADE] {plan_type} → {new_plan}")
+                                    print(f"[PLAN_CHANGE] {plan_type} → {new_plan}")
+                                    is_plan_change = True
+                                    old_plan_type = plan_type
                                     plan_type = new_plan
 
                         # Only reset credits for active subscriptions with paid plans
                         if subscription_status == "active" and plan_type in CREDITS_MAP:
-                            # RESET credits to monthly allocation (not add)
                             monthly_credits = CREDITS_MAP.get(plan_type, 0)
+                            old_monthly_credits = CREDITS_MAP.get(old_plan_type, 0)
 
-                            # Determine ledger reason based on billing_reason
-                            if billing_reason == "subscription_update":
-                                ledger_reason = f"plan change - {plan_type}"
-                            else:
-                                ledger_reason = f"monthly renewal - {plan_type}"
+                            # Handle different scenarios
+                            should_reset_credits = True
+                            ledger_reason = f"monthly renewal - {plan_type}"
 
-                            res_update = (
-                                supabase.table("profiles")
-                                .update({
-                                    "credits_remaining": monthly_credits,
-                                    "plan_type": plan_type,  # Update plan for upgrades/downgrades
-                                })
-                                .eq("id", user_id)
-                                .execute()
-                            )
-                            log_db("reset_monthly_credits", res_update)
+                            if billing_reason == "subscription_update" and is_plan_change:
+                                # Check if upgrade or downgrade
+                                if monthly_credits > old_monthly_credits:
+                                    # UPGRADE: Credits already added by customer.subscription.updated
+                                    # Skip credit reset to avoid overwriting the added credits
+                                    should_reset_credits = False
+                                    print(
+                                        f"[INVOICE_UPGRADE] Skipping credit reset for upgrade "
+                                        f"{old_plan_type}→{plan_type}, credits already added by subscription.updated"
+                                    )
+                                else:
+                                    # DOWNGRADE: Reset to new lower plan amount
+                                    ledger_reason = f"Plan downgrade - {old_plan_type} to {plan_type}"
+                                    print(
+                                        f"[INVOICE_DOWNGRADE] Resetting credits for downgrade "
+                                        f"{old_plan_type}→{plan_type}: {current_credits}→{monthly_credits}"
+                                    )
 
-                            # Record in ledger
-                            invoice_amount = (obj.get("amount_paid") or 0) / 100.0
-                            res_ledger = (
-                                supabase.table("ledger")
-                                .insert({
-                                    "user_id": user_id,
-                                    "change": monthly_credits,
-                                    "amount": invoice_amount,
-                                    "reason": ledger_reason,
-                                    "ts": datetime.utcnow().isoformat(),
-                                })
-                                .execute()
-                            )
-                            log_db("insert_ledger_renewal", res_ledger)
+                            if should_reset_credits:
+                                # RESET credits to monthly allocation
+                                res_update = (
+                                    supabase.table("profiles")
+                                    .update({
+                                        "credits_remaining": monthly_credits,
+                                        "plan_type": plan_type,
+                                    })
+                                    .eq("id", user_id)
+                                    .execute()
+                                )
+                                log_db("reset_monthly_credits", res_update)
 
-                            print(
-                                f"[RENEWAL] user={user_id}, plan={plan_type}, "
-                                f"credits_reset_to={monthly_credits}, amount=${invoice_amount}, "
-                                f"reason={billing_reason}"
-                            )
+                                # Record in ledger
+                                invoice_amount = (obj.get("amount_paid") or 0) / 100.0
+                                res_ledger = (
+                                    supabase.table("ledger")
+                                    .insert({
+                                        "user_id": user_id,
+                                        "change": monthly_credits,
+                                        "amount": invoice_amount,
+                                        "reason": ledger_reason,
+                                        "ts": datetime.utcnow().isoformat(),
+                                    })
+                                    .execute()
+                                )
+                                log_db("insert_ledger_renewal", res_ledger)
+
+                                print(
+                                    f"[RENEWAL] user={user_id}, plan={plan_type}, "
+                                    f"credits_reset_to={monthly_credits}, amount=${invoice_amount}, "
+                                    f"reason={billing_reason}"
+                                )
                         else:
                             print(
                                 f"[INVOICE] Skipping credit reset for user {user_id}: "
@@ -1928,6 +1951,98 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                             )
             except Exception as exc:
                 print(f"[INVOICE] Error processing monthly renewal: {exc}")
+
+    # Handle subscription updates (upgrades/downgrades)
+    elif event_type == "customer.subscription.updated":
+        subscription = obj
+        subscription_id = subscription.get("id")
+        sub_metadata = subscription.get("metadata", {})
+        user_id = sub_metadata.get("user_id")
+
+        if not user_id and customer_id:
+            user_id = _find_user_by_customer(customer_id)
+
+        if user_id:
+            linked_user_id = user_id
+            try:
+                # Get current profile to compare plans
+                profile = (
+                    supabase.table("profiles")
+                    .select("plan_type, credits_remaining, subscription_status")
+                    .eq("id", user_id)
+                    .single()
+                    .execute()
+                )
+
+                if not profile.data:
+                    print(f"[SUBSCRIPTION_UPDATED] Profile not found for user {user_id}")
+                else:
+                    old_plan = profile.data.get("plan_type", "free")
+                    current_credits = profile.data.get("credits_remaining", 0)
+
+                    # Get new plan from subscription items
+                    items = subscription.get("items", {}).get("data", [])
+                    if items:
+                        new_price_id = items[0].get("price", {}).get("id")
+                        new_plan = PRICE_TO_PLAN.get(new_price_id, old_plan)
+
+                        if new_plan and new_plan != old_plan:
+                            old_plan_credits = CREDITS_MAP.get(old_plan, 0)
+                            new_plan_credits = CREDITS_MAP.get(new_plan, 0)
+
+                            # UPGRADE: New plan has more credits than old plan
+                            if new_plan_credits > old_plan_credits:
+                                # Add new plan's full credit allocation to existing credits
+                                updated_credits = current_credits + new_plan_credits
+
+                                res_update = (
+                                    supabase.table("profiles")
+                                    .update({
+                                        "plan_type": new_plan,
+                                        "credits_remaining": updated_credits,
+                                    })
+                                    .eq("id", user_id)
+                                    .execute()
+                                )
+                                log_db("upgrade_plan", res_update)
+
+                                # Record upgrade in ledger
+                                res_ledger = (
+                                    supabase.table("ledger")
+                                    .insert({
+                                        "user_id": user_id,
+                                        "change": new_plan_credits,
+                                        "amount": 0,  # Proration handled by Stripe invoice
+                                        "reason": f"Plan upgrade - {old_plan} to {new_plan}",
+                                        "ts": datetime.utcnow().isoformat(),
+                                    })
+                                    .execute()
+                                )
+                                log_db("insert_ledger_upgrade", res_ledger)
+
+                                print(
+                                    f"[UPGRADE] user={user_id}, {old_plan}→{new_plan}, "
+                                    f"credits: {current_credits}+{new_plan_credits}={updated_credits}"
+                                )
+
+                            # DOWNGRADE: New plan has fewer credits than old plan
+                            elif new_plan_credits < old_plan_credits:
+                                # Don't change credits yet - downgrade will be applied at next invoice.paid
+                                # This happens when user downgrades with proration_behavior='none'
+                                print(
+                                    f"[DOWNGRADE_SCHEDULED] user={user_id}, {old_plan}→{new_plan}, "
+                                    f"will take effect at period end, keeping {current_credits} credits for now"
+                                )
+                                # Optionally update plan_type here if you want to show the pending change
+                                # For now, we'll wait until the next invoice.paid to apply the downgrade
+
+                            else:
+                                print(f"[SUBSCRIPTION_UPDATED] No credit change for user {user_id}")
+
+            except Exception as exc:
+                print(f"[SUBSCRIPTION_UPDATED] Error processing subscription update: {exc}")
+        else:
+            print(f"[SUBSCRIPTION_UPDATED] Could not find user_id for subscription {subscription_id}")
 
     # Handle subscription cancellation
     elif event_type == "customer.subscription.deleted":
