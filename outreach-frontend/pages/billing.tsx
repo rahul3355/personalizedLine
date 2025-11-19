@@ -17,6 +17,7 @@ import {
   Brain,
   CheckCircle2,
   Star,
+  AlertCircle,
 } from "lucide-react";
 import { TbHelpCircle } from "react-icons/tb";
 import { Switch } from "@headlessui/react";
@@ -42,6 +43,17 @@ type PlanConfig = {
   includes?: string;
   monthlyCredits: number;
   pricePerThousandCredits: number;
+};
+
+type SubscriptionInfo = {
+  plan_type: string;
+  subscription_status: string;
+  credits_remaining: number;
+  addon_credits: number;
+  max_credits: number;
+  cancel_at_period_end: boolean;
+  current_period_end: number | null;
+  pending_plan_change?: string;
 };
 
 // ============================================================================
@@ -282,11 +294,38 @@ export default function BillingPage() {
     () => planConfigurations.find((plan) => plan.popular)?.id ?? planConfigurations[0]?.id ?? ""
   );
   const [loadingPlanId, setLoadingPlanId] = useState<string | null>(null);
+  const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo | null>(null);
+  const [loadingAction, setLoadingAction] = useState<string | null>(null);
+
   const closeBilling = () => {
     if (window.history.length > 1) {
       router.back();
     } else {
       router.push("/");
+    }
+  };
+
+  // Fetch subscription info
+  useEffect(() => {
+    if (session && userInfo?.plan_type && userInfo.plan_type !== "free") {
+      fetchSubscriptionInfo();
+    }
+  }, [session, userInfo?.plan_type]);
+
+  const fetchSubscriptionInfo = async () => {
+    if (!session) return;
+    try {
+      const res = await fetch(`${API_URL}/subscription/info`, {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSubscriptionInfo(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch subscription info:", err);
     }
   };
 
@@ -352,8 +391,125 @@ export default function BillingPage() {
     }
   };
 
+  const handleUpgrade = async (planId: string) => {
+    if (!session) return;
+    setLoadingAction(`upgrade-${planId}`);
+    try {
+      const res = await fetch(`${API_URL}/subscription/upgrade`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ plan: planId }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message || "Plan upgraded successfully!");
+        await fetchSubscriptionInfo();
+        window.location.reload(); // Refresh to show updated credits
+      } else {
+        alert(data.detail || "Failed to upgrade plan");
+      }
+    } catch (err) {
+      console.error("Upgrade error:", err);
+      alert("Something went wrong during upgrade");
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const handleDowngrade = async (planId: string) => {
+    if (!session) return;
+    if (!confirm(`Are you sure you want to downgrade to ${planId}? This will take effect at the end of your current billing period.`)) {
+      return;
+    }
+    setLoadingAction(`downgrade-${planId}`);
+    try {
+      const res = await fetch(`${API_URL}/subscription/downgrade`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ plan: planId }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message || "Plan downgrade scheduled successfully!");
+        await fetchSubscriptionInfo();
+      } else {
+        alert(data.detail || "Failed to downgrade plan");
+      }
+    } catch (err) {
+      console.error("Downgrade error:", err);
+      alert("Something went wrong during downgrade");
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!session) return;
+    if (!confirm("Are you sure you want to cancel your subscription? You'll keep access until the end of your current billing period.")) {
+      return;
+    }
+    setLoadingAction("cancel");
+    try {
+      const res = await fetch(`${API_URL}/subscription/cancel`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message || "Subscription canceled successfully!");
+        await fetchSubscriptionInfo();
+      } else {
+        alert(data.detail || "Failed to cancel subscription");
+      }
+    } catch (err) {
+      console.error("Cancel error:", err);
+      alert("Something went wrong during cancellation");
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const handleReactivate = async () => {
+    if (!session) return;
+    setLoadingAction("reactivate");
+    try {
+      const res = await fetch(`${API_URL}/subscription/reactivate`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message || "Subscription reactivated successfully!");
+        await fetchSubscriptionInfo();
+      } else {
+        alert(data.detail || "Failed to reactivate subscription");
+      }
+    } catch (err) {
+      console.error("Reactivate error:", err);
+      alert("Something went wrong during reactivation");
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
   const plans = planConfigurations;
   const isYearly = billingCycle === "yearly";
+  const currentPlan = userInfo?.plan_type || "free";
+  const hasActiveSub = subscriptionInfo && subscriptionInfo.subscription_status === "active" && currentPlan !== "free";
 
   return (
     <div className="fixed inset-0 z-50 bg-white" style={{ fontFamily: AEONIK_FONT_FAMILY }}>
@@ -384,9 +540,113 @@ export default function BillingPage() {
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
 
+          {/* Current Subscription Section */}
+          {hasActiveSub && (
+            <div className="mb-12 rounded-2xl border border-gray-200 bg-gray-50 p-6 text-left">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Current Subscription</h2>
+
+              <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div className="flex-1 min-w-[200px]">
+                  <p className="text-sm text-gray-500">Plan</p>
+                  <p className="text-2xl font-semibold text-gray-900 capitalize mt-1">{currentPlan}</p>
+                  {subscriptionInfo.pending_plan_change && (
+                    <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      Downgrading to {subscriptionInfo.pending_plan_change} at period end
+                    </div>
+                  )}
+                  {subscriptionInfo.cancel_at_period_end && (
+                    <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-50 border border-red-200 text-red-800 text-xs font-medium">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      Cancels at period end
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex-1 min-w-[200px]">
+                  <p className="text-sm text-gray-500">Credits</p>
+                  <p className="text-2xl font-semibold text-gray-900 mt-1">
+                    {(subscriptionInfo.credits_remaining + subscriptionInfo.addon_credits).toLocaleString()}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {subscriptionInfo.credits_remaining.toLocaleString()} monthly + {subscriptionInfo.addon_credits.toLocaleString()} add-on
+                  </p>
+                </div>
+
+                {subscriptionInfo.current_period_end && (
+                  <div className="flex-1 min-w-[200px]">
+                    <p className="text-sm text-gray-500">Next billing</p>
+                    <p className="text-base font-medium text-gray-900 mt-1">
+                      {new Date(subscriptionInfo.current_period_end * 1000).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-6 flex flex-wrap gap-3">
+                {plans.map((plan) => {
+                  const planCredits = plan.monthlyCredits;
+                  const currentCredits = PRICING[currentPlan as keyof typeof PRICING]?.credits || 0;
+                  const isCurrentPlan = plan.id === currentPlan;
+                  const isUpgrade = planCredits > currentCredits;
+                  const isDowngrade = planCredits < currentCredits;
+
+                  if (isCurrentPlan) return null;
+
+                  return (
+                    <button
+                      key={plan.id}
+                      onClick={() => isUpgrade ? handleUpgrade(plan.id) : handleDowngrade(plan.id)}
+                      disabled={loadingAction === `${isUpgrade ? 'upgrade' : 'downgrade'}-${plan.id}`}
+                      className={`px-4 py-2 border font-medium text-sm transition disabled:opacity-50 disabled:cursor-not-allowed ${
+                        isUpgrade
+                          ? "border-gray-900 bg-gray-900 text-white hover:bg-gray-800"
+                          : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      {loadingAction === `${isUpgrade ? 'upgrade' : 'downgrade'}-${plan.id}` ? (
+                        <span className="inline-flex items-center gap-2">
+                          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="31.4 31.4" strokeLinecap="round" opacity="0.25"/>
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="15.7 47.1" strokeDashoffset="15.7" strokeLinecap="round"/>
+                          </svg>
+                          Processing...
+                        </span>
+                      ) : (
+                        `${isUpgrade ? 'Upgrade' : 'Downgrade'} to ${plan.name}`
+                      )}
+                    </button>
+                  );
+                })}
+
+                {subscriptionInfo.cancel_at_period_end ? (
+                  <button
+                    onClick={handleReactivate}
+                    disabled={loadingAction === "reactivate"}
+                    className="px-4 py-2 border border-green-600 bg-green-600 text-white font-medium text-sm hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loadingAction === "reactivate" ? "Processing..." : "Reactivate Subscription"}
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleCancel}
+                    disabled={loadingAction === "cancel"}
+                    className="px-4 py-2 border border-red-600 text-red-600 font-medium text-sm hover:bg-red-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loadingAction === "cancel" ? "Processing..." : "Cancel Subscription"}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="mx-auto max-w-xl space-y-4">
             <h1 className="text-4xl font-semibold tracking-tight text-neutral-900 sm:text-5xl md:text-6xl">
-              Prices at a glance
+              {hasActiveSub ? "All Plans" : "Prices at a glance"}
             </h1>
 
           </div>
@@ -417,6 +677,7 @@ export default function BillingPage() {
                 const cadence = isYearly ? "/year" : "/month";
                 const { currencySymbol } = formatCurrencyParts(price, plan.currency);
                 const isSelected = plan.id === selectedPlanId;
+                const isCurrentPlan = plan.id === currentPlan && hasActiveSub;
                 const creditsForCycle = isYearly
                   ? plan.monthlyCredits * 12
                   : plan.monthlyCredits;
@@ -456,6 +717,11 @@ export default function BillingPage() {
                         transition={{ type: "spring", stiffness: 320, damping: 28 }}
                       />
                     )}
+                    {isCurrentPlan && (
+                      <div className="absolute top-4 right-4 px-2.5 py-1 bg-black text-white text-xs font-semibold uppercase tracking-wide">
+                        Current
+                      </div>
+                    )}
                     <header className="relative flex items-start gap-3">
                       <div>
                         <p className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
@@ -465,7 +731,7 @@ export default function BillingPage() {
                           {plan.tagline}
                         </p>
                       </div>
-                      {plan.badge && (
+                      {plan.badge && !isCurrentPlan && (
                         <span className="ml-auto inline-flex items-center rounded-full border border-yellow-500 bg-white px-2.5 py-1 text-[11px] font-bold text-neutral-900">
                           {plan.badge}
                         </span>
@@ -518,57 +784,59 @@ export default function BillingPage() {
                       </div>
                     </div>
                     <br />
-                    <button
-                      type="button"
-                      onClick={() => handleCheckout(plan.id)}
-                      disabled={loadingPlanId === plan.id}
-                      className="group relative mt-auto w-full overflow-visible rounded-full px-6 py-3 text-sm font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-black disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <span
-                        aria-hidden="true"
-                        className={`pointer-events-none absolute inset-0 rounded-full transition-all duration-200 ease-out ${
-                          loadingPlanId === plan.id
-                            ? "bg-neutral-400"
-                            : plan.popular
-                            ? "bg-black"
-                            : "bg-neutral-900"
-                        } ${loadingPlanId !== plan.id ? "group-hover:-inset-1 group-hover:bg-neutral-800 group-active:-inset-0.5" : ""}`}
-                      />
-                      <span className="relative z-10 inline-flex items-center justify-center w-full gap-2">
-                        {loadingPlanId === plan.id ? (
-                          <>
-                            <svg
-                              className="animate-spin h-5 w-5"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                            >
-                              <circle
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="white"
-                                strokeWidth="3"
-                                strokeDasharray="31.4 31.4"
-                                strokeLinecap="round"
-                              />
-                              <circle
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="white"
-                                strokeWidth="1"
-                                strokeDasharray="15.7 47.1"
-                                strokeDashoffset="15.7"
-                                strokeLinecap="round"
-                              />
-                            </svg>
-                            Processing...
-                          </>
-                        ) : (
-                          plan.ctaLabel
-                        )}
-                      </span>
-                    </button>
+                    {!hasActiveSub && (
+                      <button
+                        type="button"
+                        onClick={() => handleCheckout(plan.id)}
+                        disabled={loadingPlanId === plan.id}
+                        className="group relative mt-auto w-full overflow-visible rounded-full px-6 py-3 text-sm font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-black disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={`pointer-events-none absolute inset-0 rounded-full transition-all duration-200 ease-out ${
+                            loadingPlanId === plan.id
+                              ? "bg-neutral-400"
+                              : plan.popular
+                              ? "bg-black"
+                              : "bg-neutral-900"
+                          } ${loadingPlanId !== plan.id ? "group-hover:-inset-1 group-hover:bg-neutral-800 group-active:-inset-0.5" : ""}`}
+                        />
+                        <span className="relative z-10 inline-flex items-center justify-center w-full gap-2">
+                          {loadingPlanId === plan.id ? (
+                            <>
+                              <svg
+                                className="animate-spin h-5 w-5"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                              >
+                                <circle
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="white"
+                                  strokeWidth="3"
+                                  strokeDasharray="31.4 31.4"
+                                  strokeLinecap="round"
+                                />
+                                <circle
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="white"
+                                  strokeWidth="1"
+                                  strokeDasharray="15.7 47.1"
+                                  strokeDashoffset="15.7"
+                                  strokeLinecap="round"
+                                />
+                              </svg>
+                              Processing...
+                            </>
+                          ) : (
+                            plan.ctaLabel
+                          )}
+                        </span>
+                      </button>
+                    )}
 
                     <ul className="mt-6 space-y-3 text-left text-sm text-neutral-700">
                       {featureLabels.map((feature, index) => (
@@ -587,7 +855,7 @@ export default function BillingPage() {
                             </span>
                             <ul className="mt-1 space-y-1 text-xs font-normal text-neutral-400">
                               <li className="flex items-start gap-2">
-                                
+
                                 <span>{featureDetails[index] ?? ""}</span>
                               </li>
                             </ul>

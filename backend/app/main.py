@@ -715,6 +715,372 @@ def get_account_ledger(
         "offset": offset
     }
 
+@app.get("/subscription/info")
+def get_subscription_info(current_user: AuthenticatedUser = Depends(get_current_user)):
+    """
+    Get detailed subscription information for the current user
+    """
+    supabase = get_supabase()
+    user_id = current_user.user_id
+
+    # Get profile with subscription details
+    profile_res = (
+        supabase.table("profiles")
+        .select("*")
+        .eq("id", user_id)
+        .single()
+        .execute()
+    )
+
+    if not profile_res.data:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    profile = profile_res.data
+    stripe_customer_id = profile.get("stripe_customer_id")
+
+    subscription_info = {
+        "plan_type": profile.get("plan_type", "free"),
+        "subscription_status": profile.get("subscription_status"),
+        "credits_remaining": profile.get("credits_remaining", 0),
+        "addon_credits": profile.get("addon_credits", 0),
+        "max_credits": CREDITS_MAP.get(profile.get("plan_type", "free"), 0),
+        "cancel_at_period_end": False,
+        "current_period_end": None,
+        "upcoming_invoice": None,
+    }
+
+    # Fetch Stripe subscription details if customer exists
+    if stripe_customer_id:
+        try:
+            # Get active subscriptions for this customer
+            subscriptions = stripe.Subscription.list(
+                customer=stripe_customer_id,
+                status="active",
+                limit=1
+            )
+
+            if subscriptions.data:
+                sub = subscriptions.data[0]
+                subscription_info["cancel_at_period_end"] = sub.get("cancel_at_period_end", False)
+                subscription_info["current_period_end"] = sub.get("current_period_end")
+                subscription_info["subscription_id"] = sub.get("id")
+
+                # Check if there's a scheduled plan change
+                schedule = sub.get("schedule")
+                if schedule:
+                    try:
+                        schedule_obj = stripe.SubscriptionSchedule.retrieve(schedule)
+                        phases = schedule_obj.get("phases", [])
+                        if len(phases) > 1:
+                            # There's a future phase (downgrade scheduled)
+                            next_phase = phases[-1]
+                            items = next_phase.get("items", [])
+                            if items:
+                                next_price_id = items[0].get("price")
+                                next_plan = PRICE_TO_PLAN.get(next_price_id)
+                                if next_plan:
+                                    subscription_info["pending_plan_change"] = next_plan
+                    except Exception as e:
+                        print(f"Error fetching subscription schedule: {e}")
+
+        except Exception as e:
+            print(f"Error fetching Stripe subscription: {e}")
+
+    return subscription_info
+
+@app.post("/subscription/upgrade")
+def upgrade_subscription(
+    plan: str,
+    current_user: AuthenticatedUser = Depends(get_current_user)
+):
+    """
+    Upgrade subscription to a higher plan with immediate proration
+    """
+    supabase = get_supabase()
+    user_id = current_user.user_id
+
+    # Validate plan
+    if plan not in CREDITS_MAP:
+        raise HTTPException(status_code=400, detail="Invalid plan")
+
+    # Get current profile
+    profile_res = (
+        supabase.table("profiles")
+        .select("*")
+        .eq("id", user_id)
+        .single()
+        .execute()
+    )
+
+    if not profile_res.data:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    profile = profile_res.data
+    current_plan = profile.get("plan_type", "free")
+    stripe_customer_id = profile.get("stripe_customer_id")
+
+    if not stripe_customer_id:
+        raise HTTPException(status_code=400, detail="No active subscription found")
+
+    # Validate it's an upgrade
+    current_credits = CREDITS_MAP.get(current_plan, 0)
+    new_credits = CREDITS_MAP.get(plan, 0)
+
+    if new_credits <= current_credits:
+        raise HTTPException(status_code=400, detail="Can only upgrade to a higher plan")
+
+    # Get price ID for new plan
+    new_price_id = PLAN_PRICE_MAP.get(plan)
+    if not new_price_id:
+        raise HTTPException(status_code=400, detail="Plan price not configured")
+
+    try:
+        # Get current subscription
+        subscriptions = stripe.Subscription.list(
+            customer=stripe_customer_id,
+            status="active",
+            limit=1
+        )
+
+        if not subscriptions.data:
+            raise HTTPException(status_code=400, detail="No active subscription found")
+
+        subscription = subscriptions.data[0]
+        subscription_id = subscription.id
+
+        # Get current subscription item
+        if not subscription.items.data:
+            raise HTTPException(status_code=400, detail="No subscription items found")
+
+        item_id = subscription.items.data[0].id
+
+        # Upgrade with proration
+        updated_subscription = stripe.Subscription.modify(
+            subscription_id,
+            items=[{
+                "id": item_id,
+                "price": new_price_id,
+            }],
+            proration_behavior="always_invoice",  # Create invoice for proration
+            metadata={
+                "user_id": user_id,
+            }
+        )
+
+        return {
+            "status": "success",
+            "message": f"Upgraded to {plan} plan",
+            "subscription_id": updated_subscription.id,
+            "new_plan": plan
+        }
+
+    except stripe.error.StripeError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/subscription/downgrade")
+def downgrade_subscription(
+    plan: str,
+    current_user: AuthenticatedUser = Depends(get_current_user)
+):
+    """
+    Downgrade subscription to a lower plan (takes effect at period end)
+    """
+    supabase = get_supabase()
+    user_id = current_user.user_id
+
+    # Validate plan
+    if plan not in CREDITS_MAP:
+        raise HTTPException(status_code=400, detail="Invalid plan")
+
+    # Get current profile
+    profile_res = (
+        supabase.table("profiles")
+        .select("*")
+        .eq("id", user_id)
+        .single()
+        .execute()
+    )
+
+    if not profile_res.data:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    profile = profile_res.data
+    current_plan = profile.get("plan_type", "free")
+    stripe_customer_id = profile.get("stripe_customer_id")
+
+    if not stripe_customer_id:
+        raise HTTPException(status_code=400, detail="No active subscription found")
+
+    # Validate it's a downgrade
+    current_credits = CREDITS_MAP.get(current_plan, 0)
+    new_credits = CREDITS_MAP.get(plan, 0)
+
+    if new_credits >= current_credits:
+        raise HTTPException(status_code=400, detail="Can only downgrade to a lower plan")
+
+    # Get price ID for new plan
+    new_price_id = PLAN_PRICE_MAP.get(plan)
+    if not new_price_id:
+        raise HTTPException(status_code=400, detail="Plan price not configured")
+
+    try:
+        # Get current subscription
+        subscriptions = stripe.Subscription.list(
+            customer=stripe_customer_id,
+            status="active",
+            limit=1
+        )
+
+        if not subscriptions.data:
+            raise HTTPException(status_code=400, detail="No active subscription found")
+
+        subscription = subscriptions.data[0]
+        subscription_id = subscription.id
+
+        # Get current subscription item
+        if not subscription.items.data:
+            raise HTTPException(status_code=400, detail="No subscription items found")
+
+        item_id = subscription.items.data[0].id
+
+        # Downgrade at period end with no proration
+        updated_subscription = stripe.Subscription.modify(
+            subscription_id,
+            items=[{
+                "id": item_id,
+                "price": new_price_id,
+            }],
+            proration_behavior="none",  # No proration for downgrades
+            billing_cycle_anchor="unchanged",  # Keep same billing date
+            metadata={
+                "user_id": user_id,
+            }
+        )
+
+        return {
+            "status": "success",
+            "message": f"Downgrade to {plan} plan scheduled for next billing cycle",
+            "subscription_id": updated_subscription.id,
+            "new_plan": plan,
+            "effective_date": updated_subscription.current_period_end
+        }
+
+    except stripe.error.StripeError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/subscription/cancel")
+def cancel_subscription(current_user: AuthenticatedUser = Depends(get_current_user)):
+    """
+    Cancel subscription at period end (user keeps access until then)
+    """
+    supabase = get_supabase()
+    user_id = current_user.user_id
+
+    # Get current profile
+    profile_res = (
+        supabase.table("profiles")
+        .select("*")
+        .eq("id", user_id)
+        .single()
+        .execute()
+    )
+
+    if not profile_res.data:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    profile = profile_res.data
+    stripe_customer_id = profile.get("stripe_customer_id")
+
+    if not stripe_customer_id:
+        raise HTTPException(status_code=400, detail="No active subscription found")
+
+    try:
+        # Get current subscription
+        subscriptions = stripe.Subscription.list(
+            customer=stripe_customer_id,
+            status="active",
+            limit=1
+        )
+
+        if not subscriptions.data:
+            raise HTTPException(status_code=400, detail="No active subscription found")
+
+        subscription = subscriptions.data[0]
+        subscription_id = subscription.id
+
+        # Cancel at period end
+        updated_subscription = stripe.Subscription.modify(
+            subscription_id,
+            cancel_at_period_end=True
+        )
+
+        return {
+            "status": "success",
+            "message": "Subscription will be canceled at the end of the current period",
+            "subscription_id": updated_subscription.id,
+            "cancel_at": updated_subscription.current_period_end
+        }
+
+    except stripe.error.StripeError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/subscription/reactivate")
+def reactivate_subscription(current_user: AuthenticatedUser = Depends(get_current_user)):
+    """
+    Reactivate a subscription that was scheduled for cancellation
+    """
+    supabase = get_supabase()
+    user_id = current_user.user_id
+
+    # Get current profile
+    profile_res = (
+        supabase.table("profiles")
+        .select("*")
+        .eq("id", user_id)
+        .single()
+        .execute()
+    )
+
+    if not profile_res.data:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    profile = profile_res.data
+    stripe_customer_id = profile.get("stripe_customer_id")
+
+    if not stripe_customer_id:
+        raise HTTPException(status_code=400, detail="No subscription found")
+
+    try:
+        # Get current subscription
+        subscriptions = stripe.Subscription.list(
+            customer=stripe_customer_id,
+            limit=1
+        )
+
+        if not subscriptions.data:
+            raise HTTPException(status_code=400, detail="No subscription found")
+
+        subscription = subscriptions.data[0]
+        subscription_id = subscription.id
+
+        if not subscription.cancel_at_period_end:
+            raise HTTPException(status_code=400, detail="Subscription is not scheduled for cancellation")
+
+        # Reactivate by removing cancel_at_period_end
+        updated_subscription = stripe.Subscription.modify(
+            subscription_id,
+            cancel_at_period_end=False
+        )
+
+        return {
+            "status": "success",
+            "message": "Subscription reactivated successfully",
+            "subscription_id": updated_subscription.id
+        }
+
+    except stripe.error.StripeError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 @app.get("/jobs")
 def list_jobs(current_user: AuthenticatedUser = Depends(get_current_user)):
     supabase = get_supabase()
