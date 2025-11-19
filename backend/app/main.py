@@ -120,6 +120,14 @@ CREDITS_MAP = {
     "pro": 40000,
 }
 
+# Annual plans receive 12x monthly credits upfront (no monthly resets)
+ANNUAL_CREDITS_MAP = {
+    "free": 500 * 12,
+    "starter": 2000 * 12,   # 24,000 credits upfront
+    "growth": 10000 * 12,   # 120,000 credits upfront
+    "pro": 40000 * 12,      # 480,000 credits upfront
+}
+
 FRONTEND_BASE_URLS = os.getenv(
     "FRONTEND_BASE_URLS",
     "http://localhost:3000,http://127.0.0.1:3000",
@@ -2164,9 +2172,9 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
             )
         else:
             # Normalize plan name (strip "_annual" suffix for validation)
-            # Annual plans use same credit allocation as monthly plans
             base_plan = plan.replace("_annual", "") if plan.endswith("_annual") else plan
-            billing_frequency = "annual" if plan.endswith("_annual") else "monthly"
+            is_annual = plan.endswith("_annual")
+            billing_frequency = "annual" if is_annual else "monthly"
 
             # Validate plan exists
             if base_plan not in CREDITS_MAP:
@@ -2180,7 +2188,13 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                 subscription = stripe.Subscription.retrieve(subscription_id)
                 renewal_date = subscription.get("current_period_end")
 
-            credits = CREDITS_MAP.get(base_plan, 0)
+            # Annual plans get 12x credits upfront, monthly plans get regular allocation
+            if is_annual:
+                credits = ANNUAL_CREDITS_MAP.get(base_plan, 0)
+                credit_description = f"{credits:,} credits upfront (annual)"
+            else:
+                credits = CREDITS_MAP.get(base_plan, 0)
+                credit_description = f"{credits:,} credits/month (monthly)"
             try:
                 res_update = (
                     supabase.table("profiles")
@@ -2215,7 +2229,8 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                 print(f"[Stripe] Failed to update plan purchase: {exc}")
 
             print(
-                f"[PLAN] user={user_id}, plan={base_plan}, frequency={billing_frequency}, credits={credits}, renewal={renewal_date}"
+                f"[PLAN] user={user_id}, plan={base_plan}, frequency={billing_frequency}, "
+                f"credits={credits} ({credit_description}), renewal={renewal_date}"
             )
 
     # Handle monthly renewals (invoice.paid event)
@@ -2261,86 +2276,98 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                         current_credits = profile.data.get("credits_remaining", 0)
                         subscription_status = profile.data.get("subscription_status")
 
-                        # For plan changes, get the new plan from subscription
-                        old_plan_type = plan_type
-                        is_plan_change = False
-                        if billing_reason == "subscription_update":
-                            # Get plan from subscription items
-                            items = subscription.get("items", {}).get("data", [])
-                            if items:
-                                price_id = items[0].get("price", {}).get("id")
-                                new_plan = PRICE_TO_PLAN.get(price_id, plan_type)
-                                if new_plan != plan_type:
-                                    print(f"[PLAN_CHANGE] {plan_type} → {new_plan}")
-                                    is_plan_change = True
-                                    old_plan_type = plan_type
-                                    plan_type = new_plan
+                        # Check subscription billing interval (month vs year)
+                        subscription_interval = subscription.get("items", {}).get("data", [])[0].get("plan", {}).get("interval") if subscription.get("items", {}).get("data") else None
+                        is_annual_subscription = subscription_interval == "year"
 
-                        # Only reset credits for active subscriptions with paid plans
-                        if subscription_status == "active" and plan_type in CREDITS_MAP:
-                            monthly_credits = CREDITS_MAP.get(plan_type, 0)
-                            old_monthly_credits = CREDITS_MAP.get(old_plan_type, 0)
-
-                            # Handle different scenarios
-                            should_reset_credits = True
-                            ledger_reason = f"monthly renewal - {plan_type}"
-
-                            if billing_reason == "subscription_update" and is_plan_change:
-                                # Check if upgrade or downgrade
-                                if monthly_credits > old_monthly_credits:
-                                    # UPGRADE: Credits already added by customer.subscription.updated
-                                    # Skip credit reset to avoid overwriting the added credits
-                                    should_reset_credits = False
-                                    print(
-                                        f"[INVOICE_UPGRADE] Skipping credit reset for upgrade "
-                                        f"{old_plan_type}→{plan_type}, credits already added by subscription.updated"
-                                    )
-                                else:
-                                    # DOWNGRADE: Reset to new lower plan amount
-                                    ledger_reason = f"Plan downgrade - {old_plan_type} to {plan_type}"
-                                    print(
-                                        f"[INVOICE_DOWNGRADE] Resetting credits for downgrade "
-                                        f"{old_plan_type}→{plan_type}: {current_credits}→{monthly_credits}"
-                                    )
-
-                            if should_reset_credits:
-                                # RESET credits to monthly allocation
-                                res_update = (
-                                    supabase.table("profiles")
-                                    .update({
-                                        "credits_remaining": monthly_credits,
-                                        "plan_type": plan_type,
-                                    })
-                                    .eq("id", user_id)
-                                    .execute()
-                                )
-                                log_db("reset_monthly_credits", res_update)
-
-                                # Record in ledger
-                                invoice_amount = (obj.get("amount_paid") or 0) / 100.0
-                                res_ledger = (
-                                    supabase.table("ledger")
-                                    .insert({
-                                        "user_id": user_id,
-                                        "change": monthly_credits,
-                                        "amount": invoice_amount,
-                                        "reason": ledger_reason,
-                                        "ts": datetime.utcnow().isoformat(),
-                                    })
-                                    .execute()
-                                )
-                                log_db("insert_ledger_renewal", res_ledger)
-
-                                print(
-                                    f"[RENEWAL] user={user_id}, plan={plan_type}, "
-                                    f"credits_reset_to={monthly_credits}, amount=${invoice_amount}, "
-                                    f"reason={billing_reason}"
-                                )
-                        else:
+                        if is_annual_subscription:
                             print(
-                                f"[INVOICE] Skipping credit reset for user {user_id}: "
-                                f"status={subscription_status}, plan={plan_type}"
+                                f"[INVOICE] Annual subscription detected for user {user_id}. "
+                                f"Skipping credit reset (credits allocated upfront at purchase)."
                             )
+                            # Annual subscriptions don't get monthly credit resets
+                            # They received all 12 months of credits upfront at purchase time
+                        else:
+                            # For plan changes, get the new plan from subscription
+                            old_plan_type = plan_type
+                            is_plan_change = False
+                            if billing_reason == "subscription_update":
+                                # Get plan from subscription items
+                                items = subscription.get("items", {}).get("data", [])
+                                if items:
+                                    price_id = items[0].get("price", {}).get("id")
+                                    new_plan = PRICE_TO_PLAN.get(price_id, plan_type)
+                                    if new_plan != plan_type:
+                                        print(f"[PLAN_CHANGE] {plan_type} → {new_plan}")
+                                        is_plan_change = True
+                                        old_plan_type = plan_type
+                                        plan_type = new_plan
+
+                            # Only reset credits for active MONTHLY subscriptions with paid plans
+                            if subscription_status == "active" and plan_type in CREDITS_MAP:
+                                monthly_credits = CREDITS_MAP.get(plan_type, 0)
+                                old_monthly_credits = CREDITS_MAP.get(old_plan_type, 0)
+
+                                # Handle different scenarios
+                                should_reset_credits = True
+                                ledger_reason = f"monthly renewal - {plan_type}"
+
+                                if billing_reason == "subscription_update" and is_plan_change:
+                                    # Check if upgrade or downgrade
+                                    if monthly_credits > old_monthly_credits:
+                                        # UPGRADE: Credits already added by customer.subscription.updated
+                                        # Skip credit reset to avoid overwriting the added credits
+                                        should_reset_credits = False
+                                        print(
+                                            f"[INVOICE_UPGRADE] Skipping credit reset for upgrade "
+                                            f"{old_plan_type}→{plan_type}, credits already added by subscription.updated"
+                                        )
+                                    else:
+                                        # DOWNGRADE: Reset to new lower plan amount
+                                        ledger_reason = f"Plan downgrade - {old_plan_type} to {plan_type}"
+                                        print(
+                                            f"[INVOICE_DOWNGRADE] Resetting credits for downgrade "
+                                            f"{old_plan_type}→{plan_type}: {current_credits}→{monthly_credits}"
+                                        )
+
+                                if should_reset_credits:
+                                    # RESET credits to monthly allocation
+                                    res_update = (
+                                        supabase.table("profiles")
+                                        .update({
+                                            "credits_remaining": monthly_credits,
+                                            "plan_type": plan_type,
+                                        })
+                                        .eq("id", user_id)
+                                        .execute()
+                                    )
+                                    log_db("reset_monthly_credits", res_update)
+
+                                    # Record in ledger
+                                    invoice_amount = (obj.get("amount_paid") or 0) / 100.0
+                                    res_ledger = (
+                                        supabase.table("ledger")
+                                        .insert({
+                                            "user_id": user_id,
+                                            "change": monthly_credits,
+                                            "amount": invoice_amount,
+                                            "reason": ledger_reason,
+                                            "ts": datetime.utcnow().isoformat(),
+                                        })
+                                        .execute()
+                                    )
+                                    log_db("insert_ledger_renewal", res_ledger)
+
+                                    print(
+                                        f"[RENEWAL] user={user_id}, plan={plan_type}, "
+                                        f"credits_reset_to={monthly_credits}, amount=${invoice_amount}, "
+                                        f"reason={billing_reason}"
+                                    )
+                            else:
+                                print(
+                                    f"[INVOICE] Skipping credit reset for user {user_id}: "
+                                    f"status={subscription_status}, plan={plan_type}"
+                                )
             except Exception as exc:
                 print(f"[INVOICE] Error processing monthly renewal: {exc}")
 
