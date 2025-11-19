@@ -355,6 +355,11 @@ export default function BillingPage() {
     if (!session || !userInfo?.id) return;
     setLoadingPlanId(planId);
     try {
+      // Append "_annual" suffix if yearly billing cycle is selected
+      const planName = billingCycle === "yearly"
+        ? `${planId.toLowerCase()}_annual`
+        : planId.toLowerCase();
+
       const res = await fetch(`${API_URL}/create_checkout_session`, {
         method: "POST",
         headers: {
@@ -362,7 +367,7 @@ export default function BillingPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          plan: planId.toLowerCase(),
+          plan: planName,
           addon: false,
           quantity: 1,
           user_id: userInfo.id,
