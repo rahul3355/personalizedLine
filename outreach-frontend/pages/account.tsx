@@ -82,10 +82,7 @@ export default function AccountPage() {
 
       if (res.ok) {
         const data = await res.json();
-        console.log("[DEBUG] Subscription Info:", data); // Debug log
         setSubscriptionInfo(data);
-      } else {
-        console.error("[DEBUG] Failed to fetch subscription info:", res.status);
       }
     } catch (err) {
       console.error("Failed to fetch subscription info:", err);
@@ -102,17 +99,21 @@ export default function AccountPage() {
         },
       });
 
-      if (res.ok) {
-        await fetchSubscriptionInfo();
-        setShowCancelModal(false);
-        alert("Subscription will be canceled at the end of the current period.");
-      } else {
+      if (!res.ok) {
         const error = await res.json();
         alert(error.detail || "Failed to cancel subscription");
+        return;
       }
+
+      const data = await res.json();
+      setShowCancelModal(false);
+      alert(data.message || "Subscription will be canceled at the end of the current period.");
+
+      // Reload page to refresh all data
+      window.location.reload();
     } catch (err) {
       console.error("Error canceling subscription:", err);
-      alert("Failed to cancel subscription");
+      alert("Failed to cancel subscription. Please try again.");
     } finally {
       setActionLoading(false);
     }
@@ -128,16 +129,20 @@ export default function AccountPage() {
         },
       });
 
-      if (res.ok) {
-        await fetchSubscriptionInfo();
-        alert("Subscription reactivated successfully!");
-      } else {
+      if (!res.ok) {
         const error = await res.json();
         alert(error.detail || "Failed to reactivate subscription");
+        return;
       }
+
+      const data = await res.json();
+      alert(data.message || "Subscription reactivated successfully!");
+
+      // Reload page to refresh all data
+      window.location.reload();
     } catch (err) {
       console.error("Error reactivating subscription:", err);
-      alert("Failed to reactivate subscription");
+      alert("Failed to reactivate subscription. Please try again.");
     } finally {
       setActionLoading(false);
     }
@@ -145,7 +150,6 @@ export default function AccountPage() {
 
   const handleChangePlan = async (newPlan: string) => {
     const currentPlan = userInfo?.plan_type || "free";
-    const currentCredits = (userInfo?.credits_remaining || 0) + (userInfo?.addon_credits || 0);
 
     const planCredits: Record<string, number> = {
       starter: 2000,
@@ -167,23 +171,27 @@ export default function AccountPage() {
         body: JSON.stringify({ plan: newPlan }),
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        await fetchSubscriptionInfo();
-        setShowPlanModal(false);
-
-        if (isUpgrade) {
-          alert(`Successfully upgraded to ${newPlan} plan!`);
-        } else {
-          alert(`Downgrade to ${newPlan} plan scheduled for next billing cycle.`);
-        }
-      } else {
+      if (!res.ok) {
         const error = await res.json();
         alert(error.detail || `Failed to ${isUpgrade ? "upgrade" : "downgrade"} subscription`);
+        return;
       }
+
+      const data = await res.json();
+      setShowPlanModal(false);
+
+      // Show success message
+      if (isUpgrade) {
+        alert(data.message || `Successfully upgraded to ${newPlan} plan!`);
+      } else {
+        alert(data.message || `Downgrade to ${newPlan} plan scheduled for next billing cycle.`);
+      }
+
+      // Reload page to refresh all data
+      window.location.reload();
     } catch (err) {
       console.error("Error changing plan:", err);
-      alert("Failed to change plan");
+      alert("Failed to change plan. Please try again.");
     } finally {
       setActionLoading(false);
     }
