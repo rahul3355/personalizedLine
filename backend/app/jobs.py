@@ -399,7 +399,10 @@ def _finalize_empty_job(
 
 
 def refund_job_credits(job_id: str, user_id: Optional[str], reason: str = "") -> bool:
-    """Refund credits for a job if they were previously deducted."""
+    """
+    Refund credits for a job if they were previously deducted.
+    Refunds to the same buckets (monthly/addon) from which they were deducted.
+    """
     try:
         job_res = (
             supabase.table("jobs")
@@ -424,24 +427,46 @@ def refund_job_credits(job_id: str, user_id: Optional[str], reason: str = "") ->
         if meta.get("credits_refunded"):
             return False
 
+        # Get breakdown of how credits were deducted
+        monthly_deducted = meta.get("monthly_deducted", 0)
+        addon_deducted = meta.get("addon_deducted", 0)
+
+        # If no breakdown available (legacy jobs), refund all to monthly bucket
+        if monthly_deducted == 0 and addon_deducted == 0:
+            monthly_deducted = cost
+            addon_deducted = 0
+
         max_attempts = 5
         for _ in range(max_attempts):
             profile_res = (
                 supabase.table("profiles")
-                .select("credits_remaining")
+                .select("credits_remaining, addon_credits")
                 .eq("id", user_id)
                 .limit(1)
                 .execute()
             )
-            current_balance = (
-                profile_res.data[0]["credits_remaining"] if profile_res.data else 0
-            )
+
+            if not profile_res.data:
+                print(f"[Credits] Profile not found for user {user_id}")
+                return False
+
+            profile_data = profile_res.data[0]
+            current_monthly = int(profile_data.get("credits_remaining") or 0)
+            current_addon = int(profile_data.get("addon_credits") or 0)
+
+            # Refund to the same buckets from which credits were deducted
+            new_monthly = current_monthly + monthly_deducted
+            new_addon = current_addon + addon_deducted
 
             update_res = (
                 supabase.table("profiles")
-                .update({"credits_remaining": current_balance + cost})
+                .update({
+                    "credits_remaining": new_monthly,
+                    "addon_credits": new_addon
+                })
                 .eq("id", user_id)
-                .eq("credits_remaining", current_balance)
+                .eq("credits_remaining", current_monthly)
+                .eq("addon_credits", current_addon)
                 .execute()
             )
 
@@ -450,12 +475,17 @@ def refund_job_credits(job_id: str, user_id: Optional[str], reason: str = "") ->
 
             updated_rows = getattr(update_res, "data", None) or []
             if updated_rows:
+                print(
+                    f"[Credits] Refunded {cost} credits for job {job_id} "
+                    f"(monthly: +{monthly_deducted}, addon: +{addon_deducted}) - {reason}"
+                )
                 break
 
             time.sleep(0.1)
         else:
             raise RuntimeError("Failed to atomically refund credits")
 
+        # Record in ledger
         supabase.table("ledger").insert(
             {
                 "user_id": user_id,
@@ -469,7 +499,6 @@ def refund_job_credits(job_id: str, user_id: Optional[str], reason: str = "") ->
         meta["credits_refunded"] = True
         supabase.table("jobs").update({"meta_json": meta}).eq("id", job_id).execute()
 
-        print(f"[Credits] Refunded {cost} credits for job {job_id} ({reason})")
         return True
     except Exception as exc:
         print(f"[Credits] Failed to refund credits for job {job_id}: {exc}")
@@ -483,7 +512,10 @@ def _deduct_job_credits(
     *,
     supabase_client=supabase,
 ) -> bool:
-    """Deduct credits for a job if they have not already been charged."""
+    """
+    Deduct credits for a job if they have not already been charged.
+    Uses two-bucket system: deducts from monthly credits first, then add-on credits.
+    """
 
     if total <= 0:
         return True
@@ -495,23 +527,34 @@ def _deduct_job_credits(
         return True
 
     deducted = False
-    previous_balance = 0
+    previous_monthly = 0
+    previous_addon = 0
+    monthly_deducted = 0
+    addon_deducted = 0
 
     try:
         max_attempts = 5
         for _ in range(max_attempts):
+            # Read both credit buckets
             profile_res = (
                 supabase_client.table("profiles")
-                .select("credits_remaining")
+                .select("credits_remaining, addon_credits")
                 .eq("id", user_id)
                 .limit(1)
                 .execute()
             )
-            previous_balance = (
-                profile_res.data[0]["credits_remaining"] if profile_res.data else 0
-            )
 
-            if previous_balance < total:
+            if not profile_res.data:
+                print(f"[Credits] Profile not found for user {user_id}")
+                return False
+
+            profile_data = profile_res.data[0]
+            previous_monthly = int(profile_data.get("credits_remaining") or 0)
+            previous_addon = int(profile_data.get("addon_credits") or 0)
+            total_available = previous_monthly + previous_addon
+
+            # Check if sufficient credits
+            if total_available < total:
                 supabase_client.table("jobs").update(
                     {
                         "status": "failed",
@@ -520,15 +563,39 @@ def _deduct_job_credits(
                     }
                 ).eq("id", job_id).execute()
                 print(
-                    f"[Credits] Job {job_id} has insufficient credits ({previous_balance} < {total})"
+                    f"[Credits] Job {job_id} has insufficient credits "
+                    f"(monthly={previous_monthly}, addon={previous_addon}, "
+                    f"total={total_available} < needed={total})"
                 )
                 return False
 
+            # Two-bucket deduction: use monthly credits first, then add-on credits
+            if previous_monthly >= total:
+                # Use only monthly credits
+                new_monthly = previous_monthly - total
+                new_addon = previous_addon
+                monthly_deducted = total
+                addon_deducted = 0
+                deduction_source = "monthly"
+            else:
+                # Use all monthly + some add-on credits
+                remaining_needed = total - previous_monthly
+                new_monthly = 0
+                new_addon = previous_addon - remaining_needed
+                monthly_deducted = previous_monthly
+                addon_deducted = remaining_needed
+                deduction_source = "monthly+addon"
+
+            # Atomic update with CAS on both columns
             update_res = (
                 supabase_client.table("profiles")
-                .update({"credits_remaining": previous_balance - total})
+                .update({
+                    "credits_remaining": new_monthly,
+                    "addon_credits": new_addon
+                })
                 .eq("id", user_id)
-                .eq("credits_remaining", previous_balance)
+                .eq("credits_remaining", previous_monthly)
+                .eq("addon_credits", previous_addon)
                 .execute()
             )
 
@@ -540,6 +607,10 @@ def _deduct_job_credits(
             updated_rows = getattr(update_res, "data", None) or []
             if updated_rows:
                 deducted = True
+                print(
+                    f"[Credits] Deducted {total} credits for job {job_id} "
+                    f"(monthly: {monthly_deducted}, addon: {addon_deducted}, source: {deduction_source})"
+                )
                 break
 
             time.sleep(0.1)
@@ -547,17 +618,21 @@ def _deduct_job_credits(
         if not deducted:
             raise RuntimeError("Failed to atomically deduct credits")
 
+        # Record in ledger with deduction source
         supabase_client.table("ledger").insert(
             {
                 "user_id": user_id,
                 "change": -total,
                 "amount": 0.0,  # ensure non-null for deductions
-                "reason": f"job deduction: {job_id}",
+                "reason": f"job deduction: {job_id} ({deduction_source})",
                 "ts": datetime.utcnow().isoformat(),
             }
         ).execute()
 
+        # Store breakdown in meta for potential refunds
         meta["credit_cost"] = total
+        meta["monthly_deducted"] = monthly_deducted
+        meta["addon_deducted"] = addon_deducted
         meta["credits_deducted"] = True
         if "credits_refunded" not in meta:
             meta["credits_refunded"] = False
@@ -568,10 +643,13 @@ def _deduct_job_credits(
     except Exception as exc:
         print(f"[Credits] Error while deducting for job {job_id}: {exc}")
         if deducted:
+            # Rollback: restore both buckets
             try:
-                supabase_client.table("profiles").update(
-                    {"credits_remaining": previous_balance}
-                ).eq("id", user_id).execute()
+                supabase_client.table("profiles").update({
+                    "credits_remaining": previous_monthly,
+                    "addon_credits": previous_addon
+                }).eq("id", user_id).execute()
+                print(f"[Credits] Rolled back deduction for job {job_id}")
             except Exception as rollback_exc:
                 print(
                     f"[Credits] Failed to rollback deduction for job {job_id}: {rollback_exc}"
