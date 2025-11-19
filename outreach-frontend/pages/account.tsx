@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../lib/AuthProvider";
 import { API_URL } from "../lib/api";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, CreditCard, Calendar, AlertTriangle, X, Check } from "lucide-react";
 
 interface Transaction {
   id: string | number;
@@ -11,6 +11,15 @@ interface Transaction {
   amount: number;
   reason: string;
   ts: string;
+}
+
+interface SubscriptionInfo {
+  plan_type: string;
+  subscription_status: string;
+  cancel_at_period_end: boolean;
+  current_period_end: number | null;
+  subscription_id?: string;
+  stripe_price_id?: string;
 }
 
 export default function AccountPage() {
@@ -22,6 +31,13 @@ export default function AccountPage() {
   const [limit] = useState(50);
   const [offset, setOffset] = useState(0);
 
+  // Subscription management state
+  const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo | null>(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showPlanModal, setShowPlanModal] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<string>("");
+  const [actionLoading, setActionLoading] = useState(false);
+
   useEffect(() => {
     if (!session) {
       router.push("/login");
@@ -29,6 +45,7 @@ export default function AccountPage() {
     }
 
     fetchLedger();
+    fetchSubscriptionInfo();
   }, [session, offset]);
 
   const fetchLedger = async () => {
@@ -52,6 +69,120 @@ export default function AccountPage() {
       console.error("Failed to fetch ledger:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSubscriptionInfo = async () => {
+    try {
+      const res = await fetch(`${API_URL}/account/status`, {
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setSubscriptionInfo(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch subscription info:", err);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    setActionLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/subscription/cancel`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+      });
+
+      if (res.ok) {
+        await fetchSubscriptionInfo();
+        setShowCancelModal(false);
+        alert("Subscription will be canceled at the end of the current period.");
+      } else {
+        const error = await res.json();
+        alert(error.detail || "Failed to cancel subscription");
+      }
+    } catch (err) {
+      console.error("Error canceling subscription:", err);
+      alert("Failed to cancel subscription");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReactivateSubscription = async () => {
+    setActionLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/subscription/reactivate`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+      });
+
+      if (res.ok) {
+        await fetchSubscriptionInfo();
+        alert("Subscription reactivated successfully!");
+      } else {
+        const error = await res.json();
+        alert(error.detail || "Failed to reactivate subscription");
+      }
+    } catch (err) {
+      console.error("Error reactivating subscription:", err);
+      alert("Failed to reactivate subscription");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleChangePlan = async (newPlan: string) => {
+    const currentPlan = userInfo?.plan_type || "free";
+    const currentCredits = (userInfo?.credits_remaining || 0) + (userInfo?.addon_credits || 0);
+
+    const planCredits: Record<string, number> = {
+      starter: 2000,
+      growth: 10000,
+      pro: 40000,
+    };
+
+    const isUpgrade = (planCredits[newPlan] || 0) > (planCredits[currentPlan] || 0);
+    const endpoint = isUpgrade ? "/subscription/upgrade" : "/subscription/downgrade";
+
+    setActionLoading(true);
+    try {
+      const res = await fetch(`${API_URL}${endpoint}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ plan: newPlan }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        await fetchSubscriptionInfo();
+        setShowPlanModal(false);
+
+        if (isUpgrade) {
+          alert(`Successfully upgraded to ${newPlan} plan!`);
+        } else {
+          alert(`Downgrade to ${newPlan} plan scheduled for next billing cycle.`);
+        }
+      } else {
+        const error = await res.json();
+        alert(error.detail || `Failed to ${isUpgrade ? "upgrade" : "downgrade"} subscription`);
+      }
+    } catch (err) {
+      console.error("Error changing plan:", err);
+      alert("Failed to change plan");
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -319,7 +450,332 @@ export default function AccountPage() {
             </div>
           )}
         </div>
+
+        {/* Subscription Management Section */}
+        {subscriptionInfo && subscriptionInfo.plan_type !== "free" && subscriptionInfo.subscription_status === "active" && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="mt-8 border border-gray-200 overflow-hidden"
+          >
+            <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">Subscription Management</h2>
+              <p className="text-sm text-gray-500 mt-1">Manage your plan and billing settings</p>
+            </div>
+
+            <div className="p-6">
+              <div className="grid md:grid-cols-3 gap-6">
+                {/* Current Plan */}
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 bg-gray-100 flex items-center justify-center">
+                    <CreditCard className="w-5 h-5 text-gray-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Current Plan</p>
+                    <p className="text-lg font-semibold text-gray-900 mt-0.5 capitalize">
+                      {subscriptionInfo.plan_type}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Next Billing Date */}
+                {subscriptionInfo.current_period_end && (
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 bg-gray-100 flex items-center justify-center">
+                      <Calendar className="w-5 h-5 text-gray-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">
+                        {subscriptionInfo.cancel_at_period_end ? "Cancels On" : "Renews On"}
+                      </p>
+                      <p className="text-lg font-semibold text-gray-900 mt-0.5">
+                        {new Date(subscriptionInfo.current_period_end * 1000).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric"
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Status */}
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 bg-gray-100 flex items-center justify-center">
+                    <Check className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Status</p>
+                    <p className="text-lg font-semibold text-gray-900 mt-0.5 capitalize">
+                      {subscriptionInfo.cancel_at_period_end ? (
+                        <span className="text-orange-600">Canceling</span>
+                      ) : (
+                        <span className="text-green-600">Active</span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Warning if canceling */}
+              {subscriptionInfo.cancel_at_period_end && (
+                <div className="mt-6 p-4 bg-orange-50 border border-orange-200 flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-orange-900">Subscription Scheduled for Cancellation</p>
+                    <p className="text-sm text-orange-700 mt-1">
+                      Your subscription will remain active until{" "}
+                      {subscriptionInfo.current_period_end &&
+                        new Date(subscriptionInfo.current_period_end * 1000).toLocaleDateString()}
+                      . You won't be charged again.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="mt-6 flex gap-3">
+                {subscriptionInfo.cancel_at_period_end ? (
+                  <button
+                    onClick={handleReactivateSubscription}
+                    disabled={actionLoading}
+                    className="px-4 py-2 bg-black text-white font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {actionLoading ? "Processing..." : "Reactivate Subscription"}
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setShowPlanModal(true)}
+                      className="px-4 py-2 bg-black text-white font-medium hover:bg-gray-800 transition-colors"
+                    >
+                      Change Plan
+                    </button>
+                    <button
+                      onClick={() => setShowCancelModal(true)}
+                      className="px-4 py-2 border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                    >
+                      Cancel Subscription
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
       </div>
+
+      {/* Cancel Subscription Modal */}
+      <AnimatePresence>
+        {showCancelModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowCancelModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white max-w-lg w-full p-6"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 bg-red-100 flex items-center justify-center flex-shrink-0">
+                    <AlertTriangle className="w-5 h-5 text-red-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Cancel Subscription</h3>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Are you sure you want to cancel your subscription?
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowCancelModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="bg-gray-50 border border-gray-200 p-4 mb-6">
+                <h4 className="text-sm font-semibold text-gray-900 mb-2">What happens next:</h4>
+                <ul className="space-y-2 text-sm text-gray-700">
+                  <li className="flex items-start gap-2">
+                    <span className="text-gray-400 mt-0.5">•</span>
+                    <span>Your subscription will remain active until the end of the current billing period</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-gray-400 mt-0.5">•</span>
+                    <span>You'll keep access to all features and credits until then</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-gray-400 mt-0.5">•</span>
+                    <span>No further charges will be made</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-gray-400 mt-0.5">•</span>
+                    <span>You can reactivate anytime before the period ends</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowCancelModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                >
+                  Keep Subscription
+                </button>
+                <button
+                  onClick={handleCancelSubscription}
+                  disabled={actionLoading}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {actionLoading ? "Processing..." : "Confirm Cancellation"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Change Plan Modal */}
+      <AnimatePresence>
+        {showPlanModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowPlanModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex items-start justify-between mb-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Change Plan</h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Select a new plan for your subscription
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowPlanModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Plan Options */}
+              <div className="space-y-3 mb-6">
+                {["starter", "growth", "pro"].map((plan) => {
+                  const currentPlan = userInfo?.plan_type || "free";
+                  const isCurrentPlan = plan === currentPlan;
+                  const currentCredits = (userInfo?.credits_remaining || 0) + (userInfo?.addon_credits || 0);
+
+                  const planDetails: Record<string, { credits: number; price: number }> = {
+                    starter: { credits: 2000, price: 49 },
+                    growth: { credits: 10000, price: 149 },
+                    pro: { credits: 40000, price: 499 },
+                  };
+
+                  const details = planDetails[plan];
+                  const isDowngrade = details.credits < (planDetails[currentPlan]?.credits || 0);
+                  const willLoseCredits = isDowngrade && currentCredits > details.credits;
+
+                  return (
+                    <button
+                      key={plan}
+                      onClick={() => {
+                        if (!isCurrentPlan) {
+                          setSelectedPlan(plan);
+                        }
+                      }}
+                      disabled={isCurrentPlan}
+                      className={`w-full text-left p-4 border-2 transition-all ${
+                        selectedPlan === plan
+                          ? "border-black bg-gray-50"
+                          : isCurrentPlan
+                          ? "border-gray-200 bg-gray-100 cursor-not-allowed"
+                          : "border-gray-200 hover:border-gray-400"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-lg font-semibold text-gray-900 capitalize">{plan}</h4>
+                            {isCurrentPlan && (
+                              <span className="px-2 py-0.5 bg-black text-white text-xs font-medium">
+                                Current
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600 mt-1">
+                            {details.credits.toLocaleString()} credits/month • ${details.price}/month
+                          </p>
+
+                          {willLoseCredits && selectedPlan === plan && (
+                            <div className="mt-3 p-3 bg-orange-50 border border-orange-200 flex items-start gap-2">
+                              <AlertTriangle className="w-4 h-4 text-orange-600 flex-shrink-0 mt-0.5" />
+                              <div>
+                                <p className="text-xs font-medium text-orange-900">Warning: Credit Loss</p>
+                                <p className="text-xs text-orange-700 mt-0.5">
+                                  You have {currentCredits.toLocaleString()} credits but {plan} plan only includes{" "}
+                                  {details.credits.toLocaleString()} credits. You'll lose{" "}
+                                  {(currentCredits - details.credits).toLocaleString()} credits when downgrading.
+                                </p>
+                              </div>
+                            </div>
+                          )}
+
+                          {isDowngrade && selectedPlan === plan && (
+                            <p className="text-xs text-gray-600 mt-2">
+                              Downgrade takes effect at the end of your current billing period
+                            </p>
+                          )}
+                        </div>
+
+                        <div className={`w-5 h-5 border-2 flex items-center justify-center flex-shrink-0 ${
+                          selectedPlan === plan ? "border-black bg-black" : "border-gray-300"
+                        }`}>
+                          {selectedPlan === plan && <Check className="w-3 h-3 text-white" />}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowPlanModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => selectedPlan && handleChangePlan(selectedPlan)}
+                  disabled={!selectedPlan || actionLoading}
+                  className="flex-1 px-4 py-2 bg-black text-white font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {actionLoading ? "Processing..." : "Confirm Change"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
