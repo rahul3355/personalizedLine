@@ -675,7 +675,46 @@ def get_me(current_user: AuthenticatedUser = Depends(get_current_user)):
         raise HTTPException(status_code=500, detail=str(exc))
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
-    
+
+@app.get("/account/ledger")
+def get_account_ledger(
+    limit: int = 50,
+    offset: int = 0,
+    current_user: AuthenticatedUser = Depends(get_current_user)
+):
+    """
+    Get paginated ledger transactions for the current user
+    """
+    supabase = get_supabase()
+    user_id = current_user.user_id
+
+    # Get total count
+    count_res = (
+        supabase.table("ledger")
+        .select("id", count="exact")
+        .eq("user_id", user_id)
+        .execute()
+    )
+    total = count_res.count or 0
+
+    # Get paginated transactions
+    ledger_res = (
+        supabase.table("ledger")
+        .select("*")
+        .eq("user_id", user_id)
+        .order("ts", desc=True)
+        .range(offset, offset + limit - 1)
+        .execute()
+    )
+    transactions = ledger_res.data or []
+
+    return {
+        "transactions": transactions,
+        "total": total,
+        "limit": limit,
+        "offset": offset
+    }
+
 @app.get("/jobs")
 def list_jobs(current_user: AuthenticatedUser = Depends(get_current_user)):
     supabase = get_supabase()
