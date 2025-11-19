@@ -74,7 +74,7 @@ export default function AccountPage() {
 
   const fetchSubscriptionInfo = async () => {
     try {
-      const res = await fetch(`${API_URL}/account/status`, {
+      const res = await fetch(`${API_URL}/subscription/info`, {
         headers: {
           Authorization: `Bearer ${session?.access_token}`,
         },
