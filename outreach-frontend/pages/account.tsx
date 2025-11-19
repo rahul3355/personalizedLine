@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { motion, AnimatePresence } from "framer-motion";
+import { loadStripe } from "@stripe/stripe-js";
 import { useAuth } from "../lib/AuthProvider";
 import { API_URL } from "../lib/api";
 import { ChevronLeft, ChevronRight, CreditCard, Calendar, AlertTriangle, X, Check } from "lucide-react";
+
+const STRIPE_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+const stripePromise = STRIPE_KEY ? loadStripe(STRIPE_KEY) : null;
 
 interface Transaction {
   id: string | number;
@@ -91,6 +95,8 @@ export default function AccountPage() {
 
   const handleCancelSubscription = async () => {
     setActionLoading(true);
+    setShowCancelModal(false);
+
     try {
       const res = await fetch(`${API_URL}/subscription/cancel`, {
         method: "POST",
@@ -99,28 +105,17 @@ export default function AccountPage() {
         },
       });
 
-      if (!res.ok) {
-        const error = await res.json();
-        alert(error.detail || "Failed to cancel subscription");
-        return;
-      }
-
-      const data = await res.json();
-      setShowCancelModal(false);
-      alert(data.message || "Subscription will be canceled at the end of the current period.");
-
-      // Reload page to refresh all data
+      // Always refresh the page after attempting cancellation
       window.location.reload();
     } catch (err) {
       console.error("Error canceling subscription:", err);
-      alert("Failed to cancel subscription. Please try again.");
-    } finally {
-      setActionLoading(false);
+      window.location.reload();
     }
   };
 
   const handleReactivateSubscription = async () => {
     setActionLoading(true);
+
     try {
       const res = await fetch(`${API_URL}/subscription/reactivate`, {
         method: "POST",
@@ -129,61 +124,54 @@ export default function AccountPage() {
         },
       });
 
-      if (!res.ok) {
-        const error = await res.json();
-        alert(error.detail || "Failed to reactivate subscription");
-        return;
-      }
-
-      const data = await res.json();
-      alert(data.message || "Subscription reactivated successfully!");
-
-      // Reload page to refresh all data
+      // Refresh page to show updated status
       window.location.reload();
     } catch (err) {
       console.error("Error reactivating subscription:", err);
-      alert("Failed to reactivate subscription. Please try again.");
-    } finally {
-      setActionLoading(false);
+      window.location.reload();
     }
   };
 
   const handleChangePlan = async (newPlan: string) => {
+    if (!session || !userInfo?.id) return;
+
     const currentPlan = userInfo?.plan_type || "free";
 
-    // Check if user is on annual plan
+    // Check if user is on annual plan - silently return
     if (currentPlan.includes("annual")) {
-      alert("Annual plan upgrades are not supported. Please contact support at founders@personalizedline.com");
       return;
     }
 
     setActionLoading(true);
+    setShowPlanModal(false);
+
     try {
-      const res = await fetch(`${API_URL}/subscription/upgrade`, {
+      // Create checkout session for the new plan
+      const res = await fetch(`${API_URL}/create_checkout_session`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${session?.access_token}`,
+          Authorization: `Bearer ${session.access_token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ plan: newPlan }),
+        body: JSON.stringify({
+          plan: newPlan,
+          addon: false,
+          quantity: 1,
+          user_id: userInfo.id,
+        }),
       });
 
-      if (!res.ok) {
-        const error = await res.json();
-        alert(error.detail || "Failed to upgrade subscription");
-        return;
-      }
-
       const data = await res.json();
-      setShowPlanModal(false);
-      alert(data.message || `Successfully upgraded to ${newPlan} plan!`);
 
-      // Reload page to refresh all data
-      window.location.reload();
+      if (data.id) {
+        // Redirect to Stripe checkout
+        const stripe = await stripePromise;
+        if (stripe) {
+          await stripe.redirectToCheckout({ sessionId: data.id });
+        }
+      }
     } catch (err) {
       console.error("Error upgrading plan:", err);
-      alert("Failed to upgrade plan. Please try again.");
-    } finally {
       setActionLoading(false);
     }
   };
@@ -608,9 +596,9 @@ export default function AccountPage() {
                     <AlertTriangle className="w-5 h-5 text-red-600" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">Cancel Subscription</h3>
+                    <h3 className="text-lg font-semibold text-gray-900">Cancel Your Subscription</h3>
                     <p className="text-sm text-gray-600 mt-1">
-                      Are you sure you want to cancel your subscription?
+                      Your subscription will be canceled at the end of your billing period
                     </p>
                   </div>
                 </div>
@@ -623,23 +611,23 @@ export default function AccountPage() {
               </div>
 
               <div className="bg-gray-50 border border-gray-200 p-4 mb-6">
-                <h4 className="text-sm font-semibold text-gray-900 mb-2">What happens next:</h4>
+                <h4 className="text-sm font-semibold text-gray-900 mb-2">What happens when you cancel:</h4>
                 <ul className="space-y-2 text-sm text-gray-700">
                   <li className="flex items-start gap-2">
                     <span className="text-gray-400 mt-0.5">•</span>
-                    <span>Your subscription will remain active until the end of the current billing period</span>
+                    <span>You keep access to your plan until your billing period ends</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-gray-400 mt-0.5">•</span>
-                    <span>You'll keep access to all features and credits until then</span>
+                    <span>All features and credits remain available until then</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-gray-400 mt-0.5">•</span>
-                    <span>No further charges will be made</span>
+                    <span>You won't be charged again</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-gray-400 mt-0.5">•</span>
-                    <span>You can reactivate anytime before the period ends</span>
+                    <span>You can reactivate anytime before it expires</span>
                   </li>
                 </ul>
               </div>
@@ -683,9 +671,9 @@ export default function AccountPage() {
             >
               <div className="flex items-start justify-between mb-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Upgrade Plan</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">Upgrade Your Plan</h3>
                   <p className="text-sm text-gray-600 mt-1">
-                    Choose a higher tier plan to upgrade your subscription
+                    Select a higher tier to get more credits
                   </p>
                 </div>
                 <button
@@ -699,8 +687,7 @@ export default function AccountPage() {
               {/* Plan Options - Only show higher tier plans (upgrades only) */}
               <div className="space-y-3 mb-6">
                 {["starter", "growth", "pro"].map((plan) => {
-                  const currentPlan = userInfo?.plan_type || "free";
-                  const isCurrentPlan = plan === currentPlan;
+                  const currentPlan = (userInfo?.plan_type || "free").replace("_annual", "").replace("annual", "");
 
                   const planDetails: Record<string, { credits: number; price: number }> = {
                     starter: { credits: 2000, price: 49 },
@@ -712,7 +699,8 @@ export default function AccountPage() {
                   const currentPlanCredits = planDetails[currentPlan]?.credits || 0;
 
                   // Only show plans with more credits than current plan (upgrades only)
-                  if (details.credits <= currentPlanCredits) {
+                  // Skip current plan entirely
+                  if (details.credits <= currentPlanCredits || plan === currentPlan) {
                     return null;
                   }
 
