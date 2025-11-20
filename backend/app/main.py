@@ -1907,6 +1907,32 @@ async def create_checkout_session(
         if not stripe_customer_id:
             raise HTTPException(status_code=500, detail="Unable to create Stripe customer")
 
+        # PREVENT DOWNGRADE VIA CANCEL → RESUBSCRIBE LOOPHOLE
+        # Check if user has active subscription and prevent subscribing to lower tier
+        if not data.addon:
+            supabase = get_supabase()
+            profile_res = supabase.table("profiles").select("*").eq("id", user_id).single().execute()
+            if profile_res.data:
+                current_plan = profile_res.data.get("plan_type", "free")
+                subscription_status = profile_res.data.get("subscription_status")
+
+                # Check if user has active or canceling subscription (cancel_at_period_end = true)
+                if subscription_status == "active" or subscription_status == "trialing":
+                    current_credits = CREDITS_MAP.get(current_plan, 0)
+                    new_credits = CREDITS_MAP.get(data.plan, 0)
+
+                    # Block if trying to subscribe to same or lower tier
+                    if new_credits <= current_credits and current_credits > 0:
+                        print(
+                            f"[CHECKOUT_BLOCKED] user={user_id} attempted to subscribe to "
+                            f"{data.plan} (credits={new_credits}) while having active plan "
+                            f"{current_plan} (credits={current_credits}). Use /subscription/upgrade instead."
+                        )
+                        raise HTTPException(
+                            status_code=400,
+                            detail="Cannot subscribe to same or lower tier plan. Please use the upgrade feature or contact support."
+                        )
+
         line_items = []
         price_id = None
         mode = "subscription"
@@ -2310,12 +2336,13 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                                             f"[INVOICE_UPGRADE] Skipping credit reset for upgrade "
                                             f"{old_plan_type}→{plan_type}, credits already added by subscription.updated"
                                         )
-                                    else:
-                                        # DOWNGRADE: Reset to new lower plan amount
-                                        ledger_reason = f"Plan downgrade - {old_plan_type} to {plan_type}"
+                                    elif monthly_credits < old_monthly_credits:
+                                        # DOWNGRADE BLOCKED: Do not process downgrades
+                                        should_reset_credits = False
                                         print(
-                                            f"[INVOICE_DOWNGRADE] Resetting credits for downgrade "
-                                            f"{old_plan_type}→{plan_type}: {current_credits}→{monthly_credits}"
+                                            f"[INVOICE_DOWNGRADE_BLOCKED] Attempted downgrade "
+                                            f"{old_plan_type}→{plan_type} blocked. User keeps current plan and credits. "
+                                            f"Admin must manually cancel this in Stripe."
                                         )
 
                                 if should_reset_credits:
@@ -2434,14 +2461,13 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
 
                             # DOWNGRADE: New plan has fewer credits than old plan
                             elif new_plan_credits < old_plan_credits:
-                                # Don't change credits yet - downgrade will be applied at next invoice.paid
-                                # This happens when user downgrades with proration_behavior='none'
+                                # DOWNGRADES ARE NOT ALLOWED - Block and log
                                 print(
-                                    f"[DOWNGRADE_SCHEDULED] user={user_id}, {old_plan}→{new_plan}, "
-                                    f"will take effect at period end, keeping {current_credits} credits for now"
+                                    f"[DOWNGRADE_BLOCKED] user={user_id}, attempted {old_plan}→{new_plan}, "
+                                    f"downgrades are not permitted. User should contact support."
                                 )
-                                # Optionally update plan_type here if you want to show the pending change
-                                # For now, we'll wait until the next invoice.paid to apply the downgrade
+                                # Do not process the downgrade - user keeps current plan and credits
+                                # If this happens via Stripe Customer Portal, admin should cancel the change
 
                             else:
                                 print(f"[SUBSCRIPTION_UPDATED] No credit change for user {user_id}")
