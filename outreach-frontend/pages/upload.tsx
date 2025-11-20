@@ -178,7 +178,7 @@ const EXAMPLE_DATA: ExampleItem[] = [
     category: "sales",
     core_offer: "Sales intelligence platform for B2B teams",
     key_differentiator: "Access to 50M+ verified contacts across all industries",
-    cta: "Get started with 100 free credits",
+    cta: "Get started with 500 free credits",
   },
   {
     id: "ex6",
