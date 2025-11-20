@@ -110,8 +110,8 @@ export default function Home() {
         <div className="grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-7">
             <div className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-700 shadow-sm">
-              <Sparkles className="h-3.5 w-3.5 text-blue-600" />
-              AI-powered lead research • Export-ready
+             
+              AI-powered real time lead research
             </div>
             <h1 className="text-4xl leading-[1.05] font-semibold text-slate-900 sm:text-5xl lg:text-6xl">
               Turn your leads into well-researched emails
