@@ -475,6 +475,25 @@ export default function BillingPage() {
   // Use userInfo directly to avoid async timing issues with subscriptionInfo
   const hasActiveSub = userInfo && userInfo.user?.plan_type && userInfo.user.plan_type !== "free";
 
+  // Auto-select the first visible card when filters change
+  useEffect(() => {
+    if (hasActiveSub) {
+      const normalizedCurrentPlan = currentPlan.toLowerCase().replace("_annual", "");
+      const currentPlanCredits = PRICING[normalizedCurrentPlan as keyof typeof PRICING]?.credits || 0;
+
+      // Find first visible (non-downgrade) plan
+      const firstVisiblePlan = plans.find((plan) => {
+        const planCredits = plan.monthlyCredits;
+        const isDowngrade = planCredits < currentPlanCredits;
+        return !isDowngrade;
+      });
+
+      if (firstVisiblePlan) {
+        setSelectedPlanId(firstVisiblePlan.id);
+      }
+    }
+  }, [hasActiveSub, currentPlan, plans]);
+
   // Debug logging
   console.log("[Billing Debug] currentPlan:", currentPlan);
   console.log("[Billing Debug] hasActiveSub:", hasActiveSub);
@@ -538,7 +557,7 @@ export default function BillingPage() {
           </div>
 
           <LayoutGroup>
-            <div className="mt-12 grid grid-cols-1 gap-6 text-left md:grid-cols-2 xl:grid-cols-3 md:gap-8">
+            <div className="mt-12 flex flex-wrap justify-center gap-6 text-left md:gap-8">
               {plans.map((plan) => {
                 const price = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
                 const cadence = isYearly ? "/year" : "/month";
@@ -604,7 +623,7 @@ export default function BillingPage() {
                       }
                     }}
                     aria-pressed={isSelected}
-                    className="relative flex h-full min-h-[290px] cursor-pointer flex-col rounded-3xl border border-transparent bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                    className="relative flex h-full min-h-[290px] w-full max-w-sm cursor-pointer flex-col rounded-3xl border border-transparent bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
                   >
                     {isSelected && (
                       <motion.div
