@@ -520,13 +520,13 @@ export default function BillingPage() {
                 <div className="flex-1 min-w-[200px]">
                   <p className="text-sm text-gray-500">Plan</p>
                   <p className="text-2xl font-semibold text-gray-900 capitalize mt-1">{currentPlan}</p>
-                  {subscriptionInfo.pending_plan_change && (
+                  {subscriptionInfo?.pending_plan_change && (
                     <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium">
                       <AlertCircle className="w-3.5 h-3.5" />
                       Downgrading to {subscriptionInfo.pending_plan_change} at period end
                     </div>
                   )}
-                  {subscriptionInfo.cancel_at_period_end && (
+                  {subscriptionInfo?.cancel_at_period_end && (
                     <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-50 border border-red-200 text-red-800 text-xs font-medium">
                       <AlertCircle className="w-3.5 h-3.5" />
                       Cancels at period end
@@ -537,14 +537,14 @@ export default function BillingPage() {
                 <div className="flex-1 min-w-[200px]">
                   <p className="text-sm text-gray-500">Credits</p>
                   <p className="text-2xl font-semibold text-gray-900 mt-1">
-                    {(subscriptionInfo.credits_remaining + subscriptionInfo.addon_credits).toLocaleString()}
+                    {((subscriptionInfo?.credits_remaining || 0) + (subscriptionInfo?.addon_credits || 0)).toLocaleString()}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
-                    {subscriptionInfo.credits_remaining.toLocaleString()} monthly + {subscriptionInfo.addon_credits.toLocaleString()} add-on
+                    {(subscriptionInfo?.credits_remaining || 0).toLocaleString()} monthly + {(subscriptionInfo?.addon_credits || 0).toLocaleString()} add-on
                   </p>
                 </div>
 
-                {subscriptionInfo.current_period_end && (
+                {subscriptionInfo?.current_period_end && (
                   <div className="flex-1 min-w-[200px]">
                     <p className="text-sm text-gray-500">Next billing</p>
                     <p className="text-base font-medium text-gray-900 mt-1">
@@ -603,7 +603,7 @@ export default function BillingPage() {
                   </p>
                 )}
 
-                {subscriptionInfo.cancel_at_period_end ? (
+                {subscriptionInfo?.cancel_at_period_end ? (
                   <button
                     onClick={handleReactivate}
                     disabled={loadingAction === "reactivate"}
