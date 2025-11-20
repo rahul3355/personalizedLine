@@ -1548,13 +1548,13 @@ async def generate_preview(
         supabase_client = get_supabase()
         user_id = current_user.user_id
 
-        # Atomic credit deduction
+        # Atomic credit deduction using two-bucket system (monthly first, then addon)
         max_attempts = 5
         credit_deducted = False
         for attempt in range(max_attempts):
             profile_res = (
                 supabase_client.table("profiles")
-                .select("credits_remaining")
+                .select("credits_remaining, addon_credits")
                 .eq("id", user_id)
                 .limit(1)
                 .execute()
@@ -1562,25 +1562,44 @@ async def generate_preview(
             profile = _parse_profile_response(profile_res) or {}
             try:
                 credits_remaining = int(profile.get("credits_remaining") or 0)
+                addon_credits = int(profile.get("addon_credits") or 0)
             except (TypeError, ValueError):
                 credits_remaining = 0
+                addon_credits = 0
 
-            if credits_remaining < 1:
+            total_credits = credits_remaining + addon_credits
+
+            if total_credits < 1:
                 raise HTTPException(
                     status_code=402,
                     detail={
                         "error": "insufficient_credits",
-                        "credits_remaining": credits_remaining,
+                        "credits_remaining": total_credits,
                         "message": "You need at least 1 credit to generate a preview"
                     }
                 )
 
-            new_balance = credits_remaining - 1
+            # Two-bucket deduction: use monthly credits first, then add-ons
+            if credits_remaining >= 1:
+                # Use monthly credits
+                new_monthly = credits_remaining - 1
+                new_addon = addon_credits
+                deduction_source = "monthly"
+            else:
+                # Use addon credits (monthly is 0)
+                new_monthly = 0
+                new_addon = addon_credits - 1
+                deduction_source = "addon"
+
             update_res = (
                 supabase_client.table("profiles")
-                .update({"credits_remaining": new_balance})
+                .update({
+                    "credits_remaining": new_monthly,
+                    "addon_credits": new_addon
+                })
                 .eq("id", user_id)
                 .eq("credits_remaining", credits_remaining)
+                .eq("addon_credits", addon_credits)
                 .execute()
             )
 
@@ -1589,27 +1608,32 @@ async def generate_preview(
 
             updated_rows = getattr(update_res, "data", None) or []
             if updated_rows:
-                # Record ledger entry
+                # Record ledger entry with deduction source
                 ledger_payload = {
                     "user_id": user_id,
                     "change": -1,
                     "amount": 0.0,
-                    "reason": "preview generation",
+                    "reason": f"preview generation ({deduction_source})",
                     "ts": datetime.utcnow().isoformat(),
                 }
                 ledger_res = (
                     supabase_client.table("ledger").insert(ledger_payload).execute()
                 )
                 if getattr(ledger_res, "error", None):
-                    # Rollback credit deduction
-                    supabase_client.table("profiles").update(
-                        {"credits_remaining": credits_remaining}
-                    ).eq("id", user_id).execute()
+                    # Rollback credit deduction to both buckets
+                    supabase_client.table("profiles").update({
+                        "credits_remaining": credits_remaining,
+                        "addon_credits": addon_credits
+                    }).eq("id", user_id).execute()
                     raise HTTPException(
                         status_code=500, detail="Unable to record credit deduction"
                     )
 
                 credit_deducted = True
+                print(
+                    f"[Preview] Deducted 1 credit from {deduction_source} bucket for user {user_id} "
+                    f"(monthly: {credits_remaining}→{new_monthly}, addon: {addon_credits}→{new_addon})"
+                )
                 break
 
             time.sleep(0.1)
@@ -1642,7 +1666,7 @@ async def generate_preview(
             "email": selected_email,
             "research_components": research_components,
             "email_body": email_body,
-            "credits_remaining": new_balance
+            "credits_remaining": new_monthly + new_addon
         }
 
     except HTTPException:
