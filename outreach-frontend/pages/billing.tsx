@@ -649,7 +649,9 @@ export default function BillingPage() {
                 const cadence = isYearly ? "/year" : "/month";
                 const { currencySymbol } = formatCurrencyParts(price, plan.currency);
                 const isSelected = plan.id === selectedPlanId;
-                const isCurrentPlan = plan.id === currentPlan && hasActiveSub;
+                // Normalize current plan name for comparison (remove _annual suffix)
+                const normalizedCurrentPlan = currentPlan.toLowerCase().replace("_annual", "");
+                const isCurrentPlan = plan.id === normalizedCurrentPlan && hasActiveSub;
                 const creditsForCycle = isYearly
                   ? plan.monthlyCredits * 12
                   : plan.monthlyCredits;
@@ -669,7 +671,6 @@ export default function BillingPage() {
 
                 // Filter logic: Hide lower tier plans for active subscribers
                 if (hasActiveSub) {
-                  const normalizedCurrentPlan = currentPlan.toLowerCase().replace("_annual", "");
                   const currentPlanCredits = PRICING[normalizedCurrentPlan as keyof typeof PRICING]?.credits || 0;
                   const planCredits = plan.monthlyCredits;
                   const isDowngrade = planCredits < currentPlanCredits;
