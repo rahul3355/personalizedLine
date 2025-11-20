@@ -1110,12 +1110,16 @@ def _reserve_credits_for_job(
             # Use only monthly credits
             new_monthly = credits_remaining - row_count
             new_addon = addon_credits
+            monthly_deducted = row_count
+            addon_deducted = 0
             deduction_source = "monthly"
         else:
             # Use all monthly + some add-on credits
             remaining_needed = row_count - credits_remaining
             new_monthly = 0
             new_addon = addon_credits - remaining_needed
+            monthly_deducted = credits_remaining
+            addon_deducted = remaining_needed
             deduction_source = "monthly+addon"
 
         update_res = (
@@ -1158,6 +1162,8 @@ def _reserve_credits_for_job(
                 "previous_balance": credits_remaining + addon_credits,
                 "new_balance": new_monthly + new_addon,
                 "cost": row_count,
+                "monthly_deducted": monthly_deducted,
+                "addon_deducted": addon_deducted,
             }
 
         time.sleep(0.1)
@@ -1171,19 +1177,58 @@ def _rollback_credit_reservation(
     reservation: Dict[str, int],
     job_id: str,
 ):
+    """
+    Rollback credit reservation by restoring credits to their original buckets.
+    Uses the breakdown information to restore monthly and addon credits separately.
+    """
     try:
-        supabase_client.table("profiles").update(
-            {"credits_remaining": reservation["previous_balance"]}
-        ).eq("id", user_id).eq("credits_remaining", reservation["new_balance"]).execute()
+        monthly_deducted = reservation.get("monthly_deducted", 0)
+        addon_deducted = reservation.get("addon_deducted", 0)
+
+        # Get current state for CAS update
+        profile_res = (
+            supabase_client.table("profiles")
+            .select("credits_remaining, addon_credits")
+            .eq("id", user_id)
+            .limit(1)
+            .execute()
+        )
+
+        if not profile_res.data:
+            print(f"[Credits] Failed to rollback: profile not found for user {user_id}")
+            return
+
+        profile = profile_res.data[0]
+        current_monthly = int(profile.get("credits_remaining") or 0)
+        current_addon = int(profile.get("addon_credits") or 0)
+
+        # Restore credits to both buckets
+        new_monthly = current_monthly + monthly_deducted
+        new_addon = current_addon + addon_deducted
+
+        supabase_client.table("profiles").update({
+            "credits_remaining": new_monthly,
+            "addon_credits": new_addon
+        }).eq("id", user_id).eq(
+            "credits_remaining", current_monthly
+        ).eq(
+            "addon_credits", current_addon
+        ).execute()
+
         supabase_client.table("ledger").insert(
             {
                 "user_id": user_id,
                 "change": reservation["cost"],
                 "amount": 0.0,
-                "reason": f"job rollback: {job_id}",
+                "reason": f"job rollback: {job_id} (monthly: +{monthly_deducted}, addon: +{addon_deducted})",
                 "ts": datetime.utcnow().isoformat(),
             }
         ).execute()
+
+        print(
+            f"[Credits] Rolled back {reservation['cost']} credits for job {job_id} "
+            f"(monthly: +{monthly_deducted}, addon: +{addon_deducted})"
+        )
     except Exception as exc:  # pragma: no cover - logging for rollback issues
         print(f"[Credits] Failed to rollback reservation for job {job_id}: {exc}")
 
@@ -1259,6 +1304,8 @@ async def create_job(
                 "credit_cost": row_count,
                 "credits_deducted": True,
                 "credits_refunded": False,
+                "monthly_deducted": reservation.get("monthly_deducted", 0),
+                "addon_deducted": reservation.get("addon_deducted", 0),
             }
         )
 
