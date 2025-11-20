@@ -395,6 +395,11 @@ export default function BillingPage() {
     setLoadingAction(`upgrade-${planId}`);
 
     try {
+      // Append "_annual" suffix if yearly billing cycle is selected
+      const planName = billingCycle === "yearly"
+        ? `${planId.toLowerCase()}_annual`
+        : planId.toLowerCase();
+
       // Create checkout session for upgrade
       const res = await fetch(`${API_URL}/create_checkout_session`, {
         method: "POST",
@@ -403,7 +408,7 @@ export default function BillingPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          plan: planId,
+          plan: planName,
           addon: false,
           quantity: 1,
           user_id: userInfo.id,
