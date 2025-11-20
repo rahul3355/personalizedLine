@@ -22,6 +22,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import InlineLoader from "@/components/InlineLoader";
+import { DotPattern } from "@/components/ui/dot-pattern";
+import { BentoCard, BentoGrid } from "@/components/ui/bento-grid";
+import { ProcessFlowchart } from "@/components/ProcessFlowchart";
+import { CompanyLogos } from "@/components/CompanyLogos";
+import { cn } from "@/lib/utils";
 
 export default function Home() {
   const { session, loading } = useAuth();
@@ -37,7 +42,7 @@ export default function Home() {
 
   if (!session) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-white">
         <h1 className="text-lg font-medium text-gray-700">
           Please log in to continue
         </h1>
@@ -462,6 +467,7 @@ export default function Home() {
             ))}
           </div>
         </div>
+      </section>
 
         {/* Confidence & testimonials */}
         <div className="mt-16 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
