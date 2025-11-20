@@ -111,10 +111,10 @@ export default function Navbar() {
   const isActive = (path: string) => router.pathname === path;
 
   // --- Desktop rail tokens (exact Revolut-like) ---
-  // Rail bg is light grey; icons are filled dark grey; active gets a white squircle behind.
-  const railBg = "bg-[#F7F7F7]"; // very light grey
+  // Rail bg is white; icons are filled dark grey; active gets a light gray squircle behind.
+  const railBg = "bg-white"; // pure white
   // before: const railBorder = "border-r border-[#E9ECF2]";
-  const railBorder = "border-r border-transparent";
+  const railBorder = "border-r border-gray-100";
 
   const railWidth = "w-[108px]"; // thicker rail
   const iconSizeBox = "h-9 w-9"; // squircle size
@@ -250,7 +250,7 @@ export default function Navbar() {
       </div>
 
       {/* ====================== DESKTOP: TOP STRIP (thicker + bolder + left) ====================== */}
-      <div className="hidden lg:flex fixed top-0 left-[90px] right-0 h-[68px] bg-[#F7F7F7] items-center justify-between pl-4 pr-5 z-40">
+      <div className="hidden lg:flex fixed top-0 left-[90px] right-0 h-[68px] bg-white border-b border-gray-100 items-center justify-between pl-4 pr-5 z-40">
 
         {/* Title */}
         <h1

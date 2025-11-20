@@ -2,6 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   productionBrowserSourceMaps: false,
+  turbopack: {}, // Enable turbopack for Next.js 16
   async headers() {
     return [
       {
@@ -20,7 +21,16 @@ const nextConfig = {
     ];
   },
   images: {
-    domains: ["lh3.googleusercontent.com"], // allow Google profile avatars
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn.simpleicons.org',
+      },
+    ],
   },
   // Enable file watching with polling for hot reload to work in all environments
   webpack: (config, { isServer }) => {
