@@ -88,57 +88,47 @@ export default function Home() {
   ];
 
   const logos = [
-    {
-      name: "NVIDIA",
-      logo: "https://cdn.simpleicons.org/nvidia/cccccc",
-      colorLogo: "https://cdn.simpleicons.org/nvidia",
-    },
-    {
-      name: "Salesforce",
-      logo: "https://cdn.simpleicons.org/salesforce/cccccc",
-      colorLogo: "https://cdn.simpleicons.org/salesforce",
-    },
-    {
-      name: "Apple",
-      logo: "https://cdn.simpleicons.org/apple/cccccc",
-      colorLogo: "https://cdn.simpleicons.org/apple",
-    },
-    {
-      name: "Nike",
-      logo: "https://cdn.simpleicons.org/nike/cccccc",
-      colorLogo: "https://cdn.simpleicons.org/nike",
-    },
-    {
-      name: "Cloudflare",
-      logo: "https://cdn.simpleicons.org/cloudflare/cccccc",
-      colorLogo: "https://cdn.simpleicons.org/cloudflare",
-    },
-    {
-      name: "Asda",
-      logo: "https://cdn.simpleicons.org/asda/cccccc",
-      colorLogo: "https://cdn.simpleicons.org/asda",
-    },
-    {
-      name: "Etihad Airways",
-      logo: "https://cdn.simpleicons.org/etihadairways/cccccc",
-      colorLogo: "https://cdn.simpleicons.org/etihadairways",
-    },
-    {
-      name: "Meta",
-      logo: "https://cdn.simpleicons.org/meta/cccccc",
-      colorLogo: "https://cdn.simpleicons.org/meta",
-    },
-    {
-      name: "Electronic Arts",
-      logo: "https://cdn.simpleicons.org/ea/cccccc",
-      colorLogo: "https://cdn.simpleicons.org/ea",
-    },
-    {
-      name: "Axis Bank",
-      logo: "https://cdn.simpleicons.org/axisbank/cccccc",
-      colorLogo: "https://cdn.simpleicons.org/axisbank",
-    },
-  ];
+  {
+    name: "NVIDIA",
+    logo: "https://cdn.simpleicons.org/nvidia",
+  },
+  {
+    name: "Salesforce",
+    logo: "https://cdn.simpleicons.org/salesforce",
+  },
+  {
+    name: "Apple",
+    logo: "https://cdn.simpleicons.org/apple",
+  },
+  {
+    name: "Nike",
+    logo: "https://cdn.simpleicons.org/nike",
+  },
+  {
+    name: "Cloudflare",
+    logo: "https://cdn.simpleicons.org/cloudflare",
+  },
+  {
+    name: "Asda",
+    logo: "https://cdn.simpleicons.org/asda",
+  },
+  {
+    name: "Etihad Airways",
+    logo: "https://cdn.simpleicons.org/etihadairways",
+  },
+  {
+    name: "Meta",
+    logo: "https://cdn.simpleicons.org/meta",
+  },
+  {
+    name: "Electronic Arts",
+    logo: "https://cdn.simpleicons.org/ea",
+  },
+  {
+    name: "Axis Bank",
+    logo: "https://cdn.simpleicons.org/axisbank",
+  },
+];
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-white text-slate-900">
@@ -348,20 +338,14 @@ export default function Home() {
                     className="group flex h-16 items-center justify-center rounded-2xl border border-slate-200 bg-white/70 px-3 py-2 transition-colors hover:bg-slate-100"
                   >
                     <div className="relative flex h-10 w-full items-center justify-center">
-                      <Image
+                      <img
                         src={brand.logo}
                         alt={`${brand.name} monochrome logo`}
                         className="h-10 w-auto object-contain transition-opacity duration-200 group-hover:opacity-0"
-                        width={120}
+                        width={40}
                         height={40}
                       />
-                      <Image
-                        src={brand.colorLogo}
-                        alt={`${brand.name} logo`}
-                        className="absolute h-10 w-auto object-contain opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-                        width={120}
-                        height={40}
-                      />
+                      
                     </div>
                   </div>
                 ))}
