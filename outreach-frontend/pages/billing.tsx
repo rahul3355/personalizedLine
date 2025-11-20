@@ -667,6 +667,19 @@ export default function BillingPage() {
                   `${formatPerCredit(bulkPerCredit)} per credit`,
                 ];
 
+                // Filter logic: Hide lower tier plans for active subscribers
+                if (hasActiveSub) {
+                  const normalizedCurrentPlan = currentPlan.toLowerCase().replace("_annual", "");
+                  const currentPlanCredits = PRICING[normalizedCurrentPlan as keyof typeof PRICING]?.credits || 0;
+                  const planCredits = plan.monthlyCredits;
+                  const isDowngrade = planCredits < currentPlanCredits;
+
+                  // Don't render cards for lower tier plans
+                  if (isDowngrade) {
+                    return null;
+                  }
+                }
+
                 return (
                   <article
                     key={plan.id}
@@ -756,7 +769,21 @@ export default function BillingPage() {
                       </div>
                     </div>
                     <br />
-                    {!hasActiveSub && (
+                    {isCurrentPlan ? (
+                      <button
+                        type="button"
+                        disabled
+                        className="group relative mt-auto w-full overflow-visible rounded-full px-6 py-3 text-sm font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-black disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="pointer-events-none absolute inset-0 rounded-full bg-neutral-900"
+                        />
+                        <span className="relative z-10 inline-flex items-center justify-center w-full gap-2">
+                          Current Plan
+                        </span>
+                      </button>
+                    ) : !hasActiveSub ? (
                       <button
                         type="button"
                         onClick={() => handleCheckout(plan.id)}
@@ -805,6 +832,58 @@ export default function BillingPage() {
                             </>
                           ) : (
                             plan.ctaLabel
+                          )}
+                        </span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleUpgrade(plan.id)}
+                        disabled={loadingAction === `upgrade-${plan.id}`}
+                        className="group relative mt-auto w-full overflow-visible rounded-full px-6 py-3 text-sm font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-black disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={`pointer-events-none absolute inset-0 rounded-full transition-all duration-200 ease-out ${
+                            loadingAction === `upgrade-${plan.id}`
+                              ? "bg-neutral-400"
+                              : plan.popular
+                              ? "bg-black"
+                              : "bg-neutral-900"
+                          } ${loadingAction !== `upgrade-${plan.id}` ? "group-hover:-inset-1 group-hover:bg-neutral-800 group-active:-inset-0.5" : ""}`}
+                        />
+                        <span className="relative z-10 inline-flex items-center justify-center w-full gap-2">
+                          {loadingAction === `upgrade-${plan.id}` ? (
+                            <>
+                              <svg
+                                className="animate-spin h-5 w-5"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                              >
+                                <circle
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="white"
+                                  strokeWidth="3"
+                                  strokeDasharray="31.4 31.4"
+                                  strokeLinecap="round"
+                                />
+                                <circle
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="white"
+                                  strokeWidth="1"
+                                  strokeDasharray="15.7 47.1"
+                                  strokeDashoffset="15.7"
+                                  strokeLinecap="round"
+                                />
+                              </svg>
+                              Processing...
+                            </>
+                          ) : (
+                            `Upgrade to ${plan.name}`
                           )}
                         </span>
                       </button>
