@@ -135,7 +135,7 @@ export default function AccountPage() {
   const handleChangePlan = async (newPlan: string) => {
     if (!session || !userInfo?.id) return;
 
-    const currentPlan = userInfo?.plan_type || "free";
+    const currentPlan = userInfo?.user?.plan_type || "free";
 
     // Check if user is on annual plan - silently return
     if (currentPlan.includes("annual")) {
@@ -688,7 +688,7 @@ export default function AccountPage() {
               <div className="space-y-3 mb-6">
                 {["starter", "growth", "pro"].map((plan) => {
                   // Normalize current plan name: remove annual suffix and convert to lowercase
-                  const currentPlan = (userInfo?.plan_type || "free")
+                  const currentPlan = (userInfo?.user?.plan_type || "free")
                     .toLowerCase()
                     .replace("_annual", "");
 

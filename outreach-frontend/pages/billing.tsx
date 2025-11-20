@@ -307,10 +307,10 @@ export default function BillingPage() {
 
   // Fetch subscription info
   useEffect(() => {
-    if (session && userInfo?.plan_type && userInfo.plan_type !== "free") {
+    if (session && userInfo?.user?.plan_type && userInfo.user.plan_type !== "free") {
       fetchSubscriptionInfo();
     }
-  }, [session, userInfo?.plan_type]);
+  }, [session, userInfo?.user?.plan_type]);
 
   const fetchSubscriptionInfo = async () => {
     if (!session) return;
@@ -471,14 +471,15 @@ export default function BillingPage() {
 
   const plans = planConfigurations;
   const isYearly = billingCycle === "yearly";
-  const currentPlan = userInfo?.plan_type || "free";
+  const currentPlan = userInfo?.user?.plan_type || "free";
   // Use userInfo directly to avoid async timing issues with subscriptionInfo
-  const hasActiveSub = userInfo && userInfo.plan_type && userInfo.plan_type !== "free";
+  const hasActiveSub = userInfo && userInfo.user?.plan_type && userInfo.user.plan_type !== "free";
 
   // Debug logging
   console.log("[Billing Debug] currentPlan:", currentPlan);
   console.log("[Billing Debug] hasActiveSub:", hasActiveSub);
   console.log("[Billing Debug] userInfo:", userInfo);
+  console.log("[Billing Debug] userInfo.user?.plan_type:", userInfo?.user?.plan_type);
   console.log("[Billing Debug] subscriptionInfo:", subscriptionInfo);
 
   return (
