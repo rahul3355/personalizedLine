@@ -770,6 +770,7 @@ export default function UploadPage() {
   const [previewResult, setPreviewResult] = useState<{
     email: string;
     email_body: string;
+    research_components?: string;
     credits_remaining: number;
   } | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
@@ -2154,6 +2155,88 @@ export default function UploadPage() {
                                 </p>
                               </div>
                             </div>
+
+                            {previewResult.research_components && (
+                              <div className="mt-4">
+                                <label className="text-xs font-medium text-green-800 block mb-2">
+                                  Research Findings:
+                                </label>
+                                <div className="bg-white border border-green-200 rounded-md p-4 text-sm text-gray-700">
+                                  {(() => {
+                                    try {
+                                      const research = JSON.parse(previewResult.research_components);
+                                      return (
+                                        <div className="space-y-3">
+                                          {research.prospect_info && (
+                                            <div>
+                                              <div className="font-semibold text-gray-900 mb-2">Prospect Information</div>
+                                              {research.prospect_info.name && (
+                                                <div><span className="font-medium">Name:</span> {research.prospect_info.name}</div>
+                                              )}
+                                              {research.prospect_info.title && (
+                                                <div><span className="font-medium">Title:</span> {research.prospect_info.title}</div>
+                                              )}
+                                              {research.prospect_info.company && (
+                                                <div><span className="font-medium">Company:</span> {research.prospect_info.company}</div>
+                                              )}
+                                              {research.prospect_info.recent_activity && research.prospect_info.recent_activity.length > 0 && (
+                                                <div>
+                                                  <span className="font-medium">Recent Activity:</span>
+                                                  <ul className="list-disc list-inside ml-2">
+                                                    {research.prospect_info.recent_activity.map((activity: string, idx: number) => (
+                                                      <li key={idx}>{activity}</li>
+                                                    ))}
+                                                  </ul>
+                                                </div>
+                                              )}
+                                              {research.prospect_info.relevance_signals && research.prospect_info.relevance_signals.length > 0 && (
+                                                <div>
+                                                  <span className="font-medium">Relevance Signals:</span>
+                                                  <ul className="list-disc list-inside ml-2">
+                                                    {research.prospect_info.relevance_signals.map((signal: string, idx: number) => (
+                                                      <li key={idx}>{signal}</li>
+                                                    ))}
+                                                  </ul>
+                                                </div>
+                                              )}
+                                            </div>
+                                          )}
+                                          {research.person && (
+                                            <div>
+                                              <div className="font-semibold text-gray-900 mb-2">Person: {research.person.name}</div>
+                                              {research.person.info && research.person.info.length > 0 && (
+                                                <ul className="list-disc list-inside ml-2">
+                                                  {research.person.info.map((info: string, idx: number) => (
+                                                    <li key={idx}>{info}</li>
+                                                  ))}
+                                                </ul>
+                                              )}
+                                            </div>
+                                          )}
+                                          {research.company && (
+                                            <div>
+                                              <div className="font-semibold text-gray-900 mb-2">Company: {research.company.name}</div>
+                                              {research.company.info && research.company.info.length > 0 && (
+                                                <ul className="list-disc list-inside ml-2">
+                                                  {research.company.info.map((info: string, idx: number) => (
+                                                    <li key={idx}>{info}</li>
+                                                  ))}
+                                                </ul>
+                                              )}
+                                              {research.company.moat && (
+                                                <div><span className="font-medium">Competitive Advantage:</span> {research.company.moat}</div>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    } catch (e) {
+                                      return <pre className="whitespace-pre-wrap text-xs">{previewResult.research_components}</pre>;
+                                    }
+                                  })()}
+                                </div>
+                              </div>
+                            )}
 
                             <div className="mt-4">
                               <label className="text-xs font-medium text-green-800 block mb-2">
