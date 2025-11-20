@@ -511,119 +511,6 @@ export default function BillingPage() {
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
 
-          {/* Current Subscription Section */}
-          {hasActiveSub && (
-            <div className="mb-12 rounded-2xl border border-gray-200 bg-gray-50 p-6 text-left">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Current Subscription</h2>
-
-              <div className="flex items-start justify-between gap-4 flex-wrap">
-                <div className="flex-1 min-w-[200px]">
-                  <p className="text-sm text-gray-500">Plan</p>
-                  <p className="text-2xl font-semibold text-gray-900 capitalize mt-1">{currentPlan}</p>
-                  {subscriptionInfo?.pending_plan_change && (
-                    <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium">
-                      <AlertCircle className="w-3.5 h-3.5" />
-                      Downgrading to {subscriptionInfo.pending_plan_change} at period end
-                    </div>
-                  )}
-                  {subscriptionInfo?.cancel_at_period_end && (
-                    <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-50 border border-red-200 text-red-800 text-xs font-medium">
-                      <AlertCircle className="w-3.5 h-3.5" />
-                      Cancels at period end
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex-1 min-w-[200px]">
-                  <p className="text-sm text-gray-500">Credits</p>
-                  <p className="text-2xl font-semibold text-gray-900 mt-1">
-                    {((subscriptionInfo?.credits_remaining || 0) + (subscriptionInfo?.addon_credits || 0)).toLocaleString()}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {(subscriptionInfo?.credits_remaining || 0).toLocaleString()} monthly + {(subscriptionInfo?.addon_credits || 0).toLocaleString()} add-on
-                  </p>
-                </div>
-
-                {subscriptionInfo?.current_period_end && (
-                  <div className="flex-1 min-w-[200px]">
-                    <p className="text-sm text-gray-500">Next billing</p>
-                    <p className="text-base font-medium text-gray-900 mt-1">
-                      {new Date(subscriptionInfo.current_period_end * 1000).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-6 flex flex-col gap-3">
-                {/* Only show plan changes for monthly subscriptions */}
-                {!currentPlan.includes("annual") ? (
-                  <div className="flex flex-wrap gap-3">
-                    {plans.map((plan) => {
-                      const planCredits = plan.monthlyCredits;
-                      // Normalize current plan name: remove annual suffix and convert to lowercase
-                      const normalizedCurrentPlan = currentPlan
-                        .toLowerCase()
-                        .replace("_annual", "");
-                      const currentCredits = PRICING[normalizedCurrentPlan as keyof typeof PRICING]?.credits || 0;
-                      const isCurrentPlan = plan.id === normalizedCurrentPlan;
-                      const isUpgrade = planCredits > currentCredits;
-
-                      // Only show upgrade options, skip current plan and lower tier plans
-                      if (isCurrentPlan || !isUpgrade) return null;
-
-                      return (
-                        <button
-                          key={plan.id}
-                          onClick={() => handleUpgrade(plan.id)}
-                          disabled={loadingAction === `upgrade-${plan.id}`}
-                          className="px-4 py-2 border border-gray-900 bg-gray-900 text-white font-medium text-sm hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {loadingAction === `upgrade-${plan.id}` ? (
-                            <span className="inline-flex items-center gap-2">
-                              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="31.4 31.4" strokeLinecap="round" opacity="0.25"/>
-                                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="15.7 47.1" strokeDashoffset="15.7" strokeLinecap="round"/>
-                              </svg>
-                              Processing...
-                            </span>
-                          ) : (
-                            `Upgrade to ${plan.name}`
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-600 italic">
-                    To change your annual plan, please contact support at founders@personalizedline.com
-                  </p>
-                )}
-
-                {subscriptionInfo?.cancel_at_period_end ? (
-                  <button
-                    onClick={handleReactivate}
-                    disabled={loadingAction === "reactivate"}
-                    className="px-4 py-2 border border-green-600 bg-green-600 text-white font-medium text-sm hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loadingAction === "reactivate" ? "Processing..." : "Reactivate Subscription"}
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleCancel}
-                    disabled={loadingAction === "cancel"}
-                    className="px-4 py-2 border border-red-600 text-red-600 font-medium text-sm hover:bg-red-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loadingAction === "cancel" ? "Processing..." : "Cancel Subscription"}
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
           <div className="mx-auto max-w-xl space-y-4">
             <h1 className="text-4xl font-semibold tracking-tight text-neutral-900 sm:text-5xl md:text-6xl">
               {hasActiveSub ? "All Plans" : "Prices at a glance"}
@@ -659,7 +546,10 @@ export default function BillingPage() {
                 const isSelected = plan.id === selectedPlanId;
                 // Normalize current plan name for comparison (remove _annual suffix)
                 const normalizedCurrentPlan = currentPlan.toLowerCase().replace("_annual", "");
-                const isCurrentPlan = plan.id === normalizedCurrentPlan && hasActiveSub;
+                // Check if user is on annual plan
+                const isUserOnAnnual = currentPlan.includes("_annual");
+                // Only mark as current plan if tier matches AND billing cycle matches
+                const isCurrentPlan = plan.id === normalizedCurrentPlan && hasActiveSub && isYearly === isUserOnAnnual;
                 const creditsForCycle = isYearly
                   ? plan.monthlyCredits * 12
                   : plan.monthlyCredits;
@@ -689,6 +579,9 @@ export default function BillingPage() {
                     planCredits,
                     isDowngrade,
                     isCurrentPlan,
+                    isUserOnAnnual,
+                    isYearly,
+                    billingCycleMatches: isYearly === isUserOnAnnual,
                   });
 
                   // Don't render cards for lower tier plans
