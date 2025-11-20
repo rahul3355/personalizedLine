@@ -26,7 +26,6 @@ import InlineLoader from "@/components/InlineLoader";
 export default function Home() {
   const { session, loading } = useAuth();
   const router = useRouter();
-  const [underlinePlayed, setUnderlinePlayed] = useState(false);
 
   if (loading) {
     return (
@@ -46,9 +45,58 @@ export default function Home() {
     );
   }
 
-  useEffect(() => {
-    setUnderlinePlayed(true);
-  }, []);
+  const quickActions = [
+    {
+      title: "Upload new file",
+      description: "Map columns and kick off research from one place.",
+      icon: Upload,
+      action: () => router.push("/upload"),
+    },
+    {
+      title: "Recent jobs",
+      description: "Check progress and revisit completed runs.",
+      icon: BarChart3,
+      action: () => router.push("/jobs"),
+    },
+    {
+      title: "Credits & billing",
+      description: "Review usage and manage your plan.",
+      icon: ShieldCheck,
+      action: () => router.push("/billing"),
+    },
+  ];
+
+  const workflow = [
+    {
+      title: "Upload & map",
+      detail: "Drop your CSV/XLSX and align columns to the fields you need.",
+      icon: FileText,
+    },
+    {
+      title: "Research in parallel",
+      detail: "AI gathers company and persona signals for each row.",
+      icon: Sparkles,
+    },
+    {
+      title: "Quality guardrails",
+      detail: "Verify domains and keep tone controls in place while writing.",
+      icon: ShieldCheck,
+    },
+    {
+      title: "Export instantly",
+      detail: "Download clean CSV/XLSX or hand off to your CRM.",
+      icon: Rocket,
+    },
+  ];
+
+  const logos = [
+    { name: "Apple", hex: "#111827" },
+    { name: "Microsoft", hex: "#2563EB" },
+    { name: "Salesforce", hex: "#2563EB" },
+    { name: "NVIDIA", hex: "#118d4f" },
+    { name: "BlackRock", hex: "#111827" },
+    { name: "Citi", hex: "#0c6fbb" },
+  ];
 
   const sampleOutputs = useMemo(
     () => ({
