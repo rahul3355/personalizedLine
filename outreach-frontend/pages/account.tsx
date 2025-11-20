@@ -540,7 +540,7 @@ export default function AccountPage() {
                     {!subscriptionInfo.plan_type.includes("annual") ? (
                       <div className="flex gap-3">
                         <button
-                          onClick={() => setShowPlanModal(true)}
+                          onClick={() => router.push('/billing')}
                           className="px-4 py-2 bg-black text-white font-medium hover:bg-gray-800 transition-colors"
                         >
                           Change Plan
