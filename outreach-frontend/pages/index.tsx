@@ -74,7 +74,7 @@ export default function Home() {
               className="relative rounded-full h-11 px-8 py-2.5 text-sm font-medium shadow-sm bg-black text-white hover:bg-black/90 hover:shadow-md transition-all duration-200 active:scale-[0.98] active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 z-10"
             >
               <span className="inline-flex items-center">
-                Start Free (500 rows)
+                Start Free (500 credits)
                 <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-200 group-hover:translate-x-1 group-active:translate-x-0.5" />
               </span>
             </Button>
