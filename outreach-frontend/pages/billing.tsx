@@ -472,7 +472,14 @@ export default function BillingPage() {
   const plans = planConfigurations;
   const isYearly = billingCycle === "yearly";
   const currentPlan = userInfo?.plan_type || "free";
-  const hasActiveSub = subscriptionInfo && subscriptionInfo.subscription_status === "active" && currentPlan !== "free";
+  // Use userInfo directly to avoid async timing issues with subscriptionInfo
+  const hasActiveSub = userInfo && userInfo.plan_type && userInfo.plan_type !== "free";
+
+  // Debug logging
+  console.log("[Billing Debug] currentPlan:", currentPlan);
+  console.log("[Billing Debug] hasActiveSub:", hasActiveSub);
+  console.log("[Billing Debug] userInfo:", userInfo);
+  console.log("[Billing Debug] subscriptionInfo:", subscriptionInfo);
 
   return (
     <div className="fixed inset-0 z-50 bg-white" style={{ fontFamily: AEONIK_FONT_FAMILY }}>
@@ -675,8 +682,17 @@ export default function BillingPage() {
                   const planCredits = plan.monthlyCredits;
                   const isDowngrade = planCredits < currentPlanCredits;
 
+                  console.log(`[Billing Debug] Plan: ${plan.id}`, {
+                    normalizedCurrentPlan,
+                    currentPlanCredits,
+                    planCredits,
+                    isDowngrade,
+                    isCurrentPlan,
+                  });
+
                   // Don't render cards for lower tier plans
                   if (isDowngrade) {
+                    console.log(`[Billing Debug] Hiding ${plan.id} card (downgrade)`);
                     return null;
                   }
                 }
@@ -770,6 +786,14 @@ export default function BillingPage() {
                       </div>
                     </div>
                     <br />
+                    {(() => {
+                      console.log(`[Billing Debug] Button for ${plan.id}:`, {
+                        isCurrentPlan,
+                        hasActiveSub,
+                        buttonType: isCurrentPlan ? "Current Plan" : !hasActiveSub ? "Checkout" : "Upgrade",
+                      });
+                      return null;
+                    })()}
                     {isCurrentPlan ? (
                       <button
                         type="button"
