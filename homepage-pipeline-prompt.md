@@ -2,331 +2,233 @@
 
 ## Master Prompt for AI Image Generation
 
-Create a **photorealistic whiteboard photograph** taken at a slight angle (15-20 degrees) showing a completely filled technical architecture diagram. The whiteboard should look like it's in a modern startup office with natural lighting from the side. The entire surface must be densely packed with handwritten technical diagrams in black, blue, and red dry-erase markers.
+Create a **clean, simple whiteboard photograph** showing an email personalization pipeline diagram. The whiteboard should be in a modern office with natural lighting. The diagram should be easy to understand at a glance - like explaining the process to a friend.
 
 ---
 
 ## OVERALL COMPOSITION
 
-**Layout Structure:**
-- **LEFT SIDE (20%)**: Input layer showing user data sources
-- **CENTER (60%)**: Multi-stage processing pipeline with parallel paths
-- **RIGHT SIDE (20%)**: Output and delivery layer
-- **TOP BANNER**: "Hyper-Personalized Outreach Intelligence Platform" in bold handwriting
-- **BOTTOM**: Performance metrics and ROI indicators
+**Main Pipeline Flow (Bold Horizontal Line from Left to Right):**
+
+```
+Step 1: Upload  →  Step 2: Research  →  Step 3: Personalize  →  Step 4: Download
+```
 
 **Visual Style:**
-- Handwritten engineering handwriting (mix of print and cursive)
-- Some words underlined, circled, or in boxes for emphasis
-- Occasional coffee stains and eraser marks for authenticity
-- Different colored arrows: BLACK for main flow, BLUE for data paths, RED for validation loops
-- Technical symbols: ∑, Δ, ∞, ⊕, ⊗ scattered throughout
+- ONE bold, straight arrow going left to right connecting all 4 main steps
+- Each step has a simple, recognizable icon
+- Modern, clean design with PLENTY of white space
+- Use curved/branching arrows below each step to show sub-details
+- Simple handwriting in black dry-erase marker
+- Not cluttered - should be immediately understandable
+- Professional but friendly tone
 
 ---
 
-## DETAILED DIAGRAM STRUCTURE
+## STEP 1: UPLOAD EMAILS
 
-### **SECTION 1: INPUT LAYER (Left Side)**
+**Main Element:**
+- Simple box labeled: **"Upload Emails"**
 
-**Main Element:** Large box labeled "RAW PROSPECT CORPUS"
+**Icon:**
+- Upload cloud icon OR document/file icon
 
-**Sub-elements:**
-- Icon: Simple table/spreadsheet drawing with grid lines
-- Curved arrow pointing inward labeled: "CSV/XLSX/JSON"
-- Handwritten list inside box:
-  - "→ Contact vectors"
-  - "→ Org identifiers"
-  - "→ Digital footprints"
-  - "→ Engagement metadata"
-
-**Annotation bubbles:**
-- Small cloud above labeled: "Up to 100K records/batch"
-- Note below: "Schema-agnostic ingestion"
+**Label below:**
+- "Upload your prospect list"
 
 **Visual details:**
-- Draw 3-4 sample rows of data (redacted) like "███@company.com", "Role: ████", "Co: ████"
+- Clean, simple box
+- Just the icon and one line of text
+- No extra technical jargon
 
 ---
 
-### **SECTION 2: VALIDATION & PARSING GATEWAY (Left-Center)**
+## STEP 2: AI RESEARCH ENGINE
 
-**Main Element:** Diamond-shaped decision box labeled "SEMANTIC HEADER MAPPING"
+**Main Element:**
+- Box labeled: **"AI Research Engine"**
 
-**Flow arrows:**
-- Bold black arrow from Input Layer to this diamond
-- Two outputs:
-  - ✓ GREEN arrow to next stage labeled "Validated"
-  - ✗ RED arrow looping back labeled "Schema mismatch → Auto-resolve"
+**Icon:**
+- Magnifying glass OR brain icon
 
-**Technical annotations with curved arrows:**
-- "Probabilistic field detection" (pointing to top of diamond)
-- "Fuzzy matching engine" (pointing to left side)
-- "NLP column classifier" (pointing to right side)
+**Main label below:**
+- "We analyze your prospect from 20+ sources"
 
-**Icons:** Small gear/cog symbols around the diamond
+**Curved arrows pointing DOWN to recognizable source logos/icons:**
 
----
+(Arrange these in 3-4 rows below the main step, with simple icons or text labels)
 
-### **SECTION 3: PARALLEL PROCESSING MATRIX (Center - Main Focus)**
+**Row 1:**
+- LinkedIn logo
+- YouTube logo
+- Company Website icon
+- Twitter/X logo
 
-**Main Element:** Large rectangular box titled "DISTRIBUTED INTELLIGENCE ORCHESTRATION LAYER"
+**Row 2:**
+- Crunchbase logo
+- Apollo logo
+- Sales Navigator logo
 
-**Inside this box, draw 3 parallel horizontal swim lanes:**
+**Row 3:**
+- Reddit logo
+- Company Blog icon
+- Forums icon
 
-#### **LANE 1: Research Synthesis Pipeline** (Top lane)
-- **Stage 1 box:** "Multi-Source Intelligence Aggregator"
-  - Icon: Magnifying glass over globe
-  - Curved arrow labeled: "N-dimensional query vectorization"
-  - Small note: "Real-time OSINT fusion"
+**Row 4:**
+- Recent News icon
+- Podcast Appearances icon
 
-- **Stage 2 box:** "Contextual Entity Resolver"
-  - Icon: Network graph with nodes
-  - Curved arrow labeled: "Relationship mapping"
-  - Small note: "Person ⊕ Org graph"
+**Row 5:**
+- SEC Filings
+- Companies House (HMRC)
 
-- **Stage 3 box:** "Knowledge Distillation Engine"
-  - Icon: Funnel/filter symbol
-  - Curved arrow labeled: "Signal-to-noise optimization"
-  - Small note: "98.7% accuracy threshold"
+**Row 6:**
+- Facebook/Meta logo
+- AngelList logo
+- Product Hunt logo
 
-#### **LANE 2: Neural Synthesis Pipeline** (Middle lane)
-- **Stage 1 box:** "Proprietary LLM Orchestrator"
-  - Icon: Brain/neural network symbol
-  - Curved arrow labeled: "Multi-model ensemble"
-  - Small note: "150B+ parameter architecture"
+**Row 7:**
+- Industry Databases icon
+- Press Releases icon
 
-- **Stage 2 box:** "Contextual Inference Engine"
-  - Icon: Lightbulb
-  - Curved arrow labeled: "Pain point detection"
-  - Small note: "Sentiment-aware generation"
-
-- **Stage 3 box:** "Personalization Synthesis Layer"
-  - Icon: Target/bullseye
-  - Curved arrow labeled: "1:1 adaptive copy"
-  - Small note: "<18 words optimal"
-
-#### **LANE 3: Quality Assurance Pipeline** (Bottom lane)
-- **Stage 1 box:** "Atomic Credit Reservation System"
-  - Icon: Lock/vault symbol
-  - Curved arrow labeled: "Optimistic concurrency control"
-  - Small note: "Zero double-billing guarantee"
-
-- **Stage 2 box:** "Progress Telemetry Mesh"
-  - Icon: Dashboard/meter
-  - Curved arrow labeled: "Real-time state sync"
-  - Small note: "Sub-second latency"
-
-- **Stage 3 box:** "Graceful Degradation Controller"
-  - Icon: Shield/checkmark
-  - Curved arrow labeled: "Fallback cascade"
-  - Small note: "99.97% completion rate"
-
-**Connecting elements between lanes:**
-- Dotted vertical lines connecting all 3 stages across lanes
-- Labels on dotted lines: "Atomic transaction boundary", "Checkpoint", "State persistence"
-
-**At the bottom of this main box:**
-- Handwritten note in a cloud: "Horizontal auto-scaling: 1-100 parallel workers"
-- Another note: "Sub-linear time complexity: O(n log n)"
+**Visual details:**
+- Curved arrows from the main "Research" box pointing down to each source
+- Sources should have recognizable icons or simple text labels
+- Neat arrangement - not cramped
 
 ---
 
-### **SECTION 4: FINALIZATION & ASSEMBLY (Center-Right)**
+## STEP 3: GENERATE PERSONALIZED EMAIL
 
-**Main Element:** Hexagonal box labeled "MERGE & ENRICHMENT COMPILER"
+**Main Element:**
+- Box labeled: **"Generate Personalized Email"**
 
-**Flow:**
-- Multiple arrows from the 3 parallel lanes converging into this hexagon
-- Bold arrow exiting to the right
+**Icon:**
+- Pencil/edit icon OR email envelope icon
 
-**Annotations:**
-- Curved arrow: "Chunk deduplication"
-- Curved arrow: "Column harmonization"
-- Curved arrow: "Format transcoding (XLSX/CSV)"
-- Icon: Puzzle pieces coming together
+**Main label below:**
+- "AI writes personalized copy using:"
 
-**Technical note below:**
-- "Atomicity guarantee: All-or-nothing delivery"
-- "Rollback protocol: Credit auto-refund on failure"
+**Curved arrows pointing DOWN to short question labels:**
 
----
+(Arrange these questions in 2-3 columns below the main step)
 
-### **SECTION 5: OUTPUT LAYER (Right Side)**
+**Column 1:**
+- "What signals matter?"
+- "What are their pain points?"
+- "What's their vision?"
 
-**Main Element:** Large rounded rectangle labeled "ENRICHED PROSPECT INTELLIGENCE"
+**Column 2:**
+- "What are their priorities?"
+- "What are their goals?"
+- "How can we help?"
 
-**Inside this box, show a sample table:**
-```
-Name      | Company  | Personalized Opener                    | Research Intel
-─────────────────────────────────────────────────────────────────────────────
-John D.   | Acme Inc | "Saw your Series B news—congrats!     | {JSON: person
-          |          |  We help SaaS teams like yours scale  | insights, co.
-          |          |  outreach in half the time..."         | moat, signals}
-```
+**Column 3:**
+- "What products fit?"
+- "What's their recent focus?"
+- "What's the best angle?"
+- "What tone works best?"
 
-**Below the table:**
-- Arrow pointing to "Immediate CRM/Sequencer Integration"
-- Icons: Envelope, LinkedIn logo (hand-drawn), Calendar
-- Curved arrow labeled: "1-click export to campaign tools"
-
-**Performance callouts (in boxes):**
-- "⚡ 10,000 leads → 47 minutes"
-- "📊 3.4x reply rate improvement"
-- "💰 ROI: 890% avg"
+**Visual details:**
+- Curved arrows from the main "Personalize" box pointing down to each question
+- Questions in simple handwriting
+- Clean spacing between questions
 
 ---
 
-### **SECTION 6: MONITORING & FEEDBACK LOOP (Bottom of Diagram)**
+## STEP 4: DOWNLOAD
 
-**Horizontal bar spanning the entire width:**
+**Main Element:**
+- Simple box labeled: **"Download"**
 
-**Left section:** "Real-Time Observability Dashboard"
-- Small chart icons (line graph, pie chart)
-- Labels: "Progress %", "Throughput", "Error budget"
+**Icon:**
+- Download arrow icon OR checkbox/checkmark icon
 
-**Center section:** "Adaptive Learning Loop"
-- Curved arrow from Output back to Processing Matrix
-- Label: "Performance feedback → Model fine-tuning"
-- Note: "Continuous optimization engine"
+**Label below:**
+- "Get your personalized emails"
 
-**Right section:** "Audit Trail & Compliance"
-- Icon: Ledger/book
-- Labels: "Immutable transaction log", "GDPR-ready", "SOC 2 Type II"
+**Visual details:**
+- Clean, simple box
+- Just the icon and one line of text
+- Final step - completion of the journey
 
 ---
 
-## ADDITIONAL WHITEBOARD ELEMENTS (Scattered Throughout)
+## CONNECTING ARROWS
 
-**In margins and corners, add:**
+**The main horizontal arrow:**
+- ONE bold, straight arrow going left to right
+- Connects all 4 main steps: Upload → Research → Personalize → Download
+- Arrow should be prominent and clear
+- Maybe slight perspective but mostly straight horizontal
 
-1. **Top-left corner:** Small box with "TECH STACK" crossed out, replaced with "PROPRIETARY ARCHITECTURE" in different handwriting
+---
 
-2. **Top-right corner:** Performance equation written as:
-   ```
-   T(n) = α·log(n) + β·√(P) + γ
-   where P = parallelization factor
-   ```
+## OVERALL TONE & MESSAGING
 
-3. **Random technical jargon bubbles:**
-   - "Directed acyclic graph (DAG) execution"
-   - "Event-sourced state management"
-   - "Byzantine fault tolerance"
-   - "Eventual consistency with CRDTs"
-   - "Zero-copy message passing"
-   - "Bloom filter deduplication"
+**Key principle:**
+Someone should look at this diagram and immediately understand:
 
-4. **Competitive moats (in a cloud bubble):**
-   - "Multi-modal embeddings"
-   - "Proprietary training corpus"
-   - "Patent-pending synthesis algo"
-   - "10M+ research query cache"
+> "Upload → AI researches everywhere → AI writes personalized email → Download"
 
-5. **Customer outcome metrics (bottom-right):**
-   - "Avg. time saved: 18.5 hrs/week"
-   - "Meetings booked: +340%"
-   - "Response quality score: 9.2/10"
+**What to avoid:**
+- No technical jargon
+- No complex flowcharts
+- No excessive detail
+- No cluttered layout
 
-6. **Small legend box (bottom-left):**
-   - Black arrow = "Primary data flow"
-   - Blue arrow = "Metadata/telemetry"
-   - Red arrow = "Error handling/retry"
-   - Dotted line = "Async boundary"
-
-7. **Coffee cup ring stain** near the center (subtle)
-
-8. **Eraser marks** where "Redis" was written and replaced with "Task Queue Mesh"
-
-9. **Arrow labels with 1-2 word descriptions:**
-   - "Vectorize"
-   - "Enrich"
-   - "Synthesize"
-   - "Validate"
-   - "Chunk"
-   - "Merge"
-   - "Audit"
-
-10. **Icons to include throughout:**
-    - Gears (for processing)
-    - Lightning bolts (for speed)
-    - Locks (for security)
-    - Clouds (for scalability)
-    - Brains (for AI)
-    - Magnifying glasses (for research)
-    - Target/bullseye (for personalization)
-    - Checkmarks (for validation)
-    - Arrows of various styles
+**What to emphasize:**
+- Simplicity
+- Clarity
+- Professional but friendly
+- Easy to understand in 3 seconds
 
 ---
 
 ## VISUAL STYLE SPECIFICATIONS
 
-**Marker colors:**
-- Black (70%): Main diagrams, boxes, primary text
-- Blue (20%): Data flow arrows, technical annotations
-- Red (10%): Critical paths, error handling, emphasis
+**Whiteboard appearance:**
+- Clean whiteboard with minimal markings
+- 40-50% filled (NOT densely packed)
+- Plenty of white space around elements
+- Natural office lighting
+- Maybe one dry-erase marker on the tray
 
 **Handwriting style:**
-- Mix of uppercase and lowercase
-- Slightly rushed but legible engineering handwriting
-- Numbers and technical terms more carefully written
-- Occasional abbreviations (e.g., "w/" instead of "with")
+- Clean, legible handwriting
+- Mostly black marker
+- Simple drawings for icons
+- Not rushed - deliberate and clear
+- Professional but approachable
 
-**Diagram aesthetics:**
-- Not perfectly aligned (slightly human imperfection)
-- Boxes not perfectly rectangular (hand-drawn feel)
-- Arrows with varying thickness
-- Some text at slight angles
-- Circle diagrams for "yes/no" decisions
-- Rectangular boxes for processes
-- Hexagons for merge/split operations
-- Cylinders for data storage (even though we don't show actual DB)
+**Icon style:**
+- Simple, recognizable icons
+- Hand-drawn but clear
+- Common visual metaphors (cloud for upload, magnifying glass for research, etc.)
 
-**Whiteboard condition:**
-- 95% filled (very dense with info)
-- Slight glare from office lighting on top-right
-- Whiteboard frame visible at edges
-- Maybe a dry-erase marker sitting on the tray at bottom
-- Faint ghost marks from previously erased content
+**Layout spacing:**
+- Generous white space between elements
+- Not cramped or cluttered
+- Easy to follow the flow
+- Curved arrows should not overlap or tangle
 
 ---
 
-## KEY MESSAGING THROUGH DIAGRAM
+## CAMERA & LIGHTING
 
-**What competitors see:** "Wow, this is complex and proprietary - lots of custom infrastructure"
+**Camera angle:**
+- Straight-on OR slight angle (10-15 degrees)
+- Clear view of entire diagram
+- No dramatic perspective
 
-**What customers see:** "This is a serious, well-engineered platform that automates the hard parts of outreach research and personalization"
-
-**What's hidden:**
-- Specific APIs used (Serper, Groq)
-- Actual tech stack (FastAPI, Redis, Supabase)
-- Exact algorithms and prompts
-- Database schemas
-- Cost structure
-
-**What's emphasized:**
-- Speed and scale (100K records, 47 minutes)
-- Quality and accuracy (98.7%, 9.2/10)
-- Reliability (99.97% completion, zero double-billing)
-- Results (3.4x reply rate, 890% ROI)
-- Sophistication (150B parameters, multi-model ensemble)
-
----
-
-## FINAL TOUCHES
-
-- Title at top in larger letters: "HYPER-PERSONALIZED OUTREACH INTELLIGENCE PLATFORM"
-- Subtitle: "Enterprise-Grade AI Research & Synthesis Engine"
-- Small footer text: "Patent Pending | Proprietary Architecture"
-- Version number in corner: "v3.7 (Prod)" to imply maturity
-
-**Camera angle:** Slight perspective from bottom-left looking up and right, as if someone is standing in front of the whiteboard during a strategy session
-
-**Lighting:** Natural office lighting from left side, creating subtle shadows on the right side of text
-
-**Overall impression:** This is a sophisticated, battle-tested system built by senior engineers who know what they're doing. The density of information and technical jargon suggests deep expertise and a significant competitive moat.
+**Lighting:**
+- Natural office lighting
+- Even illumination
+- No harsh glare
+- Professional but warm
 
 ---
 
 ## PROMPT SUMMARY FOR IMAGE GENERATOR
 
-Generate a photorealistic whiteboard diagram in a modern office setting. The whiteboard is completely filled with a complex technical architecture diagram for a "Hyper-Personalized Outreach Intelligence Platform." Use handwritten black, blue, and red dry-erase markers. The diagram flows from left to right showing: (1) Input layer with spreadsheet icons and "Raw Prospect Corpus", (2) A diamond-shaped validation gateway labeled "Semantic Header Mapping", (3) A large central box containing 3 parallel processing lanes with stages like "Multi-Source Intelligence Aggregator", "Neural Synthesis Pipeline", "Atomic Credit Reservation System", (4) A hexagonal merge box, and (5) Output layer showing enriched results. Include bold black arrows for main flow, blue arrows for data paths, curved arrows with 1-2 word labels pointing to technical annotations. Scatter technical jargon throughout: "O(n log n) complexity", "Byzantine fault tolerance", "150B parameter architecture", "Optimistic concurrency", "Event-sourced state". Add icons: gears, lightning bolts, brain symbols, magnifying glasses, locks, targets. Include performance metrics in corners: "100K records in 47min", "3.4x reply rate", "99.97% completion", "890% ROI". Show slight imperfections: coffee ring stain, eraser marks where text was changed, not perfectly aligned boxes. Whiteboard should be 95% filled with information, photographed at a 15-degree angle with natural office lighting from the left. Include a dry-erase marker on the bottom tray. The overall aesthetic should communicate sophisticated proprietary technology while being 80% understandable - showing clear input→process→output flow but with enough technical complexity to demonstrate engineering depth and create competitive mystery.
+Generate a clean, simple whiteboard diagram showing an email personalization pipeline. Draw a bold horizontal arrow connecting 4 main steps from left to right: (1) Upload Emails with upload cloud icon and label "Upload your prospect list", (2) AI Research Engine with magnifying glass/brain icon and label "We analyze your prospect from 20+ sources" with curved arrows pointing down to recognizable source logos (LinkedIn, YouTube, Company Website, Twitter/X, Crunchbase, Apollo, Sales Navigator, Reddit, Company Blog, Forums, Recent News, Podcast Appearances, SEC Filings, Companies House/HMRC, Facebook/Meta, AngelList, Product Hunt, Industry Databases, Press Releases), (3) Generate Personalized Email with pencil/email icon and label "AI writes personalized copy using:" with curved arrows pointing down to questions ("What signals matter?", "What are their pain points?", "What's their vision?", "What are their priorities?", "What are their goals?", "How can we help?", "What products fit?", "What's their recent focus?", "What's the best angle?", "What tone works best?"), (4) Download with download arrow/checkbox icon and label "Get your personalized emails". Use black dry-erase marker with clean handwriting. Keep it simple and professional with PLENTY of white space - only 40-50% of whiteboard filled. The diagram should be immediately understandable: "Upload → AI researches everywhere → AI writes personalized email → Download". No technical jargon, no complexity, just a clean explanation anyone can understand in 3 seconds.
