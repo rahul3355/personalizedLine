@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { useAuth } from "../lib/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Check } from "lucide-react";
+import Image from "next/image"; // Add this import
 import InlineLoader from "@/components/InlineLoader";
 import Whiteboard from "../assets/whiteboard2.png";
 import AppleLogo from "../assets/appleLogo.png";
@@ -121,7 +122,7 @@ export default function Home() {
 
           {/* Subheadline */}
           <p className="text-xl text-gray-600 lg:text-2xl">
-           Automated prospect research that writes personalized opening lines for you.
+            Automated prospect research that writes personalized opening lines for you.
           </p>
 
           {/* CTA Section */}
@@ -167,9 +168,10 @@ export default function Home() {
                 isStatic={false}
                 ariaLabel="Zoom Area"
               >
-                <img
-                  src={Whiteboard.src}
+                <Image
+                  src={Whiteboard}
                   alt="SendItFast whiteboard"
+                  placeholder="blur"
                   width={500}
                   height={500}
                   className="h-auto w-full"
@@ -177,7 +179,7 @@ export default function Home() {
               </Lens>
             </CardHeader>
             <CardContent className="flex justify-center pt-0">
-              <AvatarCircles numPeople={99} avatarUrls={avatars} className="[&_img]:border-2 [&_img]:border-black"/>
+              <AvatarCircles numPeople={99} avatarUrls={avatars} className="[&_img]:border-2 [&_img]:border-black" />
             </CardContent>
           </Card>
         </div>
