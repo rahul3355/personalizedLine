@@ -122,7 +122,7 @@ export default function Home() {
 
           {/* Subheadline */}
           <p className="text-xl text-gray-600 lg:text-2xl">
-            Automated prospect research that writes personalized opening lines for you.
+            Automated prospect research that writes personalized opening lines for you
           </p>
 
           {/* CTA Section */}
