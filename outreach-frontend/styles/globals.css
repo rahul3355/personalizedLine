@@ -54,6 +54,21 @@ body {
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
+    --color-1: oklch(66.2% 0.225 25.9);
+    --color-2: oklch(60.4% 0.26 302);
+    --color-3: oklch(69.6% 0.165 251);
+    --color-4: oklch(80.2% 0.134 225);
+    --color-5: oklch(90.7% 0.231 133);
+  }
+  .theme {
+    --animate-rainbow: rainbow var(--speed, 2s) infinite linear;
+  }
+  .dark {
+    --color-1: oklch(66.2% 0.225 25.9);
+    --color-2: oklch(60.4% 0.26 302);
+    --color-3: oklch(69.6% 0.165 251);
+    --color-4: oklch(80.2% 0.134 225);
+    --color-5: oklch(90.7% 0.231 133);
   }
 }
 
@@ -67,13 +82,10 @@ a:active { background: transparent !important; }
 /* fix subpixel dark-edge on rounded hover boxes during mousedown */
 .sidebar-iconbox { backface-visibility: hidden; transform: translateZ(0); }
 
-
-
 @keyframes progress {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
 }
-
 
 /* Force light UI even in dark mode */
 @media (prefers-color-scheme: dark) {
@@ -141,5 +153,25 @@ body {
 
   .pixel-thinking-cursor {
     animation: none;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@theme inline {
+  @keyframes rainbow {
+  0% {
+    background-position: 0%;
+    }
+  100% {
+    background-position: 200%;
+    }
   }
 }
