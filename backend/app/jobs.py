@@ -10,7 +10,7 @@ import tempfile
 import shutil
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
-from backend.app.gpt_helpers import generate_full_email_body
+from backend.app.gpt_helpers import generate_full_email_body, generate_personalized_opener
 from backend.app.research import perform_research
 from backend.app.email_cleaning import clean_email_body
 from backend.app.supabase_client import supabase
@@ -54,7 +54,7 @@ RAW_CHUNK_BUCKET = "inputs"
 # Parallel processing configuration
 PARALLEL_ROWS_PER_WORKER = int(os.getenv('PARALLEL_ROWS_PER_WORKER', '20'))
 
-GENERATED_OUTPUT_COLUMNS = ("email_body",)
+GENERATED_OUTPUT_COLUMNS = ("personalized_opener", "email_body")
 
 
 def _ensure_dict(value):
@@ -808,6 +808,7 @@ def _process_small_job_inline(
                 error_row = {header: "" for header in row_headers}
                 if email_header:
                     error_row[email_header] = ""
+                error_row["personalized_opener"] = f"Error: {str(exc)}"
                 error_row["email_body"] = f"Error: {str(exc)}"
                 results.append((row_idx, error_row, str(exc)))
 
@@ -889,6 +890,15 @@ def _process_single_row(
             print(f"[Worker] Job {job_id} | Chunk {chunk_id} | Row {row_index + 1} | {error_msg}")
             research_components = f"Research unavailable: {str(research_exc)}"
 
+        # Generate personalized opener
+        personalized_opener = "Opener unavailable: unexpected error."
+        try:
+            personalized_opener = generate_personalized_opener(research_components)
+        except Exception as opener_exc:
+            error_msg = f"Opener generation error: {opener_exc}"
+            print(f"[Worker] Job {job_id} | Chunk {chunk_id} | Row {row_index + 1} | {error_msg}")
+            personalized_opener = f"Opener unavailable: {str(opener_exc)}"
+
         # Generate email body
         email_body = "Email body unavailable: unexpected error."
         try:
@@ -913,6 +923,7 @@ def _process_single_row(
         if email_header:
             normalized_row[email_header] = "" if email_value is None else email_value
 
+        normalized_row["personalized_opener"] = personalized_opener
         normalized_row["email_body"] = email_body
 
         return (row_index, normalized_row, None)
@@ -929,6 +940,7 @@ def _process_single_row(
             error_row[header] = row.get(header, "")
         if email_header:
             error_row[email_header] = row.get(email_header, "")
+        error_row["personalized_opener"] = f"Error: {str(exc)}"
         error_row["email_body"] = f"Error: {str(exc)}"
 
         return (row_index, error_row, str(exc))
@@ -1022,6 +1034,7 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                     error_row = {header: "" for header in row_headers}
                     if email_header:
                         error_row[email_header] = ""
+                    error_row["personalized_opener"] = f"Critical error: {str(exc)}"
                     error_row["email_body"] = f"Critical error: {str(exc)}"
                     results.append((row_idx, error_row, str(exc)))
 

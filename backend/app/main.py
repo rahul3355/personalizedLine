@@ -1531,7 +1531,7 @@ async def generate_preview(
 ):
     """Generate a preview email using the full pipeline (SERP + 3 Groq calls) and deduct 1 credit."""
     from .research import perform_research
-    from .gpt_helpers import generate_full_email_body
+    from .gpt_helpers import generate_full_email_body, generate_personalized_opener
     from .email_cleaning import clean_email_body
 
     try:
@@ -1649,7 +1649,12 @@ async def generate_preview(
         print(f"\n📋 PREVIEW RESEARCH COMPONENTS:")
         print(research_components)
 
-        # Step 2: Email generation (Groq)
+        # Step 2: Personalized opener generation (Groq)
+        personalized_opener = generate_personalized_opener(research_components)
+        print(f"\n🎯 PREVIEW PERSONALIZED OPENER:")
+        print(personalized_opener)
+
+        # Step 3: Email generation (Groq)
         email_body = generate_full_email_body(
             research_components,
             service_context,
@@ -1657,14 +1662,14 @@ async def generate_preview(
         print(f"\n✉️  PREVIEW EMAIL BODY (before cleaning):")
         print(email_body)
 
-        # Step 3: Cleaning (Groq)
+        # Step 4: Cleaning (Groq)
         email_body = clean_email_body(email_body)
         print(f"\n🧹 PREVIEW CLEANED EMAIL BODY:")
         print(email_body)
 
         return {
             "email": selected_email,
-            "research_components": research_components,
+            "personalized_opener": personalized_opener,
             "email_body": email_body,
             "credits_remaining": new_monthly + new_addon
         }

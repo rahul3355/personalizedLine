@@ -151,3 +151,87 @@ def generate_full_email_body(research_components: str, service_context: str) -> 
     except Exception as exc:
         LOGGER.exception("Groq email generation request failed: %s", exc)
         return "Email body unavailable: failed to generate email body."
+
+
+def generate_personalized_opener(research_components: str) -> str:
+    """Generate a personalized line opener based on prospect research.
+
+    This creates a natural, human-sounding opener focused purely on the prospect
+    without any pitch or product mention. User will add their pitch separately.
+    """
+
+    if not research_components or not research_components.strip():
+        return "Opener unavailable: missing research."
+
+    cleaned_research = research_components.strip()
+    if cleaned_research.lower().startswith("research unavailable"):
+        return "Opener unavailable: research unavailable."
+
+    try:
+        parsed_research = json.loads(cleaned_research)
+    except json.JSONDecodeError:
+        LOGGER.warning("Research JSON could not be parsed for opener: %s", cleaned_research)
+        return "Opener unavailable: invalid research JSON."
+
+    if not isinstance(parsed_research, dict):
+        LOGGER.warning("Research payload is not a JSON object for opener: %s", cleaned_research)
+        return "Opener unavailable: invalid research JSON."
+
+    groq_key = os.getenv("GROQ_API_KEY")
+    if not groq_key:
+        LOGGER.warning("GROQ_API_KEY not configured; skipping opener generation")
+        return "Opener unavailable: missing Groq API key."
+
+    user_prompt = (
+        "Write a personalized opening line for a cold email based on the prospect's research below.\n\n"
+        f"RESEARCH ABOUT PROSPECT:\n{json.dumps(parsed_research, indent=2)}\n\n"
+        "CRITICAL RULES:\n"
+        "- Focus ONLY on the prospect - their recent activity, news, or achievements\n"
+        "- NO pitch, NO product mention, NO service mention whatsoever\n"
+        "- Sound human-written, sincere, natural, and conversational\n"
+        "- NO em dashes or hyphens\n"
+        "- If possible, subtly reference a pain point or challenge they might face (optional)\n"
+        "- Keep it to 1-2 sentences maximum\n"
+        "- Be specific and reference actual findings from the research\n"
+        "- Don't use generic phrases like 'I noticed' or 'I saw'\n"
+        "- Write as if you genuinely care about their work\n\n"
+        "Write ONLY the opening line (no greeting, no closing, just the opener)."
+    )
+
+    try:
+        response = requests.post(
+            GROQ_CHAT_ENDPOINT,
+            headers={
+                "Authorization": f"Bearer {groq_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": GROQ_SIF_MODEL,
+                "messages": [
+                    {"role": "user", "content": user_prompt},
+                ],
+                "temperature": 0.8,  # Slightly higher for more natural variation
+                "max_completion_tokens": 500,  # Shorter since it's just an opener
+            },
+            timeout=30,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        if not isinstance(payload, dict):
+            raise ValueError("Groq response was not a JSON object")
+        choices = payload.get("choices") or []
+        if not choices:
+            raise ValueError("Groq response missing choices")
+        first_choice = choices[0] or {}
+        if not isinstance(first_choice, dict):
+            raise ValueError("Groq response choices malformed")
+        message = first_choice.get("message") or {}
+        if not isinstance(message, dict):
+            raise ValueError("Groq response message malformed")
+        content = (message.get("content") or "").strip()
+        if not content:
+            raise ValueError("Groq response missing message content")
+        return content
+    except Exception as exc:
+        LOGGER.exception("Groq opener generation request failed: %s", exc)
+        return "Opener unavailable: failed to generate opener."
