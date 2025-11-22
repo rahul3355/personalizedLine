@@ -31,47 +31,47 @@ import { RainbowButton } from "@/components/ui/rainbow-button";
 const avatars = [
   {
     imageUrl: googleLogo.src,
-    profileUrl: "https://github.com/dillionverma",
+    profileUrl: "https://www.google.com",
   },
   {
     imageUrl: NvidiaLogo.src,
-    profileUrl: "https://github.com/dillionverma",
+    profileUrl: "https://www.nvidia.com",
   },
   {
     imageUrl: AppleLogo.src,
-    profileUrl: "https://github.com/tomonarifeehan",
+    profileUrl: "https://www.apple.com",
   },
   {
     imageUrl: McdonaldsLogo.src,
-    profileUrl: "https://github.com/BankkRoll",
+    profileUrl: "https://www.mcdonalds.com",
   },
   {
     imageUrl: NikeLogo.src,
-    profileUrl: "https://github.com/safethecode",
+    profileUrl: "https://www.nike.com",
   },
   {
     imageUrl: AwsLogo.src,
-    profileUrl: "https://github.com/sanjay-mali",
+    profileUrl: "https://aws.amazon.com",
   },
   {
     imageUrl: metaLogo.src,
-    profileUrl: "https://github.com/itsarghyadas",
+    profileUrl: "https://about.meta.com",
   },
   {
     imageUrl: MicrosoftLogo.src,
-    profileUrl: "https://github.com/BankkRoll",
+    profileUrl: "https://www.microsoft.com",
   },
   {
     imageUrl: AsdaLogo.src,
-    profileUrl: "https://github.com/safethecode",
+    profileUrl: "https://www.asda.com",
   },
   {
     imageUrl: WbLogo.src,
-    profileUrl: "https://github.com/sanjay-mali",
+    profileUrl: "https://www.warnerbros.com",
   },
   {
     imageUrl: starbucksLogo.src,
-    profileUrl: "https://github.com/itsarghyadas",
+    profileUrl: "https://www.starbucks.com",
   },
 ];
 
