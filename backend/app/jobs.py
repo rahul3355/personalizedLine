@@ -808,7 +808,6 @@ def _process_small_job_inline(
                 error_row = {header: "" for header in row_headers}
                 if email_header:
                     error_row[email_header] = ""
-                error_row["research_components"] = f"Error: {str(exc)}"
                 error_row["email_body"] = f"Error: {str(exc)}"
                 results.append((row_idx, error_row, str(exc)))
 
@@ -914,7 +913,6 @@ def _process_single_row(
         if email_header:
             normalized_row[email_header] = "" if email_value is None else email_value
 
-        normalized_row["research_components"] = research_components
         normalized_row["email_body"] = email_body
 
         return (row_index, normalized_row, None)
@@ -931,7 +929,6 @@ def _process_single_row(
             error_row[header] = row.get(header, "")
         if email_header:
             error_row[email_header] = row.get(email_header, "")
-        error_row["research_components"] = f"Error: {str(exc)}"
         error_row["email_body"] = f"Error: {str(exc)}"
 
         return (row_index, error_row, str(exc))
@@ -1025,7 +1022,6 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                     error_row = {header: "" for header in row_headers}
                     if email_header:
                         error_row[email_header] = ""
-                    error_row["research_components"] = f"Critical error: {str(exc)}"
                     error_row["email_body"] = f"Critical error: {str(exc)}"
                     results.append((row_idx, error_row, str(exc)))
 
