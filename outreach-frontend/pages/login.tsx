@@ -10,7 +10,34 @@ import { cn } from "@/lib/utils";
 import { GridPattern } from "@/components/ui/grid-pattern";
 import { Check, ArrowRight, ChevronRight, ChevronDown } from "lucide-react";
 import { Globe } from "@/components/ui/globe";
+import { Lens } from "@/components/ui/lens";
 import Sign from "../assets/sign.png";
+import SendItFastLogo from "../assets/senditfast-logo.png";
+import Whiteboard from "../assets/whiteboard2.png";
+
+// Company Logos
+import AppleLogo from "../assets/apple.png";
+import AwsLogo from "../assets/aws.png";
+import BlackrockLogo from "../assets/blackrock.png";
+import DeuLogo from "../assets/deu.png";
+import DisneyLogo from "../assets/disney.png";
+import MetaLogo from "../assets/meta.png";
+import NikeLogo from "../assets/nike.png";
+import SapLogo from "../assets/sap.png";
+import StarbucksLogo from "../assets/starb.png";
+import UberLogo from "../assets/uber.png";
+import Logo12 from "../assets/12.png";
+import AsdaLogo from "../assets/asda.png";
+import CdLogo from "../assets/cd.png";
+import DuLogo from "../assets/du.png";
+import GymGroupLogo from "../assets/gymgroup.png";
+import JdLogo from "../assets/jd.png";
+import JioLogo from "../assets/jio.png";
+import NrLogo from "../assets/nr.png";
+import TcsLogo from "../assets/tcs.png";
+import UomLogo from "../assets/uom.png";
+import UooLogo from "../assets/uoo.png";
+import VdfnLogo from "../assets/vdfn.png";
 
 function LoginPage() {
   const { session } = useAuth();
@@ -167,31 +194,98 @@ function LoginPage() {
 
         {/* Content Container */}
         <div className="relative z-10 flex flex-col px-8 py-12 space-y-16">
-          {/* Hero Section with Globe */}
-          <section className="grid grid-cols-2 gap-6 items-center">
-            {/* Left: Globe */}
-            <div className="relative flex items-center justify-center h-[250px]">
-              <Globe className="scale-75" />
-            </div>
-
-            {/* Right: Title and Subheading */}
-            <div className="space-y-3">
-              <h1 className="text-3xl font-semibold tracking-tight text-black leading-tight" style={{ fontFamily: 'Times New Roman, serif' }}>
-                Make your cold outreach work harder
-              </h1>
-              <p className="text-base text-gray-700 leading-relaxed" style={{ fontFamily: 'Times New Roman, serif' }}>
-                AI researches every lead and writes personalized emails that get responses.
+          {/* Header Section with Logo */}
+          <div className="flex flex-col items-center justify-center space-y-6">
+            <Image
+              src={SendItFastLogo}
+              alt="SendItFast Logo"
+              width={120}
+              height={120}
+              className="h-auto"
+            />
+            <div className="text-center space-y-2">
+              <h2 className="text-4xl font-bold text-black font-sans tracking-tighter">
+                Personalized your cold emails
+              </h2>
+              <p className="text-lg text-gray-500 font-sans">
+                <span>
+                  Well-researched, personalized emails for every lead.
+                </span>
+                <br />
+                Ideal for B2B Sales, Agencies, and GTM Teams
               </p>
+            </div>
+            {/* Whiteboard Image */}
+            <div className="w-full max-w-xl mt-4 group">
+              <Lens
+                zoomFactor={2}
+                lensSize={200}
+                isStatic={false}
+                ariaLabel="Zoom Area"
+              >
+                <Image
+                  src={Whiteboard}
+                  alt="Whiteboard demonstration"
+                  className="w-full h-auto rounded-3xl grayscale group-hover:grayscale-0 transition-all duration-300"
+                  priority
+                />
+              </Lens>
+            </div>
+          </div>
+
+          {/* Hero Section with Globe and Logos */}
+          <section className="flex flex-col space-y-6">
+            <p className="text-xs font-bold tracking-widest text-gray-500 mb-2 text-center uppercase font-sans">
+              POSITIVE REPLIES FROM TEAMS AT:
+            </p>
+
+            <div className="grid grid-cols-2 gap-1 items-center">
+              {/* Left: Globe */}
+              <div className="relative flex items-center justify-center h-[250px]">
+                <Globe className="scale-75" />
+              </div>
+
+              {/* Right: Company Logos Section */}
+              <div className="bg-[#F9FAFB] rounded-xl p-6 flex flex-col items-center justify-center h-full">
+                <div className="grid grid-cols-4 gap-x-4 gap-y-6 justify-items-center items-center w-full">
+                  <Image src={AppleLogo} alt="Apple" className="h-12 w-auto object-contain" />
+                  <Image src={AwsLogo} alt="AWS" className="h-5 w-auto object-contain" />
+                  <Image src={BlackrockLogo} alt="Blackrock" className="h-12 w-auto object-contain" />
+                  <Image src={DeuLogo} alt="Deutsche Bank" className="h-12 w-auto object-contain" />
+                  <Image src={DisneyLogo} alt="Disney" className="h-12 w-auto object-contain" />
+                  <Image src={MetaLogo} alt="Meta" className="h-12 w-auto object-contain" />
+                  <Image src={NikeLogo} alt="Nike" className="h-5 w-auto object-contain" />
+                  <Image src={SapLogo} alt="SAP" className="h-5 w-auto object-contain" />
+                  <Image src={StarbucksLogo} alt="Starbucks" className="h-12 w-auto object-contain" />
+                  <Image src={UberLogo} alt="Uber" className="h-4 w-auto object-contain" />
+
+                  {/* New Logos */}
+                  <Image src={Logo12} alt="12" className="h-12 w-auto object-contain" />
+                  <Image src={AsdaLogo} alt="Asda" className="h-5 w-auto object-contain" />
+                  <Image src={CdLogo} alt="CD" className="h-12 w-auto object-contain" />
+                  <Image src={DuLogo} alt="Du" className="h-12 w-auto object-contain" />
+                  <Image src={GymGroupLogo} alt="Gym Group" className="h-5 w-auto object-contain" />
+                  <Image src={JdLogo} alt="JD" className="h-12 w-auto object-contain" />
+                  <Image src={JioLogo} alt="Jio" className="h-12 w-auto object-contain" />
+                  <Image src={NrLogo} alt="NR" className="h-12 w-auto object-contain" />
+                  <Image src={TcsLogo} alt="TCS" className="h-5 w-auto object-contain" />
+                  <Image src={UomLogo} alt="UOM" className="h-12 w-auto object-contain" />
+                  <Image src={UooLogo} alt="UOO" className="h-12 w-auto object-contain" />
+                  <Image src={VdfnLogo} alt="Vodafone" className="h-12 w-auto object-contain" />
+
+
+                </div>
+              </div>
             </div>
           </section>
 
           {/* Manifesto */}
           <section className="bg-white p-6 space-y-4">
             <h3 className="text-xs font-semibold tracking-wide text-gray-500 uppercase">
-              MANIFESTO
+              Why SendItFast?
             </h3>
             <h4 className="text-lg font-semibold text-black">
-              Outbound deserves better than "quick personalization hacks"
+              Emails deserves better than "quick personalization hacks"
             </h4>
             <p className="text-xs text-gray-700 leading-relaxed">
               SendItFast is built on a simple belief: personalization isn't a trick to
@@ -344,7 +438,7 @@ function LoginPage() {
                 onClick={() => toggleFaq(3)}
               >
                 <div className="flex items-center justify-between p-4">
-                  <span className="text-sm font-medium text-black">Costs?</span>
+                  <span className="text-sm font-medium text-black">Cost?</span>
                   {openFaq === 3 ? (
                     <ChevronDown className="h-5 w-5 text-gray-500 transition-transform duration-200" />
                   ) : (
