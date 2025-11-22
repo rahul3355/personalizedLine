@@ -54,7 +54,7 @@ RAW_CHUNK_BUCKET = "inputs"
 # Parallel processing configuration
 PARALLEL_ROWS_PER_WORKER = int(os.getenv('PARALLEL_ROWS_PER_WORKER', '20'))
 
-GENERATED_OUTPUT_COLUMNS = ("research_components", "email_body")
+GENERATED_OUTPUT_COLUMNS = ("email_body",)
 
 
 def _ensure_dict(value):
