@@ -54,6 +54,7 @@ RAW_CHUNK_BUCKET = "inputs"
 # Parallel processing configuration
 PARALLEL_ROWS_PER_WORKER = int(os.getenv('PARALLEL_ROWS_PER_WORKER', '20'))
 
+# Generated columns that are automatically added to output files
 GENERATED_OUTPUT_COLUMNS = ("email_body",)
 
 
