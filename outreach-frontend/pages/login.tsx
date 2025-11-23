@@ -67,9 +67,9 @@ function LoginPage() {
   };
 
   return (
-    <div className="relative flex h-dvh w-full overflow-hidden font-sans bg-white">
+    <div className="relative flex min-h-screen w-full font-sans bg-white">
       {/* Beta Button */}
-      <div className="absolute left-1/2 top-10 hidden -translate-x-1/2 lg:flex z-50">
+      <div className="fixed left-1/2 top-10 hidden -translate-x-1/2 lg:flex z-50">
         <Button
           className="relative overflow-hidden bg-white text-gray-900 border border-gray-200 pointer-events-none"
           size="lg"
@@ -93,7 +93,7 @@ function LoginPage() {
       </div>
 
       {/* Left Section */}
-      <div className="w-full lg:w-1/2 flex flex-col border-r border-gray-100 bg-white">
+      <div className="w-full lg:w-1/2 flex flex-col border-r border-gray-100 bg-white lg:h-screen lg:sticky lg:top-0">
         <div className="flex-1 flex flex-col items-center justify-center px-6 sm:px-8 gap-y-6">
           <div className="w-full max-w-md flex flex-col gap-y-6">
             <div className="text-center lg:text-left">
@@ -177,7 +177,7 @@ function LoginPage() {
       </div>
 
       {/* Right Section - Full Landing Page (desktop only) */}
-      <div className="hidden lg:flex w-1/2 flex-col bg-gray-50 relative overflow-y-auto">
+      <div className="hidden lg:flex w-1/2 flex-col bg-gray-50 relative">
         {/* Grid Pattern Background */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <GridPattern
@@ -187,7 +187,7 @@ function LoginPage() {
             y={-1}
             strokeDasharray={"4 2"}
             className={cn(
-              "[mask-image:radial-gradient(800px_circle_at_center,white,transparent)]"
+              "opacity-50"
             )}
           />
         </div>
@@ -235,7 +235,7 @@ function LoginPage() {
 
           {/* Hero Section with Globe and Logos */}
           <section className="flex flex-col space-y-6">
-            <p className="text-xs font-bold tracking-widest text-gray-500 mb-2 text-center uppercase font-sans">
+            <p className="text-md font-regular tracking-widest text-gray-900 mb-2 text-center uppercase font-sans">
               POSITIVE REPLIES FROM TEAMS AT:
             </p>
 
@@ -246,7 +246,7 @@ function LoginPage() {
               </div>
 
               {/* Right: Company Logos Section */}
-              <div className="bg-[#F9FAFB] rounded-xl p-6 flex flex-col items-center justify-center h-full">
+              <div className="rounded-xl p-6 flex flex-col items-center justify-center h-full">
                 <div className="grid grid-cols-4 gap-x-4 gap-y-6 justify-items-center items-center w-full">
                   <Image src={AppleLogo} alt="Apple" className="h-12 w-auto object-contain" />
                   <Image src={AwsLogo} alt="AWS" className="h-5 w-auto object-contain" />
