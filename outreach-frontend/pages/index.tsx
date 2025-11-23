@@ -6,10 +6,17 @@ import InlineLoader from "@/components/InlineLoader";
 import Link from "next/link";
 import { DotPattern } from "@/components/ui/dot-pattern";
 import { cn } from "@/lib/utils";
+import Lottie, { LottieRefCurrentProps } from "lottie-react";
+import { useRef } from "react";
+import mailAnimation from "../assets/mail.json";
+import archiveAnimation from "../assets/archive.json";
+import shipImage from "../assets/ship.png"
 
 export default function Home() {
   const { session, loading } = useAuth();
   const router = useRouter();
+  const lottieRef = useRef<LottieRefCurrentProps>(null);
+  const archiveLottieRef = useRef<LottieRefCurrentProps>(null);
 
   if (loading) {
     return (
@@ -43,39 +50,96 @@ export default function Home() {
         />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-5xl pt-20">
-        <div className="grid grid-cols-1 gap-0 overflow-hidden rounded-xl border border-gray-100 md:grid-cols-2">
-          {/* Generate Card */}
-          <Link
-            href="/upload"
-            className="group relative flex flex-col justify-between border-b border-gray-100 bg-white p-8 transition-colors hover:bg-gray-50/50 md:border-b-0 md:border-r"
-          >
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <Sparkles className="h-5 w-5 text-[#4f55f1]" />
-                <h3 className="text-lg font-medium text-gray-900">Generate</h3>
+      <div className="relative z-10 mx-auto max-w-6xl pt-0">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left Column - Existing Cards */}
+          <div className="flex flex-col gap-0">
+            {/* Generate Card */}
+            <Link
+              href="/upload"
+              className="group relative flex flex-col justify-between bg-white p-6 transition-all border-2 border-gray-100 rounded-t-xl hover:border-[#4f55f1] hover:border-dashed"
+              onMouseEnter={() => lottieRef.current?.play()}
+              onMouseLeave={() => lottieRef.current?.stop()}
+            >
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 -ml-1 transition-all [filter:grayscale(1)] group-hover:[filter:invert(31%)_sepia(89%)_saturate(3196%)_hue-rotate(229deg)_brightness(99%)_contrast(98%)]">
+                    <Lottie
+                      lottieRef={lottieRef}
+                      animationData={mailAnimation}
+                      loop={true}
+                      autoplay={false}
+                    />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900">Start</h3>
+                </div>
+                <p className="text-sm text-gray-500">
+                  Start generating emails by uploading lead list
+                </p>
               </div>
-              <p className="text-sm text-gray-500">
-                Start generating emails by uploading lead list
-              </p>
-            </div>
-          </Link>
+            </Link>
 
-          {/* View Files Card */}
-          <Link
-            href="/jobs"
-            className="group relative flex flex-col justify-between bg-white p-8 transition-colors hover:bg-gray-50/50"
-          >
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <FileText className="h-5 w-5 text-[#4f55f1]" />
-                <h3 className="text-lg font-medium text-gray-900">View Files</h3>
+            {/* View Files Card */}
+            <Link
+              href="/jobs"
+              className="group relative flex flex-col justify-between bg-white p-6 transition-all border-2 border-gray-100 border-t-0 rounded-b-xl hover:border-[#4f55f1] hover:border-dashed hover:border-t-2"
+              onMouseEnter={() => {
+                archiveLottieRef.current?.setSpeed(0.3);
+                archiveLottieRef.current?.play();
+              }}
+              onMouseLeave={() => archiveLottieRef.current?.stop()}
+            >
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 -ml-1 transition-all [filter:grayscale(1)] group-hover:[filter:invert(31%)_sepia(89%)_saturate(3196%)_hue-rotate(229deg)_brightness(99%)_contrast(98%)]">
+                    <Lottie
+                      lottieRef={archiveLottieRef}
+                      animationData={archiveAnimation}
+                      loop={true}
+                      autoplay={false}
+                    />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900">View Files</h3>
+                </div>
+                <p className="text-sm text-gray-500">
+                  View processed files
+                </p>
               </div>
-              <p className="text-sm text-gray-500">
-                View processed files
-              </p>
+            </Link>
+          </div>
+
+          {/* Right Column - Promotional Card */}
+          <div className="flex flex-col items-center justify-start">
+            {/* Polaroid Photo Card */}
+            <div className="bg-white p-3 shadow-xl transition-shadow duration-300 max-w-sm">
+              {/* Photo Container */}
+              <div className="bg-gray-100 mb-3">
+                <img
+                  src={shipImage.src}
+                  alt="Ship illustration"
+                  className="w-full h-auto aspect-square object-cover"
+                />
+              </div>
+
+              {/* Polaroid Caption Area */}
+              <div className="flex items-center justify-between gap-3 pb-2">
+                {/* Text on left */}
+                <div className="text-left">
+                  <h2 className="text-xl font-medium text-black" style={{ fontFamily: "'Mencken Std Narrow Regular', serif" }}>
+                    Exploring?
+                  </h2>
+                  <p className="text-md font-medium text-gray-400" style={{ fontFamily: "'Mencken Std Narrow Regular', serif" }}>
+                    Spend 500 credits, get 500 free!
+                  </p>
+                </div>
+
+                {/* Button on right */}
+                <button className="bg-black text-white px-4 py-1.5 text-sm rounded-md hover:bg-gray-800 transition-colors font-medium shadow-md whitespace-nowrap" style={{ fontFamily: "'Mencken Std Narrow Regular', serif" }}>
+                  Claim Offer
+                </button>
+              </div>
             </div>
-          </Link>
+          </div>
         </div>
       </div>
     </div>
