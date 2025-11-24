@@ -37,6 +37,7 @@ import { useRouter } from "next/router";
 import { useToast } from "@/components/Toast";
 import { supabase } from "../lib/supabaseClient";
 import { logger } from "../lib/logger";
+import SendItFastSpinner from "../components/SendItFastSpinner";
 // replace
 
 
@@ -930,9 +931,11 @@ export default function UploadPage() {
                   {field.key === "core_offer" && <span className="text-red-500">*</span>}
                   <HelpTooltip fieldKey={field.key} />
                 </label>
-                <span className={`text-[10px] ${serviceComponents[field.key].length > 280 ? 'text-amber-600 font-bold' : 'text-slate-400'}`}>
-                  {serviceComponents[field.key].length}/300
-                </span>
+                {serviceComponents[field.key].length >= 300 && (
+                  <span className="text-[10px] text-amber-600 font-bold">
+                    {serviceComponents[field.key].length}/300
+                  </span>
+                )}
               </div>
               <textarea
                 autoFocus={field.key === "core_offer"}
@@ -2032,7 +2035,7 @@ export default function UploadPage() {
                         <div className="min-h-[300px] text-xs leading-relaxed text-slate-800" style={{ fontFamily: 'Arial, sans-serif' }}>
                           {previewLoading ? (
                             <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-3 py-12">
-                              <div className="w-12 h-12 rounded-full border-4 border-slate-100 border-t-blue-600 animate-spin" />
+                              <SendItFastSpinner size={48} />
                               <span className="text-sm font-medium animate-pulse">Writing personalized email...</span>
                             </div>
                           ) : previewResult ? (
@@ -2047,7 +2050,7 @@ export default function UploadPage() {
                               <div className="space-y-1">
                                 <p className="text-sm font-medium text-slate-900">No preview generated yet</p>
                                 <p className="text-xs text-slate-500 max-w-[200px] mx-auto">
-                                  Fill out the details on the left and click "Generate Preview" to see the magic.
+                                  Fill out the details on the left and click "Create Preview" below to see the email.
                                 </p>
                               </div>
                             </div>
@@ -2068,17 +2071,18 @@ export default function UploadPage() {
                               inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all
                               ${previewResult
                                 ? "bg-slate-100 text-slate-900 hover:bg-slate-200"
-                                : "bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-200"
+                                : "text-white hover:opacity-90 shadow-md"
                               }
                               disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none
                             `}
+                            style={!previewResult ? { backgroundColor: BRAND } : {}}
                           >
                             {previewLoading ? (
                               "Writing..."
                             ) : (
                               <>
                                 {previewResult && <RefreshCcw className="w-3.5 h-3.5" />}
-                                {previewResult ? "Regenerate" : "Generate Preview"}
+                                {previewResult ? "Regenerate" : "Create Preview"}
                               </>
                             )}
                           </button>
@@ -2343,7 +2347,7 @@ export default function UploadPage() {
                             className="flex-1 py-3 rounded-md font-medium text-white text-[15px] disabled:opacity-50"
                             style={{ backgroundColor: BRAND }}
                           >
-                            {previewLoading ? "Generating..." : "Start Preview"}
+                            {previewLoading ? "Creating..." : "Create Preview"}
                           </button>
                         </div>
                       </div>
@@ -2397,7 +2401,7 @@ export default function UploadPage() {
                           className="w-full py-3 rounded-md font-medium text-white text-[15px]"
                           style={{ backgroundColor: BRAND }}
                         >
-                          Generate Another Preview
+                          Create Another Preview
                         </button>
                       </div>
                     )}
