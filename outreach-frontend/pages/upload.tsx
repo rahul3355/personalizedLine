@@ -71,18 +71,45 @@ const buildFallbackAction = (coreOffer: string): string => {
 const SERVICE_FIELDS: { key: ServiceFieldKey; label: string; placeholder: string }[] = [
   {
     key: "core_offer",
-    label: "Core Offer",
-    placeholder: "Explain the core product or service you're offering",
+    label: "What are you pitching?",
+    placeholder: "e.g. AI-powered email automation for sales teams",
   },
   {
     key: "key_differentiator",
-    label: "Key Differentiator",
-    placeholder: "Share what makes this offering unique",
+    label: "Why should they care?",
+    placeholder: "e.g. Generates personalized lines 10x faster than manual research",
   },
   {
     key: "cta",
-    label: "Call to Action",
-    placeholder: "Describe the next step you'd like the reader to take",
+    label: "What's the next step?",
+    placeholder: "e.g. Book a 15-minute demo to see it in action",
+  },
+];
+
+const QUICK_PRESETS = [
+  {
+    label: "SaaS Product",
+    data: {
+      core_offer: "All-in-one project management software",
+      key_differentiator: "Combines task tracking, chat, and docs in one place",
+      cta: "Start your 14-day free trial",
+    },
+  },
+  {
+    label: "Agency Service",
+    data: {
+      core_offer: "Full-service digital marketing optimization",
+      key_differentiator: "Guaranteed 20% ROI increase in 90 days",
+      cta: "Get a free marketing audit",
+    },
+  },
+  {
+    label: "Recruiting",
+    data: {
+      core_offer: "Senior Full-Stack Engineer role",
+      key_differentiator: "Remote-first, competitive salary + equity",
+      cta: "Book a quick screening call",
+    },
   },
 ];
 
@@ -717,14 +744,14 @@ function ExamplesDrawerPanel({
           width: 6px;
         }
         div::-webkit-scrollbar-track {
-          background: #F5F5F5;
+          background: transparent;
         }
         div::-webkit-scrollbar-thumb {
-          background: #D1D5DB;
-          border-radius: 3px;
+          background-color: #e2e8f0;
+          border-radius: 20px;
         }
         div::-webkit-scrollbar-thumb:hover {
-          background: #9CA3AF;
+          background-color: #cbd5e1;
         }
       `}</style>
     </div>
@@ -852,94 +879,101 @@ export default function UploadPage() {
       closeExamples();
     };
 
+    const handlePresetClick = (preset: typeof QUICK_PRESETS[0]) => {
+      setServiceComponents({
+        core_offer: preset.data.core_offer,
+        key_differentiator: preset.data.key_differentiator,
+        cta: preset.data.cta,
+      });
+    };
+
     return (
-      <div className="relative space-y-5">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {SERVICE_FIELDS.map((field) => (
-            <div
-              key={field.key}
-              className={`flex flex-col gap-2 ${field.key === "core_offer" ? "md:col-span-2" : ""
-                }`}
+      <div className="space-y-8">
+        {/* Quick Fill Section */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-slate-900">
+              Quick Fill
+            </label>
+            <button
+              type="button"
+              ref={examplesTriggerRef}
+              onClick={() => setShowExamples(true)}
+              className="text-xs font-medium text-slate-500 hover:text-slate-900 flex items-center gap-1.5 transition-colors"
             >
-              <label className="text-xs font-semibold text-gray-700 flex items-center gap-1">
-                {field.label}
-                {field.key === "core_offer" && <span className="text-red-500">*</span>}
-                <HelpTooltip fieldKey={field.key} />
-              </label>
+              <ListChecks className="w-3.5 h-3.5" />
+              Browse all examples
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {QUICK_PRESETS.map((preset) => (
+              <button
+                key={preset.label}
+                type="button"
+                onClick={() => handlePresetClick(preset)}
+                className="inline-flex items-center rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-900 transition-colors hover:border-slate-300 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Inputs Grid */}
+        <div className="grid gap-6">
+          {SERVICE_FIELDS.map((field) => (
+            <div key={field.key} className="grid gap-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-slate-900 flex items-center gap-1.5">
+                  {field.label}
+                  {field.key === "core_offer" && <span className="text-red-500">*</span>}
+                  <HelpTooltip fieldKey={field.key} />
+                </label>
+                <span className={`text-[10px] ${serviceComponents[field.key].length > 280 ? 'text-amber-600 font-bold' : 'text-slate-400'}`}>
+                  {serviceComponents[field.key].length}/300
+                </span>
+              </div>
               <textarea
                 autoFocus={field.key === "core_offer"}
                 value={serviceComponents[field.key]}
                 onChange={(e) => updateServiceComponent(field.key, e.target.value)}
                 placeholder={field.placeholder}
-                className="w-full rounded-md border border-gray-200 bg-white px-3 py-3 text-sm text-gray-900 shadow-sm transition focus:border-[#4F55F1] focus:ring-2 focus:ring-[#4F55F1] resize-none overflow-auto"
-                rows={field.key === "core_offer" ? 4 : 3}
+                className="flex min-h-[80px] w-full rounded-md border border-slate-200 bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-950 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+                rows={field.key === "core_offer" ? 3 : 2}
                 required={field.key === "core_offer"}
                 maxLength={300}
-                aria-label={field.label}
-                aria-required={field.key === "core_offer"}
               />
-              <div className="flex justify-between items-center mt-1">
-                <span className={`text-xs ${serviceComponents[field.key].length > 280 ? 'text-amber-600' : 'text-gray-500'}`}>
-                  {serviceComponents[field.key].length}/300 characters
-                </span>
-              </div>
             </div>
           ))}
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <span className="text-xs font-semibold text-gray-700 flex items-center gap-1">
-              <span className="font-semibold">Include fallback?</span>
-              <HelpTooltip fieldKey="include_fallback" />
-            </span>
-            <div className="flex items-center gap-3 text-xs font-semibold text-gray-700">
-              <Switch
-                checked={includeFallback}
-                onChange={setIncludeFallback}
-                className={`${includeFallback ? "bg-[#4F55F1]" : "bg-gray-200"
-                  } relative inline-flex h-6 w-11 items-center rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4F55F1]`}
-              >
-                <span className="sr-only">Toggle fallback forwarding request</span>
-                <span
-                  aria-hidden="true"
-                  className={`${includeFallback ? "translate-x-6" : "translate-x-1"
-                    } inline-block h-4 w-4 transform rounded-full bg-white transition`}
-                />
-              </Switch>
-              <span>{includeFallback ? "On" : "Off"}</span>
-            </div>
+        {/* Fallback Switch */}
+        <div className="flex items-center justify-between rounded-lg border border-slate-200 p-4 shadow-sm">
+          <div className="space-y-0.5">
+            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-slate-900">
+              Fallback Request
+            </label>
+            <p className="text-[0.8rem] text-slate-500">
+              Ask to be forwarded if the contact is incorrect.
+            </p>
           </div>
-
-          <div className="relative inline-block group">
-            <button
-              type="button"
-              onClick={() => setShowExamples((prev) => !prev)}
-              ref={examplesTriggerRef}
-              className="relative inline-flex items-center gap-2 h-6 px-3 text-sm font-semibold text-[#4F55F1] transition-all duration-200 ease-out focus:outline-none rounded-full group-hover:scale-105"
-              style={{
-                background: 'transparent',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(79, 85, 241, 0.08)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent';
-              }}
-              aria-expanded={showExamples}
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={includeFallback}
+              onChange={setIncludeFallback}
+              className={`${includeFallback ? "bg-slate-900" : "bg-slate-200"
+                } relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2`}
             >
-              <ListChecks className="w-3.5 h-3.5" />
-              <span className="relative inline-block">
-                View Examples
-                <span
-                  className="absolute bottom-0 left-0 w-0 h-[2px] bg-[#4F55F1] transition-all duration-300 group-hover:w-full"
-                  style={{ bottom: '-2px' }}
-                />
-              </span>
-            </button>
+              <span
+                className={`${includeFallback ? "translate-x-4" : "translate-x-1"
+                  } inline-block h-3.5 w-3.5 transform rounded-full bg-white transition`}
+              />
+            </Switch>
+            <HelpTooltip fieldKey="include_fallback" />
           </div>
         </div>
 
+        {/* Examples Drawer */}
         <AnimatePresence>
           {showExamples && (
             <>
@@ -948,14 +982,14 @@ export default function UploadPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-40 md:hidden bg-black/20"
+                className="fixed inset-0 z-50 md:hidden bg-black/80 backdrop-blur-sm"
                 onClick={closeExamples}
               >
                 <motion.div
                   initial={{ x: "100%" }}
                   animate={{ x: 0 }}
                   exit={{ x: "100%" }}
-                  transition={{ type: "spring", stiffness: 260, damping: 30 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
                   className="absolute right-0 top-0 h-full w-full"
                   onClick={(e) => e.stopPropagation()}
                 >
@@ -965,17 +999,16 @@ export default function UploadPage() {
 
               <motion.div
                 key="examples-drawer-desktop"
-                initial={{ opacity: 0, x: 60 }}
+                initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 60 }}
-                transition={{ type: "spring", stiffness: 260, damping: 30 }}
-                className="pointer-events-none absolute inset-y-0 right-0 hidden w-full max-w-xs md:flex md:max-w-sm lg:max-w-md z-40"
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-y-0 right-0 hidden w-full max-w-md md:flex z-50 shadow-2xl"
               >
                 <div
                   ref={desktopExamplesRef}
-                  className="pointer-events-auto flex-1"
+                  className="flex-1 h-full bg-white border-l border-slate-200"
                   onClick={(e) => e.stopPropagation()}
-                  onMouseDown={(e) => e.stopPropagation()}
                 >
                   <ExamplesDrawerPanel onClose={closeExamples} onUseExample={handleUseExample} />
                 </div>
@@ -1614,7 +1647,7 @@ export default function UploadPage() {
           className="md:px-8 md:py-6 min-h-[calc(100vh-170px)] bg-white"
           style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}
         >
-          <div className="max-w-[960px] mx-auto">
+          <div className={`mx-auto transition-all duration-300 ${step === 2 ? 'max-w-[1400px]' : 'max-w-[960px]'}`}>
             {/* Header: stepper first, then dynamic title */}
             <div className="mb-2">
               <StepTracker step={step} jobCreated={jobCreated} />
@@ -1898,392 +1931,265 @@ export default function UploadPage() {
 
             {/* Step 2: Confirm Service (compact) */}
             {step === 2 && !jobCreated && (
-              <div className="flex flex-col">
-                <div className="rounded-3xl bg-white px-8 py-8 shadow-sm space-y-6 min-h-[540px]">
-
-                  {renderServiceInputs()}
-                  {error && (
-                    <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm font-medium">
-                      {error}
+              <div className="flex flex-col pb-20">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+                  {/* LEFT COLUMN: Inputs */}
+                  <div className="lg:col-span-5 space-y-8">
+                    <div className="bg-white">
+                      {renderServiceInputs()}
                     </div>
-                  )}
 
-                  {/* Preview Section */}
-                  <div className="space-y-6">
-                    <div className="flex flex-col gap-5 w-full">
-                      {!showPreview && !previewResult && (
-                        <div className="flex flex-col items-center">
-                          <HelpTooltip
-                            fieldKey="preview_button"
-                            showLabelSpacing={false}
-                            renderTrigger={({
-                              onMouseEnter,
-                              onMouseLeave,
-                              onFocus,
-                              onBlur,
-                            }) => (
-                              <div
-                                onMouseEnter={onMouseEnter}
-                                onMouseLeave={onMouseLeave}
-                                onFocus={onFocus}
-                                onBlur={onBlur}
-                                className="inline-flex items-center justify-center"
-                              >
-                                <button
-                                  type="button"
-                                  onClick={handleShowPreview}
-                                  disabled={previewLoading || !isServiceContextComplete()}
-                                  className="group relative inline-flex items-center gap-2 px-4 py-2 rounded-md font-semibold transition-all duration-200 ease-out disabled:cursor-not-allowed disabled:opacity-50 text-gray-700 hover:text-gray-900 hover:bg-gray-100 hover:scale-105"
-                                >
-                                  {previewLoading ? (
-                                    <>
-                                      <svg
-                                        className="animate-spin h-4 w-4"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                      >
-                                        <circle
-                                          cx="12"
-                                          cy="12"
-                                          r="10"
-                                          stroke="#374151"
-                                          strokeWidth="3"
-                                          strokeDasharray="31.4 31.4"
-                                          strokeLinecap="round"
-                                        />
-                                        <circle
-                                          cx="12"
-                                          cy="12"
-                                          r="10"
-                                          stroke="#374151"
-                                          strokeWidth="1"
-                                          strokeDasharray="15.7 47.1"
-                                          strokeDashoffset="15.7"
-                                          strokeLinecap="round"
-                                        />
-                                      </svg>
-                                      <span className="relative">
-                                        Loading...
-                                        <span
-                                          className="absolute bottom-0 left-0 w-0 h-[2px] bg-gray-900 transition-all duration-300 group-hover:w-full group-disabled:w-0"
-                                          style={{ bottom: '-2px' }}
-                                        />
-                                      </span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <span className="relative">
-                                        Preview
-                                        <span
-                                          className="absolute bottom-0 left-0 w-0 h-[2px] bg-gray-900 transition-all duration-300 group-hover:w-full group-disabled:w-0"
-                                          style={{ bottom: '-2px' }}
-                                        />
-                                      </span>
-                                      <ChevronDown className="w-4 h-4 transition-transform duration-200" />
-                                    </>
-                                  )}
-                                </button>
-                              </div>
-                            )}
-                          />
-                        </div>
-                      )}
+                    {/* Error Message */}
+                    {error && (
+                      <div className="bg-destructive/15 text-destructive border border-destructive/20 px-4 py-3 rounded-md text-sm font-medium flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4" />
+                        {error}
+                      </div>
+                    )}
 
-                      {showPreview && !previewResult && (
-                        <div className="w-full space-y-4">
-                          <div className="space-y-2">
-                            <label className="text-xs font-medium text-gray-700 block text-center">
-                              Select an email to preview ({previewEmails.length} available)
-                            </label>
-                            <select
-                              value={selectedPreviewEmail}
-                              onChange={(e) => setSelectedPreviewEmail(e.target.value)}
-                              className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm transition focus:border-[#4F55F1] focus:ring-2 focus:ring-[#4F55F1]"
-                            >
-                              <option value="">-- Select an email --</option>
-                              {previewEmails.map((email) => (
-                                <option key={email} value={email}>
-                                  {email}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div className="flex justify-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setShowPreview(false);
-                                setPreviewEmails([]);
-                                setSelectedPreviewEmail("");
-                                setPreviewError(null);
-                              }}
-                              className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-md border text-sm hover:bg-gray-50"
-                              style={{ borderColor: "#E5E7EB", color: "#6B7280" }}
-                            >
-                              Cancel
-                            </button>
-                            <button
-                              type="button"
-                              onClick={handleGeneratePreview}
-                              disabled={previewLoading || !selectedPreviewEmail}
-                              className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-md text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                              style={{ backgroundColor: previewLoading ? "#D1D5DB" : BRAND }}
-                            >
-                              {previewLoading ? (
-                                <>
-                                  <svg
-                                    className="animate-spin h-5 w-5"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                  >
-                                    <circle
-                                      cx="12"
-                                      cy="12"
-                                      r="10"
-                                      stroke="white"
-                                      strokeWidth="3"
-                                      strokeDasharray="31.4 31.4"
-                                      strokeLinecap="round"
-                                    />
-                                    <circle
-                                      cx="12"
-                                      cy="12"
-                                      r="10"
-                                      stroke="white"
-                                      strokeWidth="1"
-                                      strokeDasharray="15.7 47.1"
-                                      strokeDashoffset="15.7"
-                                      strokeLinecap="round"
-                                    />
-                                  </svg>
-                                  Generating...
-                                </>
-                              ) : (
-                                "Start Preview (1 credit)"
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                      {previewError && (
-                        <div className="w-full rounded-xl bg-red-50 border border-red-200 px-4 py-3 flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                          <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-red-800">{previewError}</p>
-                          </div>
-                        </div>
-                      )}
-
-                      {previewResult && (
-                        <div className="w-full space-y-4">
-                          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                            <div className="flex items-start gap-3 mb-3">
-                              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                                <Check className="w-5 h-5 text-green-600" />
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-green-800">
-                                  Preview Generated
-                                </p>
-                                <p className="text-xs text-green-600 mt-1">
-                                  For: {previewResult.email}
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="mt-4">
-                              <label className="text-xs font-medium text-green-800 block mb-2">
-                                Personalized Email:
-                              </label>
-                              <div className="bg-white border border-green-200 rounded-md p-4 text-sm text-gray-900 whitespace-pre-wrap">
-                                {previewResult.email_body}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex justify-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setShowPreview(false);
-                                setPreviewEmails([]);
-                                setSelectedPreviewEmail("");
-                                setPreviewResult(null);
-                                setPreviewError(null);
-                              }}
-                              className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-md text-white font-medium"
-                              style={{ backgroundColor: BRAND }}
-                            >
-                              Generate Another Preview
-                            </button>
-                          </div>
-                        </div>
-                      )}
+                    {/* Main CTA */}
+                    <div className="flex justify-end pt-4">
+                      <button
+                        onClick={handleCreateJob}
+                        disabled={loading || hasCreditShortage}
+                        className="inline-flex items-center justify-center gap-2 h-11 px-8 rounded-md bg-slate-900 text-white font-medium text-sm shadow transition-colors hover:bg-slate-900/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-950 disabled:pointer-events-none disabled:opacity-50"
+                      >
+                        {loading ? "Generating..." : "Generate All Emails"}
+                        {!loading && <Sparkles className="w-4 h-4" />}
+                      </button>
                     </div>
                   </div>
-                </div>
 
-                <div className="mt-6 flex items-center justify-center">
-                  <button
-                    onClick={handleCreateJob}
-                    disabled={loading || hasCreditShortage}
-                    title={hasCreditShortage ? "Add credits to continue" : undefined}
-                    className="inline-flex items-center justify-center gap-2 h-10 px-8 rounded-md text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none transition-all hover:scale-105 active:scale-95"
-                    style={{ backgroundColor: loading ? "#D1D5DB" : BRAND }}
-                    onMouseEnter={(e) => {
-                      if (!loading) {
-                        (e.currentTarget as HTMLButtonElement).style.backgroundColor = BRAND_HOVER;
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!loading) {
-                        (e.currentTarget as HTMLButtonElement).style.backgroundColor = BRAND;
-                      }
-                    }}
-                  >
-                    {loading ? (
-                      <>
-                        <svg
-                          className="animate-spin h-5 w-5"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                        >
-                          <circle
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="white"
-                            strokeWidth="3"
-                            strokeDasharray="31.4 31.4"
-                            strokeLinecap="round"
-                          />
-                          <circle
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="white"
-                            strokeWidth="1"
-                            strokeDasharray="15.7 47.1"
-                            strokeDashoffset="15.7"
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                        Generating…
-                      </>
-                    ) : (
-                      <>
-                        Generate
-                        <ArrowRight className="w-4 h-4" />
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            )}
+                  {/* RIGHT COLUMN: Sticky Preview (Gmail Style) */}
+                  <div className="lg:col-span-7 sticky top-6">
+                    <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                      {/* Gmail-like Header */}
+                      <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-red-400/80" />
+                          <div className="w-3 h-3 rounded-full bg-amber-400/80" />
+                          <div className="w-3 h-3 rounded-full bg-green-400/80" />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {previewResult && (
+                            <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                              Generated
+                            </span>
+                          )}
+                        </div>
+                      </div>
 
-            {showDropOverlay && (
-              <div className="fixed inset-0 z-[60] bg-white/70 backdrop-blur-lg flex items-center justify-center">
-                {/* keep event-capture layer so drop still works */}
-                <div
-                  className="absolute inset-0"
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => e.preventDefault()}
-                  aria-hidden
-                />
-                <div className="relative flex flex-col items-center justify-center bg-white border-2 border-dashed border-[#4F55F1] rounded-2xl p-12">
-                  <UploadIcon className="w-16 h-16 text-[#4F55F1] mb-4" />
-                  <p className="text-base font-medium text-gray-700">Drop to upload CSV/XLSX</p>
-                </div>
-              </div>
-            )}
+                      {/* Email Client UI */}
+                      <div className="p-6 space-y-6">
+                        {/* Email Metadata */}
+                        <div className="space-y-4 border-b border-slate-100 pb-6">
+                          {/* To Field */}
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm font-medium text-slate-500 w-12">To:</span>
+                            {previewEmails.length > 0 ? (
+                              <div className="relative flex-1">
+                                <select
+                                  value={selectedPreviewEmail}
+                                  onChange={(e) => setSelectedPreviewEmail(e.target.value)}
+                                  className="w-full appearance-none bg-transparent text-sm text-slate-900 font-medium focus:outline-none cursor-pointer hover:text-blue-600 transition-colors"
+                                >
+                                  {previewEmails.map((email) => (
+                                    <option key={email} value={email}>{email}</option>
+                                  ))}
+                                </select>
+                                <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                              </div>
+                            ) : (
+                              <button
+                                onClick={handleShowPreview}
+                                className="text-sm text-blue-600 hover:underline font-medium"
+                              >
+                                Select recipients from file
+                              </button>
+                            )}
+                          </div>
 
-          </div>
-        </section>
-      </div>
+                          {/* Subject Field */}
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm font-medium text-slate-500 w-12">Subject:</span>
+                            <span className="text-sm text-slate-900">
+                              Quick question regarding {serviceComponents.core_offer ? serviceComponents.core_offer.split(' ').slice(0, 3).join(' ') + '...' : 'your goals'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Email Body */}
+                        <div className="min-h-[300px] text-[15px] leading-relaxed text-slate-800">
+                          {previewLoading ? (
+                            <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-3 py-12">
+                              <div className="relative">
+                                <div className="w-12 h-12 rounded-full border-4 border-slate-100 border-t-blue-600 animate-spin" />
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <Sparkles className="w-4 h-4 text-blue-600" />
+                                </div>
+                              </div>
+                              <span className="text-sm font-medium animate-pulse">Writing personalized email...</span>
+                            </div>
+                          ) : previewResult ? (
+                            <div className="whitespace-pre-wrap font-sans">
+                              {previewResult.email_body}
+                            </div>
+                          ) : (
+                            <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-4 py-12 text-center bg-slate-50/50 rounded-lg border-2 border-dashed border-slate-100">
+                              <div className="w-16 h-16 rounded-full bg-white shadow-sm flex items-center justify-center">
+                                <Mail className="w-8 h-8 text-slate-300" />
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-sm font-medium text-slate-900">No preview generated yet</p>
+                                <p className="text-xs text-slate-500 max-w-[200px] mx-auto">
+                                  Fill out the details on the left and click "Generate Preview" to see the magic.
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Footer Actions */}
+                        <div className="flex items-center justify-between pt-6 border-t border-slate-100">
+                          {previewError ? (
+                            <p className="text-xs text-red-500 font-medium">{previewError}</p>
+                          ) : (
+                            <div />
+                          )}
+                          <button
+                            onClick={handleGeneratePreview}
+                            disabled={previewLoading || !selectedPreviewEmail || !isServiceContextComplete()}
+                            className={`
+                              inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all
+                              ${previewResult
+                                ? "bg-slate-100 text-slate-900 hover:bg-slate-200"
+                                : "bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-200"
+                              }
+                              disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none
+                            `}
+                          >
+                            {previewLoading ? (
+                              "Writing..."
+                            ) : (
+                              <>
+                                {previewResult ? <RefreshCcw className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}
+                                {previewResult ? "Regenerate" : "Generate Preview"}
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div >
+              </div >
+            )
+            }
+
+            {
+              showDropOverlay && (
+                <div className="fixed inset-0 z-[60] bg-white/70 backdrop-blur-lg flex items-center justify-center">
+                  {/* keep event-capture layer so drop still works */}
+                  <div
+                    className="absolute inset-0"
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => e.preventDefault()}
+                    aria-hidden
+                  />
+                  <div className="relative flex flex-col items-center justify-center bg-white border-2 border-dashed border-[#4F55F1] rounded-2xl p-12">
+                    <UploadIcon className="w-16 h-16 text-[#4F55F1] mb-4" />
+                    <p className="text-base font-medium text-gray-700">Drop to upload CSV/XLSX</p>
+                  </div>
+                </div>
+              )
+            }
+
+          </div >
+        </section >
+      </div >
 
       {/* Mobile sections kept intact for functionality; desktop changes satisfy requirements */}
-      {step === 0 && !jobCreated && (
-        <div className="block md:hidden w-full min-h-[calc(100vh-159px)] px-4 flex items-center justify-center overflow-hidden bg-white">
-          <div className="max-w-md w-full space-y-6 mt-0 bg-white" style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}>
-            <h1 className="text-xl font-semibold text-gray-900 text-center">
-              Upload Outreach File
-            </h1>
-            <p className="text-gray-500 text-sm text-center">
-              Import your CSV/XLSX to begin personalization.
-            </p>
-            {renderCreditBanner(true)}
+      {
+        step === 0 && !jobCreated && (
+          <div className="block md:hidden w-full min-h-[calc(100vh-159px)] px-4 flex items-center justify-center overflow-hidden bg-white">
+            <div className="max-w-md w-full space-y-6 mt-0 bg-white" style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}>
+              <h1 className="text-xl font-semibold text-gray-900 text-center">
+                Upload Outreach File
+              </h1>
+              <p className="text-gray-500 text-sm text-center">
+                Import your CSV/XLSX to begin personalization.
+              </p>
+              {renderCreditBanner(true)}
 
-            <div className="rounded-xl border-2 border-dashed p-8 text-center bg-white"
-              style={{ borderColor: "#E5E7EB" }}
-              onClick={() => document.getElementById("mobile-file-input")?.click()}
-            >
-              <input
-                id="mobile-file-input"
-                type="file"
-                accept=".csv,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                className="hidden"
-                onChange={(e) => {
-                  const next = e.target.files?.[0] || null;
-                  handleFileSelection(next);
-                  (e.target as HTMLInputElement).value = "";
-                }}
-              />
-              <UploadIcon className="h-10 w-10 mx-auto mb-3" style={{ color: BRAND }} />
-              {file ? (
-                <span className="text-gray-700 font-medium">{file.name}</span>
-              ) : (
-                <span className="text-gray-600 text-sm">
-                  Tap to upload file
-                </span>
-              )}
+              <div className="rounded-xl border-2 border-dashed p-8 text-center bg-white"
+                style={{ borderColor: "#E5E7EB" }}
+                onClick={() => document.getElementById("mobile-file-input")?.click()}
+              >
+                <input
+                  id="mobile-file-input"
+                  type="file"
+                  accept=".csv,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                  className="hidden"
+                  onChange={(e) => {
+                    const next = e.target.files?.[0] || null;
+                    handleFileSelection(next);
+                    (e.target as HTMLInputElement).value = "";
+                  }}
+                />
+                <UploadIcon className="h-10 w-10 mx-auto mb-3" style={{ color: BRAND }} />
+                {file ? (
+                  <span className="text-gray-700 font-medium">{file.name}</span>
+                ) : (
+                  <span className="text-gray-600 text-sm">
+                    Tap to upload file
+                  </span>
+                )}
+              </div>
+
+              <button
+                onClick={handleParseHeaders}
+                disabled={loading || !file}
+                className="w-full py-3 rounded-md font-medium text-white text-[15px] tracking-tight disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+                style={{ backgroundColor: BRAND }}
+              >
+                {loading ? (
+                  <>
+                    <svg
+                      className="animate-spin h-5 w-5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      {/* Bold white strip */}
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="white"
+                        strokeWidth="3"
+                        strokeDasharray="31.4 31.4"
+                        strokeLinecap="round"
+                      />
+                      {/* Thin white strip */}
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="white"
+                        strokeWidth="1"
+                        strokeDasharray="15.7 47.1"
+                        strokeDashoffset="15.7"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    Uploading...
+                  </>
+                ) : (
+                  "Proceed"
+                )}
+              </button>
             </div>
-
-            <button
-              onClick={handleParseHeaders}
-              disabled={loading || !file}
-              className="w-full py-3 rounded-md font-medium text-white text-[15px] tracking-tight disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
-              style={{ backgroundColor: BRAND }}
-            >
-              {loading ? (
-                <>
-                  <svg
-                    className="animate-spin h-5 w-5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                  >
-                    {/* Bold white strip */}
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="white"
-                      strokeWidth="3"
-                      strokeDasharray="31.4 31.4"
-                      strokeLinecap="round"
-                    />
-                    {/* Thin white strip */}
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="white"
-                      strokeWidth="1"
-                      strokeDasharray="15.7 47.1"
-                      strokeDashoffset="15.7"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  Uploading...
-                </>
-              ) : (
-                "Proceed"
-              )}
-            </button>
-          </div>
-        </div >
-      )
+          </div >
+        )
       }
 
       {
