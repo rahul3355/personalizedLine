@@ -800,6 +800,7 @@ export default function UploadPage() {
     credits_remaining: number;
   } | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const [isEmailDropdownOpen, setIsEmailDropdownOpen] = useState(false);
 
   const hasCreditShortage = Boolean(creditInfo && !creditInfo.hasEnoughCredits);
   const formatNumber = useCallback((value: number) => value.toLocaleString(), []);
@@ -1982,16 +1983,39 @@ export default function UploadPage() {
                             <span className="text-sm font-medium text-slate-500 w-12">To:</span>
                             {previewEmails.length > 0 ? (
                               <div className="relative flex-1">
-                                <select
-                                  value={selectedPreviewEmail}
-                                  onChange={(e) => setSelectedPreviewEmail(e.target.value)}
-                                  className="w-full appearance-none bg-transparent text-xs text-slate-900 font-medium focus:outline-none cursor-pointer hover:text-blue-600 transition-colors"
+                                <button
+                                  onClick={() => setIsEmailDropdownOpen(!isEmailDropdownOpen)}
+                                  className="w-full text-left flex items-center justify-between bg-transparent text-xs text-slate-900 font-medium focus:outline-none cursor-pointer hover:text-slate-700 transition-colors px-2 py-1 rounded"
                                 >
-                                  {previewEmails.map((email) => (
-                                    <option key={email} value={email}>{email}</option>
-                                  ))}
-                                </select>
-                                <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                                  <span className="truncate">{selectedPreviewEmail}</span>
+                                  <ChevronDown className={`w-3.5 h-3.5 text-slate-400 flex-shrink-0 ml-2 transition-transform ${isEmailDropdownOpen ? 'rotate-180' : ''}`} />
+                                </button>
+                                {isEmailDropdownOpen && (
+                                  <>
+                                    <div
+                                      className="fixed inset-0 z-10"
+                                      onClick={() => setIsEmailDropdownOpen(false)}
+                                    />
+                                    <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-md shadow-lg max-h-60 overflow-y-auto z-20">
+                                      {previewEmails.map((email) => (
+                                        <button
+                                          key={email}
+                                          onClick={() => {
+                                            setSelectedPreviewEmail(email);
+                                            setIsEmailDropdownOpen(false);
+                                          }}
+                                          className={`w-full text-left px-3 py-2 text-xs transition-colors ${
+                                            selectedPreviewEmail === email
+                                              ? 'bg-slate-100 text-slate-900 font-medium'
+                                              : 'text-slate-700 hover:bg-slate-50'
+                                          }`}
+                                        >
+                                          {email}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </>
+                                )}
                               </div>
                             ) : (
                               <button
