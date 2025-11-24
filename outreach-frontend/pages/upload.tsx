@@ -1239,68 +1239,41 @@ export default function UploadPage() {
     if (!creditInfo) return null;
 
     const { rowCount, creditsRemaining, missingCredits, hasEnoughCredits } = creditInfo;
-    const stateClasses = hasEnoughCredits
-      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-      : "border-amber-200 bg-amber-50 text-amber-800";
-    const iconClasses = hasEnoughCredits
-      ? "bg-emerald-500/10 text-emerald-700 border border-emerald-200"
-      : "bg-amber-500/10 text-amber-700 border border-amber-200";
-    const layoutClasses = compact
-      ? "space-y-3"
-      : "flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between";
+
+    // Only show banner if there's a problem (not enough credits)
+    if (hasEnoughCredits) return null;
 
     return (
-      <div className={`mb-4 rounded-xl border px-4 py-3 ${stateClasses}`}>
-        <div className={layoutClasses}>
-          <div className="flex items-start gap-3">
-            <span
-              className={`mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full ${iconClasses}`}
-            >
-              <Info className="h-4 w-4" />
+      <div className="mb-4 mx-auto max-w-sm rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-gray-900">
+              {formatNumber(rowCount)} rows • {formatNumber(rowCount)} credits
             </span>
-            <div className="space-y-1">
-              <p className="text-sm font-medium">
-                This file contains {formatNumber(rowCount)} rows.
-              </p>
-              <p className="text-sm">
-                {hasEnoughCredits ? (
-                  <>Running this job will use {formatNumber(rowCount)} credits.</>
-                ) : (
-                  <>
-                    You have {formatNumber(creditsRemaining)} credits remaining, so
-                    you&apos;re short {formatNumber(missingCredits)} credits. Add
-                    credits to continue.
-                  </>
-                )}
-              </p>
-            </div>
+            {!hasEnoughCredits && (
+              <span className="text-sm font-medium text-red-600">
+                ({formatNumber(missingCredits)} short)
+              </span>
+            )}
           </div>
 
           {!hasEnoughCredits && (
-            <div
-              className={`${compact ? "flex flex-col" : "flex flex-wrap"} gap-2 sm:justify-end`}
-            >
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => router.push("/billing")}
-                className="inline-flex items-center justify-center rounded-md border px-3 py-2 text-sm font-medium"
-                style={{
-                  borderColor: "rgba(249, 115, 22, 0.3)",
-                  color: "#B45309",
-                  backgroundColor: "rgba(254, 243, 199, 0.6)",
-                }}
+                className="inline-flex items-center justify-center rounded-md bg-gray-900 px-3 py-1.5 text-sm font-medium text-white transition-all hover:bg-gray-800"
               >
-                Buy credits
+                Add credits
               </button>
               <button
                 type="button"
                 onClick={handleRefreshCredits}
                 disabled={refreshingCredits || !tempPath || !session?.access_token}
-                className="inline-flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
-                style={{ borderColor: BRAND_SOFT, color: BRAND }}
+                className="inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <RefreshCcw className={`h-4 w-4 ${refreshingCredits ? "animate-spin" : ""}`} />
-                {refreshingCredits ? "Refreshing..." : "I've added credits"}
+                <RefreshCcw className={`h-3.5 w-3.5 ${refreshingCredits ? "animate-spin" : ""}`} />
+                {refreshingCredits ? "Refreshing..." : "Refresh"}
               </button>
             </div>
           )}
@@ -1664,18 +1637,28 @@ export default function UploadPage() {
             )}
 
             {step > 0 && (
-              <header className="mb-6 text-center">
-                <h1
-                  className="text-[22px] font-semibold text-gray-900 tracking-tight"
-                  style={{ letterSpacing: "-0.01em" }}
+              <header className="mb-6 relative flex items-center justify-center">
+                <button
+                  type="button"
+                  onClick={() => setStep(step - 1)}
+                  className="absolute left-0 top-1 p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-full hover:bg-gray-100"
+                  aria-label="Go back"
                 >
-                  {STEP_META[step].title}
-                </h1>
-                {STEP_META[step].sub && (
-                  <p className="text-[13px] text-gray-600 font-light mt-1">
-                    {STEP_META[step].sub}
-                  </p>
-                )}
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <div className="text-center">
+                  <h1
+                    className="text-[22px] font-semibold text-gray-900 tracking-tight"
+                    style={{ letterSpacing: "-0.01em" }}
+                  >
+                    {STEP_META[step].title}
+                  </h1>
+                  {STEP_META[step].sub && (
+                    <p className="text-[13px] text-gray-600 font-light mt-1">
+                      {STEP_META[step].sub}
+                    </p>
+                  )}
+                </div>
               </header>
             )}
 
@@ -1863,40 +1846,25 @@ export default function UploadPage() {
             {/* Step 1: Confirm Headers (compact) */}
             {step === 1 && !jobCreated && (
               <div className="flex flex-col">
-                <div className="space-y-5">
-
-                  <div className="space-y-2">
-                    <label className="text-xs text-gray-500 block">
-                      Tell us which column holds the email addresses.
+                <div className="space-y-4">
+                  <div className="mx-auto max-w-sm space-y-2">
+                    <label className="text-xs font-medium text-gray-700">
+                      Select Email Column
                     </label>
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4" style={{ color: BRAND }} />
-                      <select
-                        className="flex-1 rounded-md border bg-white px-3 py-2 text-sm focus:ring-2"
-                        style={{
-                          borderColor: "#E5E7EB",
-                          outline: "none",
-                          boxShadow: "none",
-                        }}
-                        value={emailCol}
-                        onChange={(e) => setEmailCol(e.target.value)}
-                        onFocus={(e) =>
-                          ((e.target as HTMLSelectElement).style.borderColor = BRAND)
-                        }
-                        onBlur={(e) =>
-                          ((e.target as HTMLSelectElement).style.borderColor = "#E5E7EB")
-                        }
-                      >
-                        <option value="" disabled>
-                          Select a column
+                    <select
+                      className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-colors focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
+                      value={emailCol}
+                      onChange={(e) => setEmailCol(e.target.value)}
+                    >
+                      <option value="" disabled>
+                        Select a column
+                      </option>
+                      {headers.map((h) => (
+                        <option key={h} value={h}>
+                          {h}
                         </option>
-                        {headers.map((h) => (
-                          <option key={h} value={h}>
-                            {h}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                      ))}
+                    </select>
                   </div>
                   {error && (
                     <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm font-medium">
@@ -1905,22 +1873,12 @@ export default function UploadPage() {
                   )}
                 </div>
 
-                <div className="mt-6 flex items-center justify-between">
-                  <button
-                    type="button"
-                    onClick={() => setStep(0)}
-                    className="inline-flex items-center gap-2 h-9 px-3 rounded-md text-sm hover:bg-[rgba(79,85,241,0.04)]"
-                    style={{ border: "none", color: "#8b8b8bff" }}
-                    title="Back"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                    Back
-                  </button>
+                <div className="mt-6 flex items-center justify-center">
                   <button
                     onClick={handleConfirmHeaders}
                     disabled={loading || hasCreditShortage}
                     title={hasCreditShortage ? "Add credits to continue" : undefined}
-                    className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-md text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none"
+                    className="inline-flex items-center justify-center gap-2 h-10 px-8 rounded-md text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none transition-all hover:scale-105 active:scale-95"
                     style={{ backgroundColor: BRAND }}
                     onMouseEnter={(e) =>
                     ((e.currentTarget as HTMLButtonElement).style.backgroundColor =
@@ -2167,22 +2125,12 @@ export default function UploadPage() {
                   </div>
                 </div>
 
-                <div className="mt-6 flex items-center justify-between">
-                  <button
-                    type="button"
-                    onClick={() => setStep(1)}
-                    className="inline-flex items-center gap-2 h-9 px-3 rounded-md text-sm hover:bg-[rgba(79,85,241,0.04)]"
-                    style={{ border: "none", color: "#8b8b8bff" }}
-                    title="Back"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                    Back
-                  </button>
+                <div className="mt-6 flex items-center justify-center">
                   <button
                     onClick={handleCreateJob}
                     disabled={loading || hasCreditShortage}
                     title={hasCreditShortage ? "Add credits to continue" : undefined}
-                    className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-md text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none"
+                    className="inline-flex items-center justify-center gap-2 h-10 px-8 rounded-md text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none transition-all hover:scale-105 active:scale-95"
                     style={{ backgroundColor: loading ? "#D1D5DB" : BRAND }}
                     onMouseEnter={(e) => {
                       if (!loading) {
