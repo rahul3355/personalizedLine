@@ -710,8 +710,8 @@ export default function AccountPage() {
                       key={plan}
                       onClick={() => setSelectedPlan(plan)}
                       className={`w-full text-left p-4 border-2 transition-all ${selectedPlan === plan
-                          ? "border-black bg-gray-50"
-                          : "border-gray-200 hover:border-gray-400"
+                        ? "border-black bg-gray-50"
+                        : "border-gray-200 hover:border-gray-400"
                         }`}
                     >
                       <div className="flex items-start justify-between">

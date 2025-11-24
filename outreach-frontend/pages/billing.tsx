@@ -508,8 +508,8 @@ export default function BillingPage() {
             <div className="mb-12 rounded-2xl border border-gray-200 bg-gray-50 p-6 text-left">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Current Subscription</h2>
 
-              <div className="flex items-start justify-between gap-4 flex-wrap">
-                <div className="flex-1 min-w-[200px]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div>
                   <p className="text-sm text-gray-500">Plan</p>
                   <p className="text-2xl font-semibold text-gray-900 capitalize mt-1">{currentPlan}</p>
                   {subscriptionInfo.pending_plan_change && (
@@ -526,7 +526,7 @@ export default function BillingPage() {
                   )}
                 </div>
 
-                <div className="flex-1 min-w-[200px]">
+                <div>
                   <p className="text-sm text-gray-500">Credits</p>
                   <p className="text-2xl font-semibold text-gray-900 mt-1">
                     {(subscriptionInfo.credits_remaining + subscriptionInfo.addon_credits).toLocaleString()}
@@ -537,7 +537,7 @@ export default function BillingPage() {
                 </div>
 
                 {subscriptionInfo.current_period_end && (
-                  <div className="flex-1 min-w-[200px]">
+                  <div>
                     <p className="text-sm text-gray-500">Next billing</p>
                     <p className="text-base font-medium text-gray-900 mt-1">
                       {new Date(subscriptionInfo.current_period_end * 1000).toLocaleDateString("en-US", {
@@ -553,7 +553,7 @@ export default function BillingPage() {
               <div className="mt-6 flex flex-col gap-3">
                 {/* Only show plan changes for monthly subscriptions */}
                 {!currentPlan.includes("annual") ? (
-                  <div className="flex flex-wrap gap-3">
+                  <div className="flex gap-3">
                     {plans.map((plan) => {
                       const planCredits = plan.monthlyCredits;
                       // Normalize current plan name: remove annual suffix and convert to lowercase
@@ -577,8 +577,8 @@ export default function BillingPage() {
                           {loadingAction === `upgrade-${plan.id}` ? (
                             <span className="inline-flex items-center gap-2">
                               <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="31.4 31.4" strokeLinecap="round" opacity="0.25"/>
-                                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="15.7 47.1" strokeDashoffset="15.7" strokeLinecap="round"/>
+                                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="31.4 31.4" strokeLinecap="round" opacity="0.25" />
+                                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="15.7 47.1" strokeDashoffset="15.7" strokeLinecap="round" />
                               </svg>
                               Processing...
                             </span>
@@ -765,13 +765,12 @@ export default function BillingPage() {
                       >
                         <span
                           aria-hidden="true"
-                          className={`pointer-events-none absolute inset-0 rounded-full transition-all duration-200 ease-out ${
-                            loadingPlanId === plan.id
-                              ? "bg-neutral-400"
-                              : plan.popular
+                          className={`pointer-events-none absolute inset-0 rounded-full transition-all duration-200 ease-out ${loadingPlanId === plan.id
+                            ? "bg-neutral-400"
+                            : plan.popular
                               ? "bg-black"
                               : "bg-neutral-900"
-                          } ${loadingPlanId !== plan.id ? "group-hover:-inset-1 group-hover:bg-neutral-800 group-active:-inset-0.5" : ""}`}
+                            } ${loadingPlanId !== plan.id ? "group-hover:-inset-1 group-hover:bg-neutral-800 group-active:-inset-0.5" : ""}`}
                         />
                         <span className="relative z-10 inline-flex items-center justify-center w-full gap-2">
                           {loadingPlanId === plan.id ? (
@@ -849,8 +848,8 @@ export default function BillingPage() {
               <header>
                 <p className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Enterprise</p>
               </header>
-              <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-stretch lg:justify-between">
-                <ul className="grid flex-1 grid-cols-1 gap-x-6 gap-y-4 text-sm text-neutral-700 sm:grid-cols-2">
+              <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_auto]">
+                <ul className="grid grid-cols-1 gap-x-6 gap-y-4 text-sm text-neutral-700 sm:grid-cols-2">
                   {enterpriseFeatures.map(({ label, Icon }) => (
                     <li key={label} className="flex items-start gap-2 font-medium">
                       <Icon className="mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-900" aria-hidden="true" />
@@ -858,7 +857,7 @@ export default function BillingPage() {
                     </li>
                   ))}
                 </ul>
-                <div className="flex w-full flex-col justify-between gap-4 sm:max-w-sm lg:max-w-xs lg:self-stretch">
+                <div className="flex w-full flex-col justify-between gap-4 lg:w-80">
                   <ul className="space-y-3 text-sm text-neutral-700">
                     {enterpriseCtaHighlights.map(({ label, Icon }) => (
                       <li key={label} className="flex items-start gap-2 font-medium">

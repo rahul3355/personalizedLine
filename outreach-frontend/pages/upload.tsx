@@ -350,7 +350,7 @@ const STEP_META = [
     sub: "CSV or XLSX • up to 100k rows • header row required",
   },
   {
-    title: "Select your email column",
+    title: "Select email column",
     sub: "Pick the column that lists your recipients' email addresses.",
   },
   {
@@ -1729,7 +1729,7 @@ export default function UploadPage() {
                   Upload lead list
                 </h1>
                 <p className="text-[14px] text-gray-600 font-light mt-1">
-                  Make sure it has the email column
+                  Please make sure the lead list has an email column
                 </p>
               </header>
             )}
