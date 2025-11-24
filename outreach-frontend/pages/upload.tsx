@@ -1750,7 +1750,10 @@ export default function UploadPage() {
                         onMouseLeave={(e) => {
                           e.currentTarget.style.backgroundColor = BRAND;
                         }}
-                        onClick={() => emptyInputRef.current?.click()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          emptyInputRef.current?.click();
+                        }}
                       >
                         Browse File
                       </button>
