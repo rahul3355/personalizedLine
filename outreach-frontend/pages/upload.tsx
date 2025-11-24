@@ -814,9 +814,37 @@ export default function UploadPage() {
   const examplesTriggerRef = useRef<HTMLButtonElement>(null);
   const desktopExamplesRef = useRef<HTMLDivElement>(null);
 
+  // Safari/Mac detection helper
+  const isSafariOrMac = () => {
+    if (typeof window === 'undefined') return false;
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const isSafari = userAgent.includes('safari') && !userAgent.includes('chrome');
+    const isMac = userAgent.includes('mac');
+    return isSafari || isMac;
+  };
+
   const clearFileInputs = () => {
-    if (emptyInputRef.current) emptyInputRef.current.value = "";
-    if (replaceInputRef.current) replaceInputRef.current.value = "";
+    try {
+      if (emptyInputRef.current) {
+        emptyInputRef.current.value = "";
+        // Safari may need a small delay before clearing works properly
+        if (isSafariOrMac()) {
+          setTimeout(() => {
+            if (emptyInputRef.current) emptyInputRef.current.value = "";
+          }, 10);
+        }
+      }
+      if (replaceInputRef.current) {
+        replaceInputRef.current.value = "";
+        if (isSafariOrMac()) {
+          setTimeout(() => {
+            if (replaceInputRef.current) replaceInputRef.current.value = "";
+          }, 10);
+        }
+      }
+    } catch (err) {
+      logger.error('[Upload] Error clearing file inputs:', err);
+    }
   };
 
   useEffect(() => {
@@ -1056,9 +1084,22 @@ export default function UploadPage() {
       const dt = e.dataTransfer;
       if (!dt) return false;
       try {
-        return Array.from(dt.types || []).includes("Files");
-      } catch {
-        return false;
+        // Safari/WebKit may report types differently ("Files" vs "files")
+        const types = Array.from(dt.types || []);
+        const hasFiles = types.some(type =>
+          type.toLowerCase() === "files" ||
+          type === "Files" ||
+          type === "application/x-moz-file" // Firefox
+        );
+
+        // Also check if there are any items with 'file' kind (more reliable for Safari)
+        const hasFileItems = dt.items && Array.from(dt.items).some(item => item.kind === 'file');
+
+        return hasFiles || hasFileItems;
+      } catch (err) {
+        // Fallback: check if dataTransfer has files
+        logger.error('[Upload] Error detecting file drag:', err);
+        return dt.files && dt.files.length > 0;
       }
     };
 
@@ -1639,10 +1680,23 @@ export default function UploadPage() {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
+
     const f = e.dataTransfer.files && e.dataTransfer.files[0];
     if (f) {
+      // Validate file type (Safari-compatible)
+      const validExtensions = ['.csv', '.xlsx', '.xls'];
+      const fileName = f.name.toLowerCase();
+      const isValid = validExtensions.some(ext => fileName.endsWith(ext));
+
+      if (!isValid) {
+        setError('Please drop a CSV or XLSX file');
+        return;
+      }
+
       handleFileSelection(f);
       clearFileInputs();  // ensure same-file selection works later
+    } else {
+      setError('No file detected. Please try browsing instead.');
     }
   };
 
@@ -1742,11 +1796,27 @@ export default function UploadPage() {
                     id="file-input-desktop-empty"
                     ref={emptyInputRef}
                     type="file"
-                    accept=".csv,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    accept=".csv,.xlsx,.xls,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     className="hidden"
-                    onClick={(e) => ((e.target as HTMLInputElement).value = "")}
+                    onClick={(e) => {
+                      // Reset value to allow same file selection (Safari compatible)
+                      const input = e.target as HTMLInputElement;
+                      input.value = "";
+                    }}
                     onChange={(e) => {
                       const next = e.target.files?.[0] || null;
+                      if (next) {
+                        // Validate file type for Safari (which may not honor accept attribute)
+                        const validExtensions = ['.csv', '.xlsx', '.xls'];
+                        const fileName = next.name.toLowerCase();
+                        const isValid = validExtensions.some(ext => fileName.endsWith(ext));
+
+                        if (!isValid) {
+                          setError('Please upload a CSV or XLSX file');
+                          e.currentTarget.value = "";
+                          return;
+                        }
+                      }
                       handleFileSelection(next);
                       e.currentTarget.value = "";
                     }}

@@ -111,6 +111,17 @@ a:active {
   transform: translateZ(0);
 }
 
+/* WebKit-prefixed version for Safari/iOS */
+@-webkit-keyframes progress {
+  0% {
+    -webkit-transform: translateX(-100%);
+  }
+
+  100% {
+    -webkit-transform: translateX(100%);
+  }
+}
+
 @keyframes progress {
   0% {
     -webkit-transform: translateX(-100%);
@@ -135,6 +146,36 @@ a:active {
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+/* WebKit-prefixed version for Safari/iOS */
+@-webkit-keyframes pixelThinkingFlicker {
+
+  0%,
+  100% {
+    text-shadow: 0 0 0 rgba(79, 85, 241, 0.9);
+    opacity: 0.96;
+  }
+
+  20% {
+    text-shadow: 1px 0 rgba(79, 85, 241, 0.7), -1px 0 rgba(79, 85, 241, 0.65);
+    opacity: 0.85;
+  }
+
+  40% {
+    text-shadow: 1px 1px rgba(79, 85, 241, 0.8), -1px -1px rgba(79, 85, 241, 0.5), 2px 0 rgba(79, 85, 241, 0.4);
+    opacity: 0.92;
+  }
+
+  60% {
+    text-shadow: -1px 1px rgba(79, 85, 241, 0.8), 1px -1px rgba(79, 85, 241, 0.4), -2px 0 rgba(79, 85, 241, 0.35);
+    opacity: 0.9;
+  }
+
+  80% {
+    text-shadow: 0 0 0 rgba(79, 85, 241, 0.75);
+    opacity: 0.88;
+  }
 }
 
 @keyframes pixelThinkingFlicker {
@@ -166,6 +207,20 @@ body {
   }
 }
 
+/* WebKit-prefixed version for Safari/iOS */
+@-webkit-keyframes blockCursorBlink {
+
+  0%,
+  49% {
+    opacity: 1;
+  }
+
+  50%,
+  100% {
+    opacity: 0.1;
+  }
+}
+
 @keyframes blockCursorBlink {
 
   0%,
@@ -191,15 +246,18 @@ body {
   display: inline-block;
   font-weight: 700;
   animation: blockCursorBlink 0.8s steps(1, end) infinite;
+  -webkit-animation: blockCursorBlink 0.8s steps(1, end) infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .pixel-thinking-text {
     animation: none;
+    -webkit-animation: none;
   }
 
   .pixel-thinking-cursor {
     animation: none;
+    -webkit-animation: none;
   }
 }
 
@@ -214,6 +272,18 @@ body {
 }
 
 @theme inline {
+
+  /* WebKit-prefixed version for Safari/iOS */
+  @-webkit-keyframes rainbow {
+    0% {
+      background-position: 0%;
+    }
+
+    100% {
+      background-position: 200%;
+    }
+  }
+
   @keyframes rainbow {
     0% {
       background-position: 0%;
