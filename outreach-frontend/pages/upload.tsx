@@ -1985,7 +1985,7 @@ export default function UploadPage() {
                               <div className="relative flex-1">
                                 <button
                                   onClick={() => setIsEmailDropdownOpen(!isEmailDropdownOpen)}
-                                  className="w-full text-left flex items-center justify-between bg-transparent text-xs text-slate-900 font-medium focus:outline-none cursor-pointer hover:text-slate-700 transition-colors px-2 py-1 rounded"
+                                  className="w-full text-left flex items-center justify-between bg-transparent text-xs text-slate-900 font-medium focus:outline-none cursor-pointer hover:text-slate-700 transition-colors px-2 py-1 rounded border border-gray-200"
                                 >
                                   <span className="truncate">{selectedPreviewEmail}</span>
                                   <ChevronDown className={`w-3.5 h-3.5 text-slate-400 flex-shrink-0 ml-2 transition-transform ${isEmailDropdownOpen ? 'rotate-180' : ''}`} />
@@ -1996,7 +1996,7 @@ export default function UploadPage() {
                                       className="fixed inset-0 z-10"
                                       onClick={() => setIsEmailDropdownOpen(false)}
                                     />
-                                    <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-md shadow-lg max-h-60 overflow-y-auto z-20">
+                                    <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto z-20">
                                       {previewEmails.map((email) => (
                                         <button
                                           key={email}
