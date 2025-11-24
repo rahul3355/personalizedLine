@@ -1693,12 +1693,12 @@ export default function UploadPage() {
                   onDragOver={handleDrag}
                   onDrop={handleDrop}
                   className={[
-                    "relative rounded-2xl border-2 border-dashed transition-all duration-300 cursor-pointer bg-gray-50",
-                    "px-6 py-14",
+                    "relative rounded-2xl border-2 border-dashed transition-all duration-300 cursor-pointer",
+                    "px-6 py-12",
                     "focus:outline-none focus:ring-2 focus:ring-[#4F55F1] focus:ring-offset-2",
                     dragActive
-                      ? "border-[#4F55F1] bg-[rgba(79,85,241,0.06)]"
-                      : "border-gray-400 hover:border-[#4F55F1] hover:bg-[rgba(79,85,241,0.04)]",
+                      ? "border-[#4F55F1] bg-[rgba(79,85,241,0.08)]"
+                      : "border-[#D1D5DB] bg-[#F9FAFB] hover:border-[rgba(79,85,241,0.5)] hover:bg-[rgba(79,85,241,0.04)]",
                   ].join(" ")}
                   onClick={() => { if (!file) emptyInputRef.current?.click(); }}
                   onKeyDown={(e) => {
@@ -1728,10 +1728,13 @@ export default function UploadPage() {
                   {!file && (
                     <div className="text-center">
                       <UploadIcon
-                        className="mx-auto mb-4"
-                        style={{ width: 36, height: 36, color: BRAND }}
+                        className={[
+                          "mx-auto mb-4 transition-colors duration-300",
+                          dragActive ? "text-[#4F55F1]" : "text-[#9CA3AF]",
+                        ].join(" ")}
+                        style={{ width: 48, height: 48 }}
                       />
-                      <p className="text-sm font-medium text-gray-800 mb-2">
+                      <p className="text-sm font-medium text-gray-700 mb-2">
                         Upload Your File
                       </p>
                       <p className="text-xs text-gray-500">
@@ -1739,7 +1742,7 @@ export default function UploadPage() {
                       </p>
                       <button
                         type="button"
-                        className="mt-4 px-6 py-2 rounded-full text-white font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg active:scale-95"
+                        className="mt-4 px-5 py-2 rounded-md text-white font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg active:scale-95"
                         style={{ backgroundColor: BRAND }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.backgroundColor = BRAND_HOVER;
@@ -1763,46 +1766,23 @@ export default function UploadPage() {
                           handleFileSelection(null);
                           clearFileInputs();
                         }}
-                        className="absolute top-3 right-3 inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-100"
+                        className="absolute top-3 right-3 inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-100 transition-colors"
                       >
                         <XIcon className="w-4 h-4" style={{ color: BRAND }} />
                       </button>
 
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-10 h-10 rounded-lg flex items-center justify-center"
-                            style={{ backgroundColor: BRAND_TINT }}>
-                            <FileText className="w-5 h-5" style={{ color: BRAND }} />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">
-                              {file.name}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {(file.size / 1024 / 1024).toFixed(3)} MB
-                            </p>
-                          </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg flex items-center justify-center"
+                          style={{ backgroundColor: BRAND_TINT }}>
+                          <FileText className="w-5 h-5" style={{ color: BRAND }} />
                         </div>
-                        <div className="flex items-center gap-4 shrink-0">
-                          <button
-                            type="button"
-                            className="text-sm font-medium"
-                            style={{ color: BRAND }}
-                            onClick={(e) => { e.stopPropagation(); replaceInputRef.current?.click(); }}
-                          >
-                            Replace
-                          </button>
-                          <input
-                            ref={replaceInputRef}
-                            type="file"
-                            accept=".csv,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                            className="hidden"
-                            onChange={(e) => {
-                              const next = e.target.files?.[0] || null;
-                              handleFileSelection(next);
-                              e.currentTarget.value = "";
-                            }}
-                          />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {file.name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {(file.size / 1024 / 1024).toFixed(3)} MB
+                          </p>
                         </div>
                       </div>
                     </>
@@ -2253,7 +2233,7 @@ export default function UploadPage() {
             )}
 
             {showDropOverlay && (
-              <div className="fixed inset-0 z-[60] bg-white/70 flex items-center justify-center">
+              <div className="fixed inset-0 z-[60] bg-white/70 backdrop-blur-lg flex items-center justify-center">
                 {/* keep event-capture layer so drop still works */}
                 <div
                   className="absolute inset-0"
@@ -2261,10 +2241,9 @@ export default function UploadPage() {
                   onDrop={(e) => e.preventDefault()}
                   aria-hidden
                 />
-                <div className="relative flex flex-col items-center justify-center p-0">
-                  {/* use your svg */}
-                  <img src="/dnd.png" alt="Drag and drop" className="w-[172px] h-[172px]" />
-                  <p className="mt-3 text-gray-700 font-medium">Drop to upload CSV/XLSX</p>
+                <div className="relative flex flex-col items-center justify-center bg-white border-2 border-dashed border-[#4F55F1] rounded-2xl p-12">
+                  <UploadIcon className="w-16 h-16 text-[#4F55F1] mb-4" />
+                  <p className="text-base font-medium text-gray-700">Drop to upload CSV/XLSX</p>
                 </div>
               </div>
             )}
