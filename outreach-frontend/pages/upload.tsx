@@ -565,9 +565,10 @@ function ExamplesDrawerPanel({
       className={`relative flex flex-col ${radiusClass} bg-[#F5F5F5] shadow-[0_12px_30px_rgba(0,0,0,0.08)]`}
       style={{
         fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui',
-        height: isMobile ? '100dvh' : '450px',
-        maxHeight: isMobile ? '100dvh' : '450px'
+        height: isMobile ? '100dvh' : '100%',
+        maxHeight: isMobile ? '100dvh' : '100%'
       }}
+      onClick={(e) => e.stopPropagation()}
     >
       {/* Close Button */}
       <button
@@ -1011,7 +1012,7 @@ export default function UploadPage() {
               >
                 <div
                   ref={desktopExamplesRef}
-                  className="flex-1 h-full bg-white border-l border-slate-200"
+                  className="flex-1 h-full bg-white border-l border-slate-200 rounded-l-[24px] overflow-hidden"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <ExamplesDrawerPanel onClose={closeExamples} onUseExample={handleUseExample} />
