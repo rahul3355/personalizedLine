@@ -1991,7 +1991,7 @@ export default function UploadPage() {
                                 <select
                                   value={selectedPreviewEmail}
                                   onChange={(e) => setSelectedPreviewEmail(e.target.value)}
-                                  className="w-full appearance-none bg-transparent text-sm text-slate-900 font-medium focus:outline-none cursor-pointer hover:text-blue-600 transition-colors"
+                                  className="w-full appearance-none bg-transparent text-xs text-slate-900 font-medium focus:outline-none cursor-pointer hover:text-blue-600 transition-colors"
                                 >
                                   {previewEmails.map((email) => (
                                     <option key={email} value={email}>{email}</option>
@@ -2007,14 +2007,6 @@ export default function UploadPage() {
                                 Select recipients from file
                               </button>
                             )}
-                          </div>
-
-                          {/* Subject Field */}
-                          <div className="flex items-center gap-3">
-                            <span className="text-sm font-medium text-slate-500 w-12">Subject:</span>
-                            <span className="text-sm text-slate-900">
-                              Quick question regarding {serviceComponents.core_offer ? serviceComponents.core_offer.split(' ').slice(0, 3).join(' ') + '...' : 'your goals'}
-                            </span>
                           </div>
                         </div>
 
@@ -2295,7 +2287,7 @@ export default function UploadPage() {
                           <select
                             value={selectedPreviewEmail}
                             onChange={(e) => setSelectedPreviewEmail(e.target.value)}
-                            className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm"
+                            className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 shadow-sm"
                           >
                             <option value="">-- Select an email --</option>
                             {previewEmails.map((email) => (
