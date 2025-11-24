@@ -568,7 +568,6 @@ function ExamplesDrawerPanel({
         height: isMobile ? '100dvh' : '100%',
         maxHeight: isMobile ? '100dvh' : '100%'
       }}
-      onClick={(e) => e.stopPropagation()}
     >
       {/* Close Button */}
       <button
@@ -1013,7 +1012,6 @@ export default function UploadPage() {
                 <div
                   ref={desktopExamplesRef}
                   className="flex-1 h-full bg-white border-l border-slate-200 rounded-l-[24px] overflow-hidden"
-                  onClick={(e) => e.stopPropagation()}
                 >
                   <ExamplesDrawerPanel onClose={closeExamples} onUseExample={handleUseExample} />
                 </div>
