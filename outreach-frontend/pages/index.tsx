@@ -63,7 +63,7 @@ export default function Home() {
             >
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 -ml-1 transition-all [filter:grayscale(1)] group-hover:[filter:invert(31%)_sepia(89%)_saturate(3196%)_hue-rotate(229deg)_brightness(99%)_contrast(98%)]">
+                  <div className="h-8 w-8 -ml-1 transition-all grayscale group-hover:grayscale-0">
                     <Lottie
                       lottieRef={lottieRef}
                       animationData={mailAnimation}
@@ -91,7 +91,7 @@ export default function Home() {
             >
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 -ml-1 transition-all [filter:grayscale(1)] group-hover:[filter:invert(31%)_sepia(89%)_saturate(3196%)_hue-rotate(229deg)_brightness(99%)_contrast(98%)]">
+                  <div className="h-8 w-8 -ml-1 transition-all grayscale group-hover:grayscale-0">
                     <Lottie
                       lottieRef={archiveLottieRef}
                       animationData={archiveAnimation}

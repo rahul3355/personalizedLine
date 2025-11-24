@@ -428,7 +428,7 @@ const HelpTooltip = ({
                 e.g., "{help.example}"
               </p>
             )}
-            
+
           </div>
         </div>
       )}
@@ -858,9 +858,8 @@ export default function UploadPage() {
           {SERVICE_FIELDS.map((field) => (
             <div
               key={field.key}
-              className={`flex flex-col gap-2 ${
-                field.key === "core_offer" ? "md:col-span-2" : ""
-              }`}
+              className={`flex flex-col gap-2 ${field.key === "core_offer" ? "md:col-span-2" : ""
+                }`}
             >
               <label className="text-xs font-semibold text-gray-700 flex items-center gap-1">
                 {field.label}
@@ -898,16 +897,14 @@ export default function UploadPage() {
               <Switch
                 checked={includeFallback}
                 onChange={setIncludeFallback}
-                className={`${
-                  includeFallback ? "bg-[#4F55F1]" : "bg-gray-200"
-                } relative inline-flex h-6 w-11 items-center rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4F55F1]`}
+                className={`${includeFallback ? "bg-[#4F55F1]" : "bg-gray-200"
+                  } relative inline-flex h-6 w-11 items-center rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4F55F1]`}
               >
                 <span className="sr-only">Toggle fallback forwarding request</span>
                 <span
                   aria-hidden="true"
-                  className={`${
-                    includeFallback ? "translate-x-6" : "translate-x-1"
-                  } inline-block h-4 w-4 transform rounded-full bg-white transition`}
+                  className={`${includeFallback ? "translate-x-6" : "translate-x-1"
+                    } inline-block h-4 w-4 transform rounded-full bg-white transition`}
                 />
               </Switch>
               <span>{includeFallback ? "On" : "Off"}</span>
@@ -1651,36 +1648,36 @@ export default function UploadPage() {
             </div>
 
             {/* Show title/subtitle only after step 0 */}
-           {/* Apple-style contextual framing */}
-{step === 0 && (
-  <header className="mb-8 text-center">
-    <h1
-      className="text-[22px] font-semibold text-gray-900 tracking-tight"
-      style={{ letterSpacing: "-0.01em" }}
-    >
-      Upload lead list
-    </h1>
-    <p className="text-[14px] text-gray-600 font-light mt-1">
-      Make sure it has the email column
-    </p>
-  </header>
-)}
+            {/* Apple-style contextual framing */}
+            {step === 0 && (
+              <header className="mb-8 text-center">
+                <h1
+                  className="text-[22px] font-semibold text-gray-900 tracking-tight"
+                  style={{ letterSpacing: "-0.01em" }}
+                >
+                  Upload lead list
+                </h1>
+                <p className="text-[14px] text-gray-600 font-light mt-1">
+                  Make sure it has the email column
+                </p>
+              </header>
+            )}
 
-{step > 0 && (
-  <header className="mb-6 text-center">
-    <h1
-      className="text-[22px] font-semibold text-gray-900 tracking-tight"
-      style={{ letterSpacing: "-0.01em" }}
-    >
-      {STEP_META[step].title}
-    </h1>
-    {STEP_META[step].sub && (
-      <p className="text-[13px] text-gray-600 font-light mt-1">
-        {STEP_META[step].sub}
-      </p>
-    )}
-          </header>
-)}
+            {step > 0 && (
+              <header className="mb-6 text-center">
+                <h1
+                  className="text-[22px] font-semibold text-gray-900 tracking-tight"
+                  style={{ letterSpacing: "-0.01em" }}
+                >
+                  {STEP_META[step].title}
+                </h1>
+                {STEP_META[step].sub && (
+                  <p className="text-[13px] text-gray-600 font-light mt-1">
+                    {STEP_META[step].sub}
+                  </p>
+                )}
+              </header>
+            )}
 
 
 
@@ -1718,7 +1715,7 @@ export default function UploadPage() {
                     id="file-input-desktop-empty"
                     ref={emptyInputRef}
                     type="file"
-                    accept=".csv,.xlsx"
+                    accept=".csv,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     className="hidden"
                     onClick={(e) => ((e.target as HTMLInputElement).value = "")}
                     onChange={(e) => {
@@ -1798,7 +1795,7 @@ export default function UploadPage() {
                           <input
                             ref={replaceInputRef}
                             type="file"
-                            accept=".csv,.xlsx"
+                            accept=".csv,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                             className="hidden"
                             onChange={(e) => {
                               const next = e.target.files?.[0] || null;
@@ -2295,7 +2292,7 @@ export default function UploadPage() {
               <input
                 id="mobile-file-input"
                 type="file"
-                accept=".csv,.xlsx"
+                accept=".csv,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 className="hidden"
                 onChange={(e) => {
                   const next = e.target.files?.[0] || null;
@@ -2355,215 +2352,220 @@ export default function UploadPage() {
               )}
             </button>
           </div>
-        </div>
-      )}
+        </div >
+      )
+      }
 
-      {step === 1 && !jobCreated && (
-        <div className="block md:hidden w-full h-[calc(100vh-69px)] px-4 flex items-start justify-center overflow-hidden relative -mt-[64px] pt-[64px] bg-white">
-          <div className="max-w-md w-full space-y-6" style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}>
-            <h2 className="text-lg font-semibold text-gray-900 text-center">Confirm Email Column</h2>
-            {renderCreditBanner(true)}
-            <div className="space-y-3">
-              <label className="text-xs text-gray-500 block">
-                Choose which column contains the email address.
-              </label>
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4" style={{ color: BRAND }} />
-                <select
-                  className="flex-1 rounded-md border bg-white px-3 py-2 text-sm"
-                  style={{ borderColor: "#E5E7EB" }}
-                  value={emailCol}
-                  onChange={(e) => setEmailCol(e.target.value)}
-                >
-                  <option value="" disabled>
-                    Select a column
-                  </option>
-                  {headers.map((h) => (
-                    <option key={h} value={h}>
-                      {h}
+      {
+        step === 1 && !jobCreated && (
+          <div className="block md:hidden w-full h-[calc(100vh-69px)] px-4 flex items-start justify-center overflow-hidden relative -mt-[64px] pt-[64px] bg-white">
+            <div className="max-w-md w-full space-y-6" style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}>
+              <h2 className="text-lg font-semibold text-gray-900 text-center">Confirm Email Column</h2>
+              {renderCreditBanner(true)}
+              <div className="space-y-3">
+                <label className="text-xs text-gray-500 block">
+                  Choose which column contains the email address.
+                </label>
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4" style={{ color: BRAND }} />
+                  <select
+                    className="flex-1 rounded-md border bg-white px-3 py-2 text-sm"
+                    style={{ borderColor: "#E5E7EB" }}
+                    value={emailCol}
+                    onChange={(e) => setEmailCol(e.target.value)}
+                  >
+                    <option value="" disabled>
+                      Select a column
                     </option>
-                  ))}
-                </select>
-              </div>
-              <p className="text-xs text-gray-500">
-                Only the selected email column will be processed downstream.
-              </p>
-            </div>
-
-            <button
-              onClick={handleConfirmHeaders}
-              disabled={loading || hasCreditShortage}
-              title={hasCreditShortage ? "Add credits to continue" : undefined}
-              className="w-full py-3 rounded-md font-medium text-white text-[15px] tracking-tight disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ backgroundColor: BRAND }}
-            >
-              {loading ? "Submitting..." : "Confirm Email Column"}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {step === 2 && !jobCreated && (
-        <div className="block md:hidden w-full h-[calc(100vh-69px)] px-4 flex items-start justify-center pt-[64px] bg-white overflow-y-auto">
-          <div className="max-w-md w-full space-y-6 pb-8" style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}>
-            <h2 className="text-lg font-semibold text-gray-900 text-center">Describe Your Service</h2>
-            <div className="space-y-6">
-              {renderServiceInputs()}
-              {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm font-medium">
-                  {error}
+                    {headers.map((h) => (
+                      <option key={h} value={h}>
+                        {h}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              )}
+                <p className="text-xs text-gray-500">
+                  Only the selected email column will be processed downstream.
+                </p>
+              </div>
 
-              {/* Mobile Preview Section */}
+              <button
+                onClick={handleConfirmHeaders}
+                disabled={loading || hasCreditShortage}
+                title={hasCreditShortage ? "Add credits to continue" : undefined}
+                className="w-full py-3 rounded-md font-medium text-white text-[15px] tracking-tight disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ backgroundColor: BRAND }}
+              >
+                {loading ? "Submitting..." : "Confirm Email Column"}
+              </button>
+            </div>
+          </div>
+        )
+      }
+
+      {
+        step === 2 && !jobCreated && (
+          <div className="block md:hidden w-full h-[calc(100vh-69px)] px-4 flex items-start justify-center pt-[64px] bg-white overflow-y-auto">
+            <div className="max-w-md w-full space-y-6 pb-8" style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}>
+              <h2 className="text-lg font-semibold text-gray-900 text-center">Describe Your Service</h2>
               <div className="space-y-6">
-                <div className="flex flex-col items-center space-y-4">
-                  {!showPreview && !previewResult && (
-                    <HelpTooltip
-                      fieldKey="preview_button"
-                      showLabelSpacing={false}
-                      containerClassName="relative block w-full"
-                      renderTrigger={({
-                        onMouseEnter,
-                        onMouseLeave,
-                        onFocus,
-                        onBlur,
-                      }) => (
-                        <div
-                          onMouseEnter={onMouseEnter}
-                          onMouseLeave={onMouseLeave}
-                          onFocus={onFocus}
-                          onBlur={onBlur}
-                          className="w-full"
-                        >
+                {renderServiceInputs()}
+                {error && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm font-medium">
+                    {error}
+                  </div>
+                )}
+
+                {/* Mobile Preview Section */}
+                <div className="space-y-6">
+                  <div className="flex flex-col items-center space-y-4">
+                    {!showPreview && !previewResult && (
+                      <HelpTooltip
+                        fieldKey="preview_button"
+                        showLabelSpacing={false}
+                        containerClassName="relative block w-full"
+                        renderTrigger={({
+                          onMouseEnter,
+                          onMouseLeave,
+                          onFocus,
+                          onBlur,
+                        }) => (
+                          <div
+                            onMouseEnter={onMouseEnter}
+                            onMouseLeave={onMouseLeave}
+                            onFocus={onFocus}
+                            onBlur={onBlur}
+                            className="w-full"
+                          >
+                            <button
+                              type="button"
+                              onClick={handleShowPreview}
+                              disabled={previewLoading || !isServiceContextComplete()}
+                              className="w-full inline-flex items-center justify-center px-6 py-3 rounded-full border border-gray-300 bg-white text-gray-600 font-semibold tracking-tight transition hover:bg-gray-50 disabled:bg-white disabled:border-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
+                            >
+                              {previewLoading ? "Loading..." : "Preview"}
+                            </button>
+                          </div>
+                        )}
+                      />
+                    )}
+
+                    {showPreview && !previewResult && (
+                      <div className="w-full space-y-4">
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium text-gray-700 block text-center">
+                            Select an email to preview ({previewEmails.length} available)
+                          </label>
+                          <select
+                            value={selectedPreviewEmail}
+                            onChange={(e) => setSelectedPreviewEmail(e.target.value)}
+                            className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm"
+                          >
+                            <option value="">-- Select an email --</option>
+                            {previewEmails.map((email) => (
+                              <option key={email} value={email}>
+                                {email}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="flex gap-2">
                           <button
                             type="button"
-                            onClick={handleShowPreview}
-                            disabled={previewLoading || !isServiceContextComplete()}
-                            className="w-full inline-flex items-center justify-center px-6 py-3 rounded-full border border-gray-300 bg-white text-gray-600 font-semibold tracking-tight transition hover:bg-gray-50 disabled:bg-white disabled:border-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
+                            onClick={() => {
+                              setShowPreview(false);
+                              setPreviewEmails([]);
+                              setSelectedPreviewEmail("");
+                              setPreviewError(null);
+                            }}
+                            className="flex-1 py-3 rounded-md border font-medium text-[15px]"
+                            style={{ borderColor: "#E5E7EB", color: "#6B7280" }}
                           >
-                            {previewLoading ? "Loading..." : "Preview"}
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleGeneratePreview}
+                            disabled={previewLoading || !selectedPreviewEmail}
+                            className="flex-1 py-3 rounded-md font-medium text-white text-[15px] disabled:opacity-50"
+                            style={{ backgroundColor: BRAND }}
+                          >
+                            {previewLoading ? "Generating..." : "Start Preview"}
                           </button>
                         </div>
-                      )}
-                    />
-                  )}
-
-                  {showPreview && !previewResult && (
-                    <div className="w-full space-y-4">
-                      <div className="space-y-2">
-                        <label className="text-xs font-medium text-gray-700 block text-center">
-                          Select an email to preview ({previewEmails.length} available)
-                        </label>
-                        <select
-                          value={selectedPreviewEmail}
-                          onChange={(e) => setSelectedPreviewEmail(e.target.value)}
-                          className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm"
-                        >
-                          <option value="">-- Select an email --</option>
-                          {previewEmails.map((email) => (
-                            <option key={email} value={email}>
-                              {email}
-                            </option>
-                          ))}
-                        </select>
                       </div>
+                    )}
 
-                      <div className="flex gap-2">
+                    {previewError && (
+                      <div className="w-full rounded-xl bg-red-50 border border-red-200 px-4 py-3 flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-red-800">{previewError}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {previewResult && (
+                      <div className="w-full space-y-4">
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                          <div className="flex items-start gap-3 mb-3">
+                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                              <Check className="w-5 h-5 text-green-600" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-green-800">
+                                Preview Generated
+                              </p>
+                              <p className="text-xs text-green-600 mt-1">
+                                For: {previewResult.email}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="mt-4">
+                            <label className="text-xs font-medium text-green-800 block mb-2">
+                              Personalized Email:
+                            </label>
+                            <div className="bg-white border border-green-200 rounded-md p-4 text-xs text-gray-900 whitespace-pre-wrap leading-relaxed">
+                              {previewResult.email_body}
+                            </div>
+                          </div>
+                        </div>
+
                         <button
                           type="button"
                           onClick={() => {
                             setShowPreview(false);
                             setPreviewEmails([]);
                             setSelectedPreviewEmail("");
+                            setPreviewResult(null);
                             setPreviewError(null);
                           }}
-                          className="flex-1 py-3 rounded-md border font-medium text-[15px]"
-                          style={{ borderColor: "#E5E7EB", color: "#6B7280" }}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleGeneratePreview}
-                          disabled={previewLoading || !selectedPreviewEmail}
-                          className="flex-1 py-3 rounded-md font-medium text-white text-[15px] disabled:opacity-50"
+                          className="w-full py-3 rounded-md font-medium text-white text-[15px]"
                           style={{ backgroundColor: BRAND }}
                         >
-                          {previewLoading ? "Generating..." : "Start Preview"}
+                          Generate Another Preview
                         </button>
                       </div>
-                    </div>
-                  )}
-
-                  {previewError && (
-                    <div className="w-full rounded-xl bg-red-50 border border-red-200 px-4 py-3 flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                      <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-red-800">{previewError}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {previewResult && (
-                    <div className="w-full space-y-4">
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                        <div className="flex items-start gap-3 mb-3">
-                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                            <Check className="w-5 h-5 text-green-600" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-green-800">
-                              Preview Generated
-                            </p>
-                            <p className="text-xs text-green-600 mt-1">
-                              For: {previewResult.email}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="mt-4">
-                          <label className="text-xs font-medium text-green-800 block mb-2">
-                            Personalized Email:
-                          </label>
-                          <div className="bg-white border border-green-200 rounded-md p-4 text-xs text-gray-900 whitespace-pre-wrap leading-relaxed">
-                            {previewResult.email_body}
-                          </div>
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowPreview(false);
-                          setPreviewEmails([]);
-                          setSelectedPreviewEmail("");
-                          setPreviewResult(null);
-                          setPreviewError(null);
-                        }}
-                        className="w-full py-3 rounded-md font-medium text-white text-[15px]"
-                        style={{ backgroundColor: BRAND }}
-                      >
-                        Generate Another Preview
-                      </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <button
-              onClick={handleCreateJob}
-              disabled={loading || hasCreditShortage}
-              title={hasCreditShortage ? "Add credits to continue" : undefined}
-              className="w-full py-3 rounded-md font-medium text-white text-[15px] tracking-tight disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ backgroundColor: BRAND }}
-            >
-              {loading ? "Submitting..." : "Start Generating"}
-            </button>
+              <button
+                onClick={handleCreateJob}
+                disabled={loading || hasCreditShortage}
+                title={hasCreditShortage ? "Add credits to continue" : undefined}
+                className="w-full py-3 rounded-md font-medium text-white text-[15px] tracking-tight disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ backgroundColor: BRAND }}
+              >
+                {loading ? "Submitting..." : "Start Generating"}
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
     </>
   );

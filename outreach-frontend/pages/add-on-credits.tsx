@@ -2,10 +2,11 @@ import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { motion, useSpring } from "framer-motion";
 import { useRouter } from "next/router";
 import { loadStripe } from "@stripe/stripe-js";
-import { ArrowLeft, X } from "lucide-react";
+import { ArrowLeft, X, Minus, Plus } from "lucide-react";
 
 import { useAuth } from "../lib/AuthProvider";
 import { API_URL } from "../lib/api";
+import { Button } from "../components/ui/button";
 
 const AEONIK_FONT_FAMILY =
   '"Aeonik Pro","Aeonik",-apple-system,BlinkMacSystemFont,"Segoe UI","Roboto","Helvetica Neue",Arial,sans-serif';
@@ -97,6 +98,19 @@ export default function AddOnCreditsPage() {
     }
   };
 
+  const handleIncrement = () => {
+    setAddonCount(prev => Math.min(prev + 1, 500));
+  };
+
+  const handleDecrement = () => {
+    setAddonCount(prev => Math.max(prev - 1, 1));
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value) || 1;
+    setAddonCount(Math.max(1, Math.min(500, value)));
+  };
+
   const credits = (userInfo?.credits_remaining ?? 0) + (userInfo?.addon_credits ?? 0);
   const maxCredits = userInfo?.max_credits ?? 25000;
 
@@ -110,85 +124,78 @@ export default function AddOnCreditsPage() {
           tabIndex={-1}
           className="relative mx-auto flex min-h-full w-full max-w-[1120px] flex-col px-6 pt-16 pb-24 text-center md:px-12 md:pt-24"
         >
-          <button
-            type="button"
+          <Button
+            variant="ghost"
             onClick={closePage}
             aria-label="Go back"
-            className="fixed top-6 left-6 flex items-center gap-2 text-sm font-semibold text-black transition hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
+            className="fixed top-6 left-6 flex items-center gap-2 text-sm font-semibold text-black transition hover:text-neutral-900"
           >
             <ArrowLeft className="h-5 w-5" aria-hidden="true" />
             Back
-          </button>
+          </Button>
 
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={closePage}
             aria-label="Close"
-            className="fixed top-6 right-6 flex h-10 w-10 items-center justify-center rounded-full bg-white text-neutral-500 transition hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
+            className="fixed top-6 right-6 rounded-full text-neutral-500 transition hover:text-neutral-900"
           >
             <X className="h-4 w-4" aria-hidden="true" />
-          </button>
+          </Button>
 
           <div className="mx-auto max-w-xl space-y-4">
             <h1 className="text-4xl font-semibold tracking-tight text-neutral-900 sm:text-5xl md:text-6xl">
               Buy Add-on Credits
             </h1>
-            <p className="text-lg text-neutral-600">
-              Increase your outreach capacity with additional credits
-            </p>
           </div>
 
           <div className="mt-12 mx-auto w-full max-w-xl">
             <section className="rounded-3xl border border-neutral-200 bg-white p-7 text-left shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
-              <h2 className="text-xl font-semibold text-neutral-900">
-                Current plan overview
-              </h2>
-              <p className="mt-2 text-sm text-neutral-600">
-                You're on the {currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)} plan.
-              </p>
-              <dl className="mt-6 space-y-3 text-sm text-neutral-700">
-                <div className="flex items-center justify-between">
-                  <dt>Included monthly lines</dt>
-                  <dd className="font-semibold text-neutral-900">
-                    {maxCredits.toLocaleString()}
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between">
-                  <dt>Lines remaining</dt>
-                  <dd className="font-semibold text-neutral-900">
-                    {credits.toLocaleString()}
-                  </dd>
-                </div>
-              </dl>
-            </section>
-
-            <section className="mt-6 rounded-3xl border border-neutral-200 bg-white p-7 text-left shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
-              <h2 className="text-xl font-semibold text-neutral-900">
-                Add more outreach lines
-              </h2>
-              <p className="mt-2 text-sm text-neutral-600">
-                For the {currentPlan} plan —
+              <p className="text-sm text-neutral-600">
+                For the {currentPlan} plan -
                 <span className="ml-1 font-semibold text-neutral-900">
                   ${userInfo?.addon_price || 5}
                 </span>{" "}
                 per additional 1,000 lines.
               </p>
 
-              <label className="mt-6 block text-sm font-medium text-neutral-700" htmlFor="addon-select">
-                Select add-on packs
-              </label>
-              <select
-                id="addon-select"
-                className="mt-2 w-full rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm font-medium text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
-                onChange={(event) => setAddonCount(Number(event.target.value))}
-                value={addonCount}
-              >
-                {Array.from({ length: 50 }, (_, i) => i + 1).map((n) => (
-                  <option key={n} value={n}>
-                    {n} × 1,000 lines
-                  </option>
-                ))}
-              </select>
+              <div className="mt-6 flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleDecrement}
+                    disabled={addonCount <= 1}
+                    className="h-10 w-10"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+
+                  <input
+                    type="number"
+                    min="1"
+                    max="500"
+                    value={addonCount}
+                    onChange={handleInputChange}
+                    className="w-20 h-10 px-3 text-center border border-neutral-200 rounded-md text-sm font-medium text-neutral-900 focus:outline-none focus:ring-2 focus:ring-black"
+                  />
+
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleIncrement}
+                    disabled={addonCount >= 500}
+                    className="h-10 w-10"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <div className="text-sm font-medium text-neutral-600">
+                  x1000 credits
+                </div>
+              </div>
 
               <div className="mt-4 rounded-2xl bg-neutral-50 px-4 py-3 text-sm text-neutral-700">
                 <div className="flex items-center justify-between">
@@ -205,11 +212,11 @@ export default function AddOnCreditsPage() {
                 </div>
               </div>
 
-              <button
-                type="button"
+              <Button
                 onClick={handleBuyAddons}
                 disabled={loading}
-                className="mt-6 w-full rounded-full bg-black px-6 py-3 text-sm font-semibold text-white transition hover:bg-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-neutral-400"
+                className="mt-6 w-full rounded-full bg-black px-6 py-3 text-sm font-semibold text-white hover:bg-neutral-900"
+                size="lg"
               >
                 {loading ? (
                   <span className="inline-flex items-center justify-center gap-2">
@@ -243,7 +250,7 @@ export default function AddOnCreditsPage() {
                 ) : (
                   "Purchase add-ons"
                 )}
-              </button>
+              </Button>
             </section>
           </div>
         </div>

@@ -15,7 +15,7 @@ export default function SendItFastSpinner({
 
   return (
     <svg
-      className={`animate-[spin_1.2s_linear_infinite] ${className}`.trim()}
+      className={`animate-[spin_0.6s_linear_infinite] ${className}`.trim()}
       viewBox="0 0 48 48"
       fill="none"
       role="img"
@@ -27,21 +27,10 @@ export default function SendItFastSpinner({
         cy="24"
         r="18"
         stroke="#4F55F1"
-        strokeWidth="6"
-        strokeLinecap="round"
+        strokeWidth="3"
+        strokeLinecap="butt"
         strokeDasharray="90 180"
-        strokeDashoffset="0"
-        opacity="0.5"
-      />
-      <circle
-        cx="24"
-        cy="24"
-        r="18"
-        stroke="#4F55F1"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeDasharray="30 180"
-        strokeDashoffset="-45"
+        fill="none"
       />
     </svg>
   );
