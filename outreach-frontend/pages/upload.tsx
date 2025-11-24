@@ -450,10 +450,10 @@ const HelpTooltip = ({
             style={{ color: "#dbdee1", ...(isPreviewTooltip && { fontWeight: 600 }) }}
           >
             <p>{help.what}</p>
-            <p>{help.why}</p>
+
             {!isPreviewTooltip && help.example && (
               <p className="leading-relaxed" style={{ color: "#b5bac1" }}>
-                e.g., "{help.example}"
+                Example: {help.example}
               </p>
             )}
 
@@ -562,6 +562,8 @@ function ExamplesDrawerPanel({
 
   return (
     <div
+      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
       className={`relative flex flex-col ${radiusClass} bg-[#F5F5F5] shadow-[0_12px_30px_rgba(0,0,0,0.08)]`}
       style={{
         fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui',
@@ -2006,11 +2008,10 @@ export default function UploadPage() {
                                             setSelectedPreviewEmail(email);
                                             setIsEmailDropdownOpen(false);
                                           }}
-                                          className={`w-full text-left px-3 py-2 text-xs transition-colors ${
-                                            selectedPreviewEmail === email
-                                              ? 'bg-slate-100 text-slate-900 font-medium'
-                                              : 'text-slate-700 hover:bg-slate-50'
-                                          }`}
+                                          className={`w-full text-left px-3 py-2 text-xs transition-colors ${selectedPreviewEmail === email
+                                            ? 'bg-slate-100 text-slate-900 font-medium'
+                                            : 'text-slate-700 hover:bg-slate-50'
+                                            }`}
                                         >
                                           {email}
                                         </button>
