@@ -2011,7 +2011,7 @@ export default function UploadPage() {
                         </div>
 
                         {/* Email Body */}
-                        <div className="min-h-[300px] text-[15px] leading-relaxed text-slate-800">
+                        <div className="min-h-[300px] text-sm leading-relaxed text-slate-800">
                           {previewLoading ? (
                             <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-3 py-12">
                               <div className="relative">
