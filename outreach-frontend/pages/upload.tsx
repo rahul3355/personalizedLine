@@ -986,7 +986,7 @@ export default function UploadPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-50 md:hidden bg-black/80 backdrop-blur-sm"
+                className="fixed inset-0 z-[70] md:hidden bg-black/80 backdrop-blur-sm"
                 onClick={closeExamples}
               >
                 <motion.div
@@ -1007,7 +1007,7 @@ export default function UploadPage() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
                 transition={{ duration: 0.2 }}
-                className="fixed inset-y-0 right-0 hidden w-full max-w-md md:flex z-50 shadow-2xl"
+                className="fixed inset-y-0 right-0 hidden w-full max-w-md md:flex z-[70] shadow-2xl"
               >
                 <div
                   ref={desktopExamplesRef}
