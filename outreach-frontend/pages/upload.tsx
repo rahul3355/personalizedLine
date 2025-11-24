@@ -1131,6 +1131,12 @@ export default function UploadPage() {
     };
   }, []);
 
+  // Auto-load preview emails when reaching step 3
+  useEffect(() => {
+    if (step === 2 && tempPath && emailCol && previewEmails.length === 0 && !previewLoading) {
+      handleShowPreview();
+    }
+  }, [step, tempPath, emailCol]);
 
   const autoMapHeaders = (headers: string[], guess?: string | null) => {
     if (guess && headers.includes(guess)) {
@@ -1946,18 +1952,6 @@ export default function UploadPage() {
                         {error}
                       </div>
                     )}
-
-                    {/* Main CTA */}
-                    <div className="flex justify-end pt-4">
-                      <button
-                        onClick={handleCreateJob}
-                        disabled={loading || hasCreditShortage}
-                        className="inline-flex items-center justify-center gap-2 h-11 px-8 rounded-md bg-slate-900 text-white font-medium text-sm shadow transition-colors hover:bg-slate-900/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-950 disabled:pointer-events-none disabled:opacity-50"
-                      >
-                        {loading ? "Generating..." : "Generate All Emails"}
-                        {!loading && <Sparkles className="w-4 h-4" />}
-                      </button>
-                    </div>
                   </div>
 
                   {/* RIGHT COLUMN: Sticky Preview (Gmail Style) */}
@@ -2011,19 +2005,14 @@ export default function UploadPage() {
                         </div>
 
                         {/* Email Body */}
-                        <div className="min-h-[300px] text-sm leading-relaxed text-slate-800">
+                        <div className="min-h-[300px] text-xs leading-relaxed text-slate-800" style={{ fontFamily: 'Arial, sans-serif' }}>
                           {previewLoading ? (
                             <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-3 py-12">
-                              <div className="relative">
-                                <div className="w-12 h-12 rounded-full border-4 border-slate-100 border-t-blue-600 animate-spin" />
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                  <Sparkles className="w-4 h-4 text-blue-600" />
-                                </div>
-                              </div>
+                              <div className="w-12 h-12 rounded-full border-4 border-slate-100 border-t-blue-600 animate-spin" />
                               <span className="text-sm font-medium animate-pulse">Writing personalized email...</span>
                             </div>
                           ) : previewResult ? (
-                            <div className="whitespace-pre-wrap font-sans">
+                            <div className="whitespace-pre-wrap" style={{ fontFamily: 'Arial, sans-serif' }}>
                               {previewResult.email_body}
                             </div>
                           ) : (
@@ -2064,7 +2053,7 @@ export default function UploadPage() {
                               "Writing..."
                             ) : (
                               <>
-                                {previewResult ? <RefreshCcw className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}
+                                {previewResult && <RefreshCcw className="w-3.5 h-3.5" />}
                                 {previewResult ? "Regenerate" : "Generate Preview"}
                               </>
                             )}
@@ -2074,6 +2063,17 @@ export default function UploadPage() {
                     </div>
                   </div>
                 </div >
+
+                {/* Main CTA - Centered */}
+                <div className="flex justify-center pt-8 pb-4">
+                  <button
+                    onClick={handleCreateJob}
+                    disabled={loading || hasCreditShortage}
+                    className="inline-flex items-center justify-center gap-2 h-14 px-12 rounded-lg bg-slate-900 text-white font-semibold text-base shadow-lg transition-colors hover:bg-slate-900/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 disabled:pointer-events-none disabled:opacity-50"
+                  >
+                    {loading ? "Generating..." : "Generate All Emails"}
+                  </button>
+                </div>
               </div >
             )
             }
@@ -2355,7 +2355,7 @@ export default function UploadPage() {
                             <label className="text-xs font-medium text-green-800 block mb-2">
                               Personalized Email:
                             </label>
-                            <div className="bg-white border border-green-200 rounded-md p-4 text-xs text-gray-900 whitespace-pre-wrap leading-relaxed">
+                            <div className="bg-white border border-green-200 rounded-md p-4 text-xs text-gray-900 whitespace-pre-wrap leading-relaxed" style={{ fontFamily: 'Arial, sans-serif' }}>
                               {previewResult.email_body}
                             </div>
                           </div>
