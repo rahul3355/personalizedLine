@@ -1,4 +1,5 @@
 import { CSSProperties, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, LayoutGroup, motion, useSpring } from "framer-motion";
 import { useRouter } from "next/router";
 import { loadStripe } from "@stripe/stripe-js";
@@ -474,7 +475,16 @@ export default function BillingPage() {
   const currentPlan = userInfo?.plan_type || "free";
   const hasActiveSub = subscriptionInfo && subscriptionInfo.subscription_status === "active" && currentPlan !== "free";
 
-  return (
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  if (!mounted) return null;
+
+  return createPortal(
     <div className="fixed inset-0 z-50 bg-white" style={{ fontFamily: AEONIK_FONT_FAMILY }}>
       <div className="h-full overflow-y-auto">
         <div
@@ -878,6 +888,7 @@ export default function BillingPage() {
           </section>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
