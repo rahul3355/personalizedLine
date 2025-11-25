@@ -346,11 +346,27 @@ export default function BillingPage() {
 
     document.addEventListener("keydown", handleKey);
 
+    const handlePageShow = () => {
+      setLoadingPlanId(null);
+      setLoadingAction(null);
+    };
+
+    window.addEventListener("pageshow", handlePageShow);
+
     return () => {
       body.style.overflow = originalOverflow;
       document.removeEventListener("keydown", handleKey);
+      window.removeEventListener("pageshow", handlePageShow);
     };
   }, []);
+
+  // Reset loading state if redirected back from Stripe with canceled=true
+  useEffect(() => {
+    if (router.isReady && router.query.canceled) {
+      setLoadingPlanId(null);
+      setLoadingAction(null);
+    }
+  }, [router.isReady, router.query.canceled]);
 
   const handleCheckout = async (planId: string) => {
     if (!session || !userInfo?.id) return;
