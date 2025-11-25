@@ -27,7 +27,8 @@ import {
   Flame,
   TrendingUp,
   Sparkles,
-  ListChecks,
+  Plus,
+
   ChevronDown,
   AlertCircle,
 } from "lucide-react";
@@ -82,37 +83,12 @@ const SERVICE_FIELDS: { key: ServiceFieldKey; label: string; placeholder: string
   },
   {
     key: "cta",
-    label: "CTA?",
-    placeholder: "e.g. 1.Book a 15-minute demo to see it in action \n2. Ask if they are interested",
+    label: "Expected outcome (CTA)",
+    placeholder: "e.g. Book a 15-minute demo to see it in action",
   },
 ];
 
-const QUICK_PRESETS = [
-  {
-    label: "SaaS Product",
-    data: {
-      core_offer: "All-in-one project management software",
-      key_differentiator: "Combines task tracking, chat, and docs in one place",
-      cta: "Start your 14-day free trial",
-    },
-  },
-  {
-    label: "Agency Service",
-    data: {
-      core_offer: "Full-service digital marketing optimization",
-      key_differentiator: "Guaranteed 20% ROI increase in 90 days",
-      cta: "Get a free marketing audit",
-    },
-  },
-  {
-    label: "Recruiting",
-    data: {
-      core_offer: "Senior Full-Stack Engineer role",
-      key_differentiator: "Remote-first, competitive salary + equity",
-      cta: "Book a quick screening call",
-    },
-  },
-];
+
 
 type HelpContent = {
   what: string;
@@ -943,45 +919,21 @@ function UploadPage() {
       closeExamples();
     };
 
-    const handlePresetClick = (preset: typeof QUICK_PRESETS[0]) => {
-      setServiceComponents({
-        core_offer: preset.data.core_offer,
-        key_differentiator: preset.data.key_differentiator,
-        cta: preset.data.cta,
-      });
-    };
+
 
     return (
       <div className="space-y-8">
-        {/* Quick Fill Section */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-slate-900">
-              Quick Fill
-            </label>
-            <button
-              type="button"
-              ref={examplesTriggerRef}
-              onClick={() => setShowExamples(true)}
-              className="text-xs font-medium text-slate-500 hover:text-slate-900 flex items-center gap-1.5 transition-colors"
-            >
-              <ListChecks className="w-3.5 h-3.5" />
-              Browse all examples
-            </button>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {QUICK_PRESETS.map((preset) => (
-              <button
-                key={preset.label}
-                type="button"
-                onClick={() => handlePresetClick(preset)}
-                className="inline-flex items-center rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-900 transition-colors hover:border-slate-300 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        {/* Browse Examples Button */}
+        <button
+          type="button"
+          ref={examplesTriggerRef}
+          onClick={() => setShowExamples(true)}
+          className="group w-full flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-3 text-sm font-medium text-white transition-all duration-[250ms] hover:bg-slate-800 active:scale-[0.99]"
+          style={{ fontFamily: '"Times New Roman", Times, serif' }}
+        >
+          <Plus className="w-4 h-4 transition-transform duration-[250ms] group-hover:rotate-90" />
+          Browse all examples
+        </button>
 
         {/* Inputs Grid */}
         <div className="grid gap-6">
