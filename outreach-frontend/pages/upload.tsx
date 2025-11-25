@@ -541,6 +541,27 @@ function ExamplesDrawerPanel({
 
   const radiusClass = isMobile ? "rounded-l-3xl" : "rounded-[24px]";
 
+  // Helper to highlight text
+  const highlightText = (text: string, query: string) => {
+    if (!query.trim()) return text;
+
+    const parts = text.split(new RegExp(`(${query})`, "gi"));
+
+    return (
+      <>
+        {parts.map((part, i) =>
+          part.toLowerCase() === query.toLowerCase() ? (
+            <span key={i} className="bg-yellow-200 text-gray-900 rounded-[2px] px-0.5">
+              {part}
+            </span>
+          ) : (
+            part
+          )
+        )}
+      </>
+    );
+  };
+
   // Filter examples based on search and category
   // When searching, ALWAYS search across ALL categories
   const filteredExamples = EXAMPLE_DATA.filter((example) => {
@@ -681,7 +702,7 @@ function ExamplesDrawerPanel({
                       Core offer:
                     </label>
                     <p className="text-sm text-gray-700">
-                      {example.core_offer}
+                      {highlightText(example.core_offer, searchQuery)}
                     </p>
                   </div>
 
@@ -690,7 +711,7 @@ function ExamplesDrawerPanel({
                       Key differentiator:
                     </label>
                     <p className="text-sm text-gray-700">
-                      {example.key_differentiator}
+                      {highlightText(example.key_differentiator, searchQuery)}
                     </p>
                   </div>
 
@@ -699,7 +720,7 @@ function ExamplesDrawerPanel({
                       CTA:
                     </label>
                     <p className="text-sm text-gray-700">
-                      {example.cta}
+                      {highlightText(example.cta, searchQuery)}
                     </p>
                   </div>
                 </div>
