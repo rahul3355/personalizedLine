@@ -77,13 +77,13 @@ const SERVICE_FIELDS: { key: ServiceFieldKey; label: string; placeholder: string
   },
   {
     key: "key_differentiator",
-    label: "Why should they care?",
+    label: "What makes you special?",
     placeholder: "e.g. Generates personalized lines 10x faster than manual research",
   },
   {
     key: "cta",
-    label: "What's the next step?",
-    placeholder: "e.g. Book a 15-minute demo to see it in action",
+    label: "CTA?",
+    placeholder: "e.g. 1.Book a 15-minute demo to see it in action \n2. Ask if they are interested",
   },
 ];
 
@@ -134,7 +134,7 @@ const HELP_CONTENT: Record<ServiceHelpKey, HelpContent> = {
   cta: {
     what: "The specific action you want prospects to take next.",
     why: "This directs them clearly to the next step in your outreach process.",
-    example: "Book a 15-minute demo call",
+    example: "1.\tBook a 15-minute demo call\n2. Ask if they are interested",
   },
   include_fallback: {
     what: "Whether you want to ask the reader to forward the email if they're not the right contact.",
@@ -763,7 +763,7 @@ function ExamplesDrawerPanel({
 
 
 
-export default function UploadPage() {
+function UploadPage() {
   const { session, loading: authLoading, refreshUserInfo, optimisticallyDeductCredits, revertOptimisticCredits } = useAuth();
   const { addOptimisticJob, removeOptimisticJob } = useOptimisticJobs();
   const router = useRouter();
@@ -789,6 +789,17 @@ export default function UploadPage() {
 
   const [dragActive, setDragActive] = useState(false);
   const [step, setStep] = useState(0); // 0 = upload, 1 = confirm headers, 2 = confirm service
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  useEffect(() => {
+    if (step === 2) {
+      // Delay to ensure the initial "small" state renders before animating
+      const timer = setTimeout(() => setIsExpanded(true), 50);
+      return () => clearTimeout(timer);
+    } else {
+      setIsExpanded(false);
+    }
+  }, [step]);
 
   const [showDropOverlay, setShowDropOverlay] = useState(false);
 
@@ -985,7 +996,7 @@ export default function UploadPage() {
         <div className="flex items-center justify-between rounded-lg border border-slate-200 p-4 shadow-sm">
           <div className="space-y-0.5">
             <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-slate-900">
-              Fallback Request
+              Forward Request
             </label>
             <p className="text-[0.8rem] text-slate-500">
               Ask to be forwarded if the contact is incorrect.
@@ -995,15 +1006,15 @@ export default function UploadPage() {
             <Switch
               checked={includeFallback}
               onChange={setIncludeFallback}
-              className={`${includeFallback ? "bg-slate-900" : "bg-slate-200"
-                } relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2`}
+              className={`${includeFallback ? "bg-black" : "bg-gray-200"
+                } relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none`}
             >
               <span
-                className={`${includeFallback ? "translate-x-4" : "translate-x-1"
-                  } inline-block h-3.5 w-3.5 transform rounded-full bg-white transition`}
+                className={`${includeFallback ? "translate-x-[22px]" : "translate-x-0.5"
+                  } inline-block h-5 w-5 transform rounded-full bg-white transition`}
               />
             </Switch>
-            <HelpTooltip fieldKey="include_fallback" />
+
           </div>
         </div>
 
@@ -1709,10 +1720,10 @@ export default function UploadPage() {
       {/* DESKTOP */}
       <div className="hidden md:block">
         <section
-          className="md:px-8 md:py-6 min-h-[calc(100vh-170px)] bg-white"
+          className={`md:py-6 min-h-[calc(100vh-110px)] bg-white rounded-[32px] shadow-sm mr-4 flex flex-col items-center transition-all duration-[250ms] ease-in-out ${step === 2 && isExpanded ? 'pl-6 sm:pl-8 lg:pl-10 pr-0' : 'px-6 sm:px-8 lg:px-10'}`}
           style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}
         >
-          <div className={`mx-auto transition-all duration-300 ${step === 2 ? 'max-w-[1400px]' : 'max-w-[960px]'}`}>
+          <div className={`transition-all duration-[250ms] ease-in-out w-full ${step === 2 && isExpanded ? 'max-w-full' : 'max-w-[960px]'}`}>
             {/* Header: stepper first, then dynamic title */}
             <div className="mb-2">
               <StepTracker step={step} jobCreated={jobCreated} />
@@ -2013,9 +2024,9 @@ export default function UploadPage() {
             {/* Step 2: Confirm Service (compact) */}
             {step === 2 && !jobCreated && (
               <div className="flex flex-col pb-20">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 items-start">
                   {/* LEFT COLUMN: Inputs */}
-                  <div className="lg:col-span-5 space-y-8">
+                  <div className="lg:col-span-4 space-y-8">
                     <div className="bg-white">
                       {renderServiceInputs()}
                     </div>
@@ -2030,7 +2041,7 @@ export default function UploadPage() {
                   </div>
 
                   {/* RIGHT COLUMN: Sticky Preview (Gmail Style) */}
-                  <div className="lg:col-span-7 sticky top-6">
+                  <div className="lg:col-span-8 sticky top-6">
                     <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                       {/* Gmail-like Header */}
                       <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center justify-between">
@@ -2141,7 +2152,7 @@ export default function UploadPage() {
                               inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all
                               ${previewResult
                                 ? "bg-slate-100 text-slate-900 hover:bg-slate-200"
-                                : "text-white hover:opacity-90 shadow-md"
+                                : "text-white hover:opacity-50"
                               }
                               disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none
                             `}
@@ -2492,7 +2503,10 @@ export default function UploadPage() {
           </div>
         )
       }
-
     </>
   );
 }
+
+UploadPage.disableWhiteCard = true;
+
+export default UploadPage;
