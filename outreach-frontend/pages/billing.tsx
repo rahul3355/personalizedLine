@@ -485,7 +485,7 @@ export default function BillingPage() {
   if (!mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-white" style={{ fontFamily: AEONIK_FONT_FAMILY, transform: "translateZ(0)", willChange: "transform" }}>
+    <div className="fixed inset-0 z-[9999] bg-white" style={{ fontFamily: AEONIK_FONT_FAMILY }}>
       <div className="h-full overflow-y-auto">
         <div
           ref={dialogRef}
@@ -690,7 +690,7 @@ export default function BillingPage() {
                       }
                     }}
                     aria-pressed={isSelected}
-                    className="relative flex h-full min-h-[290px] cursor-pointer flex-col rounded-3xl border border-transparent bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                    className="relative flex min-h-[290px] cursor-pointer flex-col rounded-3xl border border-transparent bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
                   >
                     {isSelected && (
                       <motion.div
