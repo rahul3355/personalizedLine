@@ -54,7 +54,7 @@ RAW_CHUNK_BUCKET = "inputs"
 # Parallel processing configuration
 PARALLEL_ROWS_PER_WORKER = int(os.getenv('PARALLEL_ROWS_PER_WORKER', '20'))
 
-GENERATED_OUTPUT_COLUMNS = ("email_body",)
+GENERATED_OUTPUT_COLUMNS = ("email_body", "sif_personalized_line")
 
 
 def _ensure_dict(value):
@@ -809,6 +809,7 @@ def _process_small_job_inline(
                 if email_header:
                     error_row[email_header] = ""
                 error_row["email_body"] = f"Error: {str(exc)}"
+                error_row["sif_personalized_line"] = ""
                 results.append((row_idx, error_row, str(exc)))
 
     # Sort by original row index
@@ -915,6 +916,11 @@ def _process_single_row(
 
         normalized_row["email_body"] = email_body
 
+        # Extract first paragraph for sif_personalized_line
+        paragraphs = email_body.split('\n\n')
+        first_paragraph = paragraphs[0].strip() if paragraphs else ""
+        normalized_row["sif_personalized_line"] = first_paragraph
+
         return (row_index, normalized_row, None)
 
     except Exception as exc:
@@ -930,6 +936,7 @@ def _process_single_row(
         if email_header:
             error_row[email_header] = row.get(email_header, "")
         error_row["email_body"] = f"Error: {str(exc)}"
+        error_row["sif_personalized_line"] = ""
 
         return (row_index, error_row, str(exc))
 
@@ -1023,6 +1030,7 @@ def process_subjob(job_id: str, chunk_id: int, chunk_storage_path: str, meta: di
                     if email_header:
                         error_row[email_header] = ""
                     error_row["email_body"] = f"Critical error: {str(exc)}"
+                    error_row["sif_personalized_line"] = ""
                     results.append((row_idx, error_row, str(exc)))
 
                 # Update progress atomically
