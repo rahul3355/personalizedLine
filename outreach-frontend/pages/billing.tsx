@@ -721,7 +721,7 @@ export default function BillingPage() {
                     </header>
 
                     <div className="mt-6">
-                      <div className="flex items-end justify-between gap-4">
+                      <div className="flex items-end justify-between gap-4 flex-wrap">
                         <div className="flex items-end gap-1">
                           <AnimatePresence mode="wait" initial={false}>
                             <motion.span
