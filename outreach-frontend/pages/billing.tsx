@@ -485,7 +485,7 @@ export default function BillingPage() {
   if (!mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-white" style={{ fontFamily: AEONIK_FONT_FAMILY }}>
+    <div className="fixed inset-0 z-[9999] bg-white" style={{ fontFamily: AEONIK_FONT_FAMILY, transform: "translateZ(0)", willChange: "transform" }}>
       <div className="h-full overflow-y-auto">
         <div
           ref={dialogRef}
