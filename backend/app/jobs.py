@@ -373,6 +373,8 @@ def _finalize_empty_job(
     out_csv = os.path.join(local_dir, f"{job_id}_final.csv")
     out_xlsx = os.path.join(local_dir, f"{job_id}_final.xlsx")
     try:
+        # Rename columns for user-facing output
+        empty_df = empty_df.rename(columns={"email_body": "sif_email_body"})
         empty_df.to_csv(out_csv, index=False)
         empty_df.to_excel(out_xlsx, index=False, engine="openpyxl")
 
@@ -835,6 +837,8 @@ def _process_small_job_inline(
     local_dir = tempfile.mkdtemp()
     out_xlsx = os.path.join(local_dir, f"{job_id}_final.xlsx")
     try:
+        # Rename columns for user-facing output
+        final_df = final_df.rename(columns={"email_body": "sif_email_body"})
         final_df.to_excel(out_xlsx, index=False, engine="openpyxl")
 
         # Upload final result
@@ -1275,6 +1279,8 @@ def finalize_job(
         out_csv = os.path.join(local_dir, f"{job_id}_final.csv")
         out_xlsx = os.path.join(local_dir, f"{job_id}_final.xlsx")
 
+        # Rename columns for user-facing output
+        final_df = final_df.rename(columns={"email_body": "sif_email_body"})
         final_df.to_csv(out_csv, index=False)
         final_df.to_excel(out_xlsx, index=False, engine="openpyxl")
 
