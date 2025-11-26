@@ -29,8 +29,8 @@ export default function Home() {
 
     return (
         <div className="relative min-h-[calc(100vh-170px)] overflow-hidden bg-white p-8 rounded-3xl">
-            {/* Dot Pattern Background */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            {/* Dot Pattern Background - Right Half Only */}
+            <div className="absolute top-0 right-0 bottom-0 w-1/2 overflow-hidden pointer-events-none">
                 <DotPattern
                     width={20}
                     height={20}
@@ -38,7 +38,7 @@ export default function Home() {
                     cy={1}
                     cr={1}
                     className={cn(
-                        "[mask-image:radial-gradient(800px_circle_at_center,white,transparent)]"
+                        "[mask-image:linear-gradient(to_left,white,transparent)]"
                     )}
                 />
             </div>

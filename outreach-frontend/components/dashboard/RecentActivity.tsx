@@ -91,7 +91,7 @@ export default function RecentActivity() {
 
         const fetchRecentJobs = async () => {
             try {
-                const res = await fetch(`${API_URL}/jobs?limit=5`, {
+                const res = await fetch(`${API_URL}/jobs?limit=9`, {
                     headers: { Authorization: `Bearer ${session.access_token}` },
                 });
                 if (res.ok) {
@@ -145,9 +145,10 @@ export default function RecentActivity() {
                     <Table>
                         <TableHeader>
                             <TableRow className="hover:bg-transparent border-gray-100">
-                                <TableHead className="pl-6 text-gray-500 font-normal">File Name</TableHead>
-                                <TableHead className="text-gray-500 font-normal">Status</TableHead>
-                                <TableHead className="text-right pr-6 text-gray-500 font-normal">Date</TableHead>
+                                <TableHead className="pl-6 text-gray-500 font-normal h-10">File Name</TableHead>
+                                <TableHead className="text-gray-500 font-normal h-10">Job ID</TableHead>
+                                <TableHead className="text-gray-500 font-normal h-10">Status</TableHead>
+                                <TableHead className="text-right pr-6 text-gray-500 font-normal h-10">Date</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -157,13 +158,18 @@ export default function RecentActivity() {
                                     className="hover:bg-gray-50/50 border-gray-100 cursor-pointer group"
                                     onClick={() => window.location.href = `/jobs?id=${job.id}`}
                                 >
-                                    <TableCell className="pl-6 font-medium text-gray-900 group-hover:text-[#4f55f1] transition-colors py-4">
+                                    <TableCell className="pl-6 font-medium text-gray-900 py-2">
                                         {job.filename}
                                     </TableCell>
-                                    <TableCell className="py-4">
-                                        <StatusPill status={job.status} />
+                                    <TableCell className="text-gray-500 text-xs py-2 font-mono">
+                                        {job.id.slice(0, 8)}...
                                     </TableCell>
-                                    <TableCell className="text-right pr-6 text-gray-500 text-sm py-4">
+                                    <TableCell className="py-2">
+                                        <span className="text-sm text-gray-700 capitalize">
+                                            {job.status.replace('_', ' ')}
+                                        </span>
+                                    </TableCell>
+                                    <TableCell className="text-right pr-6 text-gray-500 text-sm py-2">
                                         {formatTimeAgo(job.created_at)}
                                     </TableCell>
                                 </TableRow>

@@ -9,7 +9,7 @@ export default function OfferCard() {
                 <img
                     src={shipImage.src}
                     alt="Ship illustration"
-                    className="w-full h-auto aspect-square object-cover grayscale hover:grayscale-0 transition-all duration-500"
+                    className="w-full h-auto aspect-square object-cover"
                 />
             </div>
 

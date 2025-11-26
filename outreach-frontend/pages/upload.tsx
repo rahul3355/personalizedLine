@@ -515,7 +515,7 @@ function ExamplesDrawerPanel({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<ExampleCategory | "all">("all");
 
-  const radiusClass = isMobile ? "rounded-l-3xl" : "rounded-[24px]";
+  const radiusClass = isMobile ? "rounded-l-3xl" : "rounded-tl-[24px]";
 
   // Helper to highlight text
   const highlightText = (text: string, query: string) => {
@@ -561,7 +561,7 @@ function ExamplesDrawerPanel({
     <div
       onClick={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
-      className={`relative flex flex-col ${radiusClass} bg-[#F5F5F5] shadow-[0_12px_30px_rgba(0,0,0,0.08)]`}
+      className={`relative flex flex-col ${radiusClass} bg-[#F5F5F5] border-l border-gray-300`}
       style={{
         fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui',
         height: isMobile ? '100dvh' : '100%',
@@ -1025,7 +1025,7 @@ function UploadPage() {
               >
                 <div
                   ref={desktopExamplesRef}
-                  className="flex-1 h-full bg-white border-l border-slate-200 rounded-l-[24px] overflow-hidden"
+                  className="flex-1 h-full bg-white rounded-tl-[24px] overflow-hidden"
                 >
                   <ExamplesDrawerPanel onClose={closeExamples} onUseExample={handleUseExample} />
                 </div>
