@@ -1,7 +1,7 @@
 import shipImage from "../../assets/ship.png";
 import { Button } from "@/components/ui/button";
 
-import { PiCoinDuotone } from "react-icons/pi";
+import { PiCoinDuotone, PiCoinsDuotone } from "react-icons/pi";
 
 export default function OfferCard() {
     return (
@@ -26,10 +26,10 @@ export default function OfferCard() {
                     </p>
                 </div>
 
-                <Button className="w-full bg-black text-white hover:bg-gray-800 font-medium rounded-lg h-10 shadow-none flex items-center justify-center gap-2" style={{ fontFamily: "'Mencken Std Narrow Regular', serif" }}>
-                    Claim
-                    <PiCoinDuotone className="w-4 h-4 text-[#D4AF37]" />
-                    500
+                <Button className="w-full bg-white text-black hover:bg-gray-100 font-medium rounded-lg h-10 shadow-grey flex items-center justify-center gap-2" style={{ fontFamily: "'Mencken Std Narrow Regular', serif" }}>
+
+                    <PiCoinsDuotone className="w-4 h-4 text-[#D4AF37]" />
+                    Claim 500
                 </Button>
             </div>
         </div>
