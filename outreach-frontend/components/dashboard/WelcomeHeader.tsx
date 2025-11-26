@@ -1,6 +1,7 @@
 import { useAuth } from "@/lib/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { PiCoinDuotone } from "react-icons/pi";
 import Link from "next/link";
 
 export default function WelcomeHeader() {
@@ -28,7 +29,11 @@ export default function WelcomeHeader() {
             <Link href="/upload">
                 <Button className="bg-black hover:bg-gray-800 text-white rounded-xl px-6 h-12 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-none">
                     <Plus className="w-5 h-5 mr-2" />
-                    Generate Emails
+                    Generate All Emails
+                    <div className="ml-3 bg-white rounded-full px-2 py-0.5 flex items-center gap-1.5 h-7">
+                        <PiCoinDuotone className="w-4 h-4 text-[#D4AF37]" />
+                        <span className="text-xs font-medium text-black">1 / row</span>
+                    </div>
                 </Button>
             </Link>
         </div>

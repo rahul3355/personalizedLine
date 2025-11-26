@@ -33,6 +33,7 @@ import {
   AlertCircle,
   FileSpreadsheet,
 } from "lucide-react";
+import { PiCoinDuotone, PiCoinsDuotone } from "react-icons/pi";
 import { useAuth } from "../lib/AuthProvider";
 import { useOptimisticJobs, type OptimisticJob } from "../lib/OptimisticJobsProvider";
 import { useRouter } from "next/router";
@@ -2093,7 +2094,7 @@ function UploadPage() {
                           {previewLoading ? (
                             <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-3 py-12">
                               <SendItFastSpinner size={48} />
-                              <span className="text-sm font-medium animate-pulse">Writing personalized email...</span>
+                              <span className="text-sm font-medium animate-pulse">Generating email preview...</span>
                             </div>
                           ) : previewResult ? (
                             <div className="whitespace-pre-wrap" style={{ fontFamily: 'Arial, sans-serif' }}>
@@ -2125,7 +2126,7 @@ function UploadPage() {
                             onClick={handleGeneratePreview}
                             disabled={previewLoading || !selectedPreviewEmail || !isServiceContextComplete()}
                             className={`
-                              inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all
+                              inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
                               ${previewResult
                                 ? "bg-slate-100 text-slate-900 hover:bg-slate-200"
                                 : "text-white hover:opacity-50"
@@ -2135,11 +2136,15 @@ function UploadPage() {
                             style={!previewResult ? { backgroundColor: BRAND } : {}}
                           >
                             {previewLoading ? (
-                              "Writing..."
+                              "Creating..."
                             ) : (
                               <>
                                 {previewResult && <RefreshCcw className="w-3.5 h-3.5" />}
                                 {previewResult ? "Regenerate" : "Create Preview"}
+                                <div className="ml-2 bg-white rounded-full px-2 py-0.5 flex items-center gap-1.5 h-6">
+                                  <PiCoinDuotone className="w-3.5 h-3.5 text-[#D4AF37]" />
+                                  <span className="text-[10px] font-bold text-black">1</span>
+                                </div>
                               </>
                             )}
                           </button>
@@ -2156,7 +2161,15 @@ function UploadPage() {
                     disabled={loading || hasCreditShortage}
                     className="inline-flex items-center justify-center gap-2 h-14 px-12 rounded-lg bg-slate-900 text-white font-semibold text-base shadow-lg transition-colors hover:bg-slate-900/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 disabled:pointer-events-none disabled:opacity-50"
                   >
-                    {loading ? "Generating..." : "Generate All Emails"}
+                    {loading ? "Generating..." : (
+                      <>
+                        Generate All Emails
+                        <div className="ml-3 bg-white rounded-full px-2 py-0.5 flex items-center gap-1.5 h-7">
+                          <PiCoinsDuotone className="w-4 h-4 text-[#D4AF37]" />
+                          <span className="text-xs font-medium text-black">1 / row</span>
+                        </div>
+                      </>
+                    )}
                   </button>
                 </div>
               </div >
