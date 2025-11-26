@@ -41,6 +41,13 @@ import { useToast } from "@/components/Toast";
 import { supabase } from "../lib/supabaseClient";
 import { logger } from "../lib/logger";
 import SendItFastSpinner from "../components/SendItFastSpinner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 // replace
 
 
@@ -1721,7 +1728,7 @@ function UploadPage() {
             )}
 
             {step > 0 && (
-              <header className="mb-6 relative flex items-center justify-center">
+              <header className={`mb-6 relative flex items-center justify-center ${step === 1 ? 'mt-24' : ''}`}>
                 <button
                   type="button"
                   onClick={() => setStep(step - 1)}
@@ -1950,23 +1957,21 @@ function UploadPage() {
 
 
                   <div className="mx-auto max-w-sm space-y-2">
-                    <label className="text-xs font-medium text-gray-700">
-                      Select Email Column
-                    </label>
-                    <select
-                      className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-colors focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
+                    <Select
                       value={emailCol}
-                      onChange={(e) => setEmailCol(e.target.value)}
+                      onValueChange={setEmailCol}
                     >
-                      <option value="" disabled>
-                        Select a column
-                      </option>
-                      {headers.map((h) => (
-                        <option key={h} value={h}>
-                          {h}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select a column" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {headers.map((h) => (
+                          <SelectItem key={h} value={h}>
+                            {h}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   {error && (
                     <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm font-medium">
@@ -2108,7 +2113,7 @@ function UploadPage() {
                               <div className="space-y-1">
                                 <p className="text-sm font-medium text-slate-900">No preview generated yet</p>
                                 <p className="text-xs text-slate-500 max-w-[200px] mx-auto">
-                                  Fill out the details on the left and click "Create Preview" below to see the email.
+                                  Fill out the details on the left and click "Preview Email" below to see the email.
                                 </p>
                               </div>
                             </div>
@@ -2126,21 +2131,17 @@ function UploadPage() {
                             onClick={handleGeneratePreview}
                             disabled={previewLoading || !selectedPreviewEmail || !isServiceContextComplete()}
                             className={`
-                              inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
-                              ${previewResult
-                                ? "bg-slate-100 text-slate-900 hover:bg-slate-200"
-                                : "text-white hover:opacity-50"
-                              }
+                              inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all text-white hover:opacity-90
                               disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none
                             `}
-                            style={!previewResult ? { backgroundColor: BRAND } : {}}
+                            style={{ backgroundColor: BRAND }}
                           >
                             {previewLoading ? (
                               "Creating..."
                             ) : (
                               <>
                                 {previewResult && <RefreshCcw className="w-3.5 h-3.5" />}
-                                {previewResult ? "Regenerate" : "Create Preview"}
+                                {previewResult ? "Regenerate" : "Preview Email"}
                                 <div className="ml-2 bg-white rounded-full px-2 py-0.5 flex items-center gap-1.5 h-6">
                                   <PiCoinDuotone className="w-3.5 h-3.5 text-[#D4AF37]" />
                                   <span className="text-[10px] font-bold text-black">1</span>
