@@ -1,6 +1,7 @@
 import { useAuth } from "@/lib/AuthProvider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Coins, FileText, CreditCard } from "lucide-react";
+import { PiCoinsDuotone } from "react-icons/pi";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { API_URL } from "@/lib/api";
@@ -44,7 +45,7 @@ export default function StatsOverview() {
         {
             title: "Credits Remaining",
             value: (userInfo?.credits_remaining || 0) + (userInfo?.addon_credits || 0),
-            icon: Coins,
+            icon: PiCoinsDuotone,
             iconColor: "text-black",
             href: "/add-ons"
         },
