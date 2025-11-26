@@ -29,7 +29,7 @@ export default function WelcomeHeader() {
             <Link href="/upload">
                 <Button className="bg-black hover:bg-gray-800 text-white rounded-xl px-6 h-12 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-none">
                     <Plus className="w-5 h-5 mr-2" />
-                    Generate All Emails
+                    Start Generating Emails
 
                 </Button>
             </Link>
