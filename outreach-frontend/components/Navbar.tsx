@@ -12,6 +12,7 @@ import {
   PiPlusCircleFill,
   PiSquaresFourFill,
   PiReceiptFill,
+  PiCoinsDuotone,
 } from "react-icons/pi";
 
 import { PiHouseLineFill } from "react-icons/pi";
@@ -243,7 +244,7 @@ export default function Navbar() {
             </div>
           </Link>
 
-          
+
         </nav>
 
 
@@ -271,6 +272,7 @@ export default function Navbar() {
                text-[12px] font-medium text-[#111827] tracking-tight tabular-nums gap-2"
             aria-label="Credits"
           >
+            <PiCoinsDuotone className="w-5 h-5 text-[#D4AF37] mr-1" />
             <span className="opacity-70 mr-2">Credits</span>
             {credits.toLocaleString()}
 
@@ -387,7 +389,7 @@ export default function Navbar() {
 
                     <div className="my-1 border-t border-[#EAECEE]" />
 
-                    
+
 
                     {/* <div className="my-1 border-t border-[#EAECEE]" /> */}
 

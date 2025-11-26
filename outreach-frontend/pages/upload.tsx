@@ -31,6 +31,7 @@ import {
 
   ChevronDown,
   AlertCircle,
+  FileSpreadsheet,
 } from "lucide-react";
 import { useAuth } from "../lib/AuthProvider";
 import { useOptimisticJobs, type OptimisticJob } from "../lib/OptimisticJobsProvider";
@@ -1858,7 +1859,7 @@ function UploadPage() {
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg flex items-center justify-center"
                           style={{ backgroundColor: BRAND_TINT }}>
-                          <FileText className="w-5 h-5" style={{ color: BRAND }} />
+                          <FileSpreadsheet className="w-5 h-5" style={{ color: BRAND }} />
                         </div>
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-gray-900 truncate">
@@ -1945,6 +1946,8 @@ function UploadPage() {
             {step === 1 && !jobCreated && (
               <div className="flex flex-col">
                 <div className="space-y-4">
+
+
                   <div className="mx-auto max-w-sm space-y-2">
                     <label className="text-xs font-medium text-gray-700">
                       Select Email Column
