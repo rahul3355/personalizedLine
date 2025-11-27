@@ -246,6 +246,196 @@ function ProgressBar({ value }: { value: number }) {
   );
 }
 
+// Mobile Jobs List Component - Clean, Perplexity-style design
+function MobileJobsList({
+  jobs,
+  loading,
+  hasMore,
+  loadingMore,
+  onLoadMore,
+  onDownload,
+  downloadingJobs,
+  downloadedJobs,
+}: {
+  jobs: Job[];
+  loading: boolean;
+  hasMore: boolean;
+  loadingMore: boolean;
+  onLoadMore: () => void;
+  onDownload: (job: Job) => void;
+  downloadingJobs: Record<string, boolean>;
+  downloadedJobs: Record<string, boolean>;
+}) {
+  // Group jobs by day
+  const groupedJobs = useMemo<GroupedJobs[]>(() => {
+    const map = new Map<string, GroupedJobs>();
+    jobs.forEach((job) => {
+      const date = new Date(job.created_at);
+      const key = getDayKey(date);
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          label: getDayLabel(date),
+          jobs: [],
+          sortKey: date.getTime(),
+        });
+      }
+      map.get(key)?.jobs.push(job);
+    });
+
+    return Array.from(map.values())
+      .map((group) => ({
+        ...group,
+        jobs: group.jobs.sort((a, b) => b.created_at - a.created_at),
+      }))
+      .sort((a, b) => b.sortKey - a.sortKey);
+  }, [jobs]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white">
+        <div className="px-5 pt-6 pb-16">
+          <div className="space-y-6">
+            <JobListSkeleton count={6} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (groupedJobs.length === 0) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center px-6">
+        <div className="text-center">
+          <FileText className="mx-auto h-12 w-12 text-gray-300" />
+          <h2 className="mt-4 text-xl font-semibold text-gray-900">No jobs yet</h2>
+          <p className="mt-2 text-sm text-gray-500 max-w-xs mx-auto">
+            Upload a CSV file to start your first personalization job
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-white">
+      <div className="px-5 pt-6 pb-16 space-y-6">
+        {groupedJobs.map((group) => (
+          <div key={group.key} className="space-y-3">
+            {/* Day Header */}
+            <div className="px-1 text-xs font-bold text-gray-400 uppercase tracking-wider sticky top-0 bg-white py-2 z-10">
+              {group.label}
+            </div>
+
+            {/* Job Cards */}
+            <div className="space-y-3">
+              {group.jobs.map((job) => {
+                const config = getStatusVisuals(job.status);
+                const Icon = config.icon;
+                const isInProgress = job.status === "pending" || job.status === "in_progress";
+                const isCompleted = job.status === "succeeded";
+
+                return (
+                  <div
+                    key={job.id}
+                    className="bg-gray-50 rounded-xl p-4 space-y-3"
+                    style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}
+                  >
+                    {/* Top Row: Icon, Title, Time */}
+                    <div className="flex items-start gap-3">
+                      {/* Status Icon */}
+                      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${config.iconBg}`}>
+                        <Icon className="h-5 w-5" style={{ color: config.iconColor }} />
+                      </div>
+
+                      {/* Title & Status */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-base font-semibold text-gray-900 truncate">
+                          {truncateFilename(job.filename, 25)}
+                        </h3>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${config.pillBg} ${config.pillColor}`}>
+                            {config.label}
+                          </span>
+                          <span className="text-xs text-gray-400">
+                            {job.rows.toLocaleString()} rows
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Time & Action */}
+                      <div className="flex flex-col items-end gap-2 shrink-0">
+                        <span className="text-xs font-medium text-gray-500">
+                          {formatTime(new Date(job.created_at))}
+                        </span>
+                        {isCompleted && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDownload(job);
+                            }}
+                            disabled={Boolean(downloadingJobs[job.id] || downloadedJobs[job.id])}
+                            className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${downloadedJobs[job.id]
+                              ? "bg-emerald-500 text-white"
+                              : "bg-white text-[#4F55F1] hover:bg-[#4F55F1] hover:text-white border border-gray-200"
+                              } disabled:opacity-50`}
+                            aria-label="Download results"
+                          >
+                            {downloadedJobs[job.id] ? (
+                              <CheckCircle2 className="h-4 w-4" />
+                            ) : downloadingJobs[job.id] ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Download className="h-4 w-4" />
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Progress Bar (for in-progress jobs) */}
+                    {isInProgress && (
+                      <div className="space-y-1.5">
+                        <ProgressBar value={job.progress ?? 0} />
+                        {job.message && (
+                          <p className="text-[11px] text-gray-500 truncate">
+                            {formatJobMessage(job.message)}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Error Message */}
+                    {job.status === "failed" && job.error && (
+                      <p className="text-xs text-red-600 truncate">{job.error}</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+
+        {/* Load More */}
+        {hasMore && (
+          <div className="flex justify-center pt-4">
+            <button
+              type="button"
+              onClick={onLoadMore}
+              disabled={loadingMore}
+              className="px-6 py-3 rounded-full text-sm font-semibold text-white disabled:opacity-60 transition-all"
+              style={{ background: "linear-gradient(135deg, #4F55F1 0%, #8186FF 100%)" }}
+            >
+              {loadingMore ? "Loading…" : "Load more"}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function JobsPage() {
   const router = useRouter();
   const { session } = useAuth();
@@ -509,11 +699,11 @@ function JobsPage() {
             setSelectedJob((prev) =>
               prev
                 ? {
-                    ...prev,
-                    status: data.status,
-                    progress: data.percent,
-                    message: data.message,
-                  }
+                  ...prev,
+                  status: data.status,
+                  progress: data.percent,
+                  message: data.message,
+                }
                 : prev
             );
 
@@ -913,261 +1103,294 @@ function JobsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen overflow-x-hidden bg-white md:bg-[#F7F7F7] md:overflow-visible bg-none">
-        <div className="relative w-full px-4 sm:px-8 md:px-10 lg:px-12 pt-6 pb-16">
-          <div className="space-y-10">
-            <div className="space-y-12">
-              <section className="space-y-3">
-                <div className="w-full max-w-none overflow-hidden rounded-[18px] bg-white shadow-none">
-                  <JobListSkeleton count={8} />
-                </div>
-              </section>
+      <>
+        {/* Mobile Loading */}
+        <div className="md:hidden">
+          <MobileJobsList
+            jobs={[]}
+            loading={true}
+            hasMore={false}
+            loadingMore={false}
+            onLoadMore={() => { }}
+            onDownload={() => { }}
+            downloadingJobs={{}}
+            downloadedJobs={{}}
+          />
+        </div>
+
+        {/* Desktop Loading */}
+        <div className="hidden md:block min-h-screen overflow-x-hidden bg-white md:bg-[#F7F7F7] md:overflow-visible bg-none">
+          <div className="relative w-full px-4 sm:px-8 md:px-10 lg:px-12 pt-6 pb-16">
+            <div className="space-y-10">
+              <div className="space-y-12">
+                <section className="space-y-3">
+                  <div className="w-full max-w-none overflow-hidden rounded-[18px] bg-white shadow-none">
+                    <JobListSkeleton count={8} />
+                  </div>
+                </section>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-white md:bg-[#F7F7F7] md:overflow-visible bg-none">
-      <div ref={layoutRef} className="relative w-full px-4 sm:px-8 md:px-10 lg:px-12 pt-6 pb-16">
-        <div
-          className={`transition-all duration-300 ${selectedJobId ? "md:pr-[344px] lg:pr-[422px]" : ""}`}
-        >
+    <>
+      {/* Mobile View */}
+      <div className="md:hidden">
+        <MobileJobsList
+          jobs={sortedJobs}
+          loading={false}
+          hasMore={hasMore}
+          loadingMore={loadingMore}
+          onLoadMore={handleLoadMore}
+          onDownload={handleDownloadFromList}
+          downloadingJobs={downloadingJobs}
+          downloadedJobs={downloadedJobs}
+        />
+      </div>
 
-          <div className="space-y-10">
+      {/* Desktop View */}
+      <div className="hidden md:block min-h-screen overflow-x-hidden bg-white md:bg-[#F7F7F7] md:overflow-visible bg-none">
+        <div ref={layoutRef} className="relative w-full px-4 sm:px-8 md:px-10 lg:px-12 pt-6 pb-16">
+          <div
+            className={`transition-all duration-300 ${selectedJobId ? "md:pr-[344px] lg:pr-[422px]" : ""}`}
+          >
 
-            {groupedJobs.length === 0 ? (
-              <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
-                <FileText className="h-12 w-12 text-[#8B8DA1]/60" />
-                <h2 className="mt-6 text-xl font-semibold text-[#101225]">No jobs yet</h2>
-                <p className="mt-2 max-w-sm text-[15px] leading-relaxed text-[#8B8DA1]">
-                  Upload a CSV file to start your first personalization job
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-12">
+            <div className="space-y-10">
+
+              {groupedJobs.length === 0 ? (
+                <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
+                  <FileText className="h-12 w-12 text-[#8B8DA1]/60" />
+                  <h2 className="mt-6 text-xl font-semibold text-[#101225]">No jobs yet</h2>
+                  <p className="mt-2 max-w-sm text-[15px] leading-relaxed text-[#8B8DA1]">
+                    Upload a CSV file to start your first personalization job
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-12">
 
 
-                {groupedJobs.map((group, groupIdx) => {
-                  const showHeader = group.label !== "Today";
-                  return (
-                    <section
-                      key={group.key}
-                      className={`space-y-3 ${groupIdx === 0 ? "mt-0" : ""}`}
-                    >
+                  {groupedJobs.map((group, groupIdx) => {
+                    const showHeader = group.label !== "Today";
+                    return (
+                      <section
+                        key={group.key}
+                        className={`space-y-3 ${groupIdx === 0 ? "mt-0" : ""}`}
+                      >
 
-                      <div className={showHeader ? "space-y-3" : ""}>
-                        {showHeader && (
-                          <div
-                            className="px-1 text-[15px] font-semibold tracking-[-0.01em] text-[#0E0F12]"
-                            style={{ fontFamily: '"Aeonik Pro","Inter",sans-serif' }}
+                        <div className={showHeader ? "space-y-3" : ""}>
+                          {showHeader && (
+                            <div
+                              className="px-1 text-[15px] font-semibold tracking-[-0.01em] text-[#0E0F12]"
+                              style={{ fontFamily: '"Aeonik Pro","Inter",sans-serif' }}
+                            >
+                              {group.label}
+                            </div>
+                          )}
+
+                          <ul
+                            ref={groupIdx === 0 ? firstGroupRef : undefined}
+                            className="w-full max-w-none overflow-hidden rounded-[18px] bg-white shadow-none"
                           >
-                            {group.label}
-                          </div>
-                        )}
 
-                        <ul
-                          ref={groupIdx === 0 ? firstGroupRef : undefined}
-                          className="w-full max-w-none overflow-hidden rounded-[18px] bg-white shadow-none"
-                        >
+                            {group.jobs.map((job, idx) => {
+                              const isActive = job.id === selectedJobId;
+                              const isFirst = idx === 0;
+                              const isLast = idx === group.jobs.length - 1;
+                              const indicatorMessage =
+                                formatJobMessage(job.message) || job.message || undefined;
+                              const radius =
+                                isFirst && isLast
+                                  ? "rounded-[18px]"
+                                  : isFirst
+                                    ? "rounded-t-[18px]"
+                                    : isLast
+                                      ? "rounded-b-[18px]"
+                                      : "";
 
-                          {group.jobs.map((job, idx) => {
-                            const isActive = job.id === selectedJobId;
-                            const isFirst = idx === 0;
-                            const isLast = idx === group.jobs.length - 1;
-                            const indicatorMessage =
-                              formatJobMessage(job.message) || job.message || undefined;
-                            const radius =
-                              isFirst && isLast
-                                ? "rounded-[18px]"
-                                : isFirst
-                                  ? "rounded-t-[18px]"
-                                  : isLast
-                                    ? "rounded-b-[18px]"
-                                    : "";
+                              return (
+                                <li key={job.id} className={idx > 0 ? "border-t border-[#EFF0F6]" : ""}>
+                                  <div
+                                    role="button"
+                                    tabIndex={0}
+                                    ref={setJobRef(job.id)}
+                                    onClick={() => openJob(job.id)}
+                                    onKeyDown={(event) => {
+                                      if (event.key === "Enter" || event.key === " ") {
+                                        event.preventDefault();
+                                        openJob(job.id);
+                                      }
+                                    }}
+                                    data-active={isActive}
+                                    className={[
+                                      "group relative z-0 flex w-full cursor-pointer items-center gap-5 px-6 py-[14px] text-left transition-colors",
+                                      "hover:bg-white/70",
+                                      radius,
+                                      "data-[active=true]:ring-1 data-[active=true]:ring-[#4F55F1] data-[active=true]:bg-white data-[active=true]:z-[1]"
+                                    ].join(" ")}
+                                  >
+                                    <StatusIcon status={job.status} />
 
-                            return (
-                              <li key={job.id} className={idx > 0 ? "border-t border-[#EFF0F6]" : ""}>
-                                <div
-                                  role="button"
-                                  tabIndex={0}
-                                  ref={setJobRef(job.id)}
-                                  onClick={() => openJob(job.id)}
-                                  onKeyDown={(event) => {
-                                    if (event.key === "Enter" || event.key === " ") {
-                                      event.preventDefault();
-                                      openJob(job.id);
-                                    }
-                                  }}
-                                  data-active={isActive}
-                                  className={[
-                                    "group relative z-0 flex w-full cursor-pointer items-center gap-5 px-6 py-[14px] text-left transition-colors",
-                                    "hover:bg-white/70",
-                                    radius,
-                                    "data-[active=true]:ring-1 data-[active=true]:ring-[#4F55F1] data-[active=true]:bg-white data-[active=true]:z-[1]"
-                                  ].join(" ")}
-                                >
-                                  <StatusIcon status={job.status} />
+                                    <div className="min-w-0 flex-1 space-y-2">
+                                      <div className="flex items-center gap-3">
+                                        <p
+                                          className="flex-1 min-w-0 text-[15px] font-semibold text-[#101225]"
+                                          title={job.filename}
+                                        >
+                                          {truncateFilename(job.filename, 72)}
+                                        </p>
+                                        <span
+                                          className="text-[12px] font-medium tracking-[-0.01em] text-[#0E0F12] flex-shrink-0"
+                                          style={{ fontFamily: '"Aeonik Pro","Inter",sans-serif' }}
+                                        >
+                                          {formatTime(new Date(job.created_at))}
+                                        </span>
+                                      </div>
 
-                                  <div className="min-w-0 flex-1 space-y-2">
+                                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#8B8DA1]">
+                                        <StatusPill status={job.status} />
+                                        <span>{job.rows.toLocaleString()} rows</span>
+                                        <div className="hidden md:block">
+                                          <ThinkingIndicator
+                                            status={job.status}
+                                            progress={job.progress}
+                                            message={indicatorMessage}
+                                          />
+                                        </div>
+                                        {job.status === "failed" && job.error ? (
+                                          <span className="text-[#DC2F2F]">{job.error}</span>
+                                        ) : null}
+                                      </div>
+
+                                      {(job.status === "pending" || job.status === "in_progress") && (
+                                        <div className="pt-1">
+                                          <ProgressBar value={job.progress ?? 0} />
+                                        </div>
+                                      )}
+                                    </div>
+
                                     <div className="flex items-center gap-3">
-                                      <p
-                                        className="flex-1 min-w-0 text-[15px] font-semibold text-[#101225]"
-                                        title={job.filename}
-                                      >
-                                        {truncateFilename(job.filename, 72)}
-                                      </p>
-                                      <span
-                                        className="text-[12px] font-medium tracking-[-0.01em] text-[#0E0F12] flex-shrink-0"
-                                        style={{ fontFamily: '"Aeonik Pro","Inter",sans-serif' }}
-                                      >
-                                        {formatTime(new Date(job.created_at))}
-                                      </span>
-                                    </div>
-
-                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#8B8DA1]">
-                                      <StatusPill status={job.status} />
-                                      <span>{job.rows.toLocaleString()} rows</span>
-                                      <div className="hidden md:block">
-                                        <ThinkingIndicator
-                                          status={job.status}
-                                          progress={job.progress}
-                                          message={indicatorMessage}
-                                        />
-                                      </div>
-                                      {job.status === "failed" && job.error ? (
-                                        <span className="text-[#DC2F2F]">{job.error}</span>
-                                      ) : null}
-                                    </div>
-
-                                    {(job.status === "pending" || job.status === "in_progress") && (
-                                      <div className="pt-1">
-                                        <ProgressBar value={job.progress ?? 0} />
-                                      </div>
-                                    )}
-                                  </div>
-
-                                  <div className="flex items-center gap-3">
-                                    {job.status === "succeeded" && (
-                                      <button
-                                        type="button"
-                                        onClick={(event) => {
-                                          event.stopPropagation();
-                                          event.preventDefault();
-                                          handleDownloadFromList(job);
-                                        }}
-                                        disabled={Boolean(downloadingJobs[job.id] || downloadedJobs[job.id])}
-                                        className={`flex h-9 w-9 items-center justify-center rounded-full border transition-colors ${
-                                          downloadedJobs[job.id]
+                                      {job.status === "succeeded" && (
+                                        <button
+                                          type="button"
+                                          onClick={(event) => {
+                                            event.stopPropagation();
+                                            event.preventDefault();
+                                            handleDownloadFromList(job);
+                                          }}
+                                          disabled={Boolean(downloadingJobs[job.id] || downloadedJobs[job.id])}
+                                          className={`flex h-9 w-9 items-center justify-center rounded-full border transition-colors ${downloadedJobs[job.id]
                                             ? "border-emerald-500 bg-emerald-500 text-white"
                                             : "border-[#D8DAE6] text-[#4F55F1] hover:bg-[#4F55F1] hover:text-white"
-                                        } disabled:cursor-not-allowed disabled:opacity-70`}
-                                        aria-label="Download results"
-                                      >
-                                        {downloadedJobs[job.id] ? (
-                                          <CheckCircle2 className="h-4 w-4" />
-                                        ) : downloadingJobs[job.id] ? (
-                                          <Loader2 className="h-4 w-4 animate-spin" />
-                                        ) : (
-                                          <Download className="h-4 w-4" />
-                                        )}
-                                      </button>
-                                    )}
-                                    <ArrowRight
-                                      className={`h-5 w-5 flex-shrink-0 transition-colors ${isActive ? "text-[#4F55F1]" : "text-[#C1C3D6] group-hover:text-[#4F55F1]"}`}
-                                    />
+                                            } disabled:cursor-not-allowed disabled:opacity-70`}
+                                          aria-label="Download results"
+                                        >
+                                          {downloadedJobs[job.id] ? (
+                                            <CheckCircle2 className="h-4 w-4" />
+                                          ) : downloadingJobs[job.id] ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                          ) : (
+                                            <Download className="h-4 w-4" />
+                                          )}
+                                        </button>
+                                      )}
+                                      <ArrowRight
+                                        className={`h-5 w-5 flex-shrink-0 transition-colors ${isActive ? "text-[#4F55F1]" : "text-[#C1C3D6] group-hover:text-[#4F55F1]"}`}
+                                      />
+                                    </div>
                                   </div>
-                                </div>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      </div>
-                    </section>
-                  );
-                })}
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </div>
+                      </section>
+                    );
+                  })}
 
-                {hasMore && (
-                  <div className="flex justify-center pt-2">
-                    <button
-                      type="button"
-                      onClick={handleLoadMore}
-                      disabled={loadingMore}
-                      className="rounded-full px-6 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 transition-all duration-200 hover:scale-105 hover:shadow-lg active:scale-95 disabled:hover:scale-100 disabled:hover:shadow-none"
-                      style={{ background: "linear-gradient(135deg, #4F55F1 0%, #8186FF 100%)" }}
-                    >
-                      {loadingMore ? "Loading…" : "Load more"}
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <AnimatePresence>
-          {selectedJobId && (
-            <>
-              {/* Mobile: full-screen overlay + slide-in */}
-              <motion.div
-                key="drawer-mobile"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm md:hidden"
-                onClick={handleOverlayClick}
-              >
-                <motion.div
-                  initial={{ x: "100%" }}
-                  animate={{ x: 0 }}
-                  exit={{ x: "100%" }}
-                  transition={{ type: "spring", stiffness: 260, damping: 30 }}
-                  className="absolute inset-y-0 right-0 w-full max-w-md bg-white"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <DetailPanel
-                    job={selectedJob}
-                    isLoading={detailLoading}
-                    error={detailError}
-                    onClose={closeDrawer}
-                    onRetry={handleRetry}
-                    onDownload={handleDownload}
-                    downloading={downloading}
-                    isMobile
-                  />
-                </motion.div>
-              </motion.div>
-
-              {/* Desktop: floating card aligned with first job card */}
-              <motion.div
-                key="drawer-desktop"
-                initial={{ opacity: 0, x: 60 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 60 }}
-                transition={{ type: "spring", stiffness: 260, damping: 30 }}
-                className="pointer-events-none absolute right-0 hidden w-full max-w-xs md:flex md:max-w-sm lg:max-w-md"
-                style={{ top: drawerTop, minHeight: drawerHeight ?? undefined }}
-              >
-                <div className="pointer-events-auto">
-                  <DetailPanel
-                    job={selectedJob}
-                    isLoading={detailLoading && Boolean(selectedJobId)}
-                    error={detailError}
-                    onClose={closeDrawer}
-                    onRetry={handleRetry}
-                    onDownload={handleDownload}
-                    downloading={downloading}
-                  />
+                  {hasMore && (
+                    <div className="flex justify-center pt-2">
+                      <button
+                        type="button"
+                        onClick={handleLoadMore}
+                        disabled={loadingMore}
+                        className="rounded-full px-6 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 transition-all duration-200 hover:scale-105 hover:shadow-lg active:scale-95 disabled:hover:scale-100 disabled:hover:shadow-none"
+                        style={{ background: "linear-gradient(135deg, #4F55F1 0%, #8186FF 100%)" }}
+                      >
+                        {loadingMore ? "Loading…" : "Load more"}
+                      </button>
+                    </div>
+                  )}
                 </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
+              )}
+            </div>
+          </div>
 
+          <AnimatePresence>
+            {selectedJobId && (
+              <>
+                {/* Mobile: full-screen overlay + slide-in */}
+                <motion.div
+                  key="drawer-mobile"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm md:hidden"
+                  onClick={handleOverlayClick}
+                >
+                  <motion.div
+                    initial={{ x: "100%" }}
+                    animate={{ x: 0 }}
+                    exit={{ x: "100%" }}
+                    transition={{ type: "spring", stiffness: 260, damping: 30 }}
+                    className="absolute inset-y-0 right-0 w-full max-w-md bg-white"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <DetailPanel
+                      job={selectedJob}
+                      isLoading={detailLoading}
+                      error={detailError}
+                      onClose={closeDrawer}
+                      onRetry={handleRetry}
+                      onDownload={handleDownload}
+                      downloading={downloading}
+                      isMobile
+                    />
+                  </motion.div>
+                </motion.div>
+
+                {/* Desktop: floating card aligned with first job card */}
+                <motion.div
+                  key="drawer-desktop"
+                  initial={{ opacity: 0, x: 60 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 60 }}
+                  transition={{ type: "spring", stiffness: 260, damping: 30 }}
+                  className="pointer-events-none absolute right-0 hidden w-full max-w-xs md:flex md:max-w-sm lg:max-w-md"
+                  style={{ top: drawerTop, minHeight: drawerHeight ?? undefined }}
+                >
+                  <div className="pointer-events-auto">
+                    <DetailPanel
+                      job={selectedJob}
+                      isLoading={detailLoading && Boolean(selectedJobId)}
+                      error={detailError}
+                      onClose={closeDrawer}
+                      onRetry={handleRetry}
+                      onDownload={handleDownload}
+                      downloading={downloading}
+                    />
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
+
+        </div>
       </div>
-    </div >
+    </>
   );
 }
 
@@ -1339,9 +1562,8 @@ function InfoRow({
     <div className="flex items-center justify-between px-4 py-2">
       <span className="text-[15px] text-gray-500 flex-shrink-0">{label}</span>
       <div
-        className={`ml-4 max-w-[60%] text-right text-[15px] text-gray-900 ${
-          mono ? "font-mono break-all" : breakWords ? "break-words" : ""
-        }`}
+        className={`ml-4 max-w-[60%] text-right text-[15px] text-gray-900 ${mono ? "font-mono break-all" : breakWords ? "break-words" : ""
+          }`}
       >
         {value}
       </div>
