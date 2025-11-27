@@ -2429,7 +2429,7 @@ function UploadPage() {
                 >
                   {loading ? (
                     <>
-                      <SendItFastSpinner size={18} color="white" />
+                      <SendItFastSpinner size={18} />
                       <span>Processing...</span>
                     </>
                   ) : (
