@@ -97,6 +97,13 @@ function LoginPage() {
         <div className="flex-1 flex flex-col items-center justify-center px-6 sm:px-8 gap-y-6">
           <div className="w-full max-w-md flex flex-col gap-y-6">
             <div className="text-center lg:text-left">
+              <Image
+                src={SendItFastLogo}
+                alt="SendItFast Logo"
+                width={120}
+                height={32}
+                className="mx-auto lg:mx-0 mb-6"
+              />
               <h1 className="text-[22px] sm:text-[24px] lg:text-[28px] font-semibold text-gray-900 mb-2 leading-tight">
                 Login to your account
               </h1>
