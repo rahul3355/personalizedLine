@@ -34,7 +34,15 @@ for item in ledgers.data:
     print(f" - {item['ts']}: {item['change']} ({item['reason']})")
     total_used += abs(item['change'])
 
-print(f"\nTotal Calculated Usage: {total_used}")
+print(f"\nTotal Calculated Usage (Manual): {total_used}")
+
+# Test RPC
+try:
+    print("\nTesting RPC 'get_total_credits_used'...")
+    rpc_res = supabase.rpc("get_total_credits_used", {"user_uuid": user_id}).execute()
+    print(f"RPC Result: {rpc_res.data}")
+except Exception as e:
+    print(f"RPC Failed: {e}")
 
 # Check logic
 created_at_str = user.get("created_at")

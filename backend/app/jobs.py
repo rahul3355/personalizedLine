@@ -666,41 +666,53 @@ def _deduct_job_credits(
         # Check for welcome reward unlock (500 credits used within 7 days)
         if deducted:
             try:
+                with open("debug_rewards.log", "a") as f:
+                    f.write(f"[{datetime.utcnow()}] Checking reward for user {user_id}\n")
+                
                 # 1. Check current status
                 p_res = supabase_client.table("profiles").select("created_at, welcome_reward_status").eq("id", user_id).single().execute()
                 if p_res.data:
                     status = p_res.data.get("welcome_reward_status")
                     created_at_str = p_res.data.get("created_at")
                     
+                    with open("debug_rewards.log", "a") as f:
+                        f.write(f"[{datetime.utcnow()}] Status: {status}, Created: {created_at_str}\n")
+                    
                     if status == "locked" and created_at_str:
                         # 2. Check time constraint (7 days)
                         created_at = datetime.fromisoformat(created_at_str.replace('Z', '+00:00'))
                         if datetime.now(created_at.tzinfo) < created_at + timedelta(days=7):
                             # 3. Check total usage
-                            # We sum negative changes from ledger where reason is job deduction
                             l_res = supabase_client.rpc(
                                 "get_total_credits_used", 
                                 {"user_uuid": user_id}
                             ).execute()
                             
-                            # Fallback if RPC doesn't exist yet (we'll create it, but good to be safe)
                             total_used = 0
                             if hasattr(l_res, 'data') and l_res.data is not None:
                                 total_used = l_res.data
-                            else:
-                                # Manual query fallback (less efficient but works)
-                                ledgers = supabase_client.table("ledger").select("change").eq("user_id", user_id).lt("change", 0).execute()
-                                if ledgers.data:
-                                    total_used = sum(abs(item['change']) for item in ledgers.data)
+                            
+                            with open("debug_rewards.log", "a") as f:
+                                f.write(f"[{datetime.utcnow()}] Total used: {total_used}\n")
 
                             if total_used >= 500:
                                 supabase_client.table("profiles").update({
                                     "welcome_reward_status": "unlocked"
                                 }).eq("id", user_id).execute()
                                 print(f"[Rewards] Unlocked welcome reward for user {user_id}")
+                                with open("debug_rewards.log", "a") as f:
+                                    f.write(f"[{datetime.utcnow()}] UNLOCKED!\n")
+                        else:
+                            with open("debug_rewards.log", "a") as f:
+                                f.write(f"[{datetime.utcnow()}] Time expired\n")
+                    else:
+                        with open("debug_rewards.log", "a") as f:
+                            f.write(f"[{datetime.utcnow()}] Not locked or no created_at\n")
 
             except Exception as e:
                 print(f"[Rewards] Failed to check reward status: {e}")
+                with open("debug_rewards.log", "a") as f:
+                    f.write(f"[{datetime.utcnow()}] ERROR: {e}\n")
 
 
 def _get_job_timeout():
