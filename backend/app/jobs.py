@@ -14,7 +14,7 @@ from backend.app.gpt_helpers import generate_full_email_body
 from backend.app.research import perform_research
 from backend.app.email_cleaning import clean_email_body
 from backend.app.supabase_client import supabase
-from datetime import datetime
+from datetime import datetime, timedelta
 import redis
 import rq
 import requests
