@@ -121,7 +121,7 @@ export default function Home() {
                             {getGreeting()}, {firstName}
                         </h1>
                         <p className="text-gray-500 text-[15px] font-normal">
-                            What would you like to research today?
+                            A good day to reach out
                         </p>
                     </div>
 
@@ -132,7 +132,7 @@ export default function Home() {
                                 <Plus className="w-5 h-5" />
                             </div>
                             <div className="flex-1 text-left">
-                                <span className="block text-[15px] font-medium text-gray-900">Start New Project</span>
+                                <span className="block text-[15px] font-medium text-gray-900">Start Generating Emails</span>
                                 <span className="block text-[12px] text-gray-400">Upload a CSV to begin</span>
                             </div>
                             <div className="h-8 w-8 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 opacity-0 group-hover:opacity-100 transition-all">

@@ -2373,7 +2373,7 @@ function UploadPage() {
               <div className="w-full max-w-sm space-y-8">
                 <div className="text-center space-y-2">
                   <h1 className="text-2xl font-serif text-gray-900 tracking-tight">
-                    New Project
+                    Generate Emails
                   </h1>
                   <p className="text-gray-500 text-sm font-light">
                     Upload your lead list to get started

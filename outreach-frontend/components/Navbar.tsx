@@ -465,8 +465,9 @@ export default function Navbar() {
           <Image
             src={sendItFastLogo}
             alt="SendItFast Logo"
-            width={120}
-            height={28}
+            width={100}
+            height={24}
+            className="grayscale opacity-70"
             priority
           />
 
