@@ -8,6 +8,7 @@ on:
       - 'backend/**'
       - 'k8s/**'
       - '.github/workflows/deploy-gke.yml'
+  workflow_dispatch:
 
 env:
   PROJECT_ID: personalizedline-prod
