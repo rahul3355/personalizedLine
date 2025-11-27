@@ -28,11 +28,12 @@ import {
   TrendingUp,
   Sparkles,
   Plus,
-
   ChevronDown,
   AlertCircle,
   FileSpreadsheet,
 } from "lucide-react";
+import Image from "next/image";
+import SendItFastLogo from "../assets/senditfast-logo.png";
 import { PiCoinDuotone, PiCoinsDuotone } from "react-icons/pi";
 import { useAuth } from "../lib/AuthProvider";
 import { useOptimisticJobs, type OptimisticJob } from "../lib/OptimisticJobsProvider";
@@ -767,10 +768,189 @@ function ExamplesDrawerPanel({
   );
 }
 
+function MobileExamplesDrawerV2({
+  onClose,
+  onUseExample,
+}: {
+  onClose: () => void;
+  onUseExample: (example: ExampleItem) => void;
+}) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<ExampleCategory | "all">("all");
 
+  const filteredExamples = EXAMPLE_DATA.filter((example) => {
+    const matchesSearch =
+      searchQuery === "" ||
+      example.core_offer.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      example.key_differentiator.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      example.cta.toLowerCase().includes(searchQuery.toLowerCase());
+
+    if (searchQuery !== "") return matchesSearch;
+    return selectedCategory === "all" || example.category === selectedCategory;
+  });
+
+  return (
+    <div className="fixed inset-0 z-[60] bg-white flex flex-col" style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}>
+      {/* Header with extra safe area padding */}
+      <div className="px-6 pt-16 pb-2 flex items-center justify-between bg-white z-10">
+        <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Library</h2>
+        <button
+          onClick={onClose}
+          className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-900 hover:bg-gray-200 transition-colors"
+        >
+          <XIcon className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Search & Filter */}
+      <div className="px-6 py-4 space-y-6 bg-white z-10">
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search templates..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full h-14 pl-12 pr-4 rounded-2xl bg-gray-50 border-0 text-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-gray-900/5 transition-all"
+          />
+        </div>
+
+        <div className="flex gap-3 overflow-x-auto pb-2 -mx-6 px-6 no-scrollbar">
+          <button
+            onClick={() => setSelectedCategory("all")}
+            className={`flex-shrink-0 px-5 py-2.5 rounded-full text-sm font-medium transition-all ${selectedCategory === "all"
+              ? "bg-gray-900 text-white"
+              : "bg-gray-100 text-gray-600"
+              }`}
+          >
+            All
+          </button>
+          {EXAMPLE_CATEGORIES.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`flex-shrink-0 px-5 py-2.5 rounded-full text-sm font-medium transition-all ${selectedCategory === cat.id
+                ? "bg-gray-900 text-white"
+                : "bg-gray-100 text-gray-600"
+                }`}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* List */}
+      <div className="flex-1 overflow-y-auto px-6 pb-10 space-y-6">
+        {filteredExamples.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-40 text-center mt-10">
+            <p className="text-gray-500 text-lg">No templates found.</p>
+          </div>
+        ) : (
+          filteredExamples.map((example) => (
+            <div
+              key={example.id}
+              className="group flex flex-col gap-4 py-6 border-b border-gray-100 last:border-0"
+            >
+              <div className="space-y-4">
+                <span className="inline-block px-2 py-1 rounded-md bg-blue-50 text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-1">
+                  {EXAMPLE_CATEGORIES.find(c => c.id === example.category)?.label}
+                </span>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+                    Core Offer
+                  </label>
+                  <h3 className="text-lg font-medium text-gray-900 leading-snug">
+                    {example.core_offer}
+                  </h3>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+                    Key Differentiator
+                  </label>
+                  <p className="text-base text-gray-600 leading-relaxed">
+                    {example.key_differentiator}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+                    CTA
+                  </label>
+                  <p className="text-base text-gray-600 leading-relaxed">
+                    {example.cta}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => onUseExample(example)}
+                className="w-full py-3.5 rounded-xl bg-gray-50 text-gray-900 font-semibold text-sm hover:bg-gray-100 active:bg-gray-200 transition-colors flex items-center justify-center gap-2"
+              >
+                Use Template
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+function HeaderSelectionSheet({
+  headers,
+  onSelect,
+  onClose,
+  currentValue,
+}: {
+  headers: string[];
+  onSelect: (header: string) => void;
+  onClose: () => void;
+  currentValue: string;
+}) {
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center">
+      <div
+        className="absolute inset-0 bg-black/20 backdrop-blur-sm transition-opacity"
+        onClick={onClose}
+      />
+      <div className="relative w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-6 shadow-xl animate-in slide-in-from-bottom duration-300 max-h-[85vh] flex flex-col">
+        <div className="flex items-center justify-between mb-6 flex-shrink-0">
+          <h3 className="text-lg font-semibold text-gray-900">Select Email Column</h3>
+          <button
+            onClick={onClose}
+            className="p-2 -mr-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+          >
+            <XIcon className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 -mx-2 px-2 space-y-1">
+          {headers.map((header) => (
+            <button
+              key={header}
+              onClick={() => onSelect(header)}
+              className={`w-full flex items-center justify-between p-4 rounded-xl text-left transition-all ${currentValue === header
+                ? "bg-blue-50 text-blue-700 ring-1 ring-blue-200"
+                : "hover:bg-gray-50 text-gray-700"
+                }`}
+            >
+              <span className="font-medium text-sm truncate">{header}</span>
+              {currentValue === header && (
+                <Check className="w-4 h-4 text-blue-600" />
+              )}
+            </button>
+          ))}
+        </div>
+      </div >
+    </div >
+  );
+}
 
 function UploadPage() {
-  const { session, loading: authLoading, refreshUserInfo, optimisticallyDeductCredits, revertOptimisticCredits } = useAuth();
+  const { session, loading: authLoading, refreshUserInfo, optimisticallyDeductCredits, revertOptimisticCredits, userInfo } = useAuth();
   const { addOptimisticJob, removeOptimisticJob } = useOptimisticJobs();
   const router = useRouter();
   const { toast } = useToast();
@@ -821,6 +1001,7 @@ function UploadPage() {
   } | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [isEmailDropdownOpen, setIsEmailDropdownOpen] = useState(false);
+  const [isHeaderSheetOpen, setIsHeaderSheetOpen] = useState(false);
 
   const hasCreditShortage = Boolean(creditInfo && !creditInfo.hasEnoughCredits);
   const formatNumber = useCallback((value: number) => value.toLocaleString(), []);
@@ -1004,26 +1185,6 @@ function UploadPage() {
         <AnimatePresence>
           {showExamples && (
             <>
-              <motion.div
-                key="examples-drawer-mobile"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[70] md:hidden bg-black/80 backdrop-blur-sm"
-                onClick={closeExamples}
-              >
-                <motion.div
-                  initial={{ x: "100%" }}
-                  animate={{ x: 0 }}
-                  exit={{ x: "100%" }}
-                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  className="absolute right-0 top-0 h-full w-full"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <ExamplesDrawerPanel onClose={closeExamples} isMobile onUseExample={handleUseExample} />
-                </motion.div>
-              </motion.div>
-
               <motion.div
                 key="examples-drawer-desktop"
                 initial={{ opacity: 0, x: 20 }}
@@ -2199,300 +2360,339 @@ function UploadPage() {
         </section >
       </div >
 
-      {/* Mobile sections kept intact for functionality; desktop changes satisfy requirements */}
-      {
-        step === 0 && !jobCreated && (
-          <div className="block md:hidden w-full min-h-[calc(100vh-159px)] px-4 flex items-center justify-center overflow-hidden bg-white">
-            <div className="max-w-md w-full space-y-6 mt-0 bg-white" style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}>
-              <h1 className="text-xl font-semibold text-gray-900 text-center">
-                Upload Outreach File
-              </h1>
-              <p className="text-gray-500 text-sm text-center">
-                Import your CSV/XLSX to begin personalization.
-              </p>
-              {renderCreditBanner(true)}
+      {/* MOBILE VIEW (Ground Up Redesign) */}
+      <div className="lg:hidden min-h-screen bg-white flex flex-col" style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}>
 
-              <div className="rounded-xl border-2 border-dashed p-8 text-center bg-white"
-                style={{ borderColor: "#E5E7EB" }}
-                onClick={() => document.getElementById("mobile-file-input")?.click()}
-              >
-                <input
-                  id="mobile-file-input"
-                  type="file"
-                  accept=".csv,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                  className="hidden"
-                  onChange={(e) => {
-                    const next = e.target.files?.[0] || null;
-                    handleFileSelection(next);
-                    (e.target as HTMLInputElement).value = "";
-                  }}
-                />
-                <UploadIcon className="h-10 w-10 mx-auto mb-3" style={{ color: BRAND }} />
-                {file ? (
-                  <span className="text-gray-700 font-medium">{file.name}</span>
-                ) : (
-                  <span className="text-gray-600 text-sm">
-                    Tap to upload file
-                  </span>
-                )}
-              </div>
 
-              <button
-                onClick={handleParseHeaders}
-                disabled={loading || !file}
-                className="w-full py-3 rounded-md font-medium text-white text-[15px] tracking-tight disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
-                style={{ backgroundColor: BRAND }}
-              >
-                {loading ? (
-                  <>
-                    <svg
-                      className="animate-spin h-5 w-5"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                    >
-                      {/* Bold white strip */}
-                      <circle
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="white"
-                        strokeWidth="3"
-                        strokeDasharray="31.4 31.4"
-                        strokeLinecap="round"
-                      />
-                      {/* Thin white strip */}
-                      <circle
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="white"
-                        strokeWidth="1"
-                        strokeDasharray="15.7 47.1"
-                        strokeDashoffset="15.7"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    Uploading...
-                  </>
-                ) : (
-                  "Proceed"
-                )}
-              </button>
-            </div>
-          </div >
-        )
-      }
+        {/* Content Area */}
+        <div className="flex-1 flex flex-col px-5 pt-8 pb-24">
 
-      {
-        step === 1 && !jobCreated && (
-          <div className="block md:hidden w-full h-[calc(100vh-69px)] px-4 flex items-start justify-center overflow-hidden relative -mt-[64px] pt-[64px] bg-white">
-            <div className="max-w-md w-full space-y-6" style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}>
-              <h2 className="text-lg font-semibold text-gray-900 text-center">Confirm Email Column</h2>
-              {renderCreditBanner(true)}
-              <div className="space-y-3">
-                <label className="text-xs text-gray-500 block">
-                  Choose which column contains the email address.
-                </label>
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4" style={{ color: BRAND }} />
-                  <select
-                    className="flex-1 rounded-md border bg-white px-3 py-2 text-sm"
-                    style={{ borderColor: "#E5E7EB" }}
-                    value={emailCol}
-                    onChange={(e) => setEmailCol(e.target.value)}
-                  >
-                    <option value="" disabled>
-                      Select a column
-                    </option>
-                    {headers.map((h) => (
-                      <option key={h} value={h}>
-                        {h}
-                      </option>
-                    ))}
-                  </select>
+          {/* Step 0: Upload */}
+          {step === 0 && !jobCreated && (
+            <div className="flex-1 flex flex-col justify-center animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="w-full max-w-sm space-y-8">
+                <div className="text-center space-y-2">
+                  <h1 className="text-2xl font-serif text-gray-900 tracking-tight">
+                    New Project
+                  </h1>
+                  <p className="text-gray-500 text-sm font-light">
+                    Upload your lead list to get started
+                  </p>
                 </div>
-                <p className="text-xs text-gray-500">
-                  Only the selected email column will be processed downstream.
-                </p>
+
+                {renderCreditBanner(true)}
+
+                <div
+                  className="group relative flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50/50 p-10 transition-all active:scale-[0.99] active:bg-gray-100"
+                  onClick={() => document.getElementById("mobile-file-input")?.click()}
+                >
+                  <input
+                    id="mobile-file-input"
+                    type="file"
+                    accept=".csv,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    className="hidden"
+                    onChange={(e) => {
+                      const next = e.target.files?.[0] || null;
+                      handleFileSelection(next);
+                      (e.target as HTMLInputElement).value = "";
+                    }}
+                  />
+                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-gray-100 group-active:scale-95 transition-transform">
+                    <UploadIcon className="h-6 w-6 text-gray-600" />
+                  </div>
+                  {file ? (
+                    <div className="text-center">
+                      <p className="text-sm font-medium text-gray-900 break-all line-clamp-1 px-4">
+                        {file.name}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Tap to change
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="text-center space-y-1">
+                      <p className="text-sm font-medium text-gray-900">
+                        Tap to upload
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        CSV or XLSX
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  onClick={handleParseHeaders}
+                  disabled={loading || !file}
+                  className="w-full h-12 rounded-full font-medium text-white text-[15px] shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                  style={{ backgroundColor: BRAND }}
+                >
+                  {loading ? (
+                    <>
+                      <SendItFastSpinner size={18} color="white" />
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Continue</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
               </div>
-
-              <button
-                onClick={handleConfirmHeaders}
-                disabled={loading || hasCreditShortage}
-                title={hasCreditShortage ? "Add credits to continue" : undefined}
-                className="w-full py-3 rounded-md font-medium text-white text-[15px] tracking-tight disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ backgroundColor: BRAND }}
-              >
-                {loading ? "Submitting..." : "Confirm Email Column"}
-              </button>
             </div>
-          </div>
-        )
-      }
+          )}
 
-      {
-        step === 2 && !jobCreated && (
-          <div className="block md:hidden w-full h-[calc(100vh-69px)] px-4 flex items-start justify-center pt-[64px] bg-white overflow-y-auto">
-            <div className="max-w-md w-full space-y-6 pb-8" style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}>
-              <h2 className="text-lg font-semibold text-gray-900 text-center">Describe Your Service</h2>
-              <div className="space-y-6">
-                {renderServiceInputs()}
+          {/* Step 1: Confirm Headers */}
+          {step === 1 && !jobCreated && (
+            <div className="flex flex-col animate-in fade-in slide-in-from-right-4 duration-300">
+              <div className="w-full max-w-sm mx-auto space-y-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <button
+                    onClick={() => setStep(0)}
+                    className="p-1 -ml-1 text-gray-400 hover:text-gray-600"
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                  </button>
+                  <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Step 1 of 2</span>
+                </div>
+
+                <div className="space-y-2">
+                  <h1 className="text-2xl font-serif text-gray-900 tracking-tight">
+                    Confirm Email Column
+                  </h1>
+                  <p className="text-gray-500 text-sm font-light">
+                    Which column contains the email addresses?
+                  </p>
+                </div>
+
+                {renderCreditBanner(true)}
+
+                <div className="space-y-4 pt-2">
+                  <div className="relative">
+                    <button
+                      onClick={() => setIsHeaderSheetOpen(true)}
+                      className="w-full flex items-center justify-between appearance-none rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/5 transition-all active:bg-gray-50"
+                    >
+                      <span className={emailCol ? "text-gray-900 font-medium" : "text-gray-400"}>
+                        {emailCol || "Select a column..."}
+                      </span>
+                      <ChevronDown className="h-5 w-5 text-gray-400" />
+                    </button>
+
+                    {isHeaderSheetOpen && (
+                      <HeaderSelectionSheet
+                        headers={headers}
+                        currentValue={emailCol}
+                        onSelect={(val) => {
+                          setEmailCol(val);
+                          setIsHeaderSheetOpen(false);
+                        }}
+                        onClose={() => setIsHeaderSheetOpen(false)}
+                      />
+                    )}
+                  </div>
+
+                  <div className="bg-blue-50/50 rounded-lg p-3 flex gap-3">
+                    <Info className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-blue-700 leading-relaxed">
+                      We'll use this column to send personalized emails to your leads.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-4">
+                  <button
+                    onClick={handleConfirmHeaders}
+                    disabled={loading || hasCreditShortage || !emailCol}
+                    className="w-full h-12 rounded-full font-medium text-white text-[15px] shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                    style={{ backgroundColor: BRAND }}
+                  >
+                    {loading ? "Saving..." : "Next Step"}
+                    {!loading && <ArrowRight className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Context & Preview */}
+          {step === 2 && !jobCreated && (
+            <div className="flex flex-col animate-in fade-in slide-in-from-right-4 duration-300">
+              <div className="w-full max-w-sm mx-auto space-y-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <button
+                    onClick={() => setStep(1)}
+                    className="p-1 -ml-1 text-gray-400 hover:text-gray-600"
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                  </button>
+                  <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Step 2 of 2</span>
+                </div>
+
+                <div className="space-y-2">
+                  <h1 className="text-2xl font-serif text-gray-900 tracking-tight">
+                    Describe Your Service
+                  </h1>
+                  <p className="text-gray-500 text-sm font-light">
+                    Provide context for the AI to generate emails.
+                  </p>
+                </div>
+
+                {/* Reusing renderServiceInputs but styling is handled by global CSS or passed classes? 
+                    The existing renderServiceInputs uses standard Tailwind classes which are fine.
+                    We just need to ensure the container is clean.
+                */}
+                <div className="space-y-6">
+                  {renderServiceInputs()}
+                </div>
+
                 {error && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm font-medium">
-                    {error}
+                  <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-xl text-sm flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <span className="flex-1">{error}</span>
                   </div>
                 )}
 
                 {/* Mobile Preview Section */}
-                <div className="space-y-6">
-                  <div className="flex flex-col items-center space-y-4">
-                    {!showPreview && !previewResult && (
-                      <HelpTooltip
-                        fieldKey="preview_button"
-                        showLabelSpacing={false}
-                        containerClassName="relative block w-full"
-                        renderTrigger={({
-                          onMouseEnter,
-                          onMouseLeave,
-                          onFocus,
-                          onBlur,
-                        }) => (
-                          <div
-                            onMouseEnter={onMouseEnter}
-                            onMouseLeave={onMouseLeave}
-                            onFocus={onFocus}
-                            onBlur={onBlur}
-                            className="w-full"
-                          >
-                            <button
-                              type="button"
-                              onClick={handleShowPreview}
-                              disabled={previewLoading || !isServiceContextComplete()}
-                              className="w-full inline-flex items-center justify-center px-6 py-3 rounded-full border border-gray-300 bg-white text-gray-600 font-semibold tracking-tight transition hover:bg-gray-50 disabled:bg-white disabled:border-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
-                            >
-                              {previewLoading ? "Loading..." : "Preview"}
-                            </button>
-                          </div>
-                        )}
-                      />
-                    )}
+                <div className="border-t border-gray-100 pt-6 space-y-6">
+                  <h3 className="text-sm font-semibold text-gray-900">Email Preview</h3>
 
-                    {showPreview && !previewResult && (
-                      <div className="w-full space-y-4">
-                        <div className="space-y-2">
-                          <label className="text-xs font-medium text-gray-700 block text-center">
-                            Select an email to preview ({previewEmails.length} available)
-                          </label>
+                  {!showPreview && !previewResult && (
+                    <button
+                      type="button"
+                      onClick={handleShowPreview}
+                      disabled={previewLoading || !isServiceContextComplete()}
+                      className="w-full h-11 rounded-xl border border-gray-200 bg-white text-gray-700 font-medium text-sm transition-all active:bg-gray-50 disabled:opacity-50"
+                    >
+                      {previewLoading ? "Loading..." : "Generate Preview"}
+                    </button>
+                  )}
+
+                  {showPreview && !previewResult && (
+                    <div className="space-y-4 bg-gray-50 rounded-xl p-4">
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-gray-700">
+                          Select a recipient
+                        </label>
+                        <div className="relative">
                           <select
                             value={selectedPreviewEmail}
                             onChange={(e) => setSelectedPreviewEmail(e.target.value)}
-                            className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 shadow-sm"
+                            className="w-full appearance-none rounded-lg border border-gray-200 bg-white pl-3 pr-8 py-2.5 text-sm text-gray-900 focus:border-gray-900 focus:ring-0"
                           >
-                            <option value="">-- Select an email --</option>
+                            <option value="">Choose email...</option>
                             {previewEmails.map((email) => (
-                              <option key={email} value={email}>
-                                {email}
-                              </option>
+                              <option key={email} value={email}>{email}</option>
                             ))}
                           </select>
-                        </div>
-
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowPreview(false);
-                              setPreviewEmails([]);
-                              setSelectedPreviewEmail("");
-                              setPreviewError(null);
-                            }}
-                            className="flex-1 py-3 rounded-md border font-medium text-[15px]"
-                            style={{ borderColor: "#E5E7EB", color: "#6B7280" }}
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleGeneratePreview}
-                            disabled={previewLoading || !selectedPreviewEmail}
-                            className="flex-1 py-3 rounded-md font-medium text-white text-[15px] disabled:opacity-50"
-                            style={{ backgroundColor: BRAND }}
-                          >
-                            {previewLoading ? "Creating..." : "Create Preview"}
-                          </button>
+                          <ChevronDown className="absolute right-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
                         </div>
                       </div>
-                    )}
 
-                    {previewError && (
-                      <div className="w-full rounded-xl bg-red-50 border border-red-200 px-4 py-3 flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                        <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-red-800">{previewError}</p>
-                        </div>
-                      </div>
-                    )}
-
-                    {previewResult && (
-                      <div className="w-full space-y-4">
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                          <div className="flex items-start gap-3 mb-3">
-                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                              <Check className="w-5 h-5 text-green-600" />
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-green-800">
-                                Preview Generated
-                              </p>
-                              <p className="text-xs text-green-600 mt-1">
-                                For: {previewResult.email}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="mt-4">
-                            <label className="text-xs font-medium text-green-800 block mb-2">
-                              Personalized Email:
-                            </label>
-                            <div className="bg-white border border-green-200 rounded-md p-4 text-xs text-gray-900 whitespace-pre-wrap leading-relaxed" style={{ fontFamily: 'Arial, sans-serif' }}>
-                              {previewResult.email_body}
-                            </div>
-                          </div>
-                        </div>
-
+                      <div className="flex gap-3">
                         <button
                           type="button"
                           onClick={() => {
-                            setShowPreview(false);
+                            setShowExamples(false);
                             setPreviewEmails([]);
                             setSelectedPreviewEmail("");
-                            setPreviewResult(null);
-                            setPreviewError(null);
+                            setShowPreview(false);
                           }}
-                          className="w-full py-3 rounded-md font-medium text-white text-[15px]"
+                          className="flex-1 h-10 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-600"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleGeneratePreview}
+                          disabled={previewLoading || !selectedPreviewEmail}
+                          className="flex-1 h-10 rounded-lg text-sm font-medium text-white shadow-sm disabled:opacity-50"
                           style={{ backgroundColor: BRAND }}
                         >
-                          Create Another Preview
+                          {previewLoading ? "Generating..." : "Generate"}
                         </button>
                       </div>
+                    </div>
+                  )}
+
+                  {previewResult && (
+                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+                      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                        <div className="bg-gray-50 px-4 py-3 border-b border-gray-100 flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-green-500" />
+                          <span className="text-xs font-medium text-gray-600 truncate flex-1">
+                            To: {previewResult.email}
+                          </span>
+                        </div>
+                        <div className="p-4">
+                          <p className="text-[11px] md:text-sm text-gray-800 whitespace-pre-wrap leading-relaxed font-sans">
+                            {previewResult.email_body}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPreviewResult(null);
+                          setShowPreview(false);
+                        }}
+                        className="w-full py-2 text-xs font-medium text-gray-500 hover:text-gray-900"
+                      >
+                        Dismiss Preview
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-4 pb-8">
+                  <button
+                    onClick={handleCreateJob}
+                    disabled={loading || hasCreditShortage}
+                    className="w-full h-14 rounded-xl font-semibold text-white text-base shadow-lg shadow-blue-900/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                    style={{ backgroundColor: BRAND }}
+                  >
+                    {loading ? "Starting..." : "Generate All Emails"}
+                    {!loading && (
+                      <div className="bg-white/20 rounded-full px-2 py-0.5 flex items-center gap-1">
+                        <PiCoinsDuotone className="w-3.5 h-3.5 text-white" />
+                        <span className="text-[10px] font-medium text-white">1/row</span>
+                      </div>
                     )}
-                  </div>
+                  </button>
                 </div>
               </div>
-
-              <button
-                onClick={handleCreateJob}
-                disabled={loading || hasCreditShortage}
-                title={hasCreditShortage ? "Add credits to continue" : undefined}
-                className="w-full py-3 rounded-md font-medium text-white text-[15px] tracking-tight disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ backgroundColor: BRAND }}
-              >
-                {loading ? "Submitting..." : "Start Generating"}
-              </button>
             </div>
-          </div>
-        )
-      }
+          )}
+        </div>
+
+        {/* Examples Drawer (Mobile) */}
+        <AnimatePresence>
+          {showExamples && (
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="fixed inset-0 z-[60] bg-white md:hidden"
+            >
+              <MobileExamplesDrawerV2
+                onClose={() => setShowExamples(false)}
+                onUseExample={(example) => {
+                  setServiceComponents({
+                    core_offer: example.core_offer,
+                    key_differentiator: example.key_differentiator,
+                    cta: example.cta,
+                  });
+                  setShowExamples(false);
+                }}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+      </div>
     </>
   );
 }

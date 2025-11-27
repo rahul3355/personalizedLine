@@ -67,7 +67,7 @@ function LoginPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen w-full font-sans bg-white">
+    <div className="relative flex flex-col lg:flex-row min-h-screen w-full font-sans bg-white">
       {/* Beta Button */}
       <div className="fixed left-1/2 top-10 hidden -translate-x-1/2 lg:flex z-50">
         <Button
@@ -92,8 +92,8 @@ function LoginPage() {
         </Button>
       </div>
 
-      {/* Left Section */}
-      <div className="w-full lg:w-1/2 flex flex-col border-r border-gray-100 bg-white lg:h-screen lg:sticky lg:top-0">
+      {/* Left Section (Desktop Only) */}
+      <div className="hidden lg:flex w-full lg:w-1/2 flex-col border-r border-gray-100 bg-white lg:h-screen lg:sticky lg:top-0">
         <div className="flex-1 flex flex-col items-center justify-center px-6 sm:px-8 gap-y-6">
           <div className="w-full max-w-md flex flex-col gap-y-6">
             <div className="text-center lg:text-left">
@@ -164,20 +164,139 @@ function LoginPage() {
               )}
             </div>
           </div>
-
-          {/* Mobile Content */}
-          <div className="flex lg:hidden w-full mt-10">
-            <div className="w-full max-w-sm mx-auto text-center">
-              <blockquote className="text-[16px] font-medium text-gray-900 leading-relaxed">
-                Cold emails that prove you did your homework
-              </blockquote>
-            </div>
-          </div>
         </div>
 
         {/* Footer */}
         <div className="mt-auto pb-4">
           <p className="mt-2 text-xs text-gray-400 text-center">
+            © {new Date().getFullYear()} SendItFast. All rights reserved.
+          </p>
+        </div>
+      </div>
+
+      {/* Mobile View (Perplexity Style) */}
+      <div className="flex lg:hidden w-full flex-col min-h-screen bg-white">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-6 border-b border-gray-50">
+          <Image
+            src={SendItFastLogo}
+            alt="SendItFast Logo"
+            width={100}
+            height={24}
+            className="h-6 w-auto"
+          />
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col px-6 pt-12 pb-8 space-y-12">
+          {/* Hero */}
+          <div className="space-y-6">
+            <h1 className="text-[32px] leading-[1.1] font-semibold text-gray-900 tracking-tight">
+              Personalize at scale.
+            </h1>
+            <p className="text-[17px] leading-relaxed text-gray-500 font-normal">
+              Research, write, and send. <br />
+              AI-powered cold email infrastructure.
+            </p>
+          </div>
+
+          {/* Login Action (Restored Gradient Button) */}
+          <div className="space-y-4">
+            <div className="relative w-full group">
+              <button
+                onClick={handleGoogleLogin}
+                disabled={loading}
+                className="w-full flex items-center justify-center py-3 px-4 rounded-xl font-medium text-white text-[15px] tracking-tight shadow-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  background: loading ? "#D1D5DB" : "linear-gradient(#5a5a5a, #1c1c1c)",
+                  fontFamily:
+                    '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
+                }}
+              >
+                {loading ? (
+                  <>
+                    <svg
+                      className="animate-spin h-5 w-5 mr-2"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="white"
+                        strokeWidth="3"
+                        strokeDasharray="31.4 31.4"
+                        strokeLinecap="round"
+                      />
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="white"
+                        strokeWidth="1"
+                        strokeDasharray="15.7 47.1"
+                        strokeDashoffset="15.7"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    Signing in...
+                  </>
+                ) : (
+                  <>
+                    <FcGoogle className="w-5 h-5 mr-2 rounded-full" />
+                    Sign in with Google
+                  </>
+                )}
+              </button>
+              {!loading && (
+                <div className="absolute -inset-1 rounded-xl border-2 border-dashed border-black opacity-0 transition-opacity duration-300 pointer-events-none group-hover:opacity-100"></div>
+              )}
+            </div>
+            <p className="text-center text-[11px] text-gray-400">
+              By continuing, you agree to our Terms and Privacy Policy.
+            </p>
+          </div>
+
+          {/* Trust Signals */}
+          <div className="pt-8 space-y-6 border-t border-gray-50">
+            <p className="text-[10px] font-medium tracking-[0.2em] text-gray-400 uppercase">
+              Trusted by teams at
+            </p>
+            <div className="grid grid-cols-4 gap-6 opacity-40 grayscale">
+              <Image src={AppleLogo} alt="Apple" className="h-6 w-auto object-contain" />
+              <Image src={MetaLogo} alt="Meta" className="h-6 w-auto object-contain" />
+              <Image src={UberLogo} alt="Uber" className="h-3 w-auto object-contain self-center" />
+              <Image src={DisneyLogo} alt="Disney" className="h-6 w-auto object-contain" />
+            </div>
+          </div>
+
+          {/* Value Props */}
+          <div className="space-y-4 pt-4">
+            <div className="flex items-start space-x-3">
+              <div className="mt-1 h-1.5 w-1.5 rounded-full bg-gray-300 flex-shrink-0" />
+              <p className="text-[13px] text-gray-600 leading-relaxed">
+                <span className="font-medium text-gray-900">Deep Research.</span> Pulls from signals prospects actually care about.
+              </p>
+            </div>
+            <div className="flex items-start space-x-3">
+              <div className="mt-1 h-1.5 w-1.5 rounded-full bg-gray-300 flex-shrink-0" />
+              <p className="text-[13px] text-gray-600 leading-relaxed">
+                <span className="font-medium text-gray-900">Human Tone.</span> No robotic tells. Lines that feel researched, not generated.
+              </p>
+            </div>
+            <div className="flex items-start space-x-3">
+              <div className="mt-1 h-1.5 w-1.5 rounded-full bg-gray-300 flex-shrink-0" />
+              <p className="text-[13px] text-gray-600 leading-relaxed">
+                <span className="font-medium text-gray-900">Export Anywhere.</span> Your data, your control. No lock-in.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="py-6 text-center border-t border-gray-50 bg-gray-50/50">
+          <p className="text-[10px] text-gray-400">
             © {new Date().getFullYear()} SendItFast. All rights reserved.
           </p>
         </div>

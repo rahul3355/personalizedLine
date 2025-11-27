@@ -73,12 +73,11 @@ function Layout({ Component, pageProps }: LayoutProps) {
     <div className={`min-h-screen flex ${backgroundClassName}`}>
       {session && <Navbar />}
       <main
-        className={`flex-1 flex flex-col transition-all duration-200 ${session ? "mt-16 px-0 pb-10" : ""
+        className={`flex-1 flex flex-col transition-all duration-200 ${session ? `mt-16 px-0 ${disableWhiteCard ? "lg:pb-10" : "pb-10"}` : ""
           }`}
       >
         <div
-          className={`flex min-h-0 flex-1 flex-col ${
-            disableWhiteCard
+          className={`flex min-h-0 flex-1 flex-col ${disableWhiteCard
               ? `overflow-visible ml-0 mr-0 ${isLoginPage ? "" : "lg:ml-[108px]"}`
               : "overflow-hidden rounded-[32px] bg-white shadow-sm ml-0 mr-4 lg:ml-[108px]"
             }`}
