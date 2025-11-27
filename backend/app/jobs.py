@@ -662,6 +662,45 @@ def _deduct_job_credits(
             }
         ).eq("id", job_id).execute()
         return False
+    finally:
+        # Check for welcome reward unlock (500 credits used within 7 days)
+        if deducted:
+            try:
+                # 1. Check current status
+                p_res = supabase_client.table("profiles").select("created_at, welcome_reward_status").eq("id", user_id).single().execute()
+                if p_res.data:
+                    status = p_res.data.get("welcome_reward_status")
+                    created_at_str = p_res.data.get("created_at")
+                    
+                    if status == "locked" and created_at_str:
+                        # 2. Check time constraint (7 days)
+                        created_at = datetime.fromisoformat(created_at_str.replace('Z', '+00:00'))
+                        if datetime.now(created_at.tzinfo) < created_at + timedelta(days=7):
+                            # 3. Check total usage
+                            # We sum negative changes from ledger where reason is job deduction
+                            l_res = supabase_client.rpc(
+                                "get_total_credits_used", 
+                                {"user_uuid": user_id}
+                            ).execute()
+                            
+                            # Fallback if RPC doesn't exist yet (we'll create it, but good to be safe)
+                            total_used = 0
+                            if hasattr(l_res, 'data') and l_res.data is not None:
+                                total_used = l_res.data
+                            else:
+                                # Manual query fallback (less efficient but works)
+                                ledgers = supabase_client.table("ledger").select("change").eq("user_id", user_id).lt("change", 0).execute()
+                                if ledgers.data:
+                                    total_used = sum(abs(item['change']) for item in ledgers.data)
+
+                            if total_used >= 500:
+                                supabase_client.table("profiles").update({
+                                    "welcome_reward_status": "unlocked"
+                                }).eq("id", user_id).execute()
+                                print(f"[Rewards] Unlocked welcome reward for user {user_id}")
+
+            except Exception as e:
+                print(f"[Rewards] Failed to check reward status: {e}")
 
 
 def _get_job_timeout():

@@ -662,7 +662,7 @@ def get_me(current_user: AuthenticatedUser = Depends(get_current_user)):
         user_id = current_user.user_id
         res = (
             supabase.table("profiles")
-            .select("id, email, credits_remaining, addon_credits, max_credits, plan_type, subscription_status, renewal_date")
+            .select("id, email, credits_remaining, addon_credits, max_credits, plan_type, subscription_status, renewal_date, welcome_reward_status, created_at")
             .eq("id", user_id)
             .single()
             .execute()
@@ -695,6 +695,58 @@ def get_me(current_user: AuthenticatedUser = Depends(get_current_user)):
         raise HTTPException(status_code=500, detail=str(exc))
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/claim-welcome-reward")
+def claim_welcome_reward(current_user: AuthenticatedUser = Depends(get_current_user)):
+    try:
+        user_id = current_user.user_id
+        
+        # 1. Verify status is unlocked
+        res = (
+            supabase.table("profiles")
+            .select("welcome_reward_status, credits_remaining")
+            .eq("id", user_id)
+            .single()
+            .execute()
+        )
+        
+        if not res.data:
+            raise HTTPException(status_code=404, detail="User not found")
+            
+        status = res.data.get("welcome_reward_status")
+        current_credits = res.data.get("credits_remaining", 0)
+        
+        if status == "claimed":
+            raise HTTPException(status_code=400, detail="Reward already claimed")
+            
+        if status != "unlocked":
+            raise HTTPException(status_code=400, detail="Reward is locked")
+            
+        # 2. Apply reward
+        reward_amount = 500
+        
+        # Update profile
+        supabase.table("profiles").update({
+            "credits_remaining": current_credits + reward_amount,
+            "welcome_reward_status": "claimed"
+        }).eq("id", user_id).execute()
+        
+        # Add to ledger
+        supabase.table("ledger").insert({
+            "user_id": user_id,
+            "change": reward_amount,
+            "amount": 0,
+            "reason": "welcome reward claimed",
+            "ts": datetime.utcnow().isoformat()
+        }).execute()
+        
+        return {"status": "success", "message": "Reward claimed successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Rewards] Claim error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/account/ledger")
 def get_account_ledger(
