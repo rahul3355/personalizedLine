@@ -4,7 +4,8 @@ from dotenv import load_dotenv
 from supabase import create_client
 from datetime import datetime, timedelta
 
-env_path = os.path.join("app", ".env")
+basedir = os.path.dirname(os.path.abspath(__file__))
+env_path = os.path.join(basedir, "app", ".env")
 load_dotenv(env_path)
 
 url = os.getenv("SUPABASE_URL")

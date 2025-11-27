@@ -4,7 +4,8 @@ from dotenv import load_dotenv
 from supabase import create_client
 
 # Load env vars
-env_path = os.path.join("app", ".env")
+basedir = os.path.dirname(os.path.abspath(__file__))
+env_path = os.path.join(basedir, "app", ".env")
 load_dotenv(env_path)
 
 url = os.getenv("SUPABASE_URL")
@@ -36,12 +37,13 @@ print(f"Total Credits Used: {total_used}")
 
 # 3. Force Unlock
 if total_used >= 500:
-    print("Condition met (>500). Forcing unlock...")
-    supabase.table("profiles").update({
-        "welcome_reward_status": "unlocked"
-    }).eq("id", user_id).execute()
-    print("✅ SUCCESS: Reward status updated to 'unlocked'.")
-    print("👉 Refresh your dashboard now. The button should be active.")
+    print("Condition met (>500).")
+    # print("Forcing unlock...")
+    # supabase.table("profiles").update({
+    #     "welcome_reward_status": "unlocked"
+    # }).eq("id", user_id).execute()
+    # print("✅ SUCCESS: Reward status updated to 'unlocked'.")
+    # print("👉 Refresh your dashboard now. The button should be active.")
 else:
     print(f"⚠️ Warning: Usage ({total_used}) is less than 500.")
     # Uncomment to force anyway if needed
