@@ -666,17 +666,11 @@ def _deduct_job_credits(
         # Check for welcome reward unlock (500 credits used within 7 days)
         if deducted:
             try:
-                with open("debug_rewards.log", "a") as f:
-                    f.write(f"[{datetime.utcnow()}] Checking reward for user {user_id}\n")
-                
                 # 1. Check current status
                 p_res = supabase_client.table("profiles").select("created_at, welcome_reward_status").eq("id", user_id).single().execute()
                 if p_res.data:
                     status = p_res.data.get("welcome_reward_status")
                     created_at_str = p_res.data.get("created_at")
-                    
-                    with open("debug_rewards.log", "a") as f:
-                        f.write(f"[{datetime.utcnow()}] Status: {status}, Created: {created_at_str}\n")
                     
                     if status == "locked" and created_at_str:
                         # 2. Check time constraint (7 days)
@@ -692,27 +686,14 @@ def _deduct_job_credits(
                             if hasattr(l_res, 'data') and l_res.data is not None:
                                 total_used = l_res.data
                             
-                            with open("debug_rewards.log", "a") as f:
-                                f.write(f"[{datetime.utcnow()}] Total used: {total_used}\n")
-
                             if total_used >= 500:
                                 supabase_client.table("profiles").update({
                                     "welcome_reward_status": "unlocked"
                                 }).eq("id", user_id).execute()
                                 print(f"[Rewards] Unlocked welcome reward for user {user_id}")
-                                with open("debug_rewards.log", "a") as f:
-                                    f.write(f"[{datetime.utcnow()}] UNLOCKED!\n")
-                        else:
-                            with open("debug_rewards.log", "a") as f:
-                                f.write(f"[{datetime.utcnow()}] Time expired\n")
-                    else:
-                        with open("debug_rewards.log", "a") as f:
-                            f.write(f"[{datetime.utcnow()}] Not locked or no created_at\n")
 
             except Exception as e:
                 print(f"[Rewards] Failed to check reward status: {e}")
-                with open("debug_rewards.log", "a") as f:
-                    f.write(f"[{datetime.utcnow()}] ERROR: {e}\n")
 
 
 def _get_job_timeout():

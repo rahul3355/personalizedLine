@@ -43,6 +43,8 @@ try:
     print(f"RPC Result: {rpc_res.data}")
 except Exception as e:
     print(f"RPC Failed: {e}")
+    print("❌ CRITICAL: The database function 'get_total_credits_used' is missing or broken.")
+    print("   Please run the SQL command provided in the chat to fix this.")
 
 # Check logic
 created_at_str = user.get("created_at")
@@ -57,3 +59,9 @@ if created_at_str:
     print(f"Within 7 days? {now < limit}")
 
 print(f"\nUnlock Condition Met? {total_used >= 500 and now < limit}")
+
+if total_used >= 500 and now < limit and user.get('welcome_reward_status') == 'locked':
+    print("\n⚠️  DIAGNOSIS: The conditions are met, but status is still 'locked'.")
+    print("    This means the backend code did not run or failed silently.")
+    print("    Since we see 'Method Not Allowed' on the debug endpoint, the backend is likely running OLD CODE.")
+
