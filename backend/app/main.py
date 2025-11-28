@@ -136,6 +136,14 @@ ROLLOVER_RULES = {
     "pro": {"enabled": True, "max_multiplier": 2},
 }
 
+# Addon credit expiration (in months)
+ADDON_EXPIRATION_MONTHS = {
+    "free": 12,
+    "starter": 6,
+    "growth": 12,
+    "pro": 12,
+}
+
 FRONTEND_BASE_URLS = os.getenv(
     "FRONTEND_BASE_URLS",
     "http://localhost:3000,http://127.0.0.1:3000",
@@ -2178,46 +2186,67 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
         if metadata.get("addon") == "true":
             qty = int(metadata.get("quantity", 1))
             credits = qty * 1000
-            try:
-                # Add to addon_credits (separate bucket, preserved through renewals)
-                current = (
-                    supabase.table("profiles")
-                    .select("addon_credits")
-                    .eq("id", user_id)
-                    .single()
-                    .execute()
-                )
-                current_addon = current.data.get("addon_credits") if current.data else 0
-                new_addon_total = (current_addon or 0) + credits
 
+            # Get user's current plan to determine expiry
+            profile_res = supabase.table("profiles").select("plan_type, addon_credits").eq("id", user_id).single().execute()
+            if not profile_res.data:
+                print(f"[ERROR] Profile not found for user {user_id}")
+                _mark_event_processed(event_id, event_type)
+                return {"status": "error", "message": "profile_not_found"}
+
+            plan_type = profile_res.data.get("plan_type", "free")
+            current_addon = profile_res.data.get("addon_credits", 0)
+
+            try:
+                # Calculate expiration based on plan (6 months for Starter, 12 months for Growth/Pro)
+                purchased_at = datetime.utcnow()
+                expiry_months = ADDON_EXPIRATION_MONTHS.get(plan_type, 12)
+                expires_at = purchased_at + timedelta(days=30 * expiry_months)
+
+                # Insert into addon_credit_purchases table
+                addon_purchase = supabase.table("addon_credit_purchases").insert({
+                    "user_id": user_id,
+                    "credits_purchased": credits,
+                    "credits_remaining": credits,
+                    "price_paid": (obj.get("amount_total") or 0) / 100.0,
+                    "purchased_under_plan": plan_type,
+                    "purchased_at": purchased_at.isoformat(),
+                    "expires_at": expires_at.isoformat(),
+                    "stripe_checkout_session_id": obj.get("id"),
+                    "stripe_payment_intent": obj.get("payment_intent"),
+                }).execute()
+                log_db("insert_addon_purchase", addon_purchase)
+
+                # Also update legacy addon_credits column (dual-write for backward compatibility)
+                new_addon_total = (current_addon or 0) + credits
                 res_update = (
                     supabase.table("profiles")
                     .update({"addon_credits": new_addon_total})
                     .eq("id", user_id)
                     .execute()
                 )
-                log_db("update_addon_credits", res_update)
+                log_db("update_addon_credits_legacy", res_update)
 
+                # Ledger entry with expiry information
                 res_ledger = (
                     supabase.table("ledger")
-                    .insert(
-                        {
-                            "user_id": user_id,
-                            "change": credits,
-                            "amount": (obj.get("amount_total") or 0) / 100.0,
-                            "reason": f"addon purchase x{qty}",
-                            "ts": datetime.utcnow().isoformat(),
-                        }
-                    )
+                    .insert({
+                        "user_id": user_id,
+                        "change": credits,
+                        "amount": (obj.get("amount_total") or 0) / 100.0,
+                        "reason": f"addon purchase x{qty} (expires {expires_at.strftime('%Y-%m-%d')})",
+                        "ts": datetime.utcnow().isoformat(),
+                    })
                     .execute()
                 )
                 log_db("insert_ledger_addon", res_ledger)
+
+                print(
+                    f"[ADDON] user={user_id}, qty={qty}, credits={credits}, "
+                    f"plan={plan_type}, expires={expires_at.isoformat()}, customer={customer_id}"
+                )
             except Exception as exc:  # pragma: no cover - supabase availability
                 print(f"[Stripe] Failed to record add-on purchase: {exc}")
-
-            print(
-                f"[ADDON] user={user_id}, qty={qty}, credits={credits}, customer={customer_id}"
-            )
         else:
             # Normalize plan name (strip "_annual" suffix for validation)
             base_plan = plan.replace("_annual", "") if plan.endswith("_annual") else plan
