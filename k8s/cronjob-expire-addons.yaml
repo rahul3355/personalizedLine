@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: expire-addon-credits
+  namespace: personalizedline
+spec:
+  # Run daily at 2 AM UTC
+  schedule: "0 2 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: cron-expire-addons
+        spec:
+          containers:
+          - name: expire-addons
+            image: gcr.io/personalizedline-prod/personalizedline:latest
+            command: ["python", "-m", "backend.app.cron_expire_addons"]
+            envFrom:
+            - secretRef:
+                name: app-secrets
+            resources:
+              requests:
+                memory: "128Mi"
+                cpu: "100m"
+              limits:
+                memory: "256Mi"
+                cpu: "200m"
+          restartPolicy: OnFailure
