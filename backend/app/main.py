@@ -128,6 +128,14 @@ ANNUAL_CREDITS_MAP = {
     "pro": 40000 * 12,      # 480,000 credits upfront
 }
 
+# Rollover configuration per plan
+ROLLOVER_RULES = {
+    "free": {"enabled": False, "max_multiplier": 1},
+    "starter": {"enabled": False, "max_multiplier": 1},
+    "growth": {"enabled": True, "max_multiplier": 2},
+    "pro": {"enabled": True, "max_multiplier": 2},
+}
+
 FRONTEND_BASE_URLS = os.getenv(
     "FRONTEND_BASE_URLS",
     "http://localhost:3000,http://127.0.0.1:3000",
@@ -2372,11 +2380,32 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                                         )
 
                                 if should_reset_credits:
-                                    # RESET credits to monthly allocation
+                                    # Check if rollover is enabled for this plan
+                                    rollover_config = ROLLOVER_RULES.get(plan_type, {"enabled": False, "max_multiplier": 1})
+
+                                    if rollover_config["enabled"]:
+                                        # ROLLOVER ENABLED (Growth/Pro): Add to existing, cap at 2x
+                                        new_total = current_credits + monthly_credits
+                                        max_allowed = monthly_credits * rollover_config["max_multiplier"]
+                                        final_credits = min(new_total, max_allowed)
+
+                                        # Calculate how much was lost to cap (if any)
+                                        rollover_lost = max(0, new_total - max_allowed)
+
+                                        ledger_reason = f"monthly renewal - {plan_type} (rollover: {current_credits} + {monthly_credits} = {final_credits})"
+
+                                        if rollover_lost > 0:
+                                            print(f"[ROLLOVER_CAP] User {user_id} lost {rollover_lost} credits (capped at {max_allowed})")
+                                    else:
+                                        # NO ROLLOVER (Starter): Hard reset
+                                        final_credits = monthly_credits
+                                        ledger_reason = f"monthly renewal - {plan_type} (no rollover, reset to {monthly_credits})"
+
+                                    # Update credits
                                     res_update = (
                                         supabase.table("profiles")
                                         .update({
-                                            "credits_remaining": monthly_credits,
+                                            "credits_remaining": final_credits,
                                             "plan_type": plan_type,
                                         })
                                         .eq("id", user_id)
@@ -2390,7 +2419,7 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                                         supabase.table("ledger")
                                         .insert({
                                             "user_id": user_id,
-                                            "change": monthly_credits,
+                                            "change": monthly_credits,  # Show the allocation amount
                                             "amount": invoice_amount,
                                             "reason": ledger_reason,
                                             "ts": datetime.utcnow().isoformat(),
@@ -2399,11 +2428,8 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                                     )
                                     log_db("insert_ledger_renewal", res_ledger)
 
-                                    print(
-                                        f"[RENEWAL] user={user_id}, plan={plan_type}, "
-                                        f"credits_reset_to={monthly_credits}, amount=${invoice_amount}, "
-                                        f"reason={billing_reason}"
-                                    )
+                                    print(f"[RENEWAL] user={user_id}, plan={plan_type}, "
+                                          f"old={current_credits}, new={final_credits}, rollover_enabled={rollover_config['enabled']}")
                             else:
                                 print(
                                     f"[INVOICE] Skipping credit reset for user {user_id}: "
