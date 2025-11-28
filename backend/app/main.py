@@ -2241,6 +2241,7 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                     .update(
                         {
                             "plan_type": base_plan,  # Store base plan name (e.g., "starter", not "starter_annual")
+                            "billing_frequency": billing_frequency,  # Store "monthly" or "annual"
                             "subscription_status": "active",
                             "renewal_date": renewal_date,
                             "credits_remaining": credits,
@@ -2303,7 +2304,7 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                     # Get the user's current plan
                     profile = (
                         supabase.table("profiles")
-                        .select("plan_type, subscription_status")
+                        .select("plan_type, subscription_status, billing_frequency")
                         .eq("id", user_id)
                         .single()
                         .execute()
@@ -2316,9 +2317,9 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                         current_credits = profile.data.get("credits_remaining", 0)
                         subscription_status = profile.data.get("subscription_status")
 
-                        # Check subscription billing interval (month vs year)
-                        subscription_interval = subscription.get("items", {}).get("data", [])[0].get("plan", {}).get("interval") if subscription.get("items", {}).get("data") else None
-                        is_annual_subscription = subscription_interval == "year"
+                        # Use stored billing_frequency instead of querying Stripe
+                        billing_frequency = profile.data.get("billing_frequency")
+                        is_annual_subscription = billing_frequency == "annual"
 
                         if is_annual_subscription:
                             print(
