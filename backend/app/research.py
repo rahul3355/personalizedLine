@@ -262,6 +262,15 @@ def perform_research(email: str) -> str:
         return "Research unavailable: invalid or missing email address."
 
     serper_key = os.getenv("SERPER_API_KEY")
+    
+    # DEBUG: Log the key being used
+    if serper_key:
+        masked = f"{serper_key[:4]}...{serper_key[-4:]}"
+        print(f"DEBUG: SERPER_API_KEY loaded: {masked}", flush=True)
+        LOGGER.info(f"DEBUG: SERPER_API_KEY loaded: {masked}")
+    else:
+        print("DEBUG: SERPER_API_KEY is None or Empty", flush=True)
+
     if not serper_key:
         LOGGER.warning("SERPER_API_KEY not configured; skipping research for %s", email)
         return "Research unavailable: missing Serper API key."
