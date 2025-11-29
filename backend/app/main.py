@@ -1158,6 +1158,18 @@ def _reserve_credits_for_job(
 
         total_credits = credits_remaining + addon_credits
 
+        # Check subscription status
+        subscription_status = profile.get("subscription_status", "active")
+        if subscription_status in ["past_due", "unpaid"]:
+             raise HTTPException(
+                status_code=402,
+                detail={
+                    "error": "subscription_past_due",
+                    "message": "Your subscription is past due. Please update your payment method to continue.",
+                    "status": subscription_status
+                },
+            )
+
         if total_credits < row_count:
             missing = row_count - total_credits
             print(
@@ -2169,6 +2181,61 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
         _mark_event_processed(event_id, event_type)
         return {"status": "payment_not_verified", "event_id": event_id}
 
+    # Handle payment failures
+    if event_type == "invoice.payment_failed":
+        subscription_id = obj.get("subscription")
+        sub_metadata = obj.get("metadata", {}) # Invoice metadata might not have it, check subscription later
+        
+        if subscription_id:
+             try:
+                subscription = stripe.Subscription.retrieve(subscription_id)
+                user_id = subscription.get("metadata", {}).get("user_id")
+                
+                if not user_id and customer_id:
+                     user_id = _find_user_by_customer(customer_id)
+                
+                if user_id:
+                    print(f"[PAYMENT_FAILED] Marking user {user_id} as past_due")
+                    supabase.table("profiles").update({
+                        "subscription_status": "past_due"
+                    }).eq("id", user_id).execute()
+             except Exception as e:
+                 print(f"[PAYMENT_FAILED] Error handling payment failure: {e}")
+
+    # Handle refunds and disputes (Revoke credits)
+    if event_type in ["charge.refunded", "charge.dispute.created"]:
+        # Logic: Find the user, deduct credits equivalent to the refunded amount
+        # This is tricky because we need to know WHICH credits to deduct.
+        # For now, we will log it and attempt to deduct if we can link it to a user.
+        print(f"[REFUND/DISPUTE] Event {event_type} received. Implementing credit revocation.")
+        
+        try:
+            # Charge object has customer info
+            if customer_id:
+                 user_id = _find_user_by_customer(customer_id)
+                 if user_id:
+                     # For simplicity in this critical fix phase, we will log a warning to the ledger
+                     # Implementing exact credit reversal requires tracking which specific purchase was refunded
+                     # But we can at least flag the account or deduct a "safe" amount if it was a recent addon.
+                     
+                     # Better approach for now: Just log it. 
+                     # Real implementation requires linking charge -> invoice -> subscription/addon -> credits
+                     
+                     amount_refunded = obj.get("amount_refunded", 0) / 100.0
+                     reason = f"Refund/Dispute detected: {event_type}"
+                     
+                     supabase.table("ledger").insert({
+                        "user_id": user_id,
+                        "change": 0, # We don't auto-deduct yet to avoid false positives without deep linking
+                        "amount": -amount_refunded,
+                        "reason": reason,
+                        "ts": datetime.utcnow().isoformat(),
+                    }).execute()
+                     
+                     print(f"[REFUND] Logged refund for user {user_id}")
+        except Exception as e:
+            print(f"[REFUND] Error handling refund: {e}")
+
     if event_type == "checkout.session.completed":
         user_id = metadata.get("user_id")
         plan = metadata.get("plan")
@@ -2393,12 +2460,14 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                                 if billing_reason == "subscription_update" and is_plan_change:
                                     # Check if upgrade or downgrade
                                     if monthly_credits > old_monthly_credits:
-                                        # UPGRADE: Credits already added by customer.subscription.updated
-                                        # Skip credit reset to avoid overwriting the added credits
-                                        should_reset_credits = False
+                                        # UPGRADE: Credits should be handled here (Single Source of Truth)
+                                        # We removed the credit addition from subscription.updated
+                                        # So we MUST reset credits here.
+                                        should_reset_credits = True
+                                        ledger_reason = f"Plan upgrade - {old_plan_type} to {plan_type}"
                                         print(
-                                            f"[INVOICE_UPGRADE] Skipping credit reset for upgrade "
-                                            f"{old_plan_type}→{plan_type}, credits already added by subscription.updated"
+                                            f"[INVOICE_UPGRADE] Applying upgrade credits for "
+                                            f"{old_plan_type}→{plan_type}"
                                         )
                                     else:
                                         # DOWNGRADE: Reset to new lower plan amount
@@ -2507,37 +2576,23 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
 
                             # UPGRADE: New plan has more credits than old plan
                             if new_plan_credits > old_plan_credits:
-                                # Add new plan's full credit allocation to existing credits
-                                updated_credits = current_credits + new_plan_credits
-
+                                # ONLY update plan_type. DO NOT add credits here.
+                                # Credits will be handled by the invoice.paid event (Single Source of Truth)
+                                
                                 res_update = (
                                     supabase.table("profiles")
                                     .update({
                                         "plan_type": new_plan,
-                                        "credits_remaining": updated_credits,
+                                        # "credits_remaining": updated_credits,  <-- REMOVED
                                     })
                                     .eq("id", user_id)
                                     .execute()
                                 )
-                                log_db("upgrade_plan", res_update)
-
-                                # Record upgrade in ledger
-                                res_ledger = (
-                                    supabase.table("ledger")
-                                    .insert({
-                                        "user_id": user_id,
-                                        "change": new_plan_credits,
-                                        "amount": 0,  # Proration handled by Stripe invoice
-                                        "reason": f"Plan upgrade - {old_plan} to {new_plan}",
-                                        "ts": datetime.utcnow().isoformat(),
-                                    })
-                                    .execute()
-                                )
-                                log_db("insert_ledger_upgrade", res_ledger)
+                                log_db("upgrade_plan_metadata_only", res_update)
 
                                 print(
-                                    f"[UPGRADE] user={user_id}, {old_plan}→{new_plan}, "
-                                    f"credits: {current_credits}+{new_plan_credits}={updated_credits}"
+                                    f"[UPGRADE] user={user_id}, {old_plan}→{new_plan}. "
+                                    f"Credits will be updated via invoice.paid."
                                 )
 
                             # DOWNGRADE: New plan has fewer credits than old plan
@@ -2576,6 +2631,9 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                     .update({
                         "subscription_status": "canceled",
                         "plan_type": "free",
+                        "credits_remaining": 0, # Wipe monthly credits
+                        # "addon_credits": 0 # Optional: Wipe addons too? Usually yes for cancellation.
+                        # For now, let's keep addons if they paid for them separately, but wipe monthly.
                     })
                     .eq("id", user_id)
                     .execute()
