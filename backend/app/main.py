@@ -1391,6 +1391,50 @@ async def create_job(
             }
         )
 
+        # Generate unique filename
+        original_basename = os.path.basename(file_path)
+        # Strip timestamp prefix if present (e.g. 1234567890_file.csv -> file.csv)
+        clean_name = re.sub(r'^\d+_', '', original_basename)
+        
+        # Ensure sif_ prefix
+        if not clean_name.startswith("sif_"):
+            base_candidate = f"sif_{clean_name}"
+        else:
+            base_candidate = clean_name
+            
+        # Split name and extension
+        name_part, ext_part = os.path.splitext(base_candidate)
+        
+        # Find existing files with similar names for this user
+        # We look for: "name.ext", "name_1.ext", "name_2.ext", etc.
+        # Pattern: ^name(_\d+)?\.ext$
+        escaped_name = re.escape(name_part)
+        escaped_ext = re.escape(ext_part)
+        pattern = f"^{escaped_name}(_\\d+)?{escaped_ext}$"
+        
+        existing_files_res = (
+            supabase.table("jobs")
+            .select("filename")
+            .eq("user_id", current_user.user_id)
+            .execute()
+        )
+        
+        existing_filenames = [
+            row["filename"] 
+            for row in (existing_files_res.data or []) 
+            if row.get("filename") and re.match(pattern, row["filename"])
+        ]
+        
+        final_filename = base_candidate
+        if base_candidate in existing_filenames:
+            counter = 1
+            while True:
+                candidate = f"{name_part}_{counter}{ext_part}"
+                if candidate not in existing_filenames:
+                    final_filename = candidate
+                    break
+                counter += 1
+
         result = (
             supabase.table("jobs")
             .insert(
@@ -1398,7 +1442,7 @@ async def create_job(
                     "id": job_id,
                     "user_id": current_user.user_id,
                     "status": "queued",
-                    "filename": os.path.basename(file_path),
+                    "filename": final_filename,
                     "rows": row_count,
                     "meta_json": meta,
                 }
@@ -1510,12 +1554,14 @@ async def download_result(
         raise HTTPException(status_code=403)
 
     storage_path = job.data["result_path"]
+    filename = job.data.get("filename", "result.xlsx")
+    
     file = supabase.storage.from_("outputs").download(storage_path)
     return StreamingResponse(
         io.BytesIO(file),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={
-            "Content-Disposition": f"attachment; filename=result.xlsx"
+            "Content-Disposition": f"attachment; filename={filename}"
         },
     )
 
