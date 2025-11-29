@@ -7,7 +7,7 @@ Usage:
 """
 import os
 from datetime import datetime
-from .supabase_client import get_supabase
+from backend.app.supabase_client import supabase
 
 
 def expire_addon_credits(dry_run=False):
@@ -17,7 +17,7 @@ def expire_addon_credits(dry_run=False):
     Args:
         dry_run: If True, only show what would be expired without making changes
     """
-    supabase = get_supabase()
+    # supabase = get_supabase() # Removed
 
     print(f"[CRON_EXPIRE_ADDONS] Starting at {datetime.utcnow().isoformat()}")
     print(f"[CRON_EXPIRE_ADDONS] Dry run mode: {dry_run}")

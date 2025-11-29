@@ -1366,7 +1366,9 @@ async def create_job(
         }
 
         lock_name = f"credits_lock:{current_user.user_id}"
-        lock = redis_conn.lock(lock_name, timeout=30, blocking_timeout=10)
+        # Tuned lock timeout: 5s total, 2s blocking wait. 
+        # 30s was too long for high-throughput.
+        lock = redis_conn.lock(lock_name, timeout=5, blocking_timeout=2)
         acquired = lock.acquire(blocking=True)
         if not acquired:
             raise HTTPException(status_code=503, detail="Unable to reserve credits")
@@ -1980,6 +1982,16 @@ async def create_checkout_session(
         user_id = current_user.user_id
         user_email = current_user.claims.get("email")
 
+        # Rate Limiting: 5 requests per minute per user
+        rate_limit_key = f"rate_limit:checkout:{user_id}"
+        current_requests = redis_conn.incr(rate_limit_key)
+        if current_requests == 1:
+            redis_conn.expire(rate_limit_key, 60)
+        
+        if current_requests > 5:
+            print(f"[RATE_LIMIT] User {user_id} exceeded checkout limit")
+            raise HTTPException(status_code=429, detail="Too many checkout requests. Please try again in a minute.")
+
         if not STRIPE_SECRET:
             raise HTTPException(status_code=500, detail="Stripe is not configured")
 
@@ -1996,6 +2008,13 @@ async def create_checkout_session(
             if not addon_price_id:
                 print(f"[ERROR] Invalid addon plan: {data.plan}")
                 return {"error": "Invalid addon plan"}
+            
+            # Cap quantity to prevent abuse (e.g. buying 1M credits)
+            if data.quantity > 100:
+                 raise HTTPException(status_code=400, detail="Maximum addon quantity is 100 per transaction")
+            if data.quantity < 1:
+                 raise HTTPException(status_code=400, detail="Minimum addon quantity is 1")
+
             price_id = addon_price_id
             line_items = [
                 {
