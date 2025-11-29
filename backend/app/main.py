@@ -35,6 +35,9 @@ from rq import Queue
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
+# Change this value to trigger a deployment via GitHub Actions
+DEPLOY_TRIGGER_V1 = "trigger_v1"
+
 app = FastAPI()
 
 import os
