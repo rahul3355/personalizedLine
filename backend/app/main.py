@@ -2436,9 +2436,11 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                     if not profile.data:
                         print(f"[INVOICE] Profile not found for user {user_id}")
                     else:
+                        print(f"[INVOICE] Found profile for {user_id}: {profile.data}")
                         plan_type = profile.data.get("plan_type", "free")
                         current_credits = profile.data.get("credits_remaining", 0)
                         subscription_status = profile.data.get("subscription_status")
+                        print(f"[INVOICE] Plan: {plan_type}, Status: {subscription_status}, Credits: {current_credits}")
 
                         # Use stored billing_frequency instead of querying Stripe
                         billing_frequency = profile.data.get("billing_frequency")
