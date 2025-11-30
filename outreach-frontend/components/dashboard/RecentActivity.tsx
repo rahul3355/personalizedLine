@@ -126,50 +126,48 @@ export default function RecentActivity() {
     }
 
     return (
-        <Card className="bg-white border border-gray-100 shadow-sm rounded-xl h-full overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between p-6 pb-2">
-                <CardTitle className="text-lg font-medium">Recent Activity</CardTitle>
+        <div className="bg-white rounded-3xl h-full">
+            <div className="flex flex-row items-center justify-between mb-6">
+                <h2 className="text-xl font-serif font-medium text-gray-900">Recent Activity</h2>
                 <Link href="/jobs">
-                    <Button variant="ghost" size="sm" className="text-gray-500 hover:text-black hover:bg-gray-100">
+                    <Button variant="ghost" size="sm" className="text-gray-500 hover:text-black hover:bg-gray-50 rounded-full px-4">
                         View All <ArrowRight className="ml-1 w-4 h-4" />
                     </Button>
                 </Link>
-            </CardHeader>
-            <CardContent className="p-0">
+            </div>
+            <div className="overflow-hidden">
                 {jobs.length === 0 ? (
-                    <div className="p-8 text-center text-gray-500">
+                    <div className="p-12 text-center text-gray-500 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
                         <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300" />
                         <p>No recent activity</p>
                     </div>
                 ) : (
                     <Table>
                         <TableHeader>
-                            <TableRow className="hover:bg-transparent border-gray-100">
-                                <TableHead className="pl-6 text-gray-500 font-normal h-10">File Name</TableHead>
-                                <TableHead className="text-gray-500 font-normal h-10">Job ID</TableHead>
-                                <TableHead className="text-gray-500 font-normal h-10">Status</TableHead>
-                                <TableHead className="text-right pr-6 text-gray-500 font-normal h-10">Date</TableHead>
+                            <TableRow className="hover:bg-transparent border-b border-gray-100">
+                                <TableHead className="pl-0 text-gray-400 font-medium text-xs uppercase tracking-wider h-10">File Name</TableHead>
+                                <TableHead className="text-gray-400 font-medium text-xs uppercase tracking-wider h-10">Job ID</TableHead>
+                                <TableHead className="text-gray-400 font-medium text-xs uppercase tracking-wider h-10">Status</TableHead>
+                                <TableHead className="text-right pr-0 text-gray-400 font-medium text-xs uppercase tracking-wider h-10">Date</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {jobs.map((job) => (
                                 <TableRow
                                     key={job.id}
-                                    className="hover:bg-gray-50/50 border-gray-100 cursor-pointer group"
+                                    className="hover:bg-gray-50/50 border-b border-gray-50 cursor-pointer group transition-colors"
                                     onClick={() => window.location.href = `/jobs?id=${job.id}`}
                                 >
-                                    <TableCell className="pl-6 font-medium text-gray-900 py-2">
+                                    <TableCell className="pl-0 font-medium text-gray-900 py-4 text-[15px]">
                                         {job.filename}
                                     </TableCell>
-                                    <TableCell className="text-gray-500 text-xs py-2 font-mono">
+                                    <TableCell className="text-gray-400 text-xs py-4 font-mono">
                                         {job.id.slice(0, 8)}...
                                     </TableCell>
-                                    <TableCell className="py-2">
-                                        <span className="text-sm text-gray-700 capitalize">
-                                            {job.status.replace('_', ' ')}
-                                        </span>
+                                    <TableCell className="py-4">
+                                        <StatusPill status={job.status} />
                                     </TableCell>
-                                    <TableCell className="text-right pr-6 text-gray-500 text-sm py-2">
+                                    <TableCell className="text-right pr-0 text-gray-400 text-sm py-4">
                                         {formatTimeAgo(job.created_at)}
                                     </TableCell>
                                 </TableRow>
@@ -177,7 +175,7 @@ export default function RecentActivity() {
                         </TableBody>
                     </Table>
                 )}
-            </CardContent>
-        </Card>
+            </div>
+        </div>
     );
 }

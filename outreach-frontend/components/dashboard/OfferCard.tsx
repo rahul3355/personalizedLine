@@ -81,23 +81,23 @@ export default function OfferCard() {
     }
 
     return (
-        <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-4 w-full max-w-sm mx-auto">
+        <div className="bg-gray-50/50 border border-transparent hover:border-gray-200 rounded-2xl p-5 w-full max-w-sm mx-auto transition-all duration-300">
             {/* Photo Container */}
-            <div className="bg-gray-100 mb-4 rounded-lg overflow-hidden">
+            <div className="bg-white mb-5 rounded-xl overflow-hidden shadow-sm">
                 <img
                     src={shipImage.src}
                     alt="Ship illustration"
-                    className="w-full h-auto aspect-square object-cover"
+                    className="w-full h-auto aspect-square object-cover hover:scale-105 transition-transform duration-500"
                 />
             </div>
 
             {/* Caption Area */}
             <div className="flex flex-col gap-4">
                 <div className="text-left">
-                    <h2 className="text-xl font-medium text-black" style={{ fontFamily: "'Mencken Std Narrow Regular', serif" }}>
+                    <h2 className="text-xl font-serif font-medium text-gray-900">
                         {status === "unlocked" ? "Reward Unlocked!" : "Exploring?"}
                     </h2>
-                    <p className="text-md font-medium text-gray-500" style={{ fontFamily: "'Mencken Std Narrow Regular', serif" }}>
+                    <p className="text-[15px] leading-relaxed text-gray-500 mt-1">
                         {status === "unlocked"
                             ? "Claim your 500 free credits now."
                             : `Spend 500 credits${expirationText} to unlock 500 free credits!`}
@@ -107,11 +107,10 @@ export default function OfferCard() {
                 <Button
                     onClick={handleClaim}
                     disabled={status === "locked" || loading}
-                    className={`w-full font-medium rounded-lg h-10 shadow-grey flex items-center justify-center gap-2 transition-all
+                    className={`w-full font-medium rounded-full h-11 shadow-none flex items-center justify-center gap-2 transition-all
                         ${status === "unlocked"
-                            ? "bg-black text-white hover:bg-gray-800"
+                            ? "bg-black text-white hover:bg-gray-800 hover:shadow-lg"
                             : "bg-white text-gray-400 border border-gray-200 cursor-not-allowed"}`}
-                    style={{ fontFamily: "'Mencken Std Narrow Regular', serif" }}
                 >
                     {loading ? (
                         "Claiming..."

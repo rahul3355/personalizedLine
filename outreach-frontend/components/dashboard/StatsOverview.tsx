@@ -66,20 +66,20 @@ export default function StatsOverview() {
     ];
 
     return (
-        <div className="grid gap-4 md:grid-cols-3 mb-8">
+        <div className="grid gap-6 md:grid-cols-3 mb-12">
             {stats.map((stat, index) => (
                 <Link key={index} href={stat.href} className="block group">
-                    <Card className="bg-white border border-gray-100 shadow-sm rounded-xl p-6 transition-all duration-200 hover:shadow-md hover:border-gray-200 cursor-pointer h-full">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-0 pt-0">
-                            <CardTitle className="text-sm font-medium text-gray-500 group-hover:text-gray-700 transition-colors">
-                                {stat.title}
-                            </CardTitle>
-                            <stat.icon className={`h-4 w-4 ${stat.iconColor}`} />
-                        </CardHeader>
-                        <CardContent className="px-0 pb-0">
-                            <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
-                        </CardContent>
-                    </Card>
+                    <div className="bg-gray-50/50 hover:bg-gray-50 border border-transparent hover:border-gray-200 rounded-2xl p-6 transition-all duration-300 cursor-pointer h-full">
+                        <div className="flex flex-col space-y-4">
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium text-gray-500 group-hover:text-gray-900 transition-colors">
+                                    {stat.title}
+                                </span>
+                                <stat.icon className={`h-5 w-5 ${stat.iconColor} opacity-50 group-hover:opacity-100 transition-opacity`} />
+                            </div>
+                            <div className="text-3xl font-serif font-medium text-gray-900 tracking-tight">{stat.value}</div>
+                        </div>
+                    </div>
                 </Link>
             ))}
         </div>

@@ -11,7 +11,8 @@ import StatsOverview from "@/components/dashboard/StatsOverview";
 import RecentActivity from "@/components/dashboard/RecentActivity";
 import OfferCard from "@/components/dashboard/OfferCard";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, FileText, Clock, ChevronRight, Sparkles } from "lucide-react";
+import { Search, Plus, FileText, Clock, ChevronRight, Sparkles, ArrowRight, FileSpreadsheet } from "lucide-react";
+import { PiCoinsDuotone } from "react-icons/pi";
 import SendItFastLogo from "../assets/senditfast-logo.png";
 
 export default function Home() {
@@ -67,44 +68,57 @@ export default function Home() {
     };
 
     const firstName = userInfo?.full_name?.split(" ")[0] || "there";
-    const initial = firstName[0];
 
     return (
         <>
-            {/* Desktop View (Unchanged) */}
-            <div className="hidden lg:block relative min-h-[calc(100vh-170px)] overflow-hidden bg-white p-8 rounded-3xl lg:mr-4 shadow-sm">
-                {/* Dot Pattern Background - Right Half Only */}
-                <div className="absolute top-0 right-0 bottom-0 w-1/2 overflow-hidden pointer-events-none">
-                    <DotPattern
-                        width={20}
-                        height={20}
-                        cx={1}
-                        cy={1}
-                        cr={1}
-                        className={cn(
-                            "[mask-image:linear-gradient(to_left,white,transparent)]"
-                        )}
-                    />
-                </div>
+            {/* Desktop View (Perplexity Style - Adapted for White Card) */}
+            <div className="hidden lg:flex md:py-6 min-h-[calc(100vh-110px)] bg-white rounded-[32px] shadow-sm mr-4 flex-col items-center justify-center px-6 sm:px-8 lg:px-10">
 
-                <div className="relative z-10 mx-auto max-w-6xl pt-4">
-                    <WelcomeHeader />
+                {/* Centered Content Container */}
+                <div className="w-full max-w-2xl px-6 flex flex-col items-center">
 
-                    <StatsOverview />
+                    {/* Greeting */}
+                    <h1 className="text-4xl md:text-5xl font-serif font-medium text-gray-900 mb-4 text-center tracking-tight">
+                        {getGreeting()}, {firstName}
+                    </h1>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
-                        {/* Main Content Area - Recent Activity */}
-                        <div className="lg:col-span-2 min-h-[400px]">
-                            <RecentActivity />
-                        </div>
+                    <p className="text-gray-400 text-lg mb-10 font-light tracking-wide">
+                        A good day to send emails
+                    </p>
 
-                        {/* Sidebar - Offer Card */}
-                        <div className="lg:col-span-1">
-                            <div className="sticky top-8">
-                                <OfferCard />
+                    {/* Main Action Input (Perplexity Style - Adapted to Mobile Button Look) */}
+                    <Link href="/upload" className="w-full group">
+                        <div className="group relative w-full bg-white border border-gray-200 rounded-2xl transition-all duration-300 p-4 flex items-center space-x-4 active:scale-[0.99] hover:border-[#4F55F1] hover:bg-[#4F55F1]/5">
+                            <div className="h-10 w-10 rounded-full bg-gray-50 flex items-center justify-center flex-shrink-0 text-gray-500 group-hover:text-black transition-colors">
+                                <Plus className="w-5 h-5" />
+                            </div>
+                            <div className="flex-1 text-left">
+                                <span className="block text-[15px] font-medium text-gray-900">Start Generating Emails</span>
+                                <span className="block text-[12px] text-gray-400">Upload a CSV to begin</span>
+                            </div>
+                            <div className="h-8 w-8 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 opacity-0 group-hover:opacity-100 transition-all">
+                                <ChevronRight className="w-4 h-4" />
                             </div>
                         </div>
+                    </Link>
+
+                    {/* Quick Stats Row */}
+                    <div className="flex items-center gap-8 mt-12 text-sm text-gray-400 font-medium">
+                        <div className="group flex items-center gap-2 hover:text-[#4F55F1] transition-colors cursor-default">
+                            <PiCoinsDuotone className="w-4 h-4 text-[#D4AF37] group-hover:text-[#4F55F1] transition-colors" />
+                            <span>{(userInfo?.credits_remaining || 0) + (userInfo?.addon_credits || 0)} Credits</span>
+                        </div>
+                        <div className="w-1 h-1 rounded-full bg-gray-200" />
+                        <div className="hover:text-[#4F55F1] transition-colors cursor-default capitalize">
+                            <span>{(userInfo?.user?.plan_type || "free").split('_')[0]} Plan</span>
+                        </div>
+                        <div className="w-1 h-1 rounded-full bg-gray-200" />
+                        <Link href="/jobs" className="group flex items-center gap-2 hover:text-[#4F55F1] transition-colors">
+                            <FileSpreadsheet className="w-4 h-4 text-green-600 group-hover:text-[#4F55F1] transition-colors" />
+                            <span>View History</span>
+                        </Link>
                     </div>
+
                 </div>
             </div>
 
