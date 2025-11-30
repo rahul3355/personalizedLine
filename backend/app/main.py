@@ -2044,6 +2044,49 @@ async def create_checkout_session(
         if not STRIPE_SECRET:
             raise HTTPException(status_code=500, detail="Stripe is not configured")
 
+        # Fetch current profile to check existing subscription
+        supabase_client = get_supabase()
+        profile_res = (
+            supabase_client.table("profiles")
+            .select("plan_type, subscription_status")
+            .eq("id", user_id)
+            .single()
+            .execute()
+        )
+        
+        current_plan = "free"
+        subscription_status = None
+        
+        if profile_res.data:
+            current_plan = profile_res.data.get("plan_type", "free")
+            subscription_status = profile_res.data.get("subscription_status")
+
+        # Normalize plans for comparison (remove _monthly/_annual suffixes)
+        def normalize_plan(p: str) -> str:
+            return p.lower().replace("_annual", "").replace("_monthly", "")
+
+        requested_plan_norm = normalize_plan(data.plan)
+        current_plan_norm = normalize_plan(current_plan)
+
+        print(f"[DEBUG] Validation Check - User: {user_id}")
+        print(f"[DEBUG] Current Plan (DB): {current_plan} -> Norm: {current_plan_norm}")
+        print(f"[DEBUG] Requested Plan: {data.plan} -> Norm: {requested_plan_norm}")
+        print(f"[DEBUG] Subscription Status: {subscription_status}")
+        print(f"[DEBUG] Is Addon: {data.addon}")
+
+        # Block purchasing the same plan if subscription is active
+        if (
+            not data.addon 
+            and subscription_status == "active" 
+            and requested_plan_norm == current_plan_norm
+            and current_plan != "free"
+        ):
+            print(f"[BLOCK] User {user_id} attempted to buy current plan: {data.plan} (Current: {current_plan})")
+            raise HTTPException(
+                status_code=400, 
+                detail=f"You are already subscribed to the {requested_plan_norm.capitalize()} plan."
+            )
+
         stripe_customer_id = ensure_stripe_customer_id(user_id, email=user_email)
         if not stripe_customer_id:
             raise HTTPException(status_code=500, detail="Unable to create Stripe customer")

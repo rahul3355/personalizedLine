@@ -392,6 +392,15 @@ export default function BillingPage() {
       });
 
       const data = await res.json();
+
+      if (!res.ok) {
+        // Handle backend validation errors (e.g., "You are already subscribed...")
+        const errorMessage = data.detail || data.error || "Failed to create checkout session";
+        alert(errorMessage); // Simple alert for now, can be replaced with a toast
+        setLoadingPlanId(null);
+        return;
+      }
+
       if (data.id) {
         const stripe = await stripePromise;
         if (stripe) {
@@ -403,6 +412,7 @@ export default function BillingPage() {
       }
     } catch (err) {
       console.error("Checkout error", err);
+      alert("An unexpected error occurred. Please try again.");
       setLoadingPlanId(null);
     }
   };
@@ -582,11 +592,14 @@ export default function BillingPage() {
                   <div className="flex gap-3">
                     {plans.map((plan) => {
                       const planCredits = plan.monthlyCredits;
-                      // Normalize current plan name: remove annual suffix and convert to lowercase
-                      const normalizedCurrentPlan = currentPlan
-                        .toLowerCase()
-                        .replace("_annual", "");
+
+                      // Normalize current plan name: remove annual/monthly suffix and convert to lowercase
+                      const normalizePlanId = (id: string) =>
+                        id.toLowerCase().replace(/(_annual|_monthly)$/, "");
+
+                      const normalizedCurrentPlan = normalizePlanId(currentPlan);
                       const currentCredits = PRICING[normalizedCurrentPlan as keyof typeof PRICING]?.credits || 0;
+
                       const isCurrentPlan = plan.id === normalizedCurrentPlan;
                       const isUpgrade = planCredits > currentCredits;
 
@@ -675,7 +688,13 @@ export default function BillingPage() {
                 const cadence = isYearly ? "/year" : "/month";
                 const { currencySymbol } = formatCurrencyParts(price, plan.currency);
                 const isSelected = plan.id === selectedPlanId;
-                const isCurrentPlan = plan.id === currentPlan && hasActiveSub;
+
+                // Normalize current plan name: remove annual/monthly suffix and convert to lowercase
+                const normalizePlanId = (id: string) =>
+                  id.toLowerCase().replace(/(_annual|_monthly)$/, "");
+
+                const normalizedCurrentPlan = normalizePlanId(currentPlan);
+                const isCurrentPlan = plan.id === normalizedCurrentPlan && hasActiveSub;
                 const creditsForCycle = isYearly
                   ? plan.monthlyCredits * 12
                   : plan.monthlyCredits;
@@ -782,7 +801,15 @@ export default function BillingPage() {
                       </div>
                     </div>
                     <br />
-                    {!hasActiveSub && (
+                    {isCurrentPlan ? (
+                      <button
+                        type="button"
+                        disabled
+                        className="group relative mt-auto w-full overflow-visible rounded-full border border-neutral-200 bg-neutral-100 px-6 py-3 text-sm font-semibold text-neutral-400 cursor-default"
+                      >
+                        Current Plan
+                      </button>
+                    ) : !hasActiveSub ? (
                       <button
                         type="button"
                         onClick={() => handleCheckout(plan.id)}
@@ -798,42 +825,37 @@ export default function BillingPage() {
                               : "bg-neutral-900"
                             } ${loadingPlanId !== plan.id ? "group-hover:-inset-1 group-hover:bg-neutral-800 group-active:-inset-0.5" : ""}`}
                         />
-                        <span className="relative z-10 inline-flex items-center justify-center w-full gap-2">
+                        <span className="relative">
                           {loadingPlanId === plan.id ? (
-                            <>
-                              <svg
-                                className="animate-spin h-5 w-5"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                              >
-                                <circle
-                                  cx="12"
-                                  cy="12"
-                                  r="10"
-                                  stroke="white"
-                                  strokeWidth="3"
-                                  strokeDasharray="31.4 31.4"
-                                  strokeLinecap="round"
-                                />
-                                <circle
-                                  cx="12"
-                                  cy="12"
-                                  r="10"
-                                  stroke="white"
-                                  strokeWidth="1"
-                                  strokeDasharray="15.7 47.1"
-                                  strokeDashoffset="15.7"
-                                  strokeLinecap="round"
-                                />
+                            <span className="flex items-center justify-center gap-2">
+                              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="31.4 31.4" strokeLinecap="round" opacity="0.25" />
+                                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="15.7 47.1" strokeDashoffset="15.7" strokeLinecap="round" />
                               </svg>
                               Processing...
-                            </>
+                            </span>
                           ) : (
                             plan.ctaLabel
                           )}
                         </span>
                       </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleUpgrade(plan.id)}
+                        disabled={loadingAction === `upgrade-${plan.id}`}
+                        className="group relative mt-auto w-full overflow-visible rounded-full px-6 py-3 text-sm font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-black disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={`pointer-events-none absolute inset-0 rounded-full transition-all duration-200 ease-out bg-neutral-900 group-hover:-inset-1 group-hover:bg-neutral-800 group-active:-inset-0.5`}
+                        />
+                        <span className="relative">
+                          {loadingAction === `upgrade-${plan.id}` ? "Processing..." : `Upgrade to ${plan.name}`}
+                        </span>
+                      </button>
                     )}
+
 
                     <ul className="mt-6 space-y-3 text-left text-sm text-neutral-700">
                       {featureLabels.map((feature, index) => (
@@ -903,8 +925,8 @@ export default function BillingPage() {
             </article>
           </section>
         </div>
-      </div>
-    </div>,
+      </div >
+    </div >,
     document.body
   );
 }
