@@ -17,8 +17,9 @@ import {
 
 import { PiHouseLineFill } from "react-icons/pi";
 import { PiFileArrowDownFill } from "react-icons/pi";
-import { PiCreditCardFill } from "react-icons/pi";
+import { PiWalletFill } from "react-icons/pi";
 import { PiMoneyWavyFill } from "react-icons/pi";
+import { PiListFill } from "react-icons/pi";
 
 
 import { useState, useRef, useEffect } from "react";
@@ -49,19 +50,7 @@ export default function Navbar() {
 
 
   // --- effects (functionality unchanged) ---
-  useEffect(() => {
-    if (router.pathname === "/jobs" && iconWrapperRef.current) {
-      iconWrapperRef.current.animate(
-        [
-          { transform: "rotate(0deg)" },
-          { transform: "rotate(-15deg)" },
-          { transform: "rotate(15deg)" },
-          { transform: "rotate(0deg)" },
-        ],
-        { duration: 120, easing: "ease-in-out" }
-      );
-    }
-  }, [router.pathname]);
+
 
   useEffect(() => {
     if (menuOpen) document.body.style.overflow = "hidden";
@@ -135,7 +124,7 @@ export default function Navbar() {
 
   const pageTitle = {
     "/": "Home",
-    "/upload": "Enrich",
+    "/upload": "Emails",
     "/jobs": "Files",
     "/billing": "Billing",
     "/test-button": "Test",
@@ -199,7 +188,7 @@ export default function Navbar() {
               className={`${iconLabel} ${isActive("/upload") ? labelActive : labelInactive
                 }`}
             >
-              Enrich
+              Generate
             </div>
           </Link>
 
@@ -211,7 +200,7 @@ export default function Navbar() {
     `}
             >
               <span ref={iconWrapperRef} className="flex">
-                <PiFileArrowDownFill
+                <PiListFill
                   className={`h-5 w-5 ${isActive("/jobs") ? iconActive : iconInactive
                     }`}
                 />
@@ -232,7 +221,7 @@ export default function Navbar() {
       ${isActive("/billing") ? squircleActive : "group-hover:bg-[#E2E2E7] group-hover:rounded-[14px]"}
     `}
             >
-              <PiCreditCardFill
+              <PiWalletFill
                 className={`h-5 w-5 ${isActive("/billing") ? iconActive : iconInactive
                   }`}
               />

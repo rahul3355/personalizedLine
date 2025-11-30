@@ -5,6 +5,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { useAuth } from "../lib/AuthProvider";
 import { API_URL } from "../lib/api";
 import { ChevronLeft, ChevronRight, CreditCard, Calendar, AlertTriangle, X, Check } from "lucide-react";
+import SendItFastSpinner from "../components/SendItFastSpinner";
 
 const STRIPE_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 const stripePromise = STRIPE_KEY ? loadStripe(STRIPE_KEY) : null;
@@ -243,7 +244,7 @@ export default function AccountPage() {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-8 h-8 border-2 border-gray-200 border-t-gray-900 animate-spin" />
+          <SendItFastSpinner size={40} />
           <p className="text-sm text-gray-500">Loading transactions...</p>
         </div>
       </div>
