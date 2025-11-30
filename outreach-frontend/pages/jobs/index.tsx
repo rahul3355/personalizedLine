@@ -1470,7 +1470,7 @@ function DetailPanel({
                 <InfoRow label="Status" value={config?.label ?? "—"} />
                 <InfoRow
                   label="File name"
-                  value={job?.filename ?? "—"}
+                  value={job?.filename ? truncateFilename(job.filename, 20) : "—"}
                   breakWords
                 />
                 {typeof job?.rows === "number" && <InfoRow label="Rows" value={job.rows.toLocaleString()} />}
