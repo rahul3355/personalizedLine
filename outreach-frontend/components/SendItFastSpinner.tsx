@@ -15,7 +15,7 @@ export default function SendItFastSpinner({
 
   return (
     <svg
-      className={`animate-spin text-[#7c3aed] ${className}`.trim()}
+      className={`animate-spin text-[#4f55f1] ${className}`.trim()}
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"

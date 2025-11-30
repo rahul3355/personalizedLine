@@ -14,6 +14,7 @@ import { Lens } from "@/components/ui/lens";
 import Sign from "../assets/sign.png";
 import SendItFastLogo from "../assets/senditfast-logo.png";
 import Whiteboard from "../assets/whiteboard2.png";
+import SendItFastSpinner from "../components/SendItFastSpinner";
 
 // Company Logos
 import AppleLogo from "../assets/apple.png";

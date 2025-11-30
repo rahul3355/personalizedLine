@@ -10,6 +10,7 @@ import {
   PiCheck,
   PiCoinsDuotone
 } from "react-icons/pi";
+import SendItFastSpinner from "../components/SendItFastSpinner";
 
 import { useAuth } from "../lib/AuthProvider";
 import { API_URL } from "../lib/api";
@@ -241,8 +242,8 @@ export default function AddOnCreditsPage() {
                   key={opt.value}
                   onClick={() => setQuantity(opt.value)}
                   className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${quantity === opt.value
-                      ? "bg-black text-white shadow-md"
-                      : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                    ? "bg-black text-white shadow-md"
+                    : "bg-gray-50 text-gray-600 hover:bg-gray-100"
                     }`}
                 >
                   {opt.label}
@@ -270,7 +271,7 @@ export default function AddOnCreditsPage() {
             >
               {loading ? (
                 <>
-                  <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <SendItFastSpinner size={16} className="mr-2" />
                   <span>Processing...</span>
                 </>
               ) : (
