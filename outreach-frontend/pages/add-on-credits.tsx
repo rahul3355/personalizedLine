@@ -1,5 +1,6 @@
-import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
-import { motion, useSpring } from "framer-motion";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/router";
 import { loadStripe } from "@stripe/stripe-js";
 import { ArrowLeft, X, Minus, Plus } from "lucide-react";
@@ -14,8 +15,20 @@ const AEONIK_FONT_FAMILY =
 // Initialize Stripe with publishable key from env
 const STRIPE_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 
-
 const stripePromise = STRIPE_KEY ? loadStripe(STRIPE_KEY) : null;
+
+// Pricing configuration from billing page
+const PRICING = {
+  starter: {
+    addonPricePer1000: 15,
+  },
+  growth: {
+    addonPricePer1000: 13,
+  },
+  pro: {
+    addonPricePer1000: 11,
+  },
+} as const;
 
 export default function AddOnCreditsPage() {
   const { session, userInfo } = useAuth();
@@ -23,10 +36,17 @@ export default function AddOnCreditsPage() {
   const dialogRef = useRef<HTMLDivElement>(null);
   const [addonCount, setAddonCount] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
   const currentPlan = useMemo(
     () => userInfo?.user?.plan_type || userInfo?.plan_type || "free",
     [userInfo?.plan_type, userInfo?.user?.plan_type]
   );
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   const closePage = () => {
     if (window.history.length > 1) {
@@ -37,6 +57,8 @@ export default function AddOnCreditsPage() {
   };
 
   useEffect(() => {
+    if (!mounted) return;
+
     const { body } = document;
     const originalOverflow = body.style.overflow;
     body.style.overflow = "hidden";
@@ -45,18 +67,15 @@ export default function AddOnCreditsPage() {
 
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        event.preventDefault();
         closePage();
       }
     };
-
     document.addEventListener("keydown", handleKey);
-
     return () => {
       body.style.overflow = originalOverflow;
       document.removeEventListener("keydown", handleKey);
     };
-  }, []);
+  }, [mounted]);
 
   const handleBuyAddons = async () => {
     if (!session || !userInfo?.id) return;
@@ -107,15 +126,21 @@ export default function AddOnCreditsPage() {
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value) || 1;
-    setAddonCount(Math.max(1, Math.min(500, value)));
+    const value = parseInt(e.target.value) || 0;
+    if (value > 500) setAddonCount(500);
+    else if (value < 1) setAddonCount(1);
+    else setAddonCount(value);
   };
 
-  const credits = (userInfo?.credits_remaining ?? 0) + (userInfo?.addon_credits ?? 0);
-  const maxCredits = userInfo?.max_credits ?? 25000;
+  const normalizedPlan = currentPlan.toLowerCase().replace("_annual", "") as keyof typeof PRICING;
+  const pricePerUnit = PRICING[normalizedPlan]?.addonPricePer1000 || 15;
+  const totalLines = addonCount * 1000;
+  const totalPrice = addonCount * pricePerUnit;
 
-  return (
-    <div className="fixed inset-0 z-50 bg-white" style={{ fontFamily: AEONIK_FONT_FAMILY }}>
+  if (!mounted) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] bg-white" style={{ fontFamily: AEONIK_FONT_FAMILY }}>
       <div className="h-full overflow-y-auto">
         <div
           ref={dialogRef}
@@ -124,137 +149,127 @@ export default function AddOnCreditsPage() {
           tabIndex={-1}
           className="relative mx-auto flex min-h-full w-full max-w-[1120px] flex-col px-6 pt-16 pb-24 text-center md:px-12 md:pt-24"
         >
-          <Button
-            variant="ghost"
+          {/* Back Button */}
+          <button
             onClick={closePage}
-            aria-label="Go back"
-            className="fixed top-6 left-6 flex items-center gap-2 text-sm font-semibold text-black transition hover:text-neutral-900"
+            className="fixed top-6 left-6 flex items-center gap-2 text-sm font-semibold text-black transition hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
           >
             <ArrowLeft className="h-5 w-5" aria-hidden="true" />
             Back
-          </Button>
+          </button>
 
-          <Button
-            variant="ghost"
-            size="icon"
+          {/* Close Button */}
+          <button
             onClick={closePage}
-            aria-label="Close"
-            className="fixed top-6 right-6 rounded-full text-neutral-500 transition hover:text-neutral-900"
+            className="fixed top-6 right-6 flex h-10 w-10 items-center justify-center rounded-full bg-white text-neutral-500 transition hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
           >
             <X className="h-4 w-4" aria-hidden="true" />
-          </Button>
+          </button>
 
+          {/* Main Content */}
           <div className="mx-auto max-w-xl space-y-4">
-            <h1 className="text-4xl font-semibold tracking-tight text-neutral-900 sm:text-5xl md:text-6xl">
+            <motion.h1
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="text-4xl font-semibold tracking-tight text-neutral-900 sm:text-5xl md:text-6xl"
+            >
               Buy Add-on Credits
-            </h1>
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-neutral-500 text-lg"
+            >
+              Scale your outreach with more capacity.
+            </motion.p>
           </div>
 
           <div className="mt-12 mx-auto w-full max-w-xl">
-            <section className="rounded-3xl border border-neutral-200 bg-white p-7 text-left shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
-              <p className="text-sm text-neutral-600">
-                For the {currentPlan} plan -
-                <span className="ml-1 font-semibold text-neutral-900">
-                  ${userInfo?.addon_price || 5}
-                </span>{" "}
-                per additional 1,000 lines.
-              </p>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.4 }}
+              className="rounded-3xl border border-neutral-200 bg-white p-8 text-left shadow-[0_1px_2px_rgba(15,23,42,0.08)]"
+            >
+              <div className="flex items-center justify-between mb-8">
+                <div className="text-left">
+                  <p className="text-sm font-medium text-neutral-500 mb-1">Quantity</p>
+                  <p className="text-2xl font-semibold text-neutral-900">
+                    {addonCount} <span className="text-neutral-400 text-lg font-normal">× 1k credits</span>
+                  </p>
+                </div>
 
-              <div className="mt-6 flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
+                <div className="flex items-center gap-3 bg-white rounded-full p-1.5 shadow-sm border border-neutral-100">
+                  <button
                     onClick={handleDecrement}
                     disabled={addonCount <= 1}
-                    className="h-10 w-10"
+                    className="w-8 h-8 flex items-center justify-center rounded-full text-neutral-600 hover:bg-neutral-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
                   >
-                    <Minus className="h-4 w-4" />
-                  </Button>
-
+                    <Minus className="w-4 h-4" />
+                  </button>
                   <input
                     type="number"
                     min="1"
                     max="500"
                     value={addonCount}
                     onChange={handleInputChange}
-                    className="w-20 h-10 px-3 text-center border border-neutral-200 rounded-md text-sm font-medium text-neutral-900 focus:outline-none focus:ring-2 focus:ring-black"
+                    className="w-12 text-center font-medium text-neutral-900 bg-transparent border-none focus:outline-none focus:ring-0 p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
-
-                  <Button
-                    variant="outline"
-                    size="icon"
+                  <button
                     onClick={handleIncrement}
                     disabled={addonCount >= 500}
-                    className="h-10 w-10"
+                    className="w-8 h-8 flex items-center justify-center rounded-full text-neutral-600 hover:bg-neutral-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
                   >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                <div className="text-sm font-medium text-neutral-600">
-                  x1000 credits
+                    <Plus className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
 
-              <div className="mt-4 rounded-2xl bg-neutral-50 px-4 py-3 text-sm text-neutral-700">
-                <div className="flex items-center justify-between">
-                  <span>Total lines</span>
-                  <span className="font-semibold text-neutral-900">
-                    {(addonCount * 1000).toLocaleString()}
-                  </span>
+              <div className="space-y-3 pt-6 border-t border-neutral-200/60">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-neutral-600">Price per 1,000 lines</span>
+                  <span className="font-medium text-neutral-900">${pricePerUnit}</span>
                 </div>
-                <div className="mt-2 flex items-center justify-between">
-                  <span>One-time total</span>
-                  <span className="font-semibold text-neutral-900">
-                    ${(addonCount * (userInfo?.addon_price || 5)).toLocaleString()}
-                  </span>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-neutral-600">Total lines</span>
+                  <span className="font-medium text-neutral-900">{totalLines.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center pt-2">
+                  <span className="text-base font-medium text-neutral-900">Total due today</span>
+                  <span className="text-xl font-semibold text-neutral-900">${totalPrice.toLocaleString()}</span>
                 </div>
               </div>
 
               <Button
                 onClick={handleBuyAddons}
                 disabled={loading}
-                className="mt-6 w-full rounded-full bg-black px-6 py-3 text-sm font-semibold text-white hover:bg-neutral-900"
-                size="lg"
+                className="mt-8 w-full h-12 rounded-full bg-neutral-900 hover:bg-black text-white font-medium text-base shadow-lg shadow-neutral-900/10 hover:shadow-neutral-900/20 transition-all transform active:scale-[0.98]"
               >
                 {loading ? (
-                  <span className="inline-flex items-center justify-center gap-2">
-                    <svg
-                      className="animate-spin h-5 w-5"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                    >
-                      <circle
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="white"
-                        strokeWidth="3"
-                        strokeDasharray="31.4 31.4"
-                        strokeLinecap="round"
-                      />
-                      <circle
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="white"
-                        strokeWidth="1"
-                        strokeDasharray="15.7 47.1"
-                        strokeDashoffset="15.7"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    Processing...
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Processing...</span>
+                  </div>
                 ) : (
-                  "Purchase add-ons"
+                  <div className="flex items-center gap-2">
+                    <span>Purchase Credits</span>
+                    <span className="bg-white/20 px-2 py-0.5 rounded text-xs font-semibold">
+                      ${totalPrice}
+                    </span>
+                  </div>
                 )}
               </Button>
-            </section>
+
+              <p className="mt-4 text-center text-xs text-neutral-400">
+                Secure payment powered by Stripe. One-time payment.
+              </p>
+            </motion.div>
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
