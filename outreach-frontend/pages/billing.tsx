@@ -25,6 +25,7 @@ import { Switch } from "@headlessui/react";
 
 import { useAuth } from "../lib/AuthProvider";
 import { API_URL } from "../lib/api";
+import SendItFastSpinner from "../components/SendItFastSpinner";
 
 type BillingCycle = "monthly" | "yearly";
 type AudienceSegment = "individual" | "business";
@@ -297,6 +298,7 @@ export default function BillingPage() {
   const [loadingPlanId, setLoadingPlanId] = useState<string | null>(null);
   const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo | null>(null);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  const [loadingSubscription, setLoadingSubscription] = useState(true);
 
   const closeBilling = () => {
     if (window.history.length > 1) {
@@ -308,13 +310,23 @@ export default function BillingPage() {
 
   // Fetch subscription info
   useEffect(() => {
-    if (session && userInfo?.plan_type && userInfo.plan_type !== "free") {
+    if (session) {
       fetchSubscriptionInfo();
+    } else if (!session && !userInfo) {
+      // If no session and no userInfo, we might be loading auth or not logged in.
+      // But if we are here, we probably want to stop loading if we are sure there is no session.
+      // However, useAuth handles initial loading.
+      // Let's just set loadingSubscription to false after a short timeout if no session appears,
+      // or rely on the fact that if session is null, we show default.
+      // But to be safe and avoid infinite loading for non-logged in users (if any):
+      const timer = setTimeout(() => setLoadingSubscription(false), 1000);
+      return () => clearTimeout(timer);
     }
-  }, [session, userInfo?.plan_type]);
+  }, [session, userInfo]);
 
   const fetchSubscriptionInfo = async () => {
     if (!session) return;
+    setLoadingSubscription(true);
     try {
       const res = await fetch(`${API_URL}/subscription/info`, {
         headers: {
@@ -327,6 +339,8 @@ export default function BillingPage() {
       }
     } catch (err) {
       console.error("Failed to fetch subscription info:", err);
+    } finally {
+      setLoadingSubscription(false);
     }
   };
 
@@ -360,6 +374,13 @@ export default function BillingPage() {
     };
   }, []);
 
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
   // Reset loading state if redirected back from Stripe with canceled=true
   useEffect(() => {
     if (router.isReady && router.query.canceled) {
@@ -367,6 +388,8 @@ export default function BillingPage() {
       setLoadingAction(null);
     }
   }, [router.isReady, router.query.canceled]);
+
+  if (!mounted) return null;
 
   const handleCheckout = async (planId: string) => {
     if (!session || !userInfo?.id) return;
@@ -498,435 +521,318 @@ export default function BillingPage() {
 
   const plans = planConfigurations;
   const isYearly = billingCycle === "yearly";
-  const currentPlan = userInfo?.plan_type || "free";
-  const hasActiveSub = subscriptionInfo && subscriptionInfo.subscription_status === "active" && currentPlan !== "free";
-
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
+  // Prioritize subscriptionInfo.plan_type as it is freshly fetched from the backend
+  const currentPlan = subscriptionInfo?.plan_type || userInfo?.plan_type || "free";
+  const hasActiveSub = subscriptionInfo && subscriptionInfo.subscription_status === "active";
 
   if (!mounted) return null;
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] bg-white" style={{ fontFamily: AEONIK_FONT_FAMILY }}>
       <div className="h-full overflow-y-auto">
-        <div
-          ref={dialogRef}
-          role="dialog"
-          aria-modal="true"
-          tabIndex={-1}
-          className="relative mx-auto flex min-h-full w-full max-w-[1120px] flex-col px-6 pt-16 pb-24 text-center md:px-12 md:pt-24"
-        >
-          <button
-            type="button"
-            onClick={closeBilling}
-            aria-label="Go back"
-            className="fixed top-6 left-6 flex items-center gap-2 text-sm font-semibold text-black transition hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
+        {loadingSubscription ? (
+          <div className="flex h-full items-center justify-center">
+            <SendItFastSpinner />
+          </div>
+        ) : (
+          <div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            tabIndex={-1}
+            className="relative mx-auto flex min-h-full w-full max-w-[1120px] flex-col px-6 pt-16 pb-24 text-center md:px-12 md:pt-24"
           >
-            <ArrowLeft className="h-5 w-5" aria-hidden="true" />
-            Back
-          </button>
+            <button
+              type="button"
+              onClick={closeBilling}
+              aria-label="Go back"
+              className="fixed top-6 left-6 flex items-center gap-2 text-sm font-semibold text-black transition hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
+            >
+              <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+              Back
+            </button>
 
-          <button
-            type="button"
-            onClick={closeBilling}
-            aria-label="Close"
-            className="fixed top-6 right-6 flex h-10 w-10 items-center justify-center rounded-full bg-white text-neutral-500 transition hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
-          >
-            <X className="h-4 w-4" aria-hidden="true" />
-          </button>
+            <button
+              type="button"
+              onClick={closeBilling}
+              aria-label="Close"
+              className="fixed top-6 right-6 flex h-10 w-10 items-center justify-center rounded-full bg-white text-neutral-500 transition hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </button>
 
-          {/* Current Subscription Section */}
-          {hasActiveSub && (
-            <div className="mb-12 rounded-2xl border border-gray-200 bg-gray-50 p-6 text-left">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Current Subscription</h2>
+            <div className="mx-auto max-w-xl space-y-4">
+              <h1 className="text-4xl font-semibold tracking-tight text-neutral-900 sm:text-5xl md:text-6xl">
+                {hasActiveSub ? "All Plans" : "Prices at a glance"}
+              </h1>
+            </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div>
-                  <p className="text-sm text-gray-500">Plan</p>
-                  <p className="text-2xl font-semibold text-gray-900 capitalize mt-1">{currentPlan}</p>
-                  {subscriptionInfo.pending_plan_change && (
-                    <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium">
-                      <AlertCircle className="w-3.5 h-3.5" />
-                      Downgrading to {subscriptionInfo.pending_plan_change} at period end
-                    </div>
-                  )}
-                  {subscriptionInfo.cancel_at_period_end && (
-                    <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-50 border border-red-200 text-red-800 text-xs font-medium">
-                      <AlertCircle className="w-3.5 h-3.5" />
-                      Cancels at period end
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <p className="text-sm text-gray-500">Credits</p>
-                  <p className="text-2xl font-semibold text-gray-900 mt-1">
-                    {(subscriptionInfo.credits_remaining + subscriptionInfo.addon_credits).toLocaleString()}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {subscriptionInfo.credits_remaining.toLocaleString()} monthly + {subscriptionInfo.addon_credits.toLocaleString()} add-on
-                  </p>
-                </div>
-
-                {subscriptionInfo.current_period_end && (
-                  <div>
-                    <p className="text-sm text-gray-500">Next billing</p>
-                    <p className="text-base font-medium text-gray-900 mt-1">
-                      {new Date(subscriptionInfo.current_period_end * 1000).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-6 flex flex-col gap-3">
-                {/* Only show plan changes for monthly subscriptions */}
-                {!currentPlan.includes("annual") ? (
-                  <div className="flex gap-3">
-                    {plans.map((plan) => {
-                      const planCredits = plan.monthlyCredits;
-
-                      // Normalize current plan name: remove annual/monthly suffix and convert to lowercase
-                      const normalizePlanId = (id: string) =>
-                        id.toLowerCase().replace(/(_annual|_monthly)$/, "");
-
-                      const normalizedCurrentPlan = normalizePlanId(currentPlan);
-                      const currentCredits = PRICING[normalizedCurrentPlan as keyof typeof PRICING]?.credits || 0;
-
-                      const isCurrentPlan = plan.id === normalizedCurrentPlan;
-                      const isUpgrade = planCredits > currentCredits;
-
-                      // Only show upgrade options, skip current plan and lower tier plans
-                      if (isCurrentPlan || !isUpgrade) return null;
-
-                      return (
-                        <button
-                          key={plan.id}
-                          onClick={() => handleUpgrade(plan.id)}
-                          disabled={loadingAction === `upgrade-${plan.id}`}
-                          className="px-4 py-2 border border-gray-900 bg-gray-900 text-white font-medium text-sm hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {loadingAction === `upgrade-${plan.id}` ? (
-                            <span className="inline-flex items-center gap-2">
-                              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="31.4 31.4" strokeLinecap="round" opacity="0.25" />
-                                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="15.7 47.1" strokeDashoffset="15.7" strokeLinecap="round" />
-                              </svg>
-                              Processing...
-                            </span>
-                          ) : (
-                            `Upgrade to ${plan.name}`
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-600 italic">
-                    To change your annual plan, please contact support at founders@personalizedline.com
-                  </p>
-                )}
-
-                {subscriptionInfo.cancel_at_period_end ? (
-                  <button
-                    onClick={handleReactivate}
-                    disabled={loadingAction === "reactivate"}
-                    className="px-4 py-2 border border-green-600 bg-green-600 text-white font-medium text-sm hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loadingAction === "reactivate" ? "Processing..." : "Reactivate Subscription"}
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleCancel}
-                    disabled={loadingAction === "cancel"}
-                    className="px-4 py-2 border border-red-600 text-red-600 font-medium text-sm hover:bg-red-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loadingAction === "cancel" ? "Processing..." : "Cancel Subscription"}
-                  </button>
-                )}
+            <div className="relative mt-12 flex justify-center">
+              <div className="flex flex-wrap items-center justify-center gap-3 text-sm text-neutral-600">
+                <span>Save with yearly billing</span>
+                <Switch
+                  checked={isYearly}
+                  onChange={(value: boolean) => setBillingCycle(value ? "yearly" : "monthly")}
+                  className={`${isYearly ? "bg-black" : "bg-neutral-200"
+                    } relative inline-flex h-7 w-12 items-center rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-black`}
+                >
+                  <span className="sr-only">Save with yearly billing</span>
+                  <span
+                    aria-hidden="true"
+                    className={`${isYearly ? "translate-x-6" : "translate-x-1"
+                      } inline-block h-5 w-5 transform rounded-full bg-white transition`}
+                  />
+                </Switch>
               </div>
             </div>
-          )}
 
-          <div className="mx-auto max-w-xl space-y-4">
-            <h1 className="text-4xl font-semibold tracking-tight text-neutral-900 sm:text-5xl md:text-6xl">
-              {hasActiveSub ? "All Plans" : "Prices at a glance"}
-            </h1>
+            <LayoutGroup>
+              <div className="mt-12 grid grid-cols-1 gap-6 text-left md:grid-cols-2 xl:grid-cols-3 md:gap-8">
+                {plans.map((plan) => {
+                  const price = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
+                  const cadence = isYearly ? "/year" : "/month";
+                  const { currencySymbol } = formatCurrencyParts(price, plan.currency);
+                  const isSelected = plan.id === selectedPlanId;
 
-          </div>
+                  // Normalize current plan name: remove annual/monthly suffix and convert to lowercase
+                  const normalizePlanId = (id: string) =>
+                    id.toLowerCase().replace(/(_annual|_monthly)$/, "");
 
-          <div className="relative mt-12 flex justify-center">
-            <div className="flex flex-wrap items-center justify-center gap-3 text-sm text-neutral-600">
-              <span>Save with yearly billing</span>
-              <Switch
-                checked={isYearly}
-                onChange={(value: boolean) => setBillingCycle(value ? "yearly" : "monthly")}
-                className={`${isYearly ? "bg-black" : "bg-neutral-200"
-                  } relative inline-flex h-7 w-12 items-center rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-black`}
-              >
-                <span className="sr-only">Save with yearly billing</span>
-                <span
-                  aria-hidden="true"
-                  className={`${isYearly ? "translate-x-6" : "translate-x-1"
-                    } inline-block h-5 w-5 transform rounded-full bg-white transition`}
-                />
-              </Switch>
-            </div>
-          </div>
+                  const normalizedCurrentPlan = normalizePlanId(currentPlan);
+                  const isCurrentPlan = plan.id === normalizedCurrentPlan && hasActiveSub;
+                  const creditsForCycle = isYearly
+                    ? plan.monthlyCredits * 12
+                    : plan.monthlyCredits;
+                  const perCreditRate = creditsForCycle > 0 ? price / creditsForCycle : 0;
+                  const bulkPerCredit = plan.pricePerThousandCredits / 1000;
+                  const cycleUnit = isYearly ? "year" : "month";
+                  const cycleDescriptor = isYearly ? "yearly plan" : "monthly plan";
+                  const savingsText = plan.yearlySavings ?? "";
+                  const featureLabels = [
+                    `${creditsForCycle.toLocaleString()} credits/${cycleUnit}`,
+                    `$${plan.pricePerThousandCredits} per 1000 credits`,
+                  ];
+                  const featureDetails = [
+                    `${formatPerCredit(perCreditRate)} per credit`,
+                    `${formatPerCredit(bulkPerCredit)} per credit`,
+                  ];
 
-          <LayoutGroup>
-            <div className="mt-12 grid grid-cols-1 gap-6 text-left md:grid-cols-2 xl:grid-cols-3 md:gap-8">
-              {plans.map((plan) => {
-                const price = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
-                const cadence = isYearly ? "/year" : "/month";
-                const { currencySymbol } = formatCurrencyParts(price, plan.currency);
-                const isSelected = plan.id === selectedPlanId;
-
-                // Normalize current plan name: remove annual/monthly suffix and convert to lowercase
-                const normalizePlanId = (id: string) =>
-                  id.toLowerCase().replace(/(_annual|_monthly)$/, "");
-
-                const normalizedCurrentPlan = normalizePlanId(currentPlan);
-                const isCurrentPlan = plan.id === normalizedCurrentPlan && hasActiveSub;
-                const creditsForCycle = isYearly
-                  ? plan.monthlyCredits * 12
-                  : plan.monthlyCredits;
-                const perCreditRate = creditsForCycle > 0 ? price / creditsForCycle : 0;
-                const bulkPerCredit = plan.pricePerThousandCredits / 1000;
-                const cycleUnit = isYearly ? "year" : "month";
-                const cycleDescriptor = isYearly ? "yearly plan" : "monthly plan";
-                const savingsText = plan.yearlySavings ?? "";
-                const featureLabels = [
-                  `${creditsForCycle.toLocaleString()} credits/${cycleUnit}`,
-                  `$${plan.pricePerThousandCredits} per 1000 credits`,
-                ];
-                const featureDetails = [
-                  `${formatPerCredit(perCreditRate)} per credit`,
-                  `${formatPerCredit(bulkPerCredit)} per credit`,
-                ];
-
-                return (
-                  <article
-                    key={plan.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setSelectedPlanId(plan.id)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        setSelectedPlanId(plan.id);
-                      }
-                    }}
-                    aria-pressed={isSelected}
-                    className="relative flex min-h-[290px] cursor-pointer flex-col rounded-3xl border border-transparent bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
-                  >
-                    {isSelected && (
-                      <motion.div
-                        layoutId="planHighlight"
-                        className="pointer-events-none absolute inset-0 rounded-[inherit] border-[3px] border-black z-10"
-                        transition={{ type: "spring", stiffness: 320, damping: 28 }}
-                      />
-                    )}
-                    {isCurrentPlan && (
-                      <div className="absolute top-4 right-4 px-2.5 py-1 bg-black text-white text-xs font-semibold uppercase tracking-wide">
-                        Current
-                      </div>
-                    )}
-                    <header className="relative flex items-start gap-3">
-                      <div>
-                        <p className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
-                          {plan.name}
-                        </p>
-                        <p className="mt-1 text-base text-neutral-600">
-                          {plan.tagline}
-                        </p>
-                      </div>
-                      {plan.badge && !isCurrentPlan && (
-                        <span className="ml-auto inline-flex items-center rounded-full border border-yellow-500 bg-white px-2.5 py-1 text-[11px] font-bold text-neutral-900">
-                          {plan.badge}
-                        </span>
+                  return (
+                    <article
+                      key={plan.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setSelectedPlanId(plan.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          setSelectedPlanId(plan.id);
+                        }
+                      }}
+                      aria-pressed={isSelected}
+                      className="relative flex min-h-[290px] cursor-pointer flex-col rounded-3xl border border-transparent bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                    >
+                      {isSelected && (
+                        <motion.div
+                          layoutId="planHighlight"
+                          className="pointer-events-none absolute inset-0 rounded-[inherit] border-[3px] border-black z-10"
+                          transition={{ type: "spring", stiffness: 320, damping: 28 }}
+                        />
                       )}
-                    </header>
-
-                    <div className="mt-6">
-                      <div className="flex items-end justify-between gap-4 flex-wrap">
-                        <div className="flex items-end gap-1">
-                          <AnimatePresence mode="wait" initial={false}>
-                            <motion.span
-                              key={currencySymbol}
-                              initial={{ opacity: 0, y: -4 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: 4 }}
-                              transition={{ duration: 0.2 }}
-                              className="text-5xl font-semibold text-neutral-900"
-                              style={{ fontFamily: AEONIK_FONT_FAMILY }}
-                            >
-                              {currencySymbol}
-                            </motion.span>
-                          </AnimatePresence>
-                          <AnimatedNumber
-                            value={price}
-                            className="text-5xl font-semibold leading-none text-neutral-900"
-                            style={{ fontFamily: AEONIK_FONT_FAMILY }}
-                          />
-                          <AnimatedText
-                            text={cadence}
-                            className="text-sm font-medium text-neutral-400"
-                            style={{ fontFamily: AEONIK_FONT_FAMILY }}
-                          />
+                      {isCurrentPlan && (
+                        <div className="absolute top-4 right-4 px-2.5 py-1 bg-black text-white text-xs font-semibold uppercase tracking-wide">
+                          Current
                         </div>
-                        <div className="flex min-h-[20px] flex-shrink-0 items-center justify-end text-right">
-                          <AnimatePresence mode="wait" initial={false}>
-                            {isYearly && plan.yearlySavings && (
+                      )}
+                      <header className="relative flex items-start gap-3">
+                        <div>
+                          <p className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+                            {plan.name}
+                          </p>
+                          <p className="mt-1 text-base text-neutral-600">
+                            {plan.tagline}
+                          </p>
+                        </div>
+                        {plan.badge && !isCurrentPlan && (
+                          <span className="ml-auto inline-flex items-center rounded-full border border-yellow-500 bg-white px-2.5 py-1 text-[11px] font-bold text-neutral-900">
+                            {plan.badge}
+                          </span>
+                        )}
+                      </header>
+
+                      <div className="mt-6">
+                        <div className="flex items-end justify-between gap-4 flex-wrap">
+                          <div className="flex items-end gap-1">
+                            <AnimatePresence mode="wait" initial={false}>
                               <motion.span
-                                key={savingsText}
+                                key={currencySymbol}
                                 initial={{ opacity: 0, y: -4 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: 4 }}
                                 transition={{ duration: 0.2 }}
-                                className="text-sm font-medium text-[#ff7a00]"
+                                className="text-5xl font-semibold text-neutral-900"
+                                style={{ fontFamily: AEONIK_FONT_FAMILY }}
                               >
-                                {savingsText}
+                                {currencySymbol}
                               </motion.span>
-                            )}
-                          </AnimatePresence>
+                            </AnimatePresence>
+                            <AnimatedNumber
+                              value={price}
+                              className="text-5xl font-semibold leading-none text-neutral-900"
+                              style={{ fontFamily: AEONIK_FONT_FAMILY }}
+                            />
+                            <AnimatedText
+                              text={cadence}
+                              className="text-sm font-medium text-neutral-400"
+                              style={{ fontFamily: AEONIK_FONT_FAMILY }}
+                            />
+                          </div>
+                          <div className="flex min-h-[20px] flex-shrink-0 items-center justify-end text-right">
+                            <AnimatePresence mode="wait" initial={false}>
+                              {isYearly && plan.yearlySavings && (
+                                <motion.span
+                                  key={savingsText}
+                                  initial={{ opacity: 0, y: -4 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, y: 4 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="text-sm font-medium text-[#ff7a00]"
+                                >
+                                  {savingsText}
+                                </motion.span>
+                              )}
+                            </AnimatePresence>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <br />
-                    {isCurrentPlan ? (
-                      <button
-                        type="button"
-                        disabled
-                        className="group relative mt-auto w-full overflow-visible rounded-full border border-neutral-200 bg-neutral-100 px-6 py-3 text-sm font-semibold text-neutral-400 cursor-default"
-                      >
-                        Current Plan
-                      </button>
-                    ) : !hasActiveSub ? (
-                      <button
-                        type="button"
-                        onClick={() => handleCheckout(plan.id)}
-                        disabled={loadingPlanId === plan.id}
-                        className="group relative mt-auto w-full overflow-visible rounded-full px-6 py-3 text-sm font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-black disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <span
-                          aria-hidden="true"
-                          className={`pointer-events-none absolute inset-0 rounded-full transition-all duration-200 ease-out ${loadingPlanId === plan.id
-                            ? "bg-neutral-400"
-                            : plan.popular
-                              ? "bg-black"
-                              : "bg-neutral-900"
-                            } ${loadingPlanId !== plan.id ? "group-hover:-inset-1 group-hover:bg-neutral-800 group-active:-inset-0.5" : ""}`}
-                        />
-                        <span className="relative">
-                          {loadingPlanId === plan.id ? (
-                            <span className="flex items-center justify-center gap-2">
-                              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="31.4 31.4" strokeLinecap="round" opacity="0.25" />
-                                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="15.7 47.1" strokeDashoffset="15.7" strokeLinecap="round" />
-                              </svg>
-                              Processing...
-                            </span>
-                          ) : (
-                            plan.ctaLabel
-                          )}
-                        </span>
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => handleUpgrade(plan.id)}
-                        disabled={loadingAction === `upgrade-${plan.id}`}
-                        className="group relative mt-auto w-full overflow-visible rounded-full px-6 py-3 text-sm font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-black disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <span
-                          aria-hidden="true"
-                          className={`pointer-events-none absolute inset-0 rounded-full transition-all duration-200 ease-out bg-neutral-900 group-hover:-inset-1 group-hover:bg-neutral-800 group-active:-inset-0.5`}
-                        />
-                        <span className="relative">
-                          {loadingAction === `upgrade-${plan.id}` ? "Processing..." : `Upgrade to ${plan.name}`}
-                        </span>
-                      </button>
-                    )}
+                      <br />
+                      {isCurrentPlan ? (
+                        <button
+                          type="button"
+                          disabled
+                          className="group relative mt-auto w-full overflow-visible rounded-full border border-neutral-200 bg-neutral-100 px-6 py-3 text-sm font-semibold text-neutral-400 cursor-default"
+                        >
+                          Current Plan
+                        </button>
+                      ) : !hasActiveSub ? (
+                        <button
+                          type="button"
+                          onClick={() => handleCheckout(plan.id)}
+                          disabled={loadingPlanId === plan.id}
+                          className="group relative mt-auto w-full overflow-visible rounded-full px-6 py-3 text-sm font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-black disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={`pointer-events-none absolute inset-0 rounded-full transition-all duration-200 ease-out ${loadingPlanId === plan.id
+                              ? "bg-neutral-400"
+                              : plan.popular
+                                ? "bg-black"
+                                : "bg-neutral-900"
+                              } ${loadingPlanId !== plan.id ? "group-hover:-inset-1 group-hover:bg-neutral-800 group-active:-inset-0.5" : ""}`}
+                          />
+                          <span className="relative">
+                            {loadingPlanId === plan.id ? (
+                              <span className="flex items-center justify-center gap-2">
+                                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="31.4 31.4" strokeLinecap="round" opacity="0.25" />
+                                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="15.7 47.1" strokeDashoffset="15.7" strokeLinecap="round" />
+                                </svg>
+                                Processing...
+                              </span>
+                            ) : (
+                              plan.ctaLabel
+                            )}
+                          </span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleUpgrade(plan.id)}
+                          disabled={loadingAction === `upgrade-${plan.id}`}
+                          className="group relative mt-auto w-full overflow-visible rounded-full px-6 py-3 text-sm font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-black disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={`pointer-events-none absolute inset-0 rounded-full transition-all duration-200 ease-out bg-neutral-900 group-hover:-inset-1 group-hover:bg-neutral-800 group-active:-inset-0.5`}
+                          />
+                          <span className="relative">
+                            {loadingAction === `upgrade-${plan.id}` ? "Processing..." : `Upgrade to ${plan.name}`}
+                          </span>
+                        </button>
+                      )}
 
 
-                    <ul className="mt-6 space-y-3 text-left text-sm text-neutral-700">
-                      {featureLabels.map((feature, index) => (
-                        <li key={`${plan.id}-feature-${index}`} className="flex items-start gap-2 font-medium">
-                          {index === 0 ? (
-                            <CreditCard className="mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-900" />
-                          ) : index === 1 ? (
-                            <Plus className="h-4 w-4 mt-0.5 flex-shrink-0 text-neutral-900" />
-                          ) : null}
-                          <div className="flex flex-col">
-                            <span className="flex items-center gap-2">
-                              {feature}
-                              {index === 0 ? (
-                                <DiscordTooltip message="1 credit = 1 email (research + personalized email + icebreaker)" />
-                              ) : null}
-                            </span>
-                            <ul className="mt-1 space-y-1 text-xs font-normal text-neutral-400">
-                              <li className="flex items-start gap-2">
+                      <ul className="mt-6 space-y-3 text-left text-sm text-neutral-700">
+                        {featureLabels.map((feature, index) => (
+                          <li key={`${plan.id}-feature-${index}`} className="flex items-start gap-2 font-medium">
+                            {index === 0 ? (
+                              <CreditCard className="mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-900" />
+                            ) : index === 1 ? (
+                              <Plus className="h-4 w-4 mt-0.5 flex-shrink-0 text-neutral-900" />
+                            ) : null}
+                            <div className="flex flex-col">
+                              <span className="flex items-center gap-2">
+                                {feature}
+                                {index === 0 ? (
+                                  <DiscordTooltip message="1 credit = 1 email (research + personalized email + icebreaker)" />
+                                ) : null}
+                              </span>
+                              <ul className="mt-1 space-y-1 text-xs font-normal text-neutral-400">
+                                <li className="flex items-start gap-2">
 
-                                <span>{featureDetails[index] ?? ""}</span>
-                              </li>
-                            </ul>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                    <br /><br />
+                                  <span>{featureDetails[index] ?? ""}</span>
+                                </li>
+                              </ul>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                      <br /><br />
 
 
-                  </article>
-                );
-              })}
-            </div>
-          </LayoutGroup>
+                    </article>
+                  );
+                })}
+              </div>
+            </LayoutGroup>
 
-          <section className="mt-10 w-full text-left">
-            <article className="flex min-h-[220px] flex-col rounded-3xl border border-neutral-200/60 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
-              <header>
-                <p className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Enterprise</p>
-              </header>
-              <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_auto]">
-                <ul className="grid grid-cols-1 gap-x-6 gap-y-4 text-sm text-neutral-700 sm:grid-cols-2">
-                  {enterpriseFeatures.map(({ label, Icon }) => (
-                    <li key={label} className="flex items-start gap-2 font-medium">
-                      <Icon className="mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-900" aria-hidden="true" />
-                      <span>{label}</span>
-                    </li>
-                  ))}
-                </ul>
-                <div className="flex w-full flex-col justify-between gap-4 lg:w-80">
-                  <ul className="space-y-3 text-sm text-neutral-700">
-                    {enterpriseCtaHighlights.map(({ label, Icon }) => (
+            <section className="mt-10 w-full text-left">
+              <article className="flex min-h-[220px] flex-col rounded-3xl border border-neutral-200/60 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
+                <header>
+                  <p className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Enterprise</p>
+                </header>
+                <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_auto]">
+                  <ul className="grid grid-cols-1 gap-x-6 gap-y-4 text-sm text-neutral-700 sm:grid-cols-2">
+                    {enterpriseFeatures.map(({ label, Icon }) => (
                       <li key={label} className="flex items-start gap-2 font-medium">
                         <Icon className="mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-900" aria-hidden="true" />
                         <span>{label}</span>
                       </li>
                     ))}
                   </ul>
-                  <a
-                    href="mailto:founders@personalizedline.com"
-                    className="inline-flex w-full items-center justify-center rounded-xl bg-neutral-900 px-8 py-3 text-sm font-semibold text-white transition hover:scale-[1.02] hover:bg-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
-                  >
-                    Talk to us
-                  </a>
+                  <div className="flex w-full flex-col justify-between gap-4 lg:w-80">
+                    <ul className="space-y-3 text-sm text-neutral-700">
+                      {enterpriseCtaHighlights.map(({ label, Icon }) => (
+                        <li key={label} className="flex items-start gap-2 font-medium">
+                          <Icon className="mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-900" aria-hidden="true" />
+                          <span>{label}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <a
+                      href="mailto:founders@personalizedline.com"
+                      className="inline-flex w-full items-center justify-center rounded-xl bg-neutral-900 px-8 py-3 text-sm font-semibold text-white transition hover:scale-[1.02] hover:bg-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                    >
+                      Talk to us
+                    </a>
+                  </div>
                 </div>
-              </div>
-            </article>
-          </section>
-        </div>
-      </div >
-    </div >,
+              </article>
+            </section>
+          </div>
+        )}
+      </div>
+    </div>,
     document.body
   );
 }

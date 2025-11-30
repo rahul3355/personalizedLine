@@ -7,7 +7,7 @@ interface SendItFastSpinnerProps {
 }
 
 export default function SendItFastSpinner({
-  size = 80,
+  size = 50,
   className = "",
   ariaLabel = "SendItFast is loading",
 }: SendItFastSpinnerProps) {
@@ -15,22 +15,26 @@ export default function SendItFastSpinner({
 
   return (
     <svg
-      className={`animate-[spin_0.6s_linear_infinite] ${className}`.trim()}
-      viewBox="0 0 48 48"
+      className={`animate-spin text-[#7c3aed] ${className}`.trim()}
+      xmlns="http://www.w3.org/2000/svg"
       fill="none"
+      viewBox="0 0 24 24"
       role="img"
       aria-label={ariaLabel}
       style={{ width: dimension, height: dimension }}
     >
       <circle
-        cx="24"
-        cy="24"
-        r="18"
-        stroke="#4F55F1"
-        strokeWidth="3"
-        strokeLinecap="butt"
-        strokeDasharray="90 180"
-        fill="none"
+        className="opacity-25"
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="4"
+      />
+      <path
+        className="opacity-75"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
       />
     </svg>
   );
