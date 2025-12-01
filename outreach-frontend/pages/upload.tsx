@@ -953,12 +953,14 @@ function CreditShortagePopup({
   isOpen,
   onClose,
   onProcessPartial,
+  onBuyCredits,
   totalRows,
   creditsRemaining,
 }: {
   isOpen: boolean;
   onClose: () => void;
   onProcessPartial: () => void;
+  onBuyCredits: () => void;
   totalRows: number;
   creditsRemaining: number;
 }) {
@@ -967,7 +969,14 @@ function CreditShortagePopup({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
-        <div className="flex flex-col items-center text-center space-y-4">
+        <div className="relative w-full flex flex-col items-center text-center space-y-4">
+          <button
+            onClick={onClose}
+            className="absolute -top-2 -right-2 p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
+          >
+            <XIcon className="w-5 h-5" />
+          </button>
+
           <div className="h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center">
             <AlertCircle className="h-6 w-6 text-amber-600" />
           </div>
@@ -982,18 +991,20 @@ function CreditShortagePopup({
           </p>
 
           <div className="w-full pt-4 space-y-3">
-            <button
-              onClick={onProcessPartial}
-              className="w-full py-3 px-4 bg-[#4F55F1] hover:bg-[#3D42D8] text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
-            >
-              Process first {creditsRemaining.toLocaleString()} rows
-            </button>
+            {creditsRemaining > 0 && (
+              <button
+                onClick={onProcessPartial}
+                className="w-full py-3 px-4 bg-[#4F55F1] hover:bg-[#3D42D8] text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+              >
+                Process first {creditsRemaining.toLocaleString()} rows
+              </button>
+            )}
 
             <button
-              onClick={onClose}
+              onClick={onBuyCredits}
               className="w-full py-3 px-4 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl font-medium transition-colors"
             >
-              Discard Job
+              Buy more credits
             </button>
           </div>
         </div>
@@ -1548,8 +1559,8 @@ function UploadPage() {
 
     const { rowCount, creditsRemaining, missingCredits, hasEnoughCredits } = creditInfo;
 
-    // Only show banner if there's a problem (not enough credits)
-    if (hasEnoughCredits) return null;
+    // User requested to remove the banner entirely as the popup handles the notification
+    return null;
 
     return (
       <div className="mb-4 mx-auto max-w-sm rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
@@ -1618,9 +1629,16 @@ function UploadPage() {
       const data = await parseStoredFile(storagePath, session.access_token, {
         autoMap: true,
       });
-      setTimeout(() => {
-        setStep(1);
-      }, 500);
+
+      // Check for shortage immediately after parsing
+      if (data.missing_credits && Number(data.missing_credits) > 0) {
+        setShowCreditPopup(true);
+        // Do NOT advance to step 1 yet. User must decide in popup.
+      } else {
+        setTimeout(() => {
+          setStep(1);
+        }, 500);
+      }
 
       return true;
     } catch (err: any) {
@@ -1938,20 +1956,32 @@ function UploadPage() {
   if (authLoading) return <p>Loading...</p>;
   if (!session) return null;
 
+  const handleBuyCredits = () => {
+    const planType = userInfo?.user?.plan_type;
+    // If free plan or no plan -> go to billing to upgrade
+    // If paid plan -> go to add-on credits
+    if (!planType || planType === "free") {
+      router.push("/billing");
+    } else {
+      router.push("/add-on-credits");
+    }
+  };
+
   return (
     <>
       <CreditShortagePopup
         isOpen={showCreditPopup}
         onClose={() => setShowCreditPopup(false)}
+        onBuyCredits={handleBuyCredits}
         onProcessPartial={() => {
           const limit = creditInfo?.creditsRemaining || 0;
-          if (step === 1) {
-            setAcceptedProcessLimit(limit);
-            setShowCreditPopup(false);
-            setStep(2);
-          } else {
-            handleCreateJob(limit);
+          setAcceptedProcessLimit(limit);
+          setShowCreditPopup(false);
+
+          if (step === 0) {
+            setStep(1); // Move to email selection if we were on upload
           }
+          // If on step 1, we stay there to let user select email
         }}
         totalRows={creditInfo?.rowCount || 0}
         creditsRemaining={creditInfo?.creditsRemaining || 0}
