@@ -949,6 +949,59 @@ function HeaderSelectionSheet({
   );
 }
 
+function CreditShortagePopup({
+  isOpen,
+  onClose,
+  onProcessPartial,
+  totalRows,
+  creditsRemaining,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onProcessPartial: () => void;
+  totalRows: number;
+  creditsRemaining: number;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
+        <div className="flex flex-col items-center text-center space-y-4">
+          <div className="h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center">
+            <AlertCircle className="h-6 w-6 text-amber-600" />
+          </div>
+
+          <h3 className="text-xl font-semibold text-gray-900">
+            Insufficient Credits
+          </h3>
+
+          <p className="text-gray-500 leading-relaxed">
+            This job requires <span className="font-semibold text-gray-900">{totalRows.toLocaleString()}</span> credits,
+            but you only have <span className="font-semibold text-gray-900">{creditsRemaining.toLocaleString()}</span> credits available.
+          </p>
+
+          <div className="w-full pt-4 space-y-3">
+            <button
+              onClick={onProcessPartial}
+              className="w-full py-3 px-4 bg-[#4F55F1] hover:bg-[#3D42D8] text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+            >
+              Process first {creditsRemaining.toLocaleString()} rows
+            </button>
+
+            <button
+              onClick={onClose}
+              className="w-full py-3 px-4 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl font-medium transition-colors"
+            >
+              Discard Job
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function UploadPage() {
   const { session, loading: authLoading, refreshUserInfo, optimisticallyDeductCredits, revertOptimisticCredits, userInfo } = useAuth();
   const { addOptimisticJob, removeOptimisticJob } = useOptimisticJobs();
@@ -972,6 +1025,12 @@ function UploadPage() {
   const [error, setError] = useState<string | null>(null);
   const [creditInfo, setCreditInfo] = useState<CreditInfo | null>(null);
   const [refreshingCredits, setRefreshingCredits] = useState(false);
+
+  // New state for popup
+  const [showCreditPopup, setShowCreditPopup] = useState(false);
+  const [acceptedProcessLimit, setAcceptedProcessLimit] = useState<number | null>(null);
+
+
 
   const [dragActive, setDragActive] = useState(false);
   const [step, setStep] = useState(0); // 0 = upload, 1 = confirm headers, 2 = confirm service
@@ -1005,6 +1064,13 @@ function UploadPage() {
 
   const hasCreditShortage = Boolean(creditInfo && !creditInfo.hasEnoughCredits);
   const formatNumber = useCallback((value: number) => value.toLocaleString(), []);
+
+  // Clear accepted limit if user adds credits
+  useEffect(() => {
+    if (!hasCreditShortage) {
+      setAcceptedProcessLimit(null);
+    }
+  }, [hasCreditShortage]);
 
 
   const emptyInputRef = useRef<HTMLInputElement>(null);
@@ -1221,6 +1287,9 @@ function UploadPage() {
       setIncludeFallback(false);
       setShowExamples(false);
       setRefreshingCredits(false);
+      setRefreshingCredits(false);
+      setShowCreditPopup(false); // Reset popup state
+      setAcceptedProcessLimit(null);
     },
     []
   );
@@ -1569,7 +1638,9 @@ function UploadPage() {
       return false;
     }
 
-    if (hasCreditShortage) {
+    // If shortage and not yet accepted, show popup to offer partial processing
+    if (hasCreditShortage && !acceptedProcessLimit) {
+      setShowCreditPopup(true);
       return false;
     }
 
@@ -1582,13 +1653,17 @@ function UploadPage() {
     return true;
   };
 
-  const handleCreateJob = async (): Promise<boolean> => {
+  const handleCreateJob = async (processLimit?: number | React.MouseEvent<any> | any): Promise<boolean> => {
+    const limitArg = typeof processLimit === 'number' ? processLimit : undefined;
+    const effectiveLimit = limitArg ?? acceptedProcessLimit ?? undefined;
     if (!tempPath || !emailCol || !isServiceContextComplete()) {
       setError("Please provide your core offer to continue");
       return false;
     }
 
-    if (hasCreditShortage) {
+    // If no limit provided, check for shortage again (safety)
+    if (!effectiveLimit && hasCreditShortage) {
+      setShowCreditPopup(true);
       return false;
     }
 
@@ -1597,7 +1672,8 @@ function UploadPage() {
 
     // Generate temporary ID for optimistic job
     const optimisticJobId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const creditsToDeduct = creditInfo?.rowCount || 0;
+    // Use processLimit if available, otherwise full row count
+    const creditsToDeduct = effectiveLimit || creditInfo?.rowCount || 0;
 
     // Create optimistic job
     const optimisticJob: OptimisticJob = {
@@ -1623,6 +1699,7 @@ function UploadPage() {
         file_path: tempPath,
         email_col: emailCol,
         service: serializeServicePayload(),
+        process_limit: effectiveLimit, // Pass limit to backend
       };
 
       const res = await fetch(`${API_URL}/jobs`, {
@@ -1650,6 +1727,8 @@ function UploadPage() {
 
           if (detail) {
             applyCreditPayload(detail);
+            // If we hit 402, always show popup to explain why it failed (even if partial)
+            setShowCreditPopup(true);
           }
 
           return false;
@@ -1688,6 +1767,7 @@ function UploadPage() {
       return false;
     } finally {
       setLoading(false);
+      setShowCreditPopup(false);
     }
   };
 
@@ -1860,6 +1940,22 @@ function UploadPage() {
 
   return (
     <>
+      <CreditShortagePopup
+        isOpen={showCreditPopup}
+        onClose={() => setShowCreditPopup(false)}
+        onProcessPartial={() => {
+          const limit = creditInfo?.creditsRemaining || 0;
+          if (step === 1) {
+            setAcceptedProcessLimit(limit);
+            setShowCreditPopup(false);
+            setStep(2);
+          } else {
+            handleCreateJob(limit);
+          }
+        }}
+        totalRows={creditInfo?.rowCount || 0}
+        creditsRemaining={creditInfo?.creditsRemaining || 0}
+      />
       {/* DESKTOP */}
       <div className="hidden md:block">
         <section
@@ -2144,8 +2240,7 @@ function UploadPage() {
                 <div className="mt-6 flex items-center justify-center">
                   <button
                     onClick={handleConfirmHeaders}
-                    disabled={loading || hasCreditShortage}
-                    title={hasCreditShortage ? "Add credits to continue" : undefined}
+                    disabled={loading}
                     className="inline-flex items-center justify-center gap-2 h-10 px-8 rounded-md text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none transition-all hover:scale-105 active:scale-95"
                     style={{ backgroundColor: BRAND }}
                     onMouseEnter={(e) =>
@@ -2320,7 +2415,7 @@ function UploadPage() {
                 <div className="flex justify-center pt-8 pb-4">
                   <button
                     onClick={handleCreateJob}
-                    disabled={loading || hasCreditShortage}
+                    disabled={loading}
                     className="inline-flex items-center justify-center gap-2 h-14 px-12 rounded-lg bg-slate-900 text-white font-semibold text-base shadow-lg transition-colors hover:bg-slate-900/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 disabled:pointer-events-none disabled:opacity-50"
                   >
                     {loading ? "Generating..." : (
@@ -2504,7 +2599,7 @@ function UploadPage() {
                 <div className="pt-4">
                   <button
                     onClick={handleConfirmHeaders}
-                    disabled={loading || hasCreditShortage || !emailCol}
+                    disabled={loading || !emailCol}
                     className="w-full h-12 rounded-full font-medium text-white text-[15px] shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                     style={{ backgroundColor: BRAND }}
                   >
@@ -2649,7 +2744,7 @@ function UploadPage() {
                 <div className="pt-4 pb-8">
                   <button
                     onClick={handleCreateJob}
-                    disabled={loading || hasCreditShortage}
+                    disabled={loading}
                     className="w-full h-14 rounded-xl font-semibold text-white text-base shadow-lg shadow-blue-900/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                     style={{ backgroundColor: BRAND }}
                   >

@@ -617,6 +617,7 @@ class JobRequest(BaseModel):
     file_path: str
     email_col: str
     service: Union[str, ServiceComponents]  # Accept either string (legacy) or structured components
+    process_limit: Optional[int] = None
 
 
 @app.get("/jobs")
@@ -1339,6 +1340,10 @@ async def create_job(
                 row_count = count_xlsx_rows(temp_path)
             else:
                 row_count = count_csv_rows(temp_path)
+            
+            # Apply process limit if requested (for partial processing)
+            if req.process_limit is not None and req.process_limit > 0:
+                row_count = min(row_count, req.process_limit)
         finally:
             try:
                 os.unlink(temp_path)
@@ -1366,6 +1371,7 @@ async def create_job(
             "email_col": email_col,
             "service": service_str,
             "total_rows": row_count,  # Cache row count to avoid re-counting in worker
+            "process_limit": req.process_limit,
         }
 
         lock_name = f"credits_lock:{current_user.user_id}"

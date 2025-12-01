@@ -809,6 +809,12 @@ def _process_small_job_inline(
 
     # Load all rows into memory
     rows = list(row_iter)
+    
+    # Apply process limit if set (double check for inline path)
+    process_limit = meta.get("process_limit")
+    if process_limit and isinstance(process_limit, int) and process_limit > 0:
+        rows = rows[:process_limit]
+        
     print(f"[Worker] Job {job_id} | Processing {len(rows)} rows in parallel (inline, no chunks)")
 
     # Process all rows in parallel
@@ -1439,6 +1445,15 @@ def process_job(job_id: str):
         _, _, final_output_headers, chunk_headers = _resolve_output_header_order(
             headers, meta
         )
+
+        # Apply process limit if set
+        process_limit = meta.get("process_limit")
+        if process_limit and isinstance(process_limit, int) and process_limit > 0:
+            print(f"[Worker] Job {job_id} | Applying process limit: {process_limit} rows")
+            import itertools
+            row_iter = itertools.islice(row_iter, process_limit)
+            # Update total to reflect the limit (though total is mostly used for progress calculation)
+            total = min(total, process_limit)
 
         timings["download_input"] = record_time("Download input file", dl_start, job_id)
 
