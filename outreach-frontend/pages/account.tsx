@@ -4,7 +4,18 @@ import { motion, AnimatePresence } from "framer-motion";
 import { loadStripe } from "@stripe/stripe-js";
 import { useAuth } from "../lib/AuthProvider";
 import { API_URL } from "../lib/api";
-import { ChevronLeft, ChevronRight, CreditCard, Calendar, AlertTriangle, X, Check } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  CreditCard,
+  Calendar,
+  AlertTriangle,
+  X,
+  Check,
+  ArrowUpRight,
+  Clock,
+  Receipt
+} from "lucide-react";
 import SendItFastSpinner from "../components/SendItFastSpinner";
 
 const STRIPE_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
@@ -181,16 +192,8 @@ export default function AccountPage() {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
       month: "short",
-      day: "2-digit",
+      day: "numeric",
       year: "numeric",
-    });
-  };
-
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
     });
   };
 
@@ -202,25 +205,25 @@ export default function AccountPage() {
 
     // Format standard billing statements
     if (lower.includes("deduction") && lower.includes("monthly")) {
-      return "Monthly credits deducted for job processing";
+      return "Monthly credits used";
     }
     if (lower.includes("deduction") && lower.includes("addon")) {
-      return "Add-on credits deducted for job processing";
+      return "Add-on credits used";
     }
     if (lower.includes("deduction")) {
-      return "Credits deducted for job processing";
+      return "Credits used";
     }
     if (lower.includes("renewal") || lower.includes("subscription_cycle")) {
-      return "Monthly subscription renewal";
+      return "Subscription renewal";
     }
     if (lower.includes("purchase") && lower.includes("addon")) {
       return "Add-on credits purchase";
     }
     if (lower.includes("purchase") || lower.includes("checkout")) {
-      return "Subscription plan purchase";
+      return "Plan purchase";
     }
     if (lower.includes("refund")) {
-      return "Refund processed";
+      return "Refund";
     }
     if (lower.includes("upgrade")) {
       return "Plan upgrade";
@@ -243,455 +246,290 @@ export default function AccountPage() {
   if (loading && transactions.length === 0) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <SendItFastSpinner size={40} />
-          <p className="text-sm text-gray-500">Loading transactions...</p>
-        </div>
+        <SendItFastSpinner size={32} />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <div className="border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-3xl font-semibold text-gray-900 tracking-tight">
-                Transactions
-              </h1>
-              <p className="text-gray-500 mt-1 text-sm">
-                Complete transaction history for your account
-              </p>
-            </div>
+    <div className="min-h-screen bg-white text-gray-900 font-sans selection:bg-gray-100">
+      <div className="max-w-5xl mx-auto px-6 py-12 md:py-20">
 
-            {/* Credit Summary Cards */}
-            <div className="flex gap-3">
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="border border-gray-200 bg-gray-50 p-4 min-w-[140px]"
-              >
-                <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-1.5">
-                  Total Credits
-                </p>
-                <p className="text-2xl font-semibold text-gray-900 tabular-nums">
-                  {totalCredits.toLocaleString()}
-                </p>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.05 }}
-                className="border border-gray-200 bg-gray-50 p-4 min-w-[140px]"
-              >
-                <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-1.5">
-                  Monthly
-                </p>
-                <p className="text-2xl font-semibold text-gray-900 tabular-nums">
-                  {monthlyCredits.toLocaleString()}
-                </p>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="border border-gray-200 bg-gray-50 p-4 min-w-[140px]"
-              >
-                <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-1.5">
-                  Add-ons
-                </p>
-                <p className="text-2xl font-semibold text-gray-900 tabular-nums">
-                  {addonCredits.toLocaleString()}
-                </p>
-              </motion.div>
-            </div>
-          </div>
+        {/* Header */}
+        <div className="mb-16">
+          <h1 className="text-4xl font-medium tracking-tight text-gray-900 mb-3">
+            Account
+          </h1>
+          <p className="text-lg text-gray-500 font-light">
+            Manage your subscription, credits, and billing history.
+          </p>
         </div>
-      </div>
 
-      {/* Transactions Table */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="border border-gray-200 overflow-hidden">
-          {/* Table Header */}
-          <div className="grid grid-cols-12 gap-4 px-6 py-3.5 border-b border-gray-200 bg-gray-50">
-            <div className="col-span-5 text-xs font-semibold text-gray-600 uppercase tracking-wider">
-              Description
-            </div>
-            <div className="col-span-2 text-xs font-semibold text-gray-600 uppercase tracking-wider">
-              Credits
-            </div>
-            <div className="col-span-2 text-xs font-semibold text-gray-600 uppercase tracking-wider">
-              Amount
-            </div>
-            <div className="col-span-3 text-xs font-semibold text-gray-600 uppercase tracking-wider text-right">
-              Date
+        {/* Overview Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+          <div className="flex flex-col gap-1">
+            <span className="text-sm font-medium text-gray-400 uppercase tracking-wider">Total Credits</span>
+            <span className="text-3xl font-medium tracking-tight">{totalCredits.toLocaleString()}</span>
+            <div className="flex gap-3 mt-1 text-sm text-gray-500">
+              <span>{monthlyCredits.toLocaleString()} Monthly</span>
+              <span className="text-gray-300">•</span>
+              <span>{addonCredits.toLocaleString()} Add-on</span>
             </div>
           </div>
 
-          {/* Table Body */}
-          <AnimatePresence mode="wait">
-            {transactions.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="px-6 py-16 text-center border-b border-gray-100"
-              >
-                <p className="text-gray-400">No transactions found</p>
-              </motion.div>
-            ) : (
-              <div className="divide-y divide-gray-100">
-                {transactions.map((txn, index) => {
-                  const isPositive = txn.change > 0;
-                  const description = formatDescription(txn.reason, txn.change);
+          <div className="flex flex-col gap-1">
+            <span className="text-sm font-medium text-gray-400 uppercase tracking-wider">Current Plan</span>
+            <span className="text-3xl font-medium tracking-tight capitalize">
+              {subscriptionInfo?.plan_type || "Free"}
+            </span>
+            <span className="text-sm text-gray-500 mt-1">
+              {subscriptionInfo?.subscription_status === "active" ? "Active subscription" : "No active subscription"}
+            </span>
+          </div>
 
-                  return (
-                    <motion.div
-                      key={txn.id}
-                      initial={{ opacity: 0, y: -5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.02, duration: 0.2 }}
-                      className="grid grid-cols-12 gap-4 px-6 py-4 hover:bg-gray-50 transition-colors duration-150"
-                    >
-                      {/* Description */}
-                      <div className="col-span-5 flex items-center">
-                        <p className="text-sm text-gray-900 font-medium">
-                          {description}
-                        </p>
-                      </div>
-
-                      {/* Credits Change */}
-                      <div className="col-span-2 flex items-center">
-                        <span
-                          className={`text-sm font-semibold tabular-nums ${isPositive ? "text-green-700" : "text-red-700"
-                            }`}
-                        >
-                          {isPositive ? "+" : ""}
-                          {txn.change.toLocaleString()}
-                        </span>
-                      </div>
-
-                      {/* USD Amount */}
-                      <div className="col-span-2 flex items-center">
-                        {txn.amount > 0 ? (
-                          <span className="text-sm text-gray-700 tabular-nums font-medium">
-                            ${txn.amount.toFixed(2)}
-                          </span>
-                        ) : (
-                          <span className="text-sm text-gray-400">—</span>
-                        )}
-                      </div>
-
-                      {/* Date */}
-                      <div className="col-span-3 flex items-center justify-end">
-                        <div className="text-right">
-                          <p className="text-sm text-gray-900 font-medium">
-                            {formatDate(txn.ts)}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-0.5">
-                            {formatTime(txn.ts)}
-                          </p>
-                        </div>
-                      </div>
-                    </motion.div>
-                  );
+          {subscriptionInfo?.current_period_end && (
+            <div className="flex flex-col gap-1">
+              <span className="text-sm font-medium text-gray-400 uppercase tracking-wider">
+                {subscriptionInfo.cancel_at_period_end ? "Expires On" : "Renews On"}
+              </span>
+              <span className="text-3xl font-medium tracking-tight">
+                {new Date(subscriptionInfo.current_period_end * 1000).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric"
                 })}
-              </div>
-            )}
-          </AnimatePresence>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-600">
-                  Showing {offset + 1} to {Math.min(offset + limit, total)} of{" "}
-                  {total} transactions
-                </p>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setOffset(Math.max(0, offset - limit))}
-                    disabled={offset === 0}
-                    className="inline-flex items-center gap-1 px-4 py-2 border border-gray-300 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                    Previous
-                  </button>
-
-                  <span className="px-4 py-2 text-sm text-gray-700 font-medium">
-                    Page {currentPage} of {totalPages}
-                  </span>
-
-                  <button
-                    onClick={() => setOffset(offset + limit)}
-                    disabled={offset + limit >= total}
-                    className="inline-flex items-center gap-1 px-4 py-2 border border-gray-300 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors"
-                  >
-                    Next
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
+              </span>
+              <span className="text-sm text-gray-500 mt-1">
+                {new Date(subscriptionInfo.current_period_end * 1000).getFullYear()}
+              </span>
             </div>
           )}
         </div>
 
-        {/* Subscription Management Section */}
+        {/* Subscription Management */}
         {subscriptionInfo && subscriptionInfo.plan_type !== "free" && subscriptionInfo.subscription_status === "active" && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="mt-8 border border-gray-200 overflow-hidden"
-          >
-            <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">Subscription Management</h2>
-              <p className="text-sm text-gray-500 mt-1">Manage your plan and billing settings</p>
+          <section className="mb-20">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-medium tracking-tight">Subscription</h2>
             </div>
 
-            <div className="p-6">
-              <div className="grid md:grid-cols-3 gap-6">
-                {/* Current Plan */}
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-gray-100 flex items-center justify-center">
-                    <CreditCard className="w-5 h-5 text-gray-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Current Plan</p>
-                    <p className="text-lg font-semibold text-gray-900 mt-0.5 capitalize">
-                      {subscriptionInfo.plan_type}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Next Billing Date */}
-                {subscriptionInfo.current_period_end && (
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 bg-gray-100 flex items-center justify-center">
-                      <Calendar className="w-5 h-5 text-gray-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">
-                        {subscriptionInfo.cancel_at_period_end ? "Cancels On" : "Renews On"}
-                      </p>
-                      <p className="text-lg font-semibold text-gray-900 mt-0.5">
-                        {new Date(subscriptionInfo.current_period_end * 1000).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric"
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Status */}
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-gray-100 flex items-center justify-center">
-                    <Check className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Status</p>
-                    <p className="text-lg font-semibold text-gray-900 mt-0.5 capitalize">
-                      {subscriptionInfo.cancel_at_period_end ? (
-                        <span className="text-orange-600">Canceling</span>
-                      ) : (
-                        <span className="text-green-600">Active</span>
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Warning if canceling */}
-              {subscriptionInfo.cancel_at_period_end && (
-                <div className="mt-6 p-4 bg-orange-50 border border-orange-200 flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-orange-900">Subscription Scheduled for Cancellation</p>
-                    <p className="text-sm text-orange-700 mt-1">
-                      Your subscription will remain active until{" "}
-                      {subscriptionInfo.current_period_end &&
-                        new Date(subscriptionInfo.current_period_end * 1000).toLocaleDateString()}
-                      . You won't be charged again.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="mt-6 flex flex-col gap-3">
-                {subscriptionInfo.cancel_at_period_end ? (
-                  <button
-                    onClick={handleReactivateSubscription}
-                    disabled={actionLoading}
-                    className="px-4 py-2 bg-black text-white font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {actionLoading ? "Processing..." : "Reactivate Subscription"}
-                  </button>
-                ) : (
-                  <>
-                    {/* Show plan change button only for monthly plans */}
-                    {!subscriptionInfo.plan_type.includes("annual") ? (
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => setShowPlanModal(true)}
-                          className="px-4 py-2 bg-black text-white font-medium hover:bg-gray-800 transition-colors"
-                        >
-                          Change Plan
-                        </button>
-                        <button
-                          onClick={() => setShowCancelModal(true)}
-                          className="px-4 py-2 border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
-                        >
-                          Cancel Subscription
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => setShowCancelModal(true)}
-                          className="px-4 py-2 border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
-                        >
-                          Cancel Subscription
-                        </button>
-                        <p className="text-sm text-gray-600 italic">
-                          To change your annual plan, please contact support at founders@personalizedline.com
-                        </p>
-                      </>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </div>
-
-      {/* Cancel Subscription Modal */}
-      <AnimatePresence>
-        {showCancelModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-            onClick={() => setShowCancelModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white max-w-lg w-full p-6"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-red-100 flex items-center justify-center flex-shrink-0">
-                    <AlertTriangle className="w-5 h-5 text-red-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">Cancel Your Subscription</h3>
-                    <p className="text-sm text-gray-600 mt-1">
-                      Your subscription will be canceled at the end of your billing period
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowCancelModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="bg-gray-50 border border-gray-200 p-4 mb-6">
-                <h4 className="text-sm font-semibold text-gray-900 mb-2">What happens when you cancel:</h4>
-                <ul className="space-y-2 text-sm text-gray-700">
-                  <li className="flex items-start gap-2">
-                    <span className="text-gray-400 mt-0.5">•</span>
-                    <span>You keep access to your plan until your billing period ends</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-gray-400 mt-0.5">•</span>
-                    <span>All features and credits remain available until then</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-gray-400 mt-0.5">•</span>
-                    <span>You won't be charged again</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-gray-400 mt-0.5">•</span>
-                    <span>You can reactivate anytime before it expires</span>
-                  </li>
-                </ul>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowCancelModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
-                >
-                  Keep Subscription
-                </button>
-                <button
-                  onClick={handleCancelSubscription}
-                  disabled={actionLoading}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {actionLoading ? "Processing..." : "Confirm Cancellation"}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Change Plan Modal */}
-      <AnimatePresence>
-        {showPlanModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-            onClick={() => setShowPlanModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto"
-            >
-              <div className="flex items-start justify-between mb-6">
+            <div className="border border-gray-100 rounded-2xl p-8 bg-white shadow-[0_2px_20px_rgba(0,0,0,0.02)]">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Upgrade Your Plan</h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Select a higher tier to get more credits
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3 className="text-lg font-medium capitalize">{subscriptionInfo.plan_type} Plan</h3>
+                    {subscriptionInfo.cancel_at_period_end && (
+                      <span className="px-2.5 py-0.5 rounded-full bg-orange-50 text-orange-600 text-xs font-medium">
+                        Canceling
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-gray-500 font-light max-w-md">
+                    {subscriptionInfo.cancel_at_period_end
+                      ? "Your access will continue until the end of the billing period."
+                      : "Your plan renews automatically. You can upgrade or cancel at any time."}
                   </p>
                 </div>
+
+                <div className="flex items-center gap-3">
+                  {subscriptionInfo.cancel_at_period_end ? (
+                    <button
+                      onClick={handleReactivateSubscription}
+                      disabled={actionLoading}
+                      className="px-5 py-2.5 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50 transition-all"
+                    >
+                      {actionLoading ? "Processing..." : "Reactivate"}
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => setShowCancelModal(true)}
+                        className="px-5 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      {!subscriptionInfo.plan_type.includes("annual") && (
+                        <button
+                          onClick={() => setShowPlanModal(true)}
+                          className="px-5 py-2.5 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-all shadow-sm hover:shadow-md"
+                        >
+                          Upgrade Plan
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Transactions */}
+        <section>
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-xl font-medium tracking-tight">History</h2>
+          </div>
+
+          <div className="border-t border-gray-100">
+            <AnimatePresence mode="wait">
+              {transactions.length === 0 ? (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="py-20 text-center"
+                >
+                  <p className="text-gray-400 font-light">No transactions yet</p>
+                </motion.div>
+              ) : (
+                <div className="divide-y divide-gray-50">
+                  {transactions.map((txn, index) => {
+                    const isPositive = txn.change > 0;
+                    const description = formatDescription(txn.reason, txn.change);
+
+                    return (
+                      <motion.div
+                        key={txn.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.03, duration: 0.3 }}
+                        className="py-5 grid grid-cols-12 gap-4 items-center group hover:bg-gray-50/50 transition-colors -mx-4 px-4 rounded-xl"
+                      >
+                        <div className="col-span-6 md:col-span-5">
+                          <p className="text-sm font-medium text-gray-900">{description}</p>
+                          <p className="text-xs text-gray-400 mt-0.5 md:hidden">
+                            {formatDate(txn.ts)}
+                          </p>
+                        </div>
+
+                        <div className="col-span-3 md:col-span-2 text-right md:text-left">
+                          <span className={`text-sm font-medium ${isPositive ? "text-emerald-600" : "text-gray-600"}`}>
+                            {isPositive ? "+" : ""}{txn.change.toLocaleString()}
+                          </span>
+                        </div>
+
+                        <div className="hidden md:block md:col-span-2">
+                          {txn.amount > 0 && (
+                            <span className="text-sm text-gray-500">
+                              ${txn.amount.toFixed(2)}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="col-span-3 md:col-span-3 text-right">
+                          <span className="text-sm text-gray-400 font-light">
+                            {formatDate(txn.ts)}
+                          </span>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="mt-12 flex items-center justify-between border-t border-gray-100 pt-8">
+              <button
+                onClick={() => setOffset(Math.max(0, offset - limit))}
+                disabled={offset === 0}
+                className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:hover:text-gray-500 transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Previous
+              </button>
+
+              <span className="text-sm text-gray-400 font-light">
+                Page {currentPage} of {totalPages}
+              </span>
+
+              <button
+                onClick={() => setOffset(offset + limit)}
+                disabled={offset + limit >= total}
+                className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:hover:text-gray-500 transition-colors"
+              >
+                Next
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </section>
+      </div>
+
+      {/* Modals */}
+      <AnimatePresence>
+        {showCancelModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-white/80 backdrop-blur-sm"
+              onClick={() => setShowCancelModal(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-100 p-8 overflow-hidden"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mb-4">
+                  <AlertTriangle className="w-6 h-6 text-red-500" />
+                </div>
+                <h3 className="text-xl font-medium text-gray-900 mb-2">Cancel Subscription?</h3>
+                <p className="text-gray-500 mb-8 font-light leading-relaxed">
+                  Your plan will remain active until the end of the billing period. You won't be charged again.
+                </p>
+
+                <div className="flex flex-col gap-3 w-full">
+                  <button
+                    onClick={handleCancelSubscription}
+                    disabled={actionLoading}
+                    className="w-full py-3 bg-red-500 text-white font-medium rounded-xl hover:bg-red-600 disabled:opacity-50 transition-colors"
+                  >
+                    {actionLoading ? "Processing..." : "Confirm Cancellation"}
+                  </button>
+                  <button
+                    onClick={() => setShowCancelModal(false)}
+                    className="w-full py-3 text-gray-500 font-medium hover:text-gray-900 transition-colors"
+                  >
+                    Keep Subscription
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {showPlanModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-white/80 backdrop-blur-sm"
+              onClick={() => setShowPlanModal(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-gray-100 p-8 max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-xl font-medium text-gray-900">Upgrade Plan</h3>
                 <button
                   onClick={() => setShowPlanModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              {/* Plan Options - Only show higher tier plans (upgrades only) */}
-              <div className="space-y-3 mb-6">
+              <div className="space-y-4 mb-8">
                 {["starter", "growth", "pro"].map((plan) => {
-                  // Normalize current plan name: remove annual suffix and convert to lowercase
-                  const currentPlan = (userInfo?.plan_type || "free")
-                    .toLowerCase()
-                    .replace("_annual", "");
-
+                  const currentPlan = (userInfo?.plan_type || "free").toLowerCase().replace("_annual", "");
                   const planDetails: Record<string, { credits: number; price: number }> = {
                     starter: { credits: 2000, price: 49 },
                     growth: { credits: 10000, price: 149 },
@@ -701,7 +539,6 @@ export default function AccountPage() {
                   const details = planDetails[plan];
                   const currentPlanCredits = planDetails[currentPlan]?.credits || 0;
 
-                  // Skip current plan and lower tier plans (only show upgrades)
                   if (plan === currentPlan || details.credits <= currentPlanCredits) {
                     return null;
                   }
@@ -710,27 +547,21 @@ export default function AccountPage() {
                     <button
                       key={plan}
                       onClick={() => setSelectedPlan(plan)}
-                      className={`w-full text-left p-4 border-2 transition-all ${selectedPlan === plan
-                        ? "border-black bg-gray-50"
-                        : "border-gray-200 hover:border-gray-400"
+                      className={`w-full text-left p-6 rounded-xl border transition-all duration-200 ${selectedPlan === plan
+                          ? "border-black bg-gray-50 ring-1 ring-black/5"
+                          : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/50"
                         }`}
                     >
                       <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h4 className="text-lg font-semibold text-gray-900 capitalize">{plan}</h4>
-                          </div>
-                          <p className="text-sm text-gray-600 mt-1">
-                            {details.credits.toLocaleString()} credits/month • ${details.price}/month
-                          </p>
-                          <p className="text-xs text-gray-500 mt-2">
-                            Upgrade takes effect immediately with prorated billing
+                        <div>
+                          <h4 className="text-lg font-medium text-gray-900 capitalize mb-1">{plan}</h4>
+                          <p className="text-gray-500 font-light">
+                            {details.credits.toLocaleString()} credits • ${details.price}/mo
                           </p>
                         </div>
-
-                        <div className={`w-5 h-5 border-2 flex items-center justify-center flex-shrink-0 ${selectedPlan === plan ? "border-black bg-black" : "border-gray-300"
+                        <div className={`w-6 h-6 rounded-full border flex items-center justify-center transition-colors ${selectedPlan === plan ? "border-black bg-black text-white" : "border-gray-300"
                           }`}>
-                          {selectedPlan === plan && <Check className="w-3 h-3 text-white" />}
+                          {selectedPlan === plan && <Check className="w-3.5 h-3.5" />}
                         </div>
                       </div>
                     </button>
@@ -738,23 +569,17 @@ export default function AccountPage() {
                 })}
               </div>
 
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowPlanModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
+              <div className="flex gap-4">
                 <button
                   onClick={() => selectedPlan && handleChangePlan(selectedPlan)}
                   disabled={!selectedPlan || actionLoading}
-                  className="flex-1 px-4 py-2 bg-black text-white font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex-1 py-3 bg-black text-white font-medium rounded-xl hover:bg-gray-800 disabled:opacity-50 transition-all shadow-sm"
                 >
-                  {actionLoading ? "Processing..." : "Upgrade Plan"}
+                  {actionLoading ? "Processing..." : "Upgrade Now"}
                 </button>
               </div>
             </motion.div>
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>
