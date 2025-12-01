@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/AuthProvider";
 import { API_URL } from "@/lib/api";
+import { truncateMiddle } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -159,7 +160,8 @@ export default function RecentActivity() {
                                     onClick={() => window.location.href = `/jobs?id=${job.id}`}
                                 >
                                     <TableCell className="pl-0 font-medium text-gray-900 py-4 text-[15px]">
-                                        {job.filename}
+                                        <span className="md:hidden">{truncateMiddle(job.filename, 15)}</span>
+                                        <span className="hidden md:inline">{truncateMiddle(job.filename, 40)}</span>
                                     </TableCell>
                                     <TableCell className="text-gray-400 text-xs py-4 font-mono">
                                         {job.id.slice(0, 8)}...

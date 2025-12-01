@@ -1,4 +1,5 @@
 import "../styles/globals.css";
+import Head from "next/head";
 import type { AppProps } from "next/app";
 import Navbar from "../components/Navbar";
 import { AuthProvider, useAuth } from "../lib/AuthProvider";
@@ -78,8 +79,8 @@ function Layout({ Component, pageProps }: LayoutProps) {
       >
         <div
           className={`flex min-h-0 flex-1 flex-col ${disableWhiteCard
-              ? `overflow-visible ml-0 mr-0 ${isLoginPage ? "" : "lg:ml-[108px]"}`
-              : "overflow-hidden rounded-[32px] bg-white shadow-sm ml-0 mr-4 lg:ml-[108px]"
+            ? `overflow-visible ml-0 mr-0 ${isLoginPage ? "" : "lg:ml-[108px]"}`
+            : "overflow-hidden rounded-[32px] bg-white shadow-sm ml-0 mr-4 lg:ml-[108px]"
             }`}
         >
           {disableWhiteCard ? (
@@ -109,6 +110,9 @@ interface MyAppProps extends AppProps {
 export default function MyApp({ Component, pageProps }: MyAppProps) {
   return (
     <AuthProvider>
+      <Head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+      </Head>
       <OptimisticJobsProvider>
         <ToastProvider>
           <Layout Component={Component} pageProps={pageProps} />

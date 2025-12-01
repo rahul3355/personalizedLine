@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useAuth } from "../lib/AuthProvider";
 import InlineLoader from "@/components/InlineLoader";
 import { DotPattern } from "@/components/ui/dot-pattern";
-import { cn } from "@/lib/utils";
+import { cn, truncateMiddle } from "@/lib/utils";
 import WelcomeHeader from "@/components/dashboard/WelcomeHeader";
 import StatsOverview from "@/components/dashboard/StatsOverview";
 import RecentActivity from "@/components/dashboard/RecentActivity";
@@ -214,7 +214,7 @@ export default function Home() {
                                                 </div>
                                                 <div className="min-w-0 flex-1">
                                                     <p className="text-[14px] font-medium text-gray-900 truncate">
-                                                        {job.filename}
+                                                        {truncateMiddle(job.filename, 20)}
                                                     </p>
                                                     <div className="flex items-center space-x-2 mt-0.5">
                                                         <span className="text-[11px] text-gray-400">
