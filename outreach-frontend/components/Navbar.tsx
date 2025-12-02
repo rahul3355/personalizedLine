@@ -359,6 +359,13 @@ export default function Navbar() {
                       <span className="text-[15px] text-[#111827]">Account</span>
                     </Link>
 
+                    <Link href="/user-settings" role="menuitem" className="group flex items-center h-11 px-2.5 rounded-[12px] hover:bg-[#F7F7F7]">
+                      <span className="mr-3 inline-flex items-center justify-center min-w-[20px] bg-transparent text-[#4F55F1]">
+                        <PiGearSixFill className="w-5 h-5" />
+                      </span>
+                      <span className="text-[15px] text-[#111827]">Settings</span>
+                    </Link>
+
 
 
                     <div className="my-1 border-t border-[#EAECEE]" />

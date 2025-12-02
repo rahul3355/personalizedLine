@@ -1313,6 +1313,33 @@ function UploadPage() {
     }
   }, [authLoading, session, router]);
 
+  // Pre-fill service context from user profile
+  useEffect(() => {
+    if (userInfo?.service_context) {
+      const isInitial =
+        serviceComponents.core_offer === INITIAL_SERVICE_COMPONENTS.core_offer &&
+        serviceComponents.key_differentiator === INITIAL_SERVICE_COMPONENTS.key_differentiator &&
+        serviceComponents.cta === INITIAL_SERVICE_COMPONENTS.cta;
+
+      if (isInitial) {
+        let context = INITIAL_SERVICE_COMPONENTS;
+        if (typeof userInfo.service_context === 'string') {
+          try {
+            context = JSON.parse(userInfo.service_context);
+          } catch (e) { }
+        } else if (typeof userInfo.service_context === 'object') {
+          context = userInfo.service_context as ServiceComponents;
+        }
+
+        setServiceComponents({
+          core_offer: context.core_offer || "",
+          key_differentiator: context.key_differentiator || "",
+          cta: context.cta || ""
+        });
+      }
+    }
+  }, [userInfo]);
+
   useEffect(() => {
     const isFileDrag = (e: DragEvent) => {
       const dt = e.dataTransfer;

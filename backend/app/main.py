@@ -36,7 +36,7 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
 # Change this value to trigger a deployment via GitHub Actions
-DEPLOY_TRIGGER_V1 = "trigger_v2"
+DEPLOY_TRIGGER_V1 = "trigger_v3"
 
 app = FastAPI()
 
@@ -682,7 +682,7 @@ def get_me(current_user: AuthenticatedUser = Depends(get_current_user)):
         user_id = current_user.user_id
         res = (
             supabase.table("profiles")
-            .select("id, email, credits_remaining, addon_credits, max_credits, plan_type, subscription_status, renewal_date, welcome_reward_status, created_at")
+            .select("id, email, credits_remaining, addon_credits, max_credits, plan_type, subscription_status, renewal_date, welcome_reward_status, created_at, service_context")
             .eq("id", user_id)
             .single()
             .execute()
@@ -1467,6 +1467,26 @@ async def create_job(
         # Publish job notification to Redis for instant worker pickup
         jobs.publish_job_notification(job["id"])
 
+        # Update user's service context
+        try:
+            # Ensure we have a dict for the service context
+            service_data = None
+            if isinstance(req.service, ServiceComponents):
+                service_data = req.service.model_dump()
+            elif isinstance(req.service, str):
+                try:
+                    service_data = json.loads(req.service)
+                except:
+                    pass
+            
+            if service_data:
+                supabase.table("profiles").update({
+                    "service_context": service_data
+                }).eq("id", current_user.user_id).execute()
+        except Exception as e:
+            print(f"[Job] Failed to update service context: {e}")
+
+
         return {"id": job["id"], "status": job["status"], "rows": row_count}
 
     except HTTPException:
@@ -1598,6 +1618,28 @@ async def get_preview_emails(
 
         if not file_path or not email_col:
             raise HTTPException(status_code=400, detail="file_path and email_col required")
+
+@app.post("/user/settings")
+def update_user_settings(
+    payload: Dict[str, Any] = Body(...),
+    current_user: AuthenticatedUser = Depends(get_current_user)
+):
+    supabase = get_supabase()
+    user_id = current_user.user_id
+    
+    service_context = payload.get("service_context")
+    if service_context is None:
+        raise HTTPException(status_code=400, detail="service_context is required")
+        
+    try:
+        supabase.table("profiles").update({
+            "service_context": service_context
+        }).eq("id", user_id).execute()
+        
+        return {"status": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
         # Verify user owns the file
         file_path = assert_user_owns_path(file_path, current_user.user_id)

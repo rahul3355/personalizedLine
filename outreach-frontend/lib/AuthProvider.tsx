@@ -26,6 +26,7 @@ interface UserInfo {
   full_name: string;
   avatar_url: string | null;
   ledger: any[];
+  service_context?: any;
   [key: string]: any;
 }
 
@@ -44,9 +45,9 @@ const AuthContext = createContext<AuthContextProps>({
   user: null,
   userInfo: null,
   loading: true,
-  refreshUserInfo: async () => {},
-  optimisticallyDeductCredits: () => {},
-  revertOptimisticCredits: () => {},
+  refreshUserInfo: async () => { },
+  optimisticallyDeductCredits: () => { },
+  revertOptimisticCredits: () => { },
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -136,6 +137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
         full_name: profile.full_name,
         avatar_url: profile.avatar_url,
+        service_context: profile.service_context,
         ledger: [], // could be filled with another query
       });
     } catch (err) {
