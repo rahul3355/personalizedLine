@@ -81,8 +81,7 @@ export default function UserSettingsPage() {
     const handleDiscard = () => {
         setFormData(initialData);
         toast({
-            title: "Changes discarded",
-            message: "Your settings have been reset to the last saved version.",
+            message: "Changes discarded: Your settings have been reset.",
             type: "info"
         });
     };
@@ -106,15 +105,13 @@ export default function UserSettingsPage() {
             setInitialData(formData);
             setHasChanges(false);
             toast({
-                title: "Settings saved",
-                message: "Your service context has been updated successfully.",
+                message: "Settings saved successfully.",
                 type: "success"
             });
         } catch (err) {
             console.error("Failed to save settings:", err);
             toast({
-                title: "Error",
-                message: "Failed to save settings. Please try again.",
+                message: "Error: Failed to save settings. Please try again.",
                 type: "error"
             });
         } finally {
