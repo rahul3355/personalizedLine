@@ -36,7 +36,7 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
 # Change this value to trigger a deployment via GitHub Actions
-DEPLOY_TRIGGER_V1 = "trigger_v3"
+DEPLOY_TRIGGER_V1 = "trigger_v4"
 
 app = FastAPI()
 
@@ -1090,41 +1090,7 @@ def reactivate_subscription(current_user: AuthenticatedUser = Depends(get_curren
     except stripe.error.StripeError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@app.get("/jobs")
-def list_jobs(current_user: AuthenticatedUser = Depends(get_current_user)):
-    supabase = get_supabase()
-    user_id = current_user.user_id
 
-    jobs_res = (
-        supabase.table("jobs")
-        .select("*")
-        .eq("user_id", user_id)
-        .order("created_at", desc=True)
-        .execute()
-    )
-    jobs = jobs_res.data or []
-
-    for job in jobs:
-        logs_res = (
-            supabase.table("job_logs")
-            .select("step,total,message")
-            .eq("job_id", job["id"])
-            .order("step", desc=True)
-            .limit(1)
-            .execute()
-        )
-        last_log = logs_res.data[0] if logs_res.data else None
-
-        if last_log:
-            step = last_log["step"]
-            total = last_log["total"] or 1
-            job["progress"] = int((step / total) * 100)
-            job["message"] = last_log.get("message")
-        else:
-            job["progress"] = 0
-            job["message"] = None
-
-    return jobs
 
 
 def _parse_profile_response(profile_res) -> Optional[Dict[str, Any]]:
