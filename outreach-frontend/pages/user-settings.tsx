@@ -222,7 +222,7 @@ export default function UserSettingsPage() {
                             className="flex items-center gap-2 px-5 py-2 bg-black text-white text-xs font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
                         >
                             {saving ? (
-                                <SendItFastSpinner size={14} color="#ffffff" />
+                                <SendItFastSpinner size={14} className="text-white" />
                             ) : (
                                 <Save className="w-3.5 h-3.5" />
                             )}
