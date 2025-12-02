@@ -106,10 +106,15 @@ export default function SupportConsole() {
             const res = await fetch('/api/admin/stats', {
                 headers: { 'x-admin-secret': ADMIN_PASS }
             });
-            const json = await res.json();
-            if (json.stats) {
-                setData(json);
-                setLastRefreshed(new Date());
+            const text = await res.text();
+            try {
+                const json = JSON.parse(text);
+                if (json.stats) {
+                    setData(json);
+                    setLastRefreshed(new Date());
+                }
+            } catch (e) {
+                console.error("Failed to parse stats JSON:", text.slice(0, 200));
             }
         } catch (err) {
             console.error(err);
@@ -197,11 +202,18 @@ export default function SupportConsole() {
             const res = await fetch(`/api/admin/job-details-full?jobId=${jobId}`, {
                 headers: { 'x-admin-secret': ADMIN_PASS }
             });
-            const json = await res.json();
-            if (res.ok) {
-                setJobDetails(json);
-            } else {
-                alert("Failed to fetch job details");
+            const text = await res.text();
+            try {
+                const json = JSON.parse(text);
+                if (res.ok) {
+                    setJobDetails(json);
+                } else {
+                    alert("Failed to fetch job details");
+                    setDrawerOpen(false);
+                }
+            } catch (e) {
+                console.error("Failed to parse job details JSON:", text.slice(0, 200));
+                alert("Error: API returned invalid JSON");
                 setDrawerOpen(false);
             }
         } catch (err) {
@@ -358,8 +370,8 @@ export default function SupportConsole() {
                                                 className="p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors cursor-pointer group"
                                             >
                                                 <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${job.status === 'failed' ? 'bg-red-50 text-red-500' :
-                                                        job.status === 'succeeded' ? 'bg-green-50 text-green-500' :
-                                                            'bg-blue-50 text-blue-500'
+                                                    job.status === 'succeeded' ? 'bg-green-50 text-green-500' :
+                                                        'bg-blue-50 text-blue-500'
                                                     }`}>
                                                     {job.status === 'failed' ? <AlertCircle className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
                                                 </div>
