@@ -66,17 +66,59 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .order('ts', { ascending: false })
             .limit(15);
 
+        // --- GOD MODE DATA ---
+
+        // 7. Serper Stats
+        let serperCredits = 0;
+        try {
+            const serperRes = await fetch(`https://google.serper.dev/account?apiKey=${process.env.SERPER_API_KEY}`);
+            const serperJson = await serperRes.json();
+            serperCredits = serperJson.credits || 0;
+        } catch (e) {
+            console.error("Failed to fetch Serper stats", e);
+        }
+
+        // 8. Whales (Top 10 by credits)
+        const { data: whales } = await supabaseAdmin
+            .from('profiles')
+            .select('id, email, credits_remaining, plan_type')
+            .order('credits_remaining', { ascending: false })
+            .limit(10);
+
+        // 9. Churn Risk (Old users with credits, simple heuristic)
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const { data: churnRisk } = await supabaseAdmin
+            .from('profiles')
+            .select('id, email, credits_remaining, created_at')
+            .lt('created_at', thirtyDaysAgo.toISOString())
+            .gt('credits_remaining', 100)
+            .limit(10);
+
+        // 10. Revenue/Usage Chart Data (Last 30 days ledger)
+        const { data: ledgerHistory } = await supabaseAdmin
+            .from('ledger')
+            .select('change, ts')
+            .gte('ts', thirtyDaysAgo.toISOString())
+            .order('ts', { ascending: true })
+            .limit(1000);
+
         res.status(200).json({
             stats: {
                 processing: processingCount || 0,
                 queued: queuedCount || 0,
                 failed24h: failedCount || 0,
                 creditsBurned24h: creditsBurned,
+                serperCredits, // New
             },
             recentFailed: recentFailed || [],
             recentJobs: recentJobs || [],
             recentUsers: recentUsers || [],
             recentTransactions: recentTransactions || [],
+            whales: whales || [], // New
+            churnRisk: churnRisk || [], // New
+            ledgerHistory: ledgerHistory || [], // New
         });
 
     } catch (error: any) {

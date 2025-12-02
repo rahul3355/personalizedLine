@@ -120,6 +120,12 @@ export default function SupportConsole() {
     const [jobFilter, setJobFilter] = useState("");
     const [txFilter, setTxFilter] = useState("");
 
+    // God Mode State
+    const [showCreditModal, setShowCreditModal] = useState(false);
+    const [creditAmount, setCreditAmount] = useState(0);
+    const [creditReason, setCreditReason] = useState("");
+    const [bannerText, setBannerText] = useState("");
+
     // --- Auth Handler ---
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
@@ -204,6 +210,34 @@ export default function SupportConsole() {
             }
         } catch (err) {
             alert("Failed to refund");
+        }
+    };
+
+    const handleAdjustCredits = async () => {
+        if (!selectedId || !creditAmount || !creditReason) return;
+        if (!confirm(`Are you sure you want to ${creditAmount > 0 ? 'add' : 'remove'} ${Math.abs(creditAmount)} credits?`)) return;
+
+        try {
+            const res = await fetch('/api/admin/credits', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-admin-secret': ADMIN_PASS
+                },
+                body: JSON.stringify({ userId: selectedId, amount: creditAmount, reason: creditReason })
+            });
+            const json = await res.json();
+            if (res.ok) {
+                alert(`Success! New Balance: ${json.newBalance}`);
+                setShowCreditModal(false);
+                setCreditAmount(0);
+                setCreditReason("");
+                openUserDrawer(selectedId); // Refresh drawer
+            } else {
+                alert(`Error: ${json.error}`);
+            }
+        } catch (err) {
+            alert("Failed to adjust credits");
         }
     };
 
@@ -426,6 +460,17 @@ export default function SupportConsole() {
                     </div>
 
                     <div className="flex items-center gap-4 text-sm text-gray-500">
+                        {/* System Banner Input */}
+                        <div className="hidden md:flex items-center gap-2">
+                            <input
+                                type="text"
+                                placeholder="Set System Banner..."
+                                className="bg-transparent border-b border-gray-300 focus:border-black outline-none text-xs w-32 transition-all"
+                                value={bannerText}
+                                onChange={(e) => setBannerText(e.target.value)}
+                            />
+                        </div>
+
                         <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-full border border-gray-200 shadow-sm">
                             <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
                             <span className="text-xs font-medium text-gray-700">System Operational</span>
@@ -435,40 +480,72 @@ export default function SupportConsole() {
                         </button>
                     </div>
                 </div>
+                {bannerText && (
+                    <div className="bg-yellow-50 border-b border-yellow-100 py-1 text-center text-xs font-medium text-yellow-800">
+                        📢 System Banner: {bannerText}
+                    </div>
+                )}
             </header>
 
             <main className="w-full px-6 pt-24 pb-20">
 
-                {/* --- Stats Row --- */}
-                {data && (
-                    <div className="grid grid-cols-4 gap-4 mb-8">
-                        <div className="p-4 rounded-xl border border-gray-200 bg-white shadow-sm flex items-center justify-between">
-                            <div>
-                                <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Processing</div>
-                                <div className="text-2xl font-bold text-gray-900">{data.stats.processing}</div>
+                {/* --- Business Intelligence Row --- */}
+                {data && (data as any).whales && (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                        {/* Whales */}
+                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+                            <h3 className="font-semibold text-gray-900 flex items-center gap-2 mb-4">
+                                <DollarSign className="h-4 w-4 text-purple-500" />
+                                Whales (Top Users)
+                            </h3>
+                            <div className="space-y-3">
+                                {(data as any).whales.map((user: any) => (
+                                    <div key={user.id} onClick={() => openUserDrawer(user.id)} className="flex items-center justify-between text-sm cursor-pointer hover:bg-gray-50 p-1 rounded">
+                                        <span className="truncate max-w-[150px]">{user.email}</span>
+                                        <span className="font-mono font-bold">{user.credits_remaining.toLocaleString()} cr</span>
+                                    </div>
+                                ))}
                             </div>
-                            <Activity className="h-5 w-5 text-blue-500" />
                         </div>
-                        <div className="p-4 rounded-xl border border-gray-200 bg-white shadow-sm flex items-center justify-between">
-                            <div>
-                                <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Queued</div>
-                                <div className="text-2xl font-bold text-gray-900">{data.stats.queued}</div>
+
+                        {/* Churn Risk */}
+                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+                            <h3 className="font-semibold text-gray-900 flex items-center gap-2 mb-4">
+                                <AlertCircle className="h-4 w-4 text-orange-500" />
+                                Churn Risk (Inactive)
+                            </h3>
+                            <div className="space-y-3">
+                                {(data as any).churnRisk.map((user: any) => (
+                                    <div key={user.id} onClick={() => openUserDrawer(user.id)} className="flex items-center justify-between text-sm cursor-pointer hover:bg-gray-50 p-1 rounded">
+                                        <span className="truncate max-w-[150px]">{user.email}</span>
+                                        <span className="text-xs text-gray-400"><TimeAgo date={user.created_at} /></span>
+                                    </div>
+                                ))}
+                                {(data as any).churnRisk.length === 0 && <div className="text-gray-400 text-xs">No users at risk.</div>}
                             </div>
-                            <Clock className="h-5 w-5 text-gray-400" />
                         </div>
-                        <div className="p-4 rounded-xl border border-gray-200 bg-white shadow-sm flex items-center justify-between">
-                            <div>
-                                <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Failed (24h)</div>
-                                <div className="text-2xl font-bold text-red-600">{data.stats.failed24h}</div>
+
+                        {/* Revenue/Usage Chart (Mocked Visual for now) */}
+                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex flex-col">
+                            <h3 className="font-semibold text-gray-900 flex items-center gap-2 mb-4">
+                                <Activity className="h-4 w-4 text-blue-500" />
+                                30-Day Activity Pulse
+                            </h3>
+                            <div className="flex-1 flex items-end gap-1 h-32 border-b border-gray-100 pb-2">
+                                {/* Simple visualization of ledger history */}
+                                {(data as any).ledgerHistory?.slice(-30).map((item: any, i: number) => (
+                                    <div
+                                        key={i}
+                                        className={`flex-1 rounded-t-sm ${item.change > 0 ? 'bg-green-400' : 'bg-blue-400'}`}
+                                        style={{ height: `${Math.min(Math.abs(item.change) / 100, 100)}%` }}
+                                        title={`${new Date(item.ts).toLocaleDateString()}: ${item.change}`}
+                                    />
+                                ))}
                             </div>
-                            <AlertCircle className="h-5 w-5 text-red-500" />
-                        </div>
-                        <div className="p-4 rounded-xl border border-gray-200 bg-white shadow-sm flex items-center justify-between">
-                            <div>
-                                <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Credits Burned (24h)</div>
-                                <div className="text-2xl font-bold text-gray-900">{data.stats.creditsBurned24h.toLocaleString()}</div>
+                            <div className="flex justify-between text-xs text-gray-400 mt-2">
+                                <span>30 days ago</span>
+                                <span>Today</span>
                             </div>
-                            <Zap className="h-5 w-5 text-yellow-500" />
                         </div>
                     </div>
                 )}
@@ -791,10 +868,63 @@ export default function SupportConsole() {
                                                             <span className="text-sm text-gray-900 capitalize">{userDetails.profile.plan_type}</span>
                                                         </div>
                                                         <div className="flex items-center justify-between">
-                                                            <span className="text-sm text-gray-500 font-medium">Credits</span>
-                                                            <span className="text-sm text-gray-900 font-bold">{userDetails.profile.credits_remaining}</span>
+                                                            <div>
+                                                                <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Credits</div>
+                                                                <div className="text-xl font-bold text-gray-900">{userDetails.profile.credits_remaining.toLocaleString()}</div>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => setShowCreditModal(true)}
+                                                                className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+                                                            >
+                                                                Adjust
+                                                            </button>
                                                         </div>
                                                     </div>
+
+                                                    {/* Credit Adjustment Modal */}
+                                                    {showCreditModal && (
+                                                        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-[60]">
+                                                            <div className="bg-white rounded-xl shadow-2xl p-6 w-80 border border-gray-200 animate-in zoom-in-95 duration-200">
+                                                                <h3 className="font-semibold text-gray-900 mb-4">Adjust Credits</h3>
+                                                                <div className="space-y-3">
+                                                                    <div>
+                                                                        <label className="text-xs font-medium text-gray-500 block mb-1">Amount (+/-)</label>
+                                                                        <input
+                                                                            type="number"
+                                                                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-black transition-all"
+                                                                            placeholder="e.g. 100 or -50"
+                                                                            value={creditAmount}
+                                                                            onChange={(e) => setCreditAmount(parseInt(e.target.value))}
+                                                                        />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="text-xs font-medium text-gray-500 block mb-1">Reason</label>
+                                                                        <input
+                                                                            type="text"
+                                                                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-black transition-all"
+                                                                            placeholder="e.g. Refund for job #123"
+                                                                            value={creditReason}
+                                                                            onChange={(e) => setCreditReason(e.target.value)}
+                                                                        />
+                                                                    </div>
+                                                                    <div className="flex gap-2 pt-2">
+                                                                        <button
+                                                                            onClick={() => setShowCreditModal(false)}
+                                                                            className="flex-1 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+                                                                        >
+                                                                            Cancel
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={handleAdjustCredits}
+                                                                            className="flex-1 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-900 transition-colors"
+                                                                        >
+                                                                            Confirm
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
 
