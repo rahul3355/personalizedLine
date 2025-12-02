@@ -18,10 +18,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
         let query = supabaseAdmin
             .from('jobs')
-            .select('*, profiles(email)', { count: 'exact' });
+            .select('*, profiles:user_id(email)', { count: 'exact' });
 
         // Time Range Filter
-        if (range) {
+        // Default to 'all' if not specified to ensure we see data initially
+        if (range && range !== 'all') {
             const now = new Date();
             let startTime;
             switch (range) {
@@ -34,7 +35,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 case '30d':
                     startTime = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
                     break;
-                // 'all' doesn't need a filter
             }
             if (startTime) {
                 query = query.gt('created_at', startTime.toISOString());

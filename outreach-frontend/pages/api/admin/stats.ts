@@ -119,19 +119,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .limit(1000);
 
         // 11. General Info (Total Users & Total System Credits)
-        // Fix: Use a simple select count without head:true to ensure we get a value
-        const { count: totalUsers, error: userCountError } = await supabaseAdmin
+        // Fallback: Fetch all IDs and count them (inefficient but reliable if count property fails)
+        const { data: allUserIds, error: userCountError } = await supabaseAdmin
             .from('profiles')
-            .select('id', { count: 'exact' });
+            .select('id');
+
+        const totalUsers = allUserIds?.length || 0;
 
         if (userCountError) console.error("Total Users Error:", userCountError);
 
         // Calculate total system credits (base + addon)
-        // Note: This might be heavy on a large DB, but fine for MVP. 
-        // Ideally, we'd use a Postgres function or a materialized view.
-        const { data: allProfiles } = await supabaseAdmin
+        const { data: allProfiles, error: profilesError } = await supabaseAdmin
             .from('profiles')
             .select('credits_remaining, addon_credits');
+
+        if (profilesError) console.error("System Credits Error:", profilesError);
 
         const totalSystemCredits = allProfiles?.reduce((acc, curr) => {
             const base = curr.credits_remaining || 0;

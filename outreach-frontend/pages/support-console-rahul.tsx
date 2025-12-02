@@ -129,14 +129,14 @@ export default function SupportConsole() {
     // Files Intelligence State
     const [filesData, setFilesData] = useState<any[]>([]);
     const [filesMeta, setFilesMeta] = useState<any>({ total: 0, page: 1, limit: 20 });
-    const [filesRange, setFilesRange] = useState("24h");
+    const [filesRange, setFilesRange] = useState("all");
     const [filesSearch, setFilesSearch] = useState("");
     const [filesLoading, setFilesLoading] = useState(false);
 
     // Debounce search for files
     useEffect(() => {
         const timer = setTimeout(() => {
-            if (activeTab === 'files') fetchFiles();
+            fetchFiles();
         }, 500);
         return () => clearTimeout(timer);
     }, [filesSearch, filesRange]);
