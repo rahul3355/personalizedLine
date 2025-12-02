@@ -78,23 +78,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             console.error("Failed to fetch Serper stats", e);
         }
 
-        // 8. Whales (Top 10 by credits)
-        const { data: whales } = await supabaseAdmin
+        // 8. Whales (Top 10 by TOTAL credits)
+        // Note: PostgREST doesn't support sorting by computed columns easily.
+        // We'll fetch top 50 by base credits, then re-sort in memory with addons.
+        const { data: rawWhales } = await supabaseAdmin
             .from('profiles')
-            .select('id, email, credits_remaining, plan_type')
+            .select('id, email, credits_remaining, addon_credits, plan_type')
             .order('credits_remaining', { ascending: false })
-            .limit(10);
+            .limit(50);
 
-        // 9. Churn Risk (Old users with credits, simple heuristic)
+        const whales = rawWhales
+            ?.map(u => ({
+                ...u,
+                total_credits: (u.credits_remaining || 0) + (u.addon_credits || 0)
+            }))
+            .sort((a, b) => b.total_credits - a.total_credits)
+            .slice(0, 10);
+
+        // 9. Churn Risk (Inactive > 30 days & > 100 credits)
+        // We'll fetch users created > 30 days ago and do some filtering in memory for MVP.
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-        const { data: churnRisk } = await supabaseAdmin
+        const { data: potentialChurn } = await supabaseAdmin
             .from('profiles')
-            .select('id, email, credits_remaining, created_at')
+            .select('id, email, created_at, credits_remaining, addon_credits')
             .lt('created_at', thirtyDaysAgo.toISOString())
-            .gt('credits_remaining', 100)
-            .limit(10);
+            .limit(100);
+
+        const churnRisk = potentialChurn
+            ?.filter(u => ((u.credits_remaining || 0) + (u.addon_credits || 0)) > 100)
+            .slice(0, 10);
 
         // 10. Revenue/Usage Chart Data (Last 30 days ledger)
         const { data: ledgerHistory } = await supabaseAdmin
@@ -103,6 +117,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .gte('ts', thirtyDaysAgo.toISOString())
             .order('ts', { ascending: true })
             .limit(1000);
+
+        // 11. General Info (Total Users & Total System Credits)
+        // Fix: Use a simple select count without head:true to ensure we get a value
+        const { count: totalUsers, error: userCountError } = await supabaseAdmin
+            .from('profiles')
+            .select('id', { count: 'exact' });
+
+        if (userCountError) console.error("Total Users Error:", userCountError);
+
+        // Calculate total system credits (base + addon)
+        // Note: This might be heavy on a large DB, but fine for MVP. 
+        // Ideally, we'd use a Postgres function or a materialized view.
+        const { data: allProfiles } = await supabaseAdmin
+            .from('profiles')
+            .select('credits_remaining, addon_credits');
+
+        const totalSystemCredits = allProfiles?.reduce((acc, curr) => {
+            const base = curr.credits_remaining || 0;
+            const addon = curr.addon_credits || 0;
+            return acc + base + addon;
+        }, 0) || 0;
 
         res.status(200).json({
             stats: {
@@ -119,6 +154,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             whales: whales || [], // New
             churnRisk: churnRisk || [], // New
             ledgerHistory: ledgerHistory || [], // New
+            totalUsers: totalUsers || 0, // New
+            totalSystemCredits, // New
         });
 
     } catch (error: any) {

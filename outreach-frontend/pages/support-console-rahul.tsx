@@ -126,6 +126,50 @@ export default function SupportConsole() {
     const [creditReason, setCreditReason] = useState("");
     const [bannerText, setBannerText] = useState("");
 
+    // Files Intelligence State
+    const [filesData, setFilesData] = useState<any[]>([]);
+    const [filesMeta, setFilesMeta] = useState<any>({ total: 0, page: 1, limit: 20 });
+    const [filesRange, setFilesRange] = useState("24h");
+    const [filesSearch, setFilesSearch] = useState("");
+    const [filesLoading, setFilesLoading] = useState(false);
+
+    // Debounce search for files
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (activeTab === 'files') fetchFiles();
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [filesSearch, filesRange]);
+
+    const fetchFiles = async (page = 1) => {
+        setFilesLoading(true);
+        try {
+            const query = new URLSearchParams({
+                range: filesRange,
+                search: filesSearch,
+                page: page.toString(),
+                limit: '20'
+            });
+            const res = await fetch(`/api/admin/files?${query}`, {
+                headers: { 'x-admin-secret': 'RAHUL987987' }
+            });
+            const json = await res.json();
+            if (json.data) {
+                setFilesData(json.data);
+                setFilesMeta(json.meta);
+            }
+        } catch (e) {
+            console.error("Failed to fetch files", e);
+        } finally {
+            setFilesLoading(false);
+        }
+    };
+
+    // Initial fetch for files if tab is active (we'll add a tab switcher later, or just load on mount)
+    useEffect(() => {
+        fetchFiles();
+    }, []);
+
     // --- Auth Handler ---
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
@@ -489,12 +533,48 @@ export default function SupportConsole() {
 
             <main className="w-full px-6 pt-24 pb-20">
 
+                {/* --- General Info Row --- */}
+                {data && (
+                    <div className="grid grid-cols-3 gap-6 mb-8">
+                        {/* Total Users */}
+                        <div className="p-4 rounded-xl border border-gray-200 bg-white shadow-sm flex items-center justify-between">
+                            <div>
+                                <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Total Users</div>
+                                <div className="text-2xl font-bold text-gray-900">{(data.stats as any).totalUsers?.toLocaleString() || 0}</div>
+                            </div>
+                            <div className="h-8 w-8 bg-gray-100 rounded-lg flex items-center justify-center text-gray-500">
+                                <UserPlus className="h-4 w-4" />
+                            </div>
+                        </div>
+
+                        {/* Total System Credits */}
+                        <div className="p-4 rounded-xl border border-gray-200 bg-white shadow-sm flex items-center justify-between">
+                            <div>
+                                <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">System Credits</div>
+                                <div className="text-2xl font-bold text-gray-900">{(data.stats as any).totalSystemCredits?.toLocaleString() || 0}</div>
+                            </div>
+                            <div className="h-8 w-8 bg-blue-50 rounded-lg flex items-center justify-center text-blue-500">
+                                <DollarSign className="h-4 w-4" />
+                            </div>
+                        </div>
+
+                        {/* Serper Credits */}
+                        <div className="p-4 rounded-xl border border-gray-200 bg-white shadow-sm flex items-center justify-between">
+                            <div>
+                                <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Serper API</div>
+                                <div className="text-2xl font-bold text-gray-900">{(data.stats as any).serperCredits?.toLocaleString() || 'N/A'}</div>
+                            </div>
+                            <div className="h-8 w-8 bg-green-50 rounded-lg flex items-center justify-center text-green-600 font-bold text-xs border border-green-200">S</div>
+                        </div>
+                    </div>
+                )}
+
                 {/* --- Business Intelligence Row --- */}
                 {data && (data as any).whales && (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                         {/* Whales */}
                         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                            <h3 className="font-semibold text-gray-900 flex items-center gap-2 mb-4">
+                            <h3 className="font-semibold text-gray-900 flex items-center gap-2 mb-4" title="Top 10 users by credit balance">
                                 <DollarSign className="h-4 w-4 text-purple-500" />
                                 Whales (Top Users)
                             </h3>
@@ -502,7 +582,7 @@ export default function SupportConsole() {
                                 {(data as any).whales.map((user: any) => (
                                     <div key={user.id} onClick={() => openUserDrawer(user.id)} className="flex items-center justify-between text-sm cursor-pointer hover:bg-gray-50 p-1 rounded">
                                         <span className="truncate max-w-[150px]">{user.email}</span>
-                                        <span className="font-mono font-bold">{user.credits_remaining.toLocaleString()} cr</span>
+                                        <span className="font-mono font-bold">{(user.total_credits || (user.credits_remaining || 0) + (user.addon_credits || 0)).toLocaleString()} cr</span>
                                     </div>
                                 ))}
                             </div>
@@ -510,7 +590,7 @@ export default function SupportConsole() {
 
                         {/* Churn Risk */}
                         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                            <h3 className="font-semibold text-gray-900 flex items-center gap-2 mb-4">
+                            <h3 className="font-semibold text-gray-900 flex items-center gap-2 mb-4" title="Users inactive for >30 days with >100 credits">
                                 <AlertCircle className="h-4 w-4 text-orange-500" />
                                 Churn Risk (Inactive)
                             </h3>
@@ -550,6 +630,133 @@ export default function SupportConsole() {
                     </div>
                 )}
 
+                {/* --- Files Intelligence Section --- */}
+                <div className="mb-8 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                    <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between flex-wrap gap-4">
+                        <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-blue-500" />
+                            Files Intelligence
+                        </h3>
+
+                        <div className="flex items-center gap-4">
+                            {/* Time Range Toggle */}
+                            <div className="flex bg-gray-200 rounded-lg p-1">
+                                {['24h', '7d', '30d', 'all'].map((range) => (
+                                    <button
+                                        key={range}
+                                        onClick={() => setFilesRange(range)}
+                                        className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${filesRange === range
+                                            ? 'bg-white text-gray-900 shadow-sm'
+                                            : 'text-gray-500 hover:text-gray-700'
+                                            }`}
+                                    >
+                                        {range === 'all' ? 'All Time' : range.toUpperCase()}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Search */}
+                            <div className="relative">
+                                <Search className="absolute left-2.5 top-1.5 h-3.5 w-3.5 text-gray-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Search files or users..."
+                                    className="pl-8 pr-3 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:border-blue-500 outline-none w-48 transition-all"
+                                    value={filesSearch}
+                                    onChange={(e) => setFilesSearch(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Files Table */}
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-gray-50 text-xs uppercase text-gray-500 font-medium">
+                                <tr>
+                                    <th className="px-4 py-3">File / Job ID</th>
+                                    <th className="px-4 py-3">User</th>
+                                    <th className="px-4 py-3">Status</th>
+                                    <th className="px-4 py-3">Rows</th>
+                                    <th className="px-4 py-3">Cost</th>
+                                    <th className="px-4 py-3">Date</th>
+                                    <th className="px-4 py-3 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {filesLoading ? (
+                                    <tr><td colSpan={7} className="p-8 text-center text-gray-400">Loading intelligence...</td></tr>
+                                ) : filesData.length === 0 ? (
+                                    <tr><td colSpan={7} className="p-8 text-center text-gray-400">No files found for this period.</td></tr>
+                                ) : (
+                                    filesData.map((job) => (
+                                        <tr key={job.id} className="hover:bg-gray-50 transition-colors group">
+                                            <td className="px-4 py-3">
+                                                <div className="font-medium text-gray-900 truncate max-w-[200px]" title={job.meta_json?.file_path}>
+                                                    {job.meta_json?.file_path?.split('/').pop() || 'Unknown File'}
+                                                </div>
+                                                <div className="text-[10px] text-gray-400 font-mono">{job.id.slice(0, 8)}...</div>
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <div className="text-gray-900 truncate max-w-[150px]">{job.profiles?.email}</div>
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize
+                                                    ${job.status === 'succeeded' ? 'bg-green-100 text-green-800' :
+                                                        job.status === 'failed' ? 'bg-red-100 text-red-800' :
+                                                            'bg-yellow-100 text-yellow-800'}`}>
+                                                    {job.status}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-gray-600">
+                                                {job.row_count || '-'}
+                                            </td>
+                                            <td className="px-4 py-3 font-mono text-gray-600">
+                                                {job.credits_cost ? `${job.credits_cost} cr` : '-'}
+                                            </td>
+                                            <td className="px-4 py-3 text-gray-500 text-xs">
+                                                {new Date(job.created_at).toLocaleString()}
+                                            </td>
+                                            <td className="px-4 py-3 text-right">
+                                                <button
+                                                    onClick={() => openJobDrawer(job.id)}
+                                                    className="text-blue-600 hover:text-blue-800 text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity"
+                                                >
+                                                    Inspect
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Pagination Footer */}
+                    <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between text-xs text-gray-500">
+                        <div>
+                            Showing {filesData.length} of {filesMeta.total} files
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                disabled={filesMeta.page === 1}
+                                onClick={() => fetchFiles(filesMeta.page - 1)}
+                                className="px-2 py-1 bg-white border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-50"
+                            >
+                                Previous
+                            </button>
+                            <span className="flex items-center">Page {filesMeta.page}</span>
+                            <button
+                                disabled={filesMeta.page >= filesMeta.totalPages}
+                                onClick={() => fetchFiles(filesMeta.page + 1)}
+                                className="px-2 py-1 bg-white border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-50"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 {/* --- Main Dashboard Grid --- */}
                 {data && (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-240px)]">
@@ -588,7 +795,7 @@ export default function SupportConsole() {
                                         </div>
                                         <div className="flex items-center justify-between text-xs text-gray-500">
                                             <span className="capitalize">{user.plan_type} Plan</span>
-                                            <span className="font-mono">{user.credits_remaining} cr</span>
+                                            <span className="font-mono">{((user.credits_remaining || 0) + (user.addon_credits || 0)).toLocaleString()} cr</span>
                                         </div>
                                     </div>
                                 ))}
@@ -868,13 +1075,28 @@ export default function SupportConsole() {
                                                             <span className="text-sm text-gray-900 capitalize">{userDetails.profile.plan_type}</span>
                                                         </div>
                                                         <div className="flex items-center justify-between">
-                                                            <div>
-                                                                <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Credits</div>
-                                                                <div className="text-xl font-bold text-gray-900">{userDetails.profile.credits_remaining.toLocaleString()}</div>
+                                                            <div className="flex-1">
+                                                                <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-2">Credits Breakdown</div>
+                                                                <div className="grid grid-cols-2 gap-4">
+                                                                    <div>
+                                                                        <div className="text-[10px] text-gray-400">Base</div>
+                                                                        <div className="text-sm font-bold text-gray-900">{(userDetails.profile.credits_remaining || 0).toLocaleString()}</div>
+                                                                    </div>
+                                                                    <div>
+                                                                        <div className="text-[10px] text-gray-400">Add-on</div>
+                                                                        <div className="text-sm font-bold text-gray-900">{(userDetails.profile.addon_credits || 0).toLocaleString()}</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="mt-2 pt-2 border-t border-gray-100 flex items-center gap-2">
+                                                                    <span className="text-xs font-semibold text-gray-900">Total:</span>
+                                                                    <span className="text-lg font-bold text-black">
+                                                                        {((userDetails.profile.credits_remaining || 0) + (userDetails.profile.addon_credits || 0)).toLocaleString()}
+                                                                    </span>
+                                                                </div>
                                                             </div>
                                                             <button
                                                                 onClick={() => setShowCreditModal(true)}
-                                                                className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+                                                                className="ml-4 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
                                                             >
                                                                 Adjust
                                                             </button>
