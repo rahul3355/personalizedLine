@@ -55,7 +55,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // 5. Get Recent Signups
         const { data: recentUsers } = await supabaseAdmin
             .from('profiles')
-            .select('id, email, created_at, plan_type')
+            .select('id, email, created_at, plan_type, credits_remaining, addon_credits')
             .order('created_at', { ascending: false })
             .limit(8);
 
@@ -71,9 +71,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // 7. Serper Stats
         let serperCredits = 0;
         try {
-            const serperRes = await fetch(`https://google.serper.dev/account?apiKey=${process.env.SERPER_API_KEY}`);
+            const apiKey = process.env.SERPER_API_KEY || "fa8fd82cfcc7700eb0dec180f9f49c0ab99109f3";
+            const serperRes = await fetch(`https://google.serper.dev/account?apiKey=${apiKey}`, {
+                headers: {
+                    "X-API-KEY": apiKey,
+                    "Content-Type": "application/json"
+                }
+            });
             const serperJson = await serperRes.json();
-            serperCredits = serperJson.credits || 0;
+            serperCredits = serperJson.balance || 0;
         } catch (e) {
             console.error("Failed to fetch Serper stats", e);
         }

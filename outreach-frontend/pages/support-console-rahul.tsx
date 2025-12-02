@@ -22,6 +22,15 @@ import {
     Copy,
     DollarSign
 } from 'lucide-react';
+import {
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer
+} from 'recharts';
 
 // --- Types ---
 type Job = {
@@ -126,49 +135,36 @@ export default function SupportConsole() {
     const [creditReason, setCreditReason] = useState("");
     const [bannerText, setBannerText] = useState("");
 
-    // Files Intelligence State
-    const [filesData, setFilesData] = useState<any[]>([]);
-    const [filesMeta, setFilesMeta] = useState<any>({ total: 0, page: 1, limit: 20 });
-    const [filesRange, setFilesRange] = useState("all");
-    const [filesSearch, setFilesSearch] = useState("");
-    const [filesLoading, setFilesLoading] = useState(false);
+    // Process Ledger History for Chart
+    const activityData = React.useMemo(() => {
+        if (!data || !(data as any).ledgerHistory) return [];
 
-    // Debounce search for files
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            fetchFiles();
-        }, 500);
-        return () => clearTimeout(timer);
-    }, [filesSearch, filesRange]);
+        const history = (data as any).ledgerHistory;
+        const days = new Map();
 
-    const fetchFiles = async (page = 1) => {
-        setFilesLoading(true);
-        try {
-            const query = new URLSearchParams({
-                range: filesRange,
-                search: filesSearch,
-                page: page.toString(),
-                limit: '20'
-            });
-            const res = await fetch(`/api/admin/files?${query}`, {
-                headers: { 'x-admin-secret': 'RAHUL987987' }
-            });
-            const json = await res.json();
-            if (json.data) {
-                setFilesData(json.data);
-                setFilesMeta(json.meta);
-            }
-        } catch (e) {
-            console.error("Failed to fetch files", e);
-        } finally {
-            setFilesLoading(false);
+        // Initialize last 30 days
+        for (let i = 29; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const key = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            days.set(key, { date: key, usage: 0 });
         }
-    };
 
-    // Initial fetch for files if tab is active (we'll add a tab switcher later, or just load on mount)
-    useEffect(() => {
-        fetchFiles();
-    }, []);
+        history.forEach((item: any) => {
+            const d = new Date(item.ts);
+            const key = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            if (days.has(key)) {
+                const entry = days.get(key);
+                if (item.change < 0) {
+                    entry.usage += Math.abs(item.change);
+                }
+            }
+        });
+
+        return Array.from(days.values());
+    }, [data]);
+
+
 
     // --- Auth Handler ---
     const handleLogin = (e: React.FormEvent) => {
@@ -536,27 +532,7 @@ export default function SupportConsole() {
                 {/* --- General Info Row --- */}
                 {data && (
                     <div className="grid grid-cols-3 gap-6 mb-8">
-                        {/* Total Users */}
-                        <div className="p-4 rounded-xl border border-gray-200 bg-white shadow-sm flex items-center justify-between">
-                            <div>
-                                <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Total Users</div>
-                                <div className="text-2xl font-bold text-gray-900">{(data.stats as any).totalUsers?.toLocaleString() || 0}</div>
-                            </div>
-                            <div className="h-8 w-8 bg-gray-100 rounded-lg flex items-center justify-center text-gray-500">
-                                <UserPlus className="h-4 w-4" />
-                            </div>
-                        </div>
 
-                        {/* Total System Credits */}
-                        <div className="p-4 rounded-xl border border-gray-200 bg-white shadow-sm flex items-center justify-between">
-                            <div>
-                                <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">System Credits</div>
-                                <div className="text-2xl font-bold text-gray-900">{(data.stats as any).totalSystemCredits?.toLocaleString() || 0}</div>
-                            </div>
-                            <div className="h-8 w-8 bg-blue-50 rounded-lg flex items-center justify-center text-blue-500">
-                                <DollarSign className="h-4 w-4" />
-                            </div>
-                        </div>
 
                         {/* Serper Credits */}
                         <div className="p-4 rounded-xl border border-gray-200 bg-white shadow-sm flex items-center justify-between">
@@ -605,589 +581,483 @@ export default function SupportConsole() {
                             </div>
                         </div>
 
-                        {/* Revenue/Usage Chart (Mocked Visual for now) */}
-                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex flex-col">
+                        {/* Revenue/Usage Chart */}
+                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex flex-col h-[300px]">
                             <h3 className="font-semibold text-gray-900 flex items-center gap-2 mb-4">
                                 <Activity className="h-4 w-4 text-blue-500" />
                                 30-Day Activity Pulse
                             </h3>
-                            <div className="flex-1 flex items-end gap-1 h-32 border-b border-gray-100 pb-2">
-                                {/* Simple visualization of ledger history */}
-                                {(data as any).ledgerHistory?.slice(-30).map((item: any, i: number) => (
-                                    <div
-                                        key={i}
-                                        className={`flex-1 rounded-t-sm ${item.change > 0 ? 'bg-green-400' : 'bg-blue-400'}`}
-                                        style={{ height: `${Math.min(Math.abs(item.change) / 100, 100)}%` }}
-                                        title={`${new Date(item.ts).toLocaleDateString()}: ${item.change}`}
-                                    />
-                                ))}
-                            </div>
-                            <div className="flex justify-between text-xs text-gray-400 mt-2">
-                                <span>30 days ago</span>
-                                <span>Today</span>
+                            <div className="flex-1 w-full min-h-0">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={activityData}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                                        <XAxis
+                                            dataKey="date"
+                                            tick={{ fontSize: 10, fill: '#9ca3af' }}
+                                            axisLine={false}
+                                            tickLine={false}
+                                            interval={6}
+                                        />
+                                        <YAxis
+                                            tick={{ fontSize: 10, fill: '#9ca3af' }}
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tickFormatter={(value) => `${value}`}
+                                        />
+                                        <Tooltip
+                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                            cursor={{ fill: '#f9fafb' }}
+                                        />
+                                        <Bar
+                                            dataKey="usage"
+                                            fill="#3b82f6"
+                                            radius={[4, 4, 0, 0]}
+                                            name="Credits Used"
+                                        />
+                                    </BarChart>
+                                </ResponsiveContainer>
                             </div>
                         </div>
                     </div>
                 )}
 
-                {/* --- Files Intelligence Section --- */}
-                <div className="mb-8 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                    <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between flex-wrap gap-4">
-                        <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                            <FileText className="h-4 w-4 text-blue-500" />
-                            Files Intelligence
-                        </h3>
 
-                        <div className="flex items-center gap-4">
-                            {/* Time Range Toggle */}
-                            <div className="flex bg-gray-200 rounded-lg p-1">
-                                {['24h', '7d', '30d', 'all'].map((range) => (
+
+                {/* --- Main Dashboard Grid --- */}
+                {
+                    data && (
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-240px)]">
+
+                            {/* Column 1: New Users */}
+                            <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col overflow-hidden">
+                                <div className="p-4 border-b border-gray-100 bg-gray-50/50 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                                            <UserPlus className="h-4 w-4 text-gray-500" />
+                                            New Users
+                                        </h3>
+                                        <span className="text-xs bg-gray-200 px-2 py-0.5 rounded-full text-gray-600">{filteredUsers.length}</span>
+                                    </div>
+                                    <div className="relative">
+                                        <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-gray-400" />
+                                        <input
+                                            type="text"
+                                            placeholder="Filter users..."
+                                            className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:border-blue-500 outline-none transition-all"
+                                            value={userFilter}
+                                            onChange={(e) => setUserFilter(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex-1 overflow-y-auto">
+                                    {filteredUsers.map(user => (
+                                        <div
+                                            key={user.id}
+                                            onClick={() => openUserDrawer(user.id)}
+                                            className="p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer group"
+                                        >
+                                            <div className="flex items-center justify-between mb-1">
+                                                <div className="font-medium text-sm text-gray-900 truncate max-w-[180px]">{user.email}</div>
+                                                <span className="text-[10px] text-gray-400"><TimeAgo date={user.created_at || ''} /></span>
+                                            </div>
+                                            <div className="flex items-center justify-between text-xs text-gray-500">
+                                                <span className="capitalize">{user.plan_type} Plan</span>
+                                                <span className="font-mono">{((user.credits_remaining || 0) + (user.addon_credits || 0)).toLocaleString()} cr</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {filteredUsers.length === 0 && (
+                                        <div className="p-8 text-center text-gray-400 text-xs">No users found</div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Column 2: Live Activity (Jobs) */}
+                            <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col overflow-hidden">
+                                <div className="p-4 border-b border-gray-100 bg-gray-50/50 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                                            <Activity className="h-4 w-4 text-gray-500" />
+                                            Live Jobs
+                                        </h3>
+                                        <div className="flex items-center gap-1">
+                                            <span className="relative flex h-2 w-2">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="relative">
+                                        <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-gray-400" />
+                                        <input
+                                            type="text"
+                                            placeholder="Filter jobs..."
+                                            className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:border-blue-500 outline-none transition-all"
+                                            value={jobFilter}
+                                            onChange={(e) => setJobFilter(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex-1 overflow-y-auto">
+                                    {filteredJobs.map(job => (
+                                        <div
+                                            key={job.id}
+                                            onClick={() => openJobDrawer(job.id)}
+                                            className="p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer group flex items-start gap-3"
+                                        >
+                                            <div className={`mt-1 h-2 w-2 rounded-full shrink-0 ${job.status === 'failed' ? 'bg-red-500' :
+                                                job.status === 'succeeded' ? 'bg-green-500' : 'bg-blue-500'
+                                                }`} />
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <div className="text-sm font-medium text-gray-900 truncate" title={job.meta_json?.file_path || ''}>
+                                                        {job.meta_json?.file_path?.split('/').pop() || (job.status === 'failed' ? 'Job Failed' : 'Processed File')}
+                                                    </div>
+                                                    <span className="text-[10px] text-gray-400"><TimeAgo date={job.created_at} /></span>
+                                                </div>
+                                                <div className="text-xs text-gray-500 truncate mb-1 font-mono" title={`Job ID: ${job.id}`}>
+                                                    {job.id}
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[10px] text-gray-400 font-mono">{job.rows_processed} rows</span>
+                                                    <StatusBadge status={job.status} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {filteredJobs.length === 0 && (
+                                        <div className="p-8 text-center text-gray-400 text-xs">No jobs found</div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Column 3: Recent Transactions */}
+                            <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col overflow-hidden">
+                                <div className="p-4 border-b border-gray-100 bg-gray-50/50 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                                            <CreditCard className="h-4 w-4 text-gray-500" />
+                                            Transactions
+                                        </h3>
+                                    </div>
+                                    <div className="relative">
+                                        <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-gray-400" />
+                                        <input
+                                            type="text"
+                                            placeholder="Filter transactions..."
+                                            className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:border-blue-500 outline-none transition-all"
+                                            value={txFilter}
+                                            onChange={(e) => setTxFilter(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex-1 overflow-y-auto">
+                                    {filteredTx.map(tx => (
+                                        <div
+                                            key={tx.id}
+                                            onClick={() => openUserDrawer(tx.user_id)}
+                                            className="p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer group"
+                                        >
+                                            <div className="flex items-center justify-between mb-1">
+                                                <div className={`text-sm font-bold ${tx.change > 0 ? 'text-green-600' : 'text-gray-900'}`}>
+                                                    {tx.change > 0 ? '+' : ''}{tx.change} Credits
+                                                </div>
+                                                <span className="text-[10px] text-gray-400"><TimeAgo date={tx.ts} /></span>
+                                            </div>
+                                            <div className="text-xs text-gray-500 truncate mb-1">
+                                                {tx.reason}
+                                            </div>
+                                            <div className="text-[10px] text-gray-400 font-mono truncate">
+                                                {tx.user_id}
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {filteredTx.length === 0 && (
+                                        <div className="p-8 text-center text-gray-400 text-xs">No transactions found</div>
+                                    )}
+                                </div>
+                            </div>
+
+                        </div>
+                    )
+                }
+
+            </main >
+
+            {/* --- Inspector Drawer --- */}
+            {
+                drawerOpen && (
+                    <div className="fixed inset-0 z-50 flex justify-end">
+                        <div
+                            className="absolute inset-0 bg-white/50 backdrop-blur-sm transition-opacity"
+                            onClick={() => setDrawerOpen(false)}
+                        />
+
+                        <div className="relative w-full max-w-xl bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 border-l border-gray-200">
+
+                            {/* Header */}
+                            <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white">
+                                <div>
+                                    <h2 className="text-xl font-bold text-gray-900 capitalize">{drawerType} Inspector</h2>
+                                    <p className="text-sm text-gray-500 font-mono mt-1">{selectedId}</p>
+                                </div>
+                                <button
+                                    onClick={() => setDrawerOpen(false)}
+                                    className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors"
+                                >
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+
+                            {/* Tabs */}
+                            <div className="flex border-b border-gray-100 px-6">
+                                {drawerType === 'job' && ['overview', 'raw', 'logs'].map((tab) => (
                                     <button
-                                        key={range}
-                                        onClick={() => setFilesRange(range)}
-                                        className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${filesRange === range
-                                            ? 'bg-white text-gray-900 shadow-sm'
-                                            : 'text-gray-500 hover:text-gray-700'
+                                        key={tab}
+                                        onClick={() => setActiveTab(tab as any)}
+                                        className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors capitalize ${activeTab === tab
+                                            ? 'border-black text-black'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700'
                                             }`}
                                     >
-                                        {range === 'all' ? 'All Time' : range.toUpperCase()}
+                                        {tab}
+                                    </button>
+                                ))}
+                                {drawerType === 'user' && ['overview', 'jobs', 'ledger'].map((tab) => (
+                                    <button
+                                        key={tab}
+                                        onClick={() => setActiveTab(tab as any)}
+                                        className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors capitalize ${activeTab === tab
+                                            ? 'border-black text-black'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                                            }`}
+                                    >
+                                        {tab}
                                     </button>
                                 ))}
                             </div>
 
-                            {/* Search */}
-                            <div className="relative">
-                                <Search className="absolute left-2.5 top-1.5 h-3.5 w-3.5 text-gray-400" />
-                                <input
-                                    type="text"
-                                    placeholder="Search files or users..."
-                                    className="pl-8 pr-3 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:border-blue-500 outline-none w-48 transition-all"
-                                    value={filesSearch}
-                                    onChange={(e) => setFilesSearch(e.target.value)}
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Files Table */}
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm">
-                            <thead className="bg-gray-50 text-xs uppercase text-gray-500 font-medium">
-                                <tr>
-                                    <th className="px-4 py-3">File / Job ID</th>
-                                    <th className="px-4 py-3">User</th>
-                                    <th className="px-4 py-3">Status</th>
-                                    <th className="px-4 py-3">Rows</th>
-                                    <th className="px-4 py-3">Cost</th>
-                                    <th className="px-4 py-3">Date</th>
-                                    <th className="px-4 py-3 text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {filesLoading ? (
-                                    <tr><td colSpan={7} className="p-8 text-center text-gray-400">Loading intelligence...</td></tr>
-                                ) : filesData.length === 0 ? (
-                                    <tr><td colSpan={7} className="p-8 text-center text-gray-400">No files found for this period.</td></tr>
+                            {/* Content */}
+                            <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
+                                {drawerLoading ? (
+                                    <div className="flex flex-col items-center justify-center h-40 text-gray-400 gap-3">
+                                        <RefreshCw className="h-6 w-6 animate-spin" />
+                                        <span className="text-sm">Loading details...</span>
+                                    </div>
                                 ) : (
-                                    filesData.map((job) => (
-                                        <tr key={job.id} className="hover:bg-gray-50 transition-colors group">
-                                            <td className="px-4 py-3">
-                                                <div className="font-medium text-gray-900 truncate max-w-[200px]" title={job.meta_json?.file_path}>
-                                                    {job.meta_json?.file_path?.split('/').pop() || 'Unknown File'}
-                                                </div>
-                                                <div className="text-[10px] text-gray-400 font-mono">{job.id.slice(0, 8)}...</div>
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <div className="text-gray-900 truncate max-w-[150px]">{job.profiles?.email}</div>
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize
-                                                    ${job.status === 'succeeded' ? 'bg-green-100 text-green-800' :
-                                                        job.status === 'failed' ? 'bg-red-100 text-red-800' :
-                                                            'bg-yellow-100 text-yellow-800'}`}>
-                                                    {job.status}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3 text-gray-600">
-                                                {job.row_count || '-'}
-                                            </td>
-                                            <td className="px-4 py-3 font-mono text-gray-600">
-                                                {job.credits_cost ? `${job.credits_cost} cr` : '-'}
-                                            </td>
-                                            <td className="px-4 py-3 text-gray-500 text-xs">
-                                                {new Date(job.created_at).toLocaleString()}
-                                            </td>
-                                            <td className="px-4 py-3 text-right">
-                                                <button
-                                                    onClick={() => openJobDrawer(job.id)}
-                                                    className="text-blue-600 hover:text-blue-800 text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity"
-                                                >
-                                                    Inspect
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {/* Pagination Footer */}
-                    <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between text-xs text-gray-500">
-                        <div>
-                            Showing {filesData.length} of {filesMeta.total} files
-                        </div>
-                        <div className="flex gap-2">
-                            <button
-                                disabled={filesMeta.page === 1}
-                                onClick={() => fetchFiles(filesMeta.page - 1)}
-                                className="px-2 py-1 bg-white border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-50"
-                            >
-                                Previous
-                            </button>
-                            <span className="flex items-center">Page {filesMeta.page}</span>
-                            <button
-                                disabled={filesMeta.page >= filesMeta.totalPages}
-                                onClick={() => fetchFiles(filesMeta.page + 1)}
-                                className="px-2 py-1 bg-white border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-50"
-                            >
-                                Next
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* --- Main Dashboard Grid --- */}
-                {data && (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-240px)]">
-
-                        {/* Column 1: New Users */}
-                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col overflow-hidden">
-                            <div className="p-4 border-b border-gray-100 bg-gray-50/50 space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                                        <UserPlus className="h-4 w-4 text-gray-500" />
-                                        New Users
-                                    </h3>
-                                    <span className="text-xs bg-gray-200 px-2 py-0.5 rounded-full text-gray-600">{filteredUsers.length}</span>
-                                </div>
-                                <div className="relative">
-                                    <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-gray-400" />
-                                    <input
-                                        type="text"
-                                        placeholder="Filter users..."
-                                        className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:border-blue-500 outline-none transition-all"
-                                        value={userFilter}
-                                        onChange={(e) => setUserFilter(e.target.value)}
-                                    />
-                                </div>
-                            </div>
-                            <div className="flex-1 overflow-y-auto">
-                                {filteredUsers.map(user => (
-                                    <div
-                                        key={user.id}
-                                        onClick={() => openUserDrawer(user.id)}
-                                        className="p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer group"
-                                    >
-                                        <div className="flex items-center justify-between mb-1">
-                                            <div className="font-medium text-sm text-gray-900 truncate max-w-[180px]">{user.email}</div>
-                                            <span className="text-[10px] text-gray-400"><TimeAgo date={user.created_at || ''} /></span>
-                                        </div>
-                                        <div className="flex items-center justify-between text-xs text-gray-500">
-                                            <span className="capitalize">{user.plan_type} Plan</span>
-                                            <span className="font-mono">{((user.credits_remaining || 0) + (user.addon_credits || 0)).toLocaleString()} cr</span>
-                                        </div>
-                                    </div>
-                                ))}
-                                {filteredUsers.length === 0 && (
-                                    <div className="p-8 text-center text-gray-400 text-xs">No users found</div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Column 2: Live Activity (Jobs) */}
-                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col overflow-hidden">
-                            <div className="p-4 border-b border-gray-100 bg-gray-50/50 space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                                        <Activity className="h-4 w-4 text-gray-500" />
-                                        Live Jobs
-                                    </h3>
-                                    <div className="flex items-center gap-1">
-                                        <span className="relative flex h-2 w-2">
-                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="relative">
-                                    <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-gray-400" />
-                                    <input
-                                        type="text"
-                                        placeholder="Filter jobs..."
-                                        className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:border-blue-500 outline-none transition-all"
-                                        value={jobFilter}
-                                        onChange={(e) => setJobFilter(e.target.value)}
-                                    />
-                                </div>
-                            </div>
-                            <div className="flex-1 overflow-y-auto">
-                                {filteredJobs.map(job => (
-                                    <div
-                                        key={job.id}
-                                        onClick={() => openJobDrawer(job.id)}
-                                        className="p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer group flex items-start gap-3"
-                                    >
-                                        <div className={`mt-1 h-2 w-2 rounded-full shrink-0 ${job.status === 'failed' ? 'bg-red-500' :
-                                            job.status === 'succeeded' ? 'bg-green-500' : 'bg-blue-500'
-                                            }`} />
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center justify-between mb-1">
-                                                <div className="text-sm font-medium text-gray-900 truncate" title={job.meta_json?.file_path || ''}>
-                                                    {job.meta_json?.file_path?.split('/').pop() || (job.status === 'failed' ? 'Job Failed' : 'Processed File')}
-                                                </div>
-                                                <span className="text-[10px] text-gray-400"><TimeAgo date={job.created_at} /></span>
-                                            </div>
-                                            <div className="text-xs text-gray-500 truncate mb-1 font-mono" title={`Job ID: ${job.id}`}>
-                                                {job.id}
-                                            </div>
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-[10px] text-gray-400 font-mono">{job.rows_processed} rows</span>
-                                                <StatusBadge status={job.status} />
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                                {filteredJobs.length === 0 && (
-                                    <div className="p-8 text-center text-gray-400 text-xs">No jobs found</div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Column 3: Recent Transactions */}
-                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col overflow-hidden">
-                            <div className="p-4 border-b border-gray-100 bg-gray-50/50 space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                                        <CreditCard className="h-4 w-4 text-gray-500" />
-                                        Transactions
-                                    </h3>
-                                </div>
-                                <div className="relative">
-                                    <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-gray-400" />
-                                    <input
-                                        type="text"
-                                        placeholder="Filter transactions..."
-                                        className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:border-blue-500 outline-none transition-all"
-                                        value={txFilter}
-                                        onChange={(e) => setTxFilter(e.target.value)}
-                                    />
-                                </div>
-                            </div>
-                            <div className="flex-1 overflow-y-auto">
-                                {filteredTx.map(tx => (
-                                    <div
-                                        key={tx.id}
-                                        onClick={() => openUserDrawer(tx.user_id)}
-                                        className="p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer group"
-                                    >
-                                        <div className="flex items-center justify-between mb-1">
-                                            <div className={`text-sm font-bold ${tx.change > 0 ? 'text-green-600' : 'text-gray-900'}`}>
-                                                {tx.change > 0 ? '+' : ''}{tx.change} Credits
-                                            </div>
-                                            <span className="text-[10px] text-gray-400"><TimeAgo date={tx.ts} /></span>
-                                        </div>
-                                        <div className="text-xs text-gray-500 truncate mb-1">
-                                            {tx.reason}
-                                        </div>
-                                        <div className="text-[10px] text-gray-400 font-mono truncate">
-                                            {tx.user_id}
-                                        </div>
-                                    </div>
-                                ))}
-                                {filteredTx.length === 0 && (
-                                    <div className="p-8 text-center text-gray-400 text-xs">No transactions found</div>
-                                )}
-                            </div>
-                        </div>
-
-                    </div>
-                )}
-
-            </main>
-
-            {/* --- Inspector Drawer --- */}
-            {drawerOpen && (
-                <div className="fixed inset-0 z-50 flex justify-end">
-                    <div
-                        className="absolute inset-0 bg-white/50 backdrop-blur-sm transition-opacity"
-                        onClick={() => setDrawerOpen(false)}
-                    />
-
-                    <div className="relative w-full max-w-xl bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 border-l border-gray-200">
-
-                        {/* Header */}
-                        <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white">
-                            <div>
-                                <h2 className="text-xl font-bold text-gray-900 capitalize">{drawerType} Inspector</h2>
-                                <p className="text-sm text-gray-500 font-mono mt-1">{selectedId}</p>
-                            </div>
-                            <button
-                                onClick={() => setDrawerOpen(false)}
-                                className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors"
-                            >
-                                <X className="h-5 w-5" />
-                            </button>
-                        </div>
-
-                        {/* Tabs */}
-                        <div className="flex border-b border-gray-100 px-6">
-                            {drawerType === 'job' && ['overview', 'raw', 'logs'].map((tab) => (
-                                <button
-                                    key={tab}
-                                    onClick={() => setActiveTab(tab as any)}
-                                    className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors capitalize ${activeTab === tab
-                                        ? 'border-black text-black'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700'
-                                        }`}
-                                >
-                                    {tab}
-                                </button>
-                            ))}
-                            {drawerType === 'user' && ['overview', 'jobs', 'ledger'].map((tab) => (
-                                <button
-                                    key={tab}
-                                    onClick={() => setActiveTab(tab as any)}
-                                    className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors capitalize ${activeTab === tab
-                                        ? 'border-black text-black'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700'
-                                        }`}
-                                >
-                                    {tab}
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* Content */}
-                        <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
-                            {drawerLoading ? (
-                                <div className="flex flex-col items-center justify-center h-40 text-gray-400 gap-3">
-                                    <RefreshCw className="h-6 w-6 animate-spin" />
-                                    <span className="text-sm">Loading details...</span>
-                                </div>
-                            ) : (
-                                <>
-                                    {/* --- JOB DRAWER CONTENT --- */}
-                                    {drawerType === 'job' && jobDetails && (
-                                        <>
-                                            {activeTab === 'overview' && (
-                                                <div className="space-y-6">
-                                                    {/* Status Card */}
-                                                    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                                                        <div className="flex items-center justify-between mb-4">
-                                                            <span className="text-sm text-gray-500 font-medium">Status</span>
-                                                            <StatusBadge status={jobDetails.job.status} />
-                                                        </div>
-                                                        <div className="flex items-center justify-between mb-4">
-                                                            <span className="text-sm text-gray-500 font-medium">Created</span>
-                                                            <span className="text-sm text-gray-900">{new Date(jobDetails.job.created_at).toLocaleString()}</span>
-                                                        </div>
-                                                        <div className="flex items-center justify-between">
-                                                            <span className="text-sm text-gray-500 font-medium">Cost</span>
-                                                            <span className="text-sm text-gray-900 font-semibold">{jobDetails.job.meta_json?.credit_cost || 0} Credits</span>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Files */}
-                                                    <div className="space-y-3">
-                                                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Artifacts</h3>
-                                                        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                                                            <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-                                                                <div className="flex items-center gap-3">
-                                                                    <FileText className="h-5 w-5 text-blue-500" />
-                                                                    <span className="text-sm font-medium text-gray-900">Input File</span>
-                                                                </div>
-                                                                {jobDetails.inputUrl ? (
-                                                                    <a href={jobDetails.inputUrl} download className="text-sm text-blue-600 hover:underline">Download</a>
-                                                                ) : <span className="text-xs text-gray-400">Expired</span>}
+                                    <>
+                                        {/* --- JOB DRAWER CONTENT --- */}
+                                        {drawerType === 'job' && jobDetails && (
+                                            <>
+                                                {activeTab === 'overview' && (
+                                                    <div className="space-y-6">
+                                                        {/* Status Card */}
+                                                        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                                                            <div className="flex items-center justify-between mb-4">
+                                                                <span className="text-sm text-gray-500 font-medium">Status</span>
+                                                                <StatusBadge status={jobDetails.job.status} />
                                                             </div>
-                                                            {jobDetails.job.status === 'succeeded' && (
-                                                                <div className="p-4 flex items-center justify-between">
+                                                            <div className="flex items-center justify-between mb-4">
+                                                                <span className="text-sm text-gray-500 font-medium">Created</span>
+                                                                <span className="text-sm text-gray-900">{new Date(jobDetails.job.created_at).toLocaleString()}</span>
+                                                            </div>
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="text-sm text-gray-500 font-medium">Cost</span>
+                                                                <span className="text-sm text-gray-900 font-semibold">{jobDetails.job.meta_json?.credit_cost || 0} Credits</span>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Files */}
+                                                        <div className="space-y-3">
+                                                            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Artifacts</h3>
+                                                            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                                                                <div className="p-4 border-b border-gray-100 flex items-center justify-between">
                                                                     <div className="flex items-center gap-3">
-                                                                        <FileText className="h-5 w-5 text-green-500" />
-                                                                        <span className="text-sm font-medium text-gray-900">Result File</span>
+                                                                        <FileText className="h-5 w-5 text-blue-500" />
+                                                                        <span className="text-sm font-medium text-gray-900">Input File</span>
                                                                     </div>
-                                                                    {jobDetails.outputUrl ? (
-                                                                        <a href={jobDetails.outputUrl} download className="text-sm text-green-600 hover:underline">Download</a>
+                                                                    {jobDetails.inputUrl ? (
+                                                                        <a href={jobDetails.inputUrl} download className="text-sm text-blue-600 hover:underline">Download</a>
                                                                     ) : <span className="text-xs text-gray-400">Expired</span>}
                                                                 </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Actions */}
-                                                    <div className="pt-6">
-                                                        <button
-                                                            onClick={() => handleRefund(jobDetails.job.id)}
-                                                            className="w-full py-3 bg-white border border-gray-200 text-red-600 font-medium rounded-xl hover:bg-red-50 hover:border-red-200 transition-colors shadow-sm"
-                                                        >
-                                                            Refund Job Credits
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {activeTab === 'raw' && (
-                                                <div className="bg-white rounded-xl border border-gray-200 p-4 font-mono text-xs overflow-x-auto">
-                                                    <pre>{JSON.stringify(jobDetails.job, null, 2)}</pre>
-                                                </div>
-                                            )}
-
-                                            {activeTab === 'logs' && (
-                                                <div className="space-y-4">
-                                                    {jobDetails.job.error ? (
-                                                        <div className="bg-red-50 text-red-700 p-4 rounded-xl border border-red-100 text-sm font-mono whitespace-pre-wrap">
-                                                            {jobDetails.job.error}
-                                                        </div>
-                                                    ) : (
-                                                        <div className="text-center py-12 text-gray-400">
-                                                            <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-500" />
-                                                            No errors found.
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </>
-                                    )}
-
-                                    {/* --- USER DRAWER CONTENT --- */}
-                                    {drawerType === 'user' && userDetails && (
-                                        <>
-                                            {activeTab === 'overview' && (
-                                                <div className="space-y-6">
-                                                    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                                                        <div className="flex items-center justify-between mb-4">
-                                                            <span className="text-sm text-gray-500 font-medium">Email</span>
-                                                            <span className="text-sm text-gray-900 font-medium">{userDetails.profile.email}</span>
-                                                        </div>
-                                                        <div className="flex items-center justify-between mb-4">
-                                                            <span className="text-sm text-gray-500 font-medium">Plan</span>
-                                                            <span className="text-sm text-gray-900 capitalize">{userDetails.profile.plan_type}</span>
-                                                        </div>
-                                                        <div className="flex items-center justify-between">
-                                                            <div className="flex-1">
-                                                                <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-2">Credits Breakdown</div>
-                                                                <div className="grid grid-cols-2 gap-4">
-                                                                    <div>
-                                                                        <div className="text-[10px] text-gray-400">Base</div>
-                                                                        <div className="text-sm font-bold text-gray-900">{(userDetails.profile.credits_remaining || 0).toLocaleString()}</div>
+                                                                {jobDetails.job.status === 'succeeded' && (
+                                                                    <div className="p-4 flex items-center justify-between">
+                                                                        <div className="flex items-center gap-3">
+                                                                            <FileText className="h-5 w-5 text-green-500" />
+                                                                            <span className="text-sm font-medium text-gray-900">Result File</span>
+                                                                        </div>
+                                                                        {jobDetails.outputUrl ? (
+                                                                            <a href={jobDetails.outputUrl} download className="text-sm text-green-600 hover:underline">Download</a>
+                                                                        ) : <span className="text-xs text-gray-400">Expired</span>}
                                                                     </div>
-                                                                    <div>
-                                                                        <div className="text-[10px] text-gray-400">Add-on</div>
-                                                                        <div className="text-sm font-bold text-gray-900">{(userDetails.profile.addon_credits || 0).toLocaleString()}</div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="mt-2 pt-2 border-t border-gray-100 flex items-center gap-2">
-                                                                    <span className="text-xs font-semibold text-gray-900">Total:</span>
-                                                                    <span className="text-lg font-bold text-black">
-                                                                        {((userDetails.profile.credits_remaining || 0) + (userDetails.profile.addon_credits || 0)).toLocaleString()}
-                                                                    </span>
-                                                                </div>
+                                                                )}
                                                             </div>
+                                                        </div>
+
+                                                        {/* Actions */}
+                                                        <div className="pt-6">
                                                             <button
-                                                                onClick={() => setShowCreditModal(true)}
-                                                                className="ml-4 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+                                                                onClick={() => handleRefund(jobDetails.job.id)}
+                                                                className="w-full py-3 bg-white border border-gray-200 text-red-600 font-medium rounded-xl hover:bg-red-50 hover:border-red-200 transition-colors shadow-sm"
                                                             >
-                                                                Adjust
+                                                                Refund Job Credits
                                                             </button>
                                                         </div>
                                                     </div>
+                                                )}
 
-                                                    {/* Credit Adjustment Modal */}
-                                                    {showCreditModal && (
-                                                        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-[60]">
-                                                            <div className="bg-white rounded-xl shadow-2xl p-6 w-80 border border-gray-200 animate-in zoom-in-95 duration-200">
-                                                                <h3 className="font-semibold text-gray-900 mb-4">Adjust Credits</h3>
-                                                                <div className="space-y-3">
-                                                                    <div>
-                                                                        <label className="text-xs font-medium text-gray-500 block mb-1">Amount (+/-)</label>
-                                                                        <input
-                                                                            type="number"
-                                                                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-black transition-all"
-                                                                            placeholder="e.g. 100 or -50"
-                                                                            value={creditAmount}
-                                                                            onChange={(e) => setCreditAmount(parseInt(e.target.value))}
-                                                                        />
+                                                {activeTab === 'raw' && (
+                                                    <div className="bg-white rounded-xl border border-gray-200 p-4 font-mono text-xs overflow-x-auto">
+                                                        <pre>{JSON.stringify(jobDetails.job, null, 2)}</pre>
+                                                    </div>
+                                                )}
+
+                                                {activeTab === 'logs' && (
+                                                    <div className="space-y-4">
+                                                        {jobDetails.job.error ? (
+                                                            <div className="bg-red-50 text-red-700 p-4 rounded-xl border border-red-100 text-sm font-mono whitespace-pre-wrap">
+                                                                {jobDetails.job.error}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="text-center py-12 text-gray-400">
+                                                                <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-500" />
+                                                                No errors found.
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+
+                                        {/* --- USER DRAWER CONTENT --- */}
+                                        {drawerType === 'user' && userDetails && (
+                                            <>
+                                                {activeTab === 'overview' && (
+                                                    <div className="space-y-6">
+                                                        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                                                            <div className="flex items-center justify-between mb-4">
+                                                                <span className="text-sm text-gray-500 font-medium">Email</span>
+                                                                <span className="text-sm text-gray-900 font-medium">{userDetails.profile.email}</span>
+                                                            </div>
+                                                            <div className="flex items-center justify-between mb-4">
+                                                                <span className="text-sm text-gray-500 font-medium">Plan</span>
+                                                                <span className="text-sm text-gray-900 capitalize">{userDetails.profile.plan_type}</span>
+                                                            </div>
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="flex-1">
+                                                                    <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-2">Credits Breakdown</div>
+                                                                    <div className="grid grid-cols-2 gap-4">
+                                                                        <div>
+                                                                            <div className="text-[10px] text-gray-400">Base</div>
+                                                                            <div className="text-sm font-bold text-gray-900">{(userDetails.profile.credits_remaining || 0).toLocaleString()}</div>
+                                                                        </div>
+                                                                        <div>
+                                                                            <div className="text-[10px] text-gray-400">Add-on</div>
+                                                                            <div className="text-sm font-bold text-gray-900">{(userDetails.profile.addon_credits || 0).toLocaleString()}</div>
+                                                                        </div>
                                                                     </div>
-                                                                    <div>
-                                                                        <label className="text-xs font-medium text-gray-500 block mb-1">Reason</label>
-                                                                        <input
-                                                                            type="text"
-                                                                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-black transition-all"
-                                                                            placeholder="e.g. Refund for job #123"
-                                                                            value={creditReason}
-                                                                            onChange={(e) => setCreditReason(e.target.value)}
-                                                                        />
+                                                                    <div className="mt-2 pt-2 border-t border-gray-100 flex items-center gap-2">
+                                                                        <span className="text-xs font-semibold text-gray-900">Total:</span>
+                                                                        <span className="text-lg font-bold text-black">
+                                                                            {((userDetails.profile.credits_remaining || 0) + (userDetails.profile.addon_credits || 0)).toLocaleString()}
+                                                                        </span>
                                                                     </div>
-                                                                    <div className="flex gap-2 pt-2">
-                                                                        <button
-                                                                            onClick={() => setShowCreditModal(false)}
-                                                                            className="flex-1 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
-                                                                        >
-                                                                            Cancel
-                                                                        </button>
-                                                                        <button
-                                                                            onClick={handleAdjustCredits}
-                                                                            className="flex-1 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-900 transition-colors"
-                                                                        >
-                                                                            Confirm
-                                                                        </button>
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => setShowCreditModal(true)}
+                                                                    className="ml-4 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+                                                                >
+                                                                    Adjust
+                                                                </button>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Credit Adjustment Modal */}
+                                                        {showCreditModal && (
+                                                            <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-[60]">
+                                                                <div className="bg-white rounded-xl shadow-2xl p-6 w-80 border border-gray-200 animate-in zoom-in-95 duration-200">
+                                                                    <h3 className="font-semibold text-gray-900 mb-4">Adjust Credits</h3>
+                                                                    <div className="space-y-3">
+                                                                        <div>
+                                                                            <label className="text-xs font-medium text-gray-500 block mb-1">Amount (+/-)</label>
+                                                                            <input
+                                                                                type="number"
+                                                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-black transition-all"
+                                                                                placeholder="e.g. 100 or -50"
+                                                                                value={creditAmount}
+                                                                                onChange={(e) => setCreditAmount(parseInt(e.target.value))}
+                                                                            />
+                                                                        </div>
+                                                                        <div>
+                                                                            <label className="text-xs font-medium text-gray-500 block mb-1">Reason</label>
+                                                                            <input
+                                                                                type="text"
+                                                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-black transition-all"
+                                                                                placeholder="e.g. Refund for job #123"
+                                                                                value={creditReason}
+                                                                                onChange={(e) => setCreditReason(e.target.value)}
+                                                                            />
+                                                                        </div>
+                                                                        <div className="flex gap-2 pt-2">
+                                                                            <button
+                                                                                onClick={() => setShowCreditModal(false)}
+                                                                                className="flex-1 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+                                                                            >
+                                                                                Cancel
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={handleAdjustCredits}
+                                                                                className="flex-1 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-900 transition-colors"
+                                                                            >
+                                                                                Confirm
+                                                                            </button>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
+                                                        )}
+                                                    </div>
+                                                )}
 
-                                            {activeTab === 'jobs' && (
-                                                <div className="space-y-2">
-                                                    {userDetails.jobs.map(job => (
-                                                        <div key={job.id} onClick={() => openJobDrawer(job.id)} className="bg-white p-4 rounded-xl border border-gray-200 hover:border-blue-300 cursor-pointer transition-colors">
-                                                            <div className="flex items-center justify-between mb-2">
-                                                                <StatusBadge status={job.status} />
-                                                                <span className="text-xs text-gray-400"><TimeAgo date={job.created_at} /></span>
+                                                {activeTab === 'jobs' && (
+                                                    <div className="space-y-2">
+                                                        {userDetails.jobs.map(job => (
+                                                            <div key={job.id} onClick={() => openJobDrawer(job.id)} className="bg-white p-4 rounded-xl border border-gray-200 hover:border-blue-300 cursor-pointer transition-colors">
+                                                                <div className="flex items-center justify-between mb-2">
+                                                                    <StatusBadge status={job.status} />
+                                                                    <span className="text-xs text-gray-400"><TimeAgo date={job.created_at} /></span>
+                                                                </div>
+                                                                <div className="text-xs font-mono text-gray-500 truncate">{job.id}</div>
                                                             </div>
-                                                            <div className="text-xs font-mono text-gray-500 truncate">{job.id}</div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
+                                                        ))}
+                                                    </div>
+                                                )}
 
-                                            {activeTab === 'ledger' && (
-                                                <div className="space-y-2">
-                                                    {userDetails.ledger.map(tx => (
-                                                        <div key={tx.id} className="bg-white p-4 rounded-xl border border-gray-200">
-                                                            <div className="flex items-center justify-between mb-1">
-                                                                <span className={`text-sm font-bold ${tx.change > 0 ? 'text-green-600' : 'text-gray-900'}`}>
-                                                                    {tx.change > 0 ? '+' : ''}{tx.change}
-                                                                </span>
-                                                                <span className="text-xs text-gray-400"><TimeAgo date={tx.ts} /></span>
+                                                {activeTab === 'ledger' && (
+                                                    <div className="space-y-2">
+                                                        {userDetails.ledger.map(tx => (
+                                                            <div key={tx.id} className="bg-white p-4 rounded-xl border border-gray-200">
+                                                                <div className="flex items-center justify-between mb-1">
+                                                                    <span className={`text-sm font-bold ${tx.change > 0 ? 'text-green-600' : 'text-gray-900'}`}>
+                                                                        {tx.change > 0 ? '+' : ''}{tx.change}
+                                                                    </span>
+                                                                    <span className="text-xs text-gray-400"><TimeAgo date={tx.ts} /></span>
+                                                                </div>
+                                                                <div className="text-xs text-gray-500">{tx.reason}</div>
                                                             </div>
-                                                            <div className="text-xs text-gray-500">{tx.reason}</div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </>
-                                    )}
-                                </>
-                            )}
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+                                    </>
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
-        </div>
+        </div >
     );
 }
