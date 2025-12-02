@@ -59,6 +59,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .order('created_at', { ascending: false })
             .limit(8);
 
+        // 6. Get Recent Transactions (Ledger)
+        const { data: recentTransactions } = await supabaseAdmin
+            .from('ledger')
+            .select('*')
+            .order('ts', { ascending: false })
+            .limit(15);
+
         res.status(200).json({
             stats: {
                 processing: processingCount || 0,
@@ -69,6 +76,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             recentFailed: recentFailed || [],
             recentJobs: recentJobs || [],
             recentUsers: recentUsers || [],
+            recentTransactions: recentTransactions || [],
         });
 
     } catch (error: any) {

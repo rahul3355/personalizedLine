@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import {
     Search,
@@ -16,7 +16,11 @@ import {
     X,
     Download,
     FileJson,
-    ExternalLink
+    ExternalLink,
+    Command,
+    ChevronRight,
+    Copy,
+    DollarSign
 } from 'lucide-react';
 
 // --- Types ---
@@ -41,6 +45,15 @@ type Profile = {
     created_at?: string;
 };
 
+type Transaction = {
+    id: string;
+    user_id: string;
+    change: number;
+    reason: string;
+    ts: string;
+    meta?: any;
+};
+
 type Stats = {
     processing: number;
     queued: number;
@@ -53,6 +66,7 @@ type DashboardData = {
     recentFailed: Job[];
     recentJobs: Job[];
     recentUsers: Profile[];
+    recentTransactions: Transaction[];
 };
 
 type JobDetailsFull = {
@@ -60,6 +74,17 @@ type JobDetailsFull = {
     inputUrl: string | null;
     outputUrl: string | null;
     serviceContext: any;
+};
+
+type UserDetailsFull = {
+    profile: Profile;
+    jobs: Job[];
+    ledger: Transaction[];
+};
+
+type SearchResults = {
+    users: Profile[];
+    jobs: Job[];
 };
 
 // --- Constants ---
@@ -73,21 +98,27 @@ export default function SupportConsole() {
     const [inputPass, setInputPass] = useState("");
 
     // App State
-    const [view, setView] = useState<'dashboard' | 'user'>('dashboard');
     const [data, setData] = useState<DashboardData | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
-    const [searchResults, setSearchResults] = useState<Profile[]>([]);
-    const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-    const [userData, setUserData] = useState<{ profile: Profile; jobs: Job[]; ledger: any[] } | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const [searchResults, setSearchResults] = useState<SearchResults | null>(null);
+    const [isSearching, setIsSearching] = useState(false);
     const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
 
     // Drawer State
     const [drawerOpen, setDrawerOpen] = useState(false);
-    const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+    const [drawerType, setDrawerType] = useState<'job' | 'user' | null>(null);
+    const [selectedId, setSelectedId] = useState<string | null>(null);
+
     const [jobDetails, setJobDetails] = useState<JobDetailsFull | null>(null);
+    const [userDetails, setUserDetails] = useState<UserDetailsFull | null>(null);
+
     const [drawerLoading, setDrawerLoading] = useState(false);
+    const [activeTab, setActiveTab] = useState<'overview' | 'raw' | 'logs' | 'jobs' | 'ledger'>('overview');
+
+    // Column Filters
+    const [userFilter, setUserFilter] = useState("");
+    const [jobFilter, setJobFilter] = useState("");
+    const [txFilter, setTxFilter] = useState("");
 
     // --- Auth Handler ---
     const handleLogin = (e: React.FormEvent) => {
@@ -128,44 +159,33 @@ export default function SupportConsole() {
         return () => clearInterval(interval);
     }, [isAuthenticated]);
 
-    const handleSearch = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!searchQuery.trim()) return;
-        setLoading(true);
-        try {
-            const res = await fetch(`/api/admin/users?query=${encodeURIComponent(searchQuery)}`, {
-                headers: { 'x-admin-secret': ADMIN_PASS }
-            });
-            const json = await res.json();
-            setSearchResults(json.users || []);
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    };
+    // --- Global Search ---
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(async () => {
+            if (searchQuery.trim().length > 2) {
+                setIsSearching(true);
+                try {
+                    const res = await fetch(`/api/admin/global-search?query=${encodeURIComponent(searchQuery)}`, {
+                        headers: { 'x-admin-secret': ADMIN_PASS }
+                    });
+                    const json = await res.json();
+                    setSearchResults(json);
+                } catch (error) {
+                    console.error("Search failed", error);
+                } finally {
+                    setIsSearching(false);
+                }
+            } else {
+                setSearchResults(null);
+            }
+        }, 300);
 
-    const selectUser = async (userId: string) => {
-        setLoading(true);
-        setSelectedUserId(userId);
-        try {
-            const res = await fetch(`/api/admin/user-details?userId=${userId}`, {
-                headers: { 'x-admin-secret': ADMIN_PASS }
-            });
-            const json = await res.json();
-            setUserData(json);
-            setView('user');
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    };
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchQuery]);
 
-    const handleRefund = async (jobId: string, e?: React.MouseEvent) => {
-        if (e) e.stopPropagation(); // Prevent drawer open
+
+    const handleRefund = async (jobId: string) => {
         if (!confirm("Are you sure you want to refund this job?")) return;
-        setActionLoading(jobId);
         try {
             const res = await fetch('/api/admin/refund', {
                 method: 'POST',
@@ -178,26 +198,22 @@ export default function SupportConsole() {
             const json = await res.json();
             if (res.ok) {
                 alert(`Refunded ${json.refunded} credits.`);
-                if (selectedUserId) selectUser(selectedUserId); // Refresh
-                if (selectedJobId === jobId && jobDetails) {
-                    // Refresh drawer if open
-                    openJobDrawer(jobId);
-                }
+                if (selectedId === jobId) openJobDrawer(jobId); // Refresh drawer
             } else {
                 alert(`Error: ${json.error}`);
             }
         } catch (err) {
             alert("Failed to refund");
-        } finally {
-            setActionLoading(null);
         }
     };
 
     const openJobDrawer = async (jobId: string) => {
-        setSelectedJobId(jobId);
+        setSelectedId(jobId);
+        setDrawerType('job');
         setDrawerOpen(true);
         setDrawerLoading(true);
         setJobDetails(null);
+        setActiveTab('overview');
         try {
             const res = await fetch(`/api/admin/job-details-full?jobId=${jobId}`, {
                 headers: { 'x-admin-secret': ADMIN_PASS }
@@ -225,18 +241,40 @@ export default function SupportConsole() {
         }
     };
 
+    const openUserDrawer = async (userId: string) => {
+        setSelectedId(userId);
+        setDrawerType('user');
+        setDrawerOpen(true);
+        setDrawerLoading(true);
+        setUserDetails(null);
+        setActiveTab('overview');
+        try {
+            const res = await fetch(`/api/admin/user-details?userId=${userId}`, {
+                headers: { 'x-admin-secret': ADMIN_PASS }
+            });
+            const json = await res.json();
+            setUserDetails(json);
+        } catch (err) {
+            console.error(err);
+            alert("Error fetching user details");
+            setDrawerOpen(false);
+        } finally {
+            setDrawerLoading(false);
+        }
+    };
+
     // --- Render Helpers ---
     const StatusBadge = ({ status }: { status: string }) => {
         const styles: Record<string, string> = {
-            completed: 'bg-green-100 text-green-700 border-green-200',
-            succeeded: 'bg-green-100 text-green-700 border-green-200',
-            failed: 'bg-red-100 text-red-700 border-red-200',
-            processing: 'bg-blue-100 text-blue-700 border-blue-200',
-            queued: 'bg-gray-100 text-gray-700 border-gray-200',
+            completed: 'bg-green-50 text-green-700 border-green-200',
+            succeeded: 'bg-green-50 text-green-700 border-green-200',
+            failed: 'bg-red-50 text-red-700 border-red-200',
+            processing: 'bg-blue-50 text-blue-700 border-blue-200',
+            queued: 'bg-gray-50 text-gray-700 border-gray-200',
         };
         const style = styles[status.toLowerCase()] || 'bg-gray-50 text-gray-600 border-gray-200';
         return (
-            <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-semibold border ${style}`}>
+            <span className={`px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider font-semibold border ${style}`}>
                 {status}
             </span>
         );
@@ -252,6 +290,24 @@ export default function SupportConsole() {
         return <span className="text-xs text-gray-400">{text}</span>;
     };
 
+    // Filtered Data
+    const filteredUsers = data?.recentUsers.filter(u =>
+        u.email.toLowerCase().includes(userFilter.toLowerCase()) ||
+        u.id.includes(userFilter)
+    ) || [];
+
+    const filteredJobs = data?.recentJobs.filter(j =>
+        j.id.includes(jobFilter) ||
+        (j.meta_json?.file_path || '').toLowerCase().includes(jobFilter.toLowerCase()) ||
+        (j.user_id || '').toLowerCase().includes(jobFilter.toLowerCase())
+    ) || [];
+
+    const filteredTx = data?.recentTransactions.filter(tx =>
+        tx.reason.toLowerCase().includes(txFilter.toLowerCase()) ||
+        tx.user_id.includes(txFilter) ||
+        (tx.change.toString().includes(txFilter))
+    ) || [];
+
     // --- Views ---
 
     if (!isAuthenticated) {
@@ -260,30 +316,30 @@ export default function SupportConsole() {
                 <Head><title>Support Console</title></Head>
                 <div className="w-full max-w-sm">
                     <div className="text-center mb-8">
-                        <div className="h-12 w-12 bg-gray-900 rounded-xl mx-auto mb-4 flex items-center justify-center shadow-xl shadow-gray-200">
+                        <div className="h-12 w-12 bg-black rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-2xl shadow-gray-200">
                             <Activity className="text-white h-6 w-6" />
                         </div>
-                        <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">Support Console</h1>
+                        <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">System Admin</h1>
                         <p className="text-gray-500 mt-2 text-sm">Restricted Access</p>
                     </div>
                     <form onSubmit={handleLogin} className="space-y-4">
                         <input
                             type="text"
                             placeholder="Admin ID"
-                            className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none transition-all"
+                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
                             value={inputId}
                             onChange={(e) => setInputId(e.target.value)}
                         />
                         <input
                             type="password"
                             placeholder="Password"
-                            className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none transition-all"
+                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
                             value={inputPass}
                             onChange={(e) => setInputPass(e.target.value)}
                         />
                         <button
                             type="submit"
-                            className="w-full bg-gray-900 text-white py-3 rounded-lg font-medium hover:bg-black transition-colors shadow-lg shadow-gray-200"
+                            className="w-full bg-black text-white py-3 rounded-xl font-medium hover:bg-gray-900 transition-colors shadow-lg shadow-gray-200"
                         >
                             Access Console
                         </button>
@@ -294,295 +350,280 @@ export default function SupportConsole() {
     }
 
     return (
-        <div className="min-h-screen bg-white text-gray-900 font-sans selection:bg-purple-100 relative overflow-hidden">
-            <Head><title>Support Console • Active</title></Head>
+        <div className="min-h-screen bg-gray-50/50 text-gray-900 font-sans selection:bg-gray-100 relative">
+            <Head><title>Control Panel • Active</title></Head>
 
-            {/* Top Bar */}
-            <header className="border-b border-gray-100 sticky top-0 bg-white/80 backdrop-blur-md z-20">
-                <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 bg-gray-900 rounded-lg flex items-center justify-center shadow-sm">
-                            <Activity className="text-white h-4 w-4" />
+            {/* --- Top Bar --- */}
+            <header className="fixed top-0 w-full bg-white/80 backdrop-blur-xl border-b border-gray-200 z-30">
+                <div className="w-full px-6 h-16 flex items-center justify-between">
+                    <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-3">
+                            <div className="h-8 w-8 bg-black rounded-lg flex items-center justify-center">
+                                <Activity className="text-white h-4 w-4" />
+                            </div>
+                            <span className="font-semibold tracking-tight">Control Panel</span>
                         </div>
-                        <span className="font-semibold tracking-tight">Support Console</span>
+
+                        {/* Global Search Bar */}
+                        <div className="relative w-96 group">
+                            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400 group-focus-within:text-black transition-colors" />
+                            <input
+                                type="text"
+                                placeholder="Search Users, Jobs, Files..."
+                                className="w-full pl-10 pr-4 py-2 bg-gray-100 border-transparent focus:bg-white focus:border-gray-300 rounded-lg text-sm outline-none transition-all border"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                            {/* Search Results Dropdown */}
+                            {searchResults && (
+                                <div className="absolute top-full left-0 w-full mt-2 bg-white rounded-xl border border-gray-200 shadow-xl overflow-hidden text-left animate-in fade-in slide-in-from-top-2 z-50">
+                                    {searchResults.users.length === 0 && searchResults.jobs.length === 0 && (
+                                        <div className="p-4 text-center text-gray-500 text-sm">No results found.</div>
+                                    )}
+
+                                    {searchResults.users.length > 0 && (
+                                        <div className="border-b border-gray-50">
+                                            <div className="px-4 py-2 bg-gray-50/50 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Users</div>
+                                            {searchResults.users.map(user => (
+                                                <div key={user.id} onClick={() => { setSearchQuery(''); openUserDrawer(user.id); }} className="p-3 hover:bg-gray-50 flex items-center justify-between cursor-pointer group transition-colors">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="h-6 w-6 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-[10px] font-bold">
+                                                            {user.email[0].toUpperCase()}
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <div className="font-medium text-sm text-gray-900 truncate">{user.email}</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {searchResults.jobs.length > 0 && (
+                                        <div>
+                                            <div className="px-4 py-2 bg-gray-50/50 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Jobs</div>
+                                            {searchResults.jobs.map(job => (
+                                                <div
+                                                    key={job.id}
+                                                    onClick={() => { setSearchQuery(''); openJobDrawer(job.id); }}
+                                                    className="p-3 hover:bg-gray-50 flex items-center justify-between cursor-pointer group transition-colors"
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <FileText className="h-4 w-4 text-gray-400" />
+                                                        <div className="min-w-0">
+                                                            <div className="font-medium text-sm text-gray-900 truncate max-w-[200px]">
+                                                                {job.meta_json?.file_path?.split('/').pop() || 'Unknown File'}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     </div>
+
                     <div className="flex items-center gap-4 text-sm text-gray-500">
-                        <span>Updated {lastRefreshed.toLocaleTimeString()}</span>
-                        <button onClick={fetchStats} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500">
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-full border border-gray-200 shadow-sm">
+                            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+                            <span className="text-xs font-medium text-gray-700">System Operational</span>
+                        </div>
+                        <button onClick={fetchStats} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-900">
                             <RefreshCw className="h-4 w-4" />
                         </button>
-                        <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
                     </div>
                 </div>
             </header>
 
-            <main className="max-w-6xl mx-auto px-6 py-8">
+            <main className="w-full px-6 pt-24 pb-20">
 
-                {view === 'dashboard' && data && (
-                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-
-                        {/* 1. Stats Row */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="p-5 rounded-2xl border border-gray-100 bg-white shadow-sm hover:shadow-md transition-shadow">
-                                <div className="flex items-center justify-between mb-2">
-                                    <div className="text-sm text-gray-500 font-medium">Processing</div>
-                                    <Activity className="h-4 w-4 text-blue-500" />
-                                </div>
-                                <div className="text-3xl font-bold text-gray-900">{data.stats.processing}</div>
+                {/* --- Stats Row --- */}
+                {data && (
+                    <div className="grid grid-cols-4 gap-4 mb-8">
+                        <div className="p-4 rounded-xl border border-gray-200 bg-white shadow-sm flex items-center justify-between">
+                            <div>
+                                <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Processing</div>
+                                <div className="text-2xl font-bold text-gray-900">{data.stats.processing}</div>
                             </div>
-                            <div className="p-5 rounded-2xl border border-gray-100 bg-white shadow-sm hover:shadow-md transition-shadow">
-                                <div className="flex items-center justify-between mb-2">
-                                    <div className="text-sm text-gray-500 font-medium">Queued</div>
-                                    <Clock className="h-4 w-4 text-gray-400" />
-                                </div>
-                                <div className="text-3xl font-bold text-gray-900">{data.stats.queued}</div>
-                            </div>
-                            <div className="p-5 rounded-2xl border border-gray-100 bg-white shadow-sm hover:shadow-md transition-shadow">
-                                <div className="flex items-center justify-between mb-2">
-                                    <div className="text-sm text-gray-500 font-medium">Failed (24h)</div>
-                                    <AlertCircle className="h-4 w-4 text-red-500" />
-                                </div>
-                                <div className="text-3xl font-bold text-gray-900">{data.stats.failed24h}</div>
-                            </div>
-                            <div className="p-5 rounded-2xl border border-gray-100 bg-white shadow-sm hover:shadow-md transition-shadow">
-                                <div className="flex items-center justify-between mb-2">
-                                    <div className="text-sm text-gray-500 font-medium">Credits Burned (24h)</div>
-                                    <Zap className="h-4 w-4 text-purple-500" />
-                                </div>
-                                <div className="text-3xl font-bold text-gray-900">{data.stats.creditsBurned24h.toLocaleString()}</div>
-                            </div>
+                            <Activity className="h-5 w-5 text-blue-500" />
                         </div>
-
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-                            {/* 2. Global Activity Feed (Left 2/3) */}
-                            <div className="lg:col-span-2 space-y-6">
-                                <div className="flex items-center justify-between">
-                                    <h2 className="text-lg font-semibold text-gray-900">Live Activity</h2>
-                                </div>
-
-                                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                                    <div className="divide-y divide-gray-50">
-                                        {data.recentJobs.map(job => (
-                                            <div
-                                                key={job.id}
-                                                onClick={() => openJobDrawer(job.id)}
-                                                className="p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors cursor-pointer group"
-                                            >
-                                                <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${job.status === 'failed' ? 'bg-red-50 text-red-500' :
-                                                    job.status === 'succeeded' ? 'bg-green-50 text-green-500' :
-                                                        'bg-blue-50 text-blue-500'
-                                                    }`}>
-                                                    {job.status === 'failed' ? <AlertCircle className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="font-medium text-gray-900 truncate group-hover:text-purple-600 transition-colors">
-                                                            {job.status === 'failed' ? 'Job Failed' : 'Processed File'}
-                                                        </span>
-                                                        <StatusBadge status={job.status} />
-                                                    </div>
-                                                    <div className="text-sm text-gray-500 truncate flex items-center gap-2">
-                                                        <span className="font-mono text-xs bg-gray-100 px-1 rounded">{job.user_id?.slice(0, 8)}...</span>
-                                                        <span>•</span>
-                                                        <span>{job.rows_processed} rows</span>
-                                                        {job.error && <span className="text-red-500">• {job.error}</span>}
-                                                    </div>
-                                                </div>
-                                                <div className="text-right shrink-0">
-                                                    <TimeAgo date={job.created_at} />
-                                                    {job.meta_json?.credit_cost > 0 && (
-                                                        <div className="text-xs font-medium text-gray-900 mt-1">
-                                                            {job.meta_json.credit_cost} credits
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))}
-                                        {data.recentJobs.length === 0 && (
-                                            <div className="p-8 text-center text-gray-400">No recent activity</div>
-                                        )}
-                                    </div>
-                                </div>
+                        <div className="p-4 rounded-xl border border-gray-200 bg-white shadow-sm flex items-center justify-between">
+                            <div>
+                                <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Queued</div>
+                                <div className="text-2xl font-bold text-gray-900">{data.stats.queued}</div>
                             </div>
-
-                            {/* 3. Sidebar (Right 1/3) */}
-                            <div className="space-y-8">
-
-                                {/* Search Widget */}
-                                <div className="bg-gray-900 rounded-2xl p-6 text-white shadow-xl shadow-gray-200">
-                                    <h3 className="text-lg font-semibold mb-4">Find User</h3>
-                                    <form onSubmit={handleSearch} className="relative">
-                                        <Search className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
-                                        <input
-                                            type="text"
-                                            placeholder="Email or ID..."
-                                            className="w-full pl-10 pr-4 py-3 rounded-xl bg-gray-800 border-transparent focus:bg-gray-700 focus:ring-2 focus:ring-purple-500 outline-none transition-all text-white placeholder-gray-500"
-                                            value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)}
-                                        />
-                                    </form>
-                                    {searchResults.length > 0 ? (
-                                        <div className="mt-4 space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
-                                            {searchResults.map(user => (
-                                                <button
-                                                    key={user.id}
-                                                    onClick={() => selectUser(user.id)}
-                                                    className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-800 transition-colors text-left"
-                                                >
-                                                    <div className="h-8 w-8 rounded-full bg-gray-700 flex items-center justify-center text-xs font-mono">
-                                                        {user.email[0].toUpperCase()}
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <div className="text-sm font-medium truncate">{user.email}</div>
-                                                        <div className="text-xs text-gray-400">{user.plan_type}</div>
-                                                    </div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        searchQuery && !loading && (
-                                            <div className="mt-4 text-center text-gray-500 text-sm py-4">
-                                                No users found
-                                            </div>
-                                        )
-                                    )}
-                                    {loading && (
-                                        <div className="mt-4 text-center text-gray-500 text-sm py-4">
-                                            Searching...
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Recent Signups */}
-                                <div>
-                                    <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">New Users</h3>
-                                    <div className="space-y-3">
-                                        {data.recentUsers.map(user => (
-                                            <div key={user.id} className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-white hover:border-purple-200 transition-colors">
-                                                <div className="h-10 w-10 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center">
-                                                    <UserPlus className="h-5 w-5" />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="text-sm font-medium text-gray-900 truncate">{user.email}</div>
-                                                    <div className="text-xs text-gray-500 flex items-center gap-2">
-                                                        <TimeAgo date={user.created_at || ''} />
-                                                        <span>•</span>
-                                                        <span className="capitalize">{user.plan_type}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
+                            <Clock className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <div className="p-4 rounded-xl border border-gray-200 bg-white shadow-sm flex items-center justify-between">
+                            <div>
+                                <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Failed (24h)</div>
+                                <div className="text-2xl font-bold text-red-600">{data.stats.failed24h}</div>
                             </div>
+                            <AlertCircle className="h-5 w-5 text-red-500" />
+                        </div>
+                        <div className="p-4 rounded-xl border border-gray-200 bg-white shadow-sm flex items-center justify-between">
+                            <div>
+                                <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Credits Burned (24h)</div>
+                                <div className="text-2xl font-bold text-gray-900">{data.stats.creditsBurned24h.toLocaleString()}</div>
+                            </div>
+                            <Zap className="h-5 w-5 text-yellow-500" />
                         </div>
                     </div>
                 )}
 
-                {view === 'user' && userData && (
-                    <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-                        <button
-                            onClick={() => setView('dashboard')}
-                            className="flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-6 transition-colors"
-                        >
-                            <ArrowLeft className="h-4 w-4" />
-                            Back to Dashboard
-                        </button>
+                {/* --- Main Dashboard Grid --- */}
+                {data && (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-240px)]">
 
-                        {/* User Header */}
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 p-6 rounded-2xl bg-white border border-gray-100 shadow-sm">
-                            <div className="flex items-center gap-4">
-                                <div className="h-16 w-16 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center">
-                                    <User className="h-8 w-8 text-gray-400" />
+                        {/* Column 1: New Users */}
+                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col overflow-hidden">
+                            <div className="p-4 border-b border-gray-100 bg-gray-50/50 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                                        <UserPlus className="h-4 w-4 text-gray-500" />
+                                        New Users
+                                    </h3>
+                                    <span className="text-xs bg-gray-200 px-2 py-0.5 rounded-full text-gray-600">{filteredUsers.length}</span>
                                 </div>
-                                <div>
-                                    <h1 className="text-xl font-bold text-gray-900">{userData.profile.email}</h1>
-                                    <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
-                                        <span className="font-mono bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200">{userData.profile.id}</span>
-                                        <span>•</span>
-                                        <span className="capitalize px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full text-xs font-medium">{userData.profile.plan_type} Plan</span>
-                                    </div>
+                                <div className="relative">
+                                    <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-gray-400" />
+                                    <input
+                                        type="text"
+                                        placeholder="Filter users..."
+                                        className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:border-blue-500 outline-none transition-all"
+                                        value={userFilter}
+                                        onChange={(e) => setUserFilter(e.target.value)}
+                                    />
                                 </div>
                             </div>
-                            <div className="flex gap-8">
-                                <div className="text-right">
-                                    <div className="text-sm text-gray-500 mb-1">Monthly Credits</div>
-                                    <div className="text-2xl font-semibold text-gray-900">{userData.profile.credits_remaining.toLocaleString()}</div>
-                                </div>
-                                <div className="text-right border-l border-gray-100 pl-8">
-                                    <div className="text-sm text-gray-500 mb-1">Add-on Credits</div>
-                                    <div className="text-2xl font-semibold text-purple-600">{userData.profile.addon_credits.toLocaleString()}</div>
-                                </div>
+                            <div className="flex-1 overflow-y-auto">
+                                {filteredUsers.map(user => (
+                                    <div
+                                        key={user.id}
+                                        onClick={() => openUserDrawer(user.id)}
+                                        className="p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer group"
+                                    >
+                                        <div className="flex items-center justify-between mb-1">
+                                            <div className="font-medium text-sm text-gray-900 truncate max-w-[180px]">{user.email}</div>
+                                            <span className="text-[10px] text-gray-400"><TimeAgo date={user.created_at || ''} /></span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-xs text-gray-500">
+                                            <span className="capitalize">{user.plan_type} Plan</span>
+                                            <span className="font-mono">{user.credits_remaining} cr</span>
+                                        </div>
+                                    </div>
+                                ))}
+                                {filteredUsers.length === 0 && (
+                                    <div className="p-8 text-center text-gray-400 text-xs">No users found</div>
+                                )}
                             </div>
                         </div>
 
-                        {/* Jobs Table */}
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-semibold text-gray-900">Recent Jobs</h3>
-                            <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
-                                <table className="w-full text-sm text-left">
-                                    <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-200">
-                                        <tr>
-                                            <th className="px-6 py-3">Status</th>
-                                            <th className="px-6 py-3">Created</th>
-                                            <th className="px-6 py-3">Rows</th>
-                                            <th className="px-6 py-3">Cost</th>
-                                            <th className="px-6 py-3 text-right">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100">
-                                        {userData.jobs.map(job => (
-                                            <tr
-                                                key={job.id}
-                                                onClick={() => openJobDrawer(job.id)}
-                                                className="hover:bg-gray-50/50 transition-colors cursor-pointer"
-                                            >
-                                                <td className="px-6 py-4">
-                                                    <StatusBadge status={job.status} />
-                                                    {job.error && (
-                                                        <div className="text-xs text-red-500 mt-1 max-w-xs truncate font-medium" title={job.error}>
-                                                            {job.error}
-                                                        </div>
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-4 text-gray-600">
-                                                    {new Date(job.created_at).toLocaleString()}
-                                                </td>
-                                                <td className="px-6 py-4 font-medium text-gray-900">
-                                                    {job.rows_processed}
-                                                </td>
-                                                <td className="px-6 py-4 text-gray-600">
-                                                    {job.meta_json?.credit_cost || '-'}
-                                                </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    {job.meta_json?.credit_cost > 0 && !job.meta_json?.credits_refunded && (
-                                                        <button
-                                                            onClick={(e) => handleRefund(job.id, e)}
-                                                            disabled={actionLoading === job.id}
-                                                            className="text-xs font-medium text-purple-600 hover:text-purple-800 hover:bg-purple-50 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 border border-transparent hover:border-purple-100"
-                                                        >
-                                                            {actionLoading === job.id ? 'Refunding...' : 'Refund'}
-                                                        </button>
-                                                    )}
-                                                    {job.meta_json?.credits_refunded && (
-                                                        <span className="text-xs text-gray-400 italic flex items-center justify-end gap-1">
-                                                            <CheckCircle className="h-3 w-3" /> Refunded
-                                                        </span>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        {userData.jobs.length === 0 && (
-                                            <tr>
-                                                <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
-                                                    No jobs found for this user.
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
+                        {/* Column 2: Live Activity (Jobs) */}
+                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col overflow-hidden">
+                            <div className="p-4 border-b border-gray-100 bg-gray-50/50 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                                        <Activity className="h-4 w-4 text-gray-500" />
+                                        Live Jobs
+                                    </h3>
+                                    <div className="flex items-center gap-1">
+                                        <span className="relative flex h-2 w-2">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="relative">
+                                    <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-gray-400" />
+                                    <input
+                                        type="text"
+                                        placeholder="Filter jobs..."
+                                        className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:border-blue-500 outline-none transition-all"
+                                        value={jobFilter}
+                                        onChange={(e) => setJobFilter(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex-1 overflow-y-auto">
+                                {filteredJobs.map(job => (
+                                    <div
+                                        key={job.id}
+                                        onClick={() => openJobDrawer(job.id)}
+                                        className="p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer group flex items-start gap-3"
+                                    >
+                                        <div className={`mt-1 h-2 w-2 rounded-full shrink-0 ${job.status === 'failed' ? 'bg-red-500' :
+                                            job.status === 'succeeded' ? 'bg-green-500' : 'bg-blue-500'
+                                            }`} />
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <div className="text-sm font-medium text-gray-900 truncate" title={job.meta_json?.file_path || ''}>
+                                                    {job.meta_json?.file_path?.split('/').pop() || (job.status === 'failed' ? 'Job Failed' : 'Processed File')}
+                                                </div>
+                                                <span className="text-[10px] text-gray-400"><TimeAgo date={job.created_at} /></span>
+                                            </div>
+                                            <div className="text-xs text-gray-500 truncate mb-1 font-mono" title={`Job ID: ${job.id}`}>
+                                                {job.id}
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[10px] text-gray-400 font-mono">{job.rows_processed} rows</span>
+                                                <StatusBadge status={job.status} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                                {filteredJobs.length === 0 && (
+                                    <div className="p-8 text-center text-gray-400 text-xs">No jobs found</div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Column 3: Recent Transactions */}
+                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col overflow-hidden">
+                            <div className="p-4 border-b border-gray-100 bg-gray-50/50 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                                        <CreditCard className="h-4 w-4 text-gray-500" />
+                                        Transactions
+                                    </h3>
+                                </div>
+                                <div className="relative">
+                                    <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-gray-400" />
+                                    <input
+                                        type="text"
+                                        placeholder="Filter transactions..."
+                                        className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:border-blue-500 outline-none transition-all"
+                                        value={txFilter}
+                                        onChange={(e) => setTxFilter(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex-1 overflow-y-auto">
+                                {filteredTx.map(tx => (
+                                    <div
+                                        key={tx.id}
+                                        onClick={() => openUserDrawer(tx.user_id)}
+                                        className="p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer group"
+                                    >
+                                        <div className="flex items-center justify-between mb-1">
+                                            <div className={`text-sm font-bold ${tx.change > 0 ? 'text-green-600' : 'text-gray-900'}`}>
+                                                {tx.change > 0 ? '+' : ''}{tx.change} Credits
+                                            </div>
+                                            <span className="text-[10px] text-gray-400"><TimeAgo date={tx.ts} /></span>
+                                        </div>
+                                        <div className="text-xs text-gray-500 truncate mb-1">
+                                            {tx.reason}
+                                        </div>
+                                        <div className="text-[10px] text-gray-400 font-mono truncate">
+                                            {tx.user_id}
+                                        </div>
+                                    </div>
+                                ))}
+                                {filteredTx.length === 0 && (
+                                    <div className="p-8 text-center text-gray-400 text-xs">No transactions found</div>
+                                )}
                             </div>
                         </div>
 
@@ -591,21 +632,22 @@ export default function SupportConsole() {
 
             </main>
 
-            {/* --- Job Details Drawer --- */}
+            {/* --- Inspector Drawer --- */}
             {drawerOpen && (
                 <div className="fixed inset-0 z-50 flex justify-end">
-                    {/* Backdrop */}
                     <div
-                        className="absolute inset-0 bg-black/20 backdrop-blur-sm transition-opacity"
+                        className="absolute inset-0 bg-white/50 backdrop-blur-sm transition-opacity"
                         onClick={() => setDrawerOpen(false)}
                     />
 
-                    {/* Panel */}
-                    <div className="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+                    <div className="relative w-full max-w-xl bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 border-l border-gray-200">
 
                         {/* Header */}
-                        <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-                            <h2 className="text-lg font-semibold text-gray-900">Job Details</h2>
+                        <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white">
+                            <div>
+                                <h2 className="text-xl font-bold text-gray-900 capitalize">{drawerType} Inspector</h2>
+                                <p className="text-sm text-gray-500 font-mono mt-1">{selectedId}</p>
+                            </div>
                             <button
                                 onClick={() => setDrawerOpen(false)}
                                 className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors"
@@ -614,121 +656,180 @@ export default function SupportConsole() {
                             </button>
                         </div>
 
+                        {/* Tabs */}
+                        <div className="flex border-b border-gray-100 px-6">
+                            {drawerType === 'job' && ['overview', 'raw', 'logs'].map((tab) => (
+                                <button
+                                    key={tab}
+                                    onClick={() => setActiveTab(tab as any)}
+                                    className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors capitalize ${activeTab === tab
+                                        ? 'border-black text-black'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                                        }`}
+                                >
+                                    {tab}
+                                </button>
+                            ))}
+                            {drawerType === 'user' && ['overview', 'jobs', 'ledger'].map((tab) => (
+                                <button
+                                    key={tab}
+                                    onClick={() => setActiveTab(tab as any)}
+                                    className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors capitalize ${activeTab === tab
+                                        ? 'border-black text-black'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                                        }`}
+                                >
+                                    {tab}
+                                </button>
+                            ))}
+                        </div>
+
                         {/* Content */}
-                        <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                        <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
                             {drawerLoading ? (
                                 <div className="flex flex-col items-center justify-center h-40 text-gray-400 gap-3">
                                     <RefreshCw className="h-6 w-6 animate-spin" />
                                     <span className="text-sm">Loading details...</span>
                                 </div>
-                            ) : jobDetails ? (
-                                <>
-                                    {/* Status Section */}
-                                    <div className="space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <StatusBadge status={jobDetails.job.status} />
-                                            <span className="text-sm text-gray-500">{new Date(jobDetails.job.created_at).toLocaleString()}</span>
-                                        </div>
-                                        {jobDetails.job.error && (
-                                            <div className="p-4 bg-red-50 text-red-700 rounded-xl text-sm border border-red-100">
-                                                <div className="font-semibold mb-1 flex items-center gap-2">
-                                                    <AlertCircle className="h-4 w-4" /> Error Log
-                                                </div>
-                                                {jobDetails.job.error}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Files Section */}
-                                    <div className="space-y-3">
-                                        <h3 className="text-sm font-medium text-gray-900 uppercase tracking-wider">Files</h3>
-
-                                        {/* Input File */}
-                                        <div className="p-4 rounded-xl border border-gray-200 bg-white flex items-center justify-between group hover:border-purple-200 transition-colors">
-                                            <div className="flex items-center gap-3">
-                                                <div className="h-10 w-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                                                    <FileText className="h-5 w-5" />
-                                                </div>
-                                                <div>
-                                                    <div className="text-sm font-medium text-gray-900">Input File</div>
-                                                    <div className="text-xs text-gray-500">{jobDetails.job.rows_processed} rows</div>
-                                                </div>
-                                            </div>
-                                            {jobDetails.inputUrl ? (
-                                                <a
-                                                    href={jobDetails.inputUrl}
-                                                    download
-                                                    className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-                                                    title="Download Input"
-                                                >
-                                                    <Download className="h-5 w-5" />
-                                                </a>
-                                            ) : (
-                                                <span className="text-xs text-gray-400">Expired</span>
-                                            )}
-                                        </div>
-
-                                        {/* Output File */}
-                                        {jobDetails.job.status === 'succeeded' && (
-                                            <div className="p-4 rounded-xl border border-gray-200 bg-white flex items-center justify-between group hover:border-green-200 transition-colors">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="h-10 w-10 rounded-lg bg-green-50 text-green-600 flex items-center justify-center">
-                                                        <FileText className="h-5 w-5" />
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-sm font-medium text-gray-900">Result File</div>
-                                                        <div className="text-xs text-gray-500">Final Output</div>
-                                                    </div>
-                                                </div>
-                                                {jobDetails.outputUrl ? (
-                                                    <a
-                                                        href={jobDetails.outputUrl}
-                                                        download
-                                                        className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                                                        title="Download Result"
-                                                    >
-                                                        <Download className="h-5 w-5" />
-                                                    </a>
-                                                ) : (
-                                                    <span className="text-xs text-gray-400">Expired</span>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Context Section */}
-                                    <div className="space-y-3">
-                                        <h3 className="text-sm font-medium text-gray-900 uppercase tracking-wider flex items-center gap-2">
-                                            <FileJson className="h-4 w-4 text-gray-400" /> Service Context
-                                        </h3>
-                                        <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 text-sm font-mono text-gray-700 overflow-x-auto">
-                                            <pre className="whitespace-pre-wrap">
-                                                {JSON.stringify(jobDetails.serviceContext, null, 2)}
-                                            </pre>
-                                        </div>
-                                    </div>
-
-                                    {/* Actions */}
-                                    <div className="pt-6 border-t border-gray-100">
-                                        {jobDetails.job.meta_json?.credit_cost > 0 && !jobDetails.job.meta_json?.credits_refunded ? (
-                                            <button
-                                                onClick={(e) => handleRefund(jobDetails.job.id, e as any)}
-                                                disabled={actionLoading === jobDetails.job.id}
-                                                className="w-full py-3 rounded-xl bg-purple-50 text-purple-700 font-medium hover:bg-purple-100 transition-colors flex items-center justify-center gap-2"
-                                            >
-                                                <RefreshCw className={`h-4 w-4 ${actionLoading === jobDetails.job.id ? 'animate-spin' : ''}`} />
-                                                {actionLoading === jobDetails.job.id ? 'Refunding...' : 'Refund Credits'}
-                                            </button>
-                                        ) : jobDetails.job.meta_json?.credits_refunded ? (
-                                            <div className="w-full py-3 rounded-xl bg-gray-50 text-gray-500 font-medium flex items-center justify-center gap-2 border border-gray-200">
-                                                <CheckCircle className="h-4 w-4" /> Refunded
-                                            </div>
-                                        ) : null}
-                                    </div>
-
-                                </>
                             ) : (
-                                <div className="text-center text-gray-500">Job not found</div>
+                                <>
+                                    {/* --- JOB DRAWER CONTENT --- */}
+                                    {drawerType === 'job' && jobDetails && (
+                                        <>
+                                            {activeTab === 'overview' && (
+                                                <div className="space-y-6">
+                                                    {/* Status Card */}
+                                                    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                                                        <div className="flex items-center justify-between mb-4">
+                                                            <span className="text-sm text-gray-500 font-medium">Status</span>
+                                                            <StatusBadge status={jobDetails.job.status} />
+                                                        </div>
+                                                        <div className="flex items-center justify-between mb-4">
+                                                            <span className="text-sm text-gray-500 font-medium">Created</span>
+                                                            <span className="text-sm text-gray-900">{new Date(jobDetails.job.created_at).toLocaleString()}</span>
+                                                        </div>
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-sm text-gray-500 font-medium">Cost</span>
+                                                            <span className="text-sm text-gray-900 font-semibold">{jobDetails.job.meta_json?.credit_cost || 0} Credits</span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Files */}
+                                                    <div className="space-y-3">
+                                                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Artifacts</h3>
+                                                        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                                                            <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+                                                                <div className="flex items-center gap-3">
+                                                                    <FileText className="h-5 w-5 text-blue-500" />
+                                                                    <span className="text-sm font-medium text-gray-900">Input File</span>
+                                                                </div>
+                                                                {jobDetails.inputUrl ? (
+                                                                    <a href={jobDetails.inputUrl} download className="text-sm text-blue-600 hover:underline">Download</a>
+                                                                ) : <span className="text-xs text-gray-400">Expired</span>}
+                                                            </div>
+                                                            {jobDetails.job.status === 'succeeded' && (
+                                                                <div className="p-4 flex items-center justify-between">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <FileText className="h-5 w-5 text-green-500" />
+                                                                        <span className="text-sm font-medium text-gray-900">Result File</span>
+                                                                    </div>
+                                                                    {jobDetails.outputUrl ? (
+                                                                        <a href={jobDetails.outputUrl} download className="text-sm text-green-600 hover:underline">Download</a>
+                                                                    ) : <span className="text-xs text-gray-400">Expired</span>}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Actions */}
+                                                    <div className="pt-6">
+                                                        <button
+                                                            onClick={() => handleRefund(jobDetails.job.id)}
+                                                            className="w-full py-3 bg-white border border-gray-200 text-red-600 font-medium rounded-xl hover:bg-red-50 hover:border-red-200 transition-colors shadow-sm"
+                                                        >
+                                                            Refund Job Credits
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {activeTab === 'raw' && (
+                                                <div className="bg-white rounded-xl border border-gray-200 p-4 font-mono text-xs overflow-x-auto">
+                                                    <pre>{JSON.stringify(jobDetails.job, null, 2)}</pre>
+                                                </div>
+                                            )}
+
+                                            {activeTab === 'logs' && (
+                                                <div className="space-y-4">
+                                                    {jobDetails.job.error ? (
+                                                        <div className="bg-red-50 text-red-700 p-4 rounded-xl border border-red-100 text-sm font-mono whitespace-pre-wrap">
+                                                            {jobDetails.job.error}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-center py-12 text-gray-400">
+                                                            <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-500" />
+                                                            No errors found.
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+
+                                    {/* --- USER DRAWER CONTENT --- */}
+                                    {drawerType === 'user' && userDetails && (
+                                        <>
+                                            {activeTab === 'overview' && (
+                                                <div className="space-y-6">
+                                                    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                                                        <div className="flex items-center justify-between mb-4">
+                                                            <span className="text-sm text-gray-500 font-medium">Email</span>
+                                                            <span className="text-sm text-gray-900 font-medium">{userDetails.profile.email}</span>
+                                                        </div>
+                                                        <div className="flex items-center justify-between mb-4">
+                                                            <span className="text-sm text-gray-500 font-medium">Plan</span>
+                                                            <span className="text-sm text-gray-900 capitalize">{userDetails.profile.plan_type}</span>
+                                                        </div>
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-sm text-gray-500 font-medium">Credits</span>
+                                                            <span className="text-sm text-gray-900 font-bold">{userDetails.profile.credits_remaining}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {activeTab === 'jobs' && (
+                                                <div className="space-y-2">
+                                                    {userDetails.jobs.map(job => (
+                                                        <div key={job.id} onClick={() => openJobDrawer(job.id)} className="bg-white p-4 rounded-xl border border-gray-200 hover:border-blue-300 cursor-pointer transition-colors">
+                                                            <div className="flex items-center justify-between mb-2">
+                                                                <StatusBadge status={job.status} />
+                                                                <span className="text-xs text-gray-400"><TimeAgo date={job.created_at} /></span>
+                                                            </div>
+                                                            <div className="text-xs font-mono text-gray-500 truncate">{job.id}</div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            {activeTab === 'ledger' && (
+                                                <div className="space-y-2">
+                                                    {userDetails.ledger.map(tx => (
+                                                        <div key={tx.id} className="bg-white p-4 rounded-xl border border-gray-200">
+                                                            <div className="flex items-center justify-between mb-1">
+                                                                <span className={`text-sm font-bold ${tx.change > 0 ? 'text-green-600' : 'text-gray-900'}`}>
+                                                                    {tx.change > 0 ? '+' : ''}{tx.change}
+                                                                </span>
+                                                                <span className="text-xs text-gray-400"><TimeAgo date={tx.ts} /></span>
+                                                            </div>
+                                                            <div className="text-xs text-gray-500">{tx.reason}</div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+                                </>
                             )}
                         </div>
                     </div>
