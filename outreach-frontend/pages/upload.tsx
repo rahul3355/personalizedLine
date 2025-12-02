@@ -1322,7 +1322,7 @@ function UploadPage() {
         serviceComponents.cta === INITIAL_SERVICE_COMPONENTS.cta;
 
       if (isInitial) {
-        let context = INITIAL_SERVICE_COMPONENTS;
+        let context: ServiceComponents = { ...INITIAL_SERVICE_COMPONENTS };
         if (typeof userInfo.service_context === 'string') {
           try {
             context = JSON.parse(userInfo.service_context);
