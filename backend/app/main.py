@@ -1585,26 +1585,7 @@ async def get_preview_emails(
         if not file_path or not email_col:
             raise HTTPException(status_code=400, detail="file_path and email_col required")
 
-@app.post("/user/settings")
-def update_user_settings(
-    payload: Dict[str, Any] = Body(...),
-    current_user: AuthenticatedUser = Depends(get_current_user)
-):
-    supabase = get_supabase()
-    user_id = current_user.user_id
-    
-    service_context = payload.get("service_context")
-    if service_context is None:
-        raise HTTPException(status_code=400, detail="service_context is required")
-        
-    try:
-        supabase.table("profiles").update({
-            "service_context": service_context
-        }).eq("id", user_id).execute()
-        
-        return {"status": "success"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+
 
 
         # Verify user owns the file
@@ -1667,6 +1648,28 @@ def update_user_settings(
     except Exception as e:
         print(f"[Preview] Unexpected error in get_preview_emails: {e}")
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/user/settings")
+def update_user_settings(
+    payload: Dict[str, Any] = Body(...),
+    current_user: AuthenticatedUser = Depends(get_current_user)
+):
+    supabase = get_supabase()
+    user_id = current_user.user_id
+    
+    service_context = payload.get("service_context")
+    if service_context is None:
+        raise HTTPException(status_code=400, detail="service_context is required")
+        
+    try:
+        supabase.table("profiles").update({
+            "service_context": service_context
+        }).eq("id", user_id).execute()
+        
+        return {"status": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/preview/generate")
