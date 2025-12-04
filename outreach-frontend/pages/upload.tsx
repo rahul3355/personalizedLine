@@ -1195,7 +1195,7 @@ function UploadPage() {
           type="button"
           ref={examplesTriggerRef}
           onClick={() => setShowExamples(true)}
-          className="group w-full flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-3 text-sm font-medium text-white transition-all duration-[250ms] hover:bg-slate-800 active:scale-[0.99]"
+          className="group w-full flex items-center justify-center gap-2 rounded-lg border border-[#4F55F1] bg-[#4F55F1]/10 px-4 py-3 text-sm font-medium text-slate-900 transition-all duration-[250ms] hover:bg-[#4F55F1]/20 hover:border-black active:scale-[0.99]"
           style={{ fontFamily: '"Times New Roman", Times, serif' }}
         >
           <Plus className="w-4 h-4 transition-transform duration-[250ms] group-hover:rotate-90" />
@@ -2253,7 +2253,7 @@ function UploadPage() {
                         </>
                       ) : (
                         <>
-                          Upload & Continue
+                          Continue
                           <ArrowRight className="w-4 h-4" />
                         </>
                       )}
@@ -2444,16 +2444,15 @@ function UploadPage() {
                             onClick={handleGeneratePreview}
                             disabled={previewLoading || !selectedPreviewEmail || !isServiceContextComplete()}
                             className={`
-                              inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all text-white hover:opacity-90
+                              group inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all border border-[#4F55F1] bg-[#4F55F1]/10 text-slate-900 hover:bg-[#4F55F1]/20 hover:border-black
                               disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none
                             `}
-                            style={{ backgroundColor: BRAND }}
                           >
                             {previewLoading ? (
                               "Creating..."
                             ) : (
                               <>
-                                {previewResult && <RefreshCcw className="w-3.5 h-3.5" />}
+                                {previewResult && <RefreshCcw className="w-3.5 h-3.5 transition-transform duration-[250ms] group-hover:rotate-90" />}
                                 {previewResult ? "Regenerate" : "Preview Email"}
                                 <div className="ml-2 bg-white rounded-full px-2 py-0.5 flex items-center gap-1.5 h-6">
                                   <PiCoinDuotone className="w-3.5 h-3.5 text-[#D4AF37]" />
@@ -2466,29 +2465,29 @@ function UploadPage() {
                       </div>
                     </div>
                   </div>
-                </div >
+                </div>
 
                 {/* Main CTA - Centered */}
                 <div className="flex justify-center pt-8 pb-4">
                   <button
                     onClick={handleCreateJob}
                     disabled={loading}
-                    className="inline-flex items-center justify-center gap-2 h-14 px-12 rounded-lg bg-slate-900 text-white font-semibold text-base shadow-lg transition-colors hover:bg-slate-900/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 disabled:pointer-events-none disabled:opacity-50"
+                    className="inline-flex items-center justify-center gap-2 h-14 px-12 rounded-2xl bg-[#4F55F1] border-2 border-[#3438a3] text-white font-semibold text-base shadow-none transition-all duration-200 hover:bg-[#3438a3] hover:border-[#9fa3f5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F55F1] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
                   >
                     {loading ? "Generating..." : (
                       <>
                         Generate All Emails
-                        <div className="ml-3 bg-white rounded-full px-2 py-0.5 flex items-center gap-1.5 h-7">
+                        <div className="ml-3 bg-[#3438a3] rounded-full px-2 py-0.5 flex items-center gap-1.5 h-7">
                           <PiCoinsDuotone className="w-4 h-4 text-[#D4AF37]" />
-                          <span className="text-xs font-medium text-black">1 / row</span>
+                          <span className="text-xs font-medium text-white">1 / row</span>
                         </div>
                       </>
                     )}
                   </button>
                 </div>
-              </div >
-            )
-            }
+              </div>
+            )}
+
 
             {
               showDropOverlay && (
@@ -2513,338 +2512,345 @@ function UploadPage() {
       </div >
 
       {/* MOBILE VIEW (Ground Up Redesign) */}
-      <div className="lg:hidden min-h-screen bg-white flex flex-col" style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}>
+      < div className="lg:hidden min-h-screen bg-white flex flex-col" style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}>
 
 
         {/* Content Area */}
-        <div className="flex-1 flex flex-col px-5 pt-8 pb-24">
+        < div className="flex-1 flex flex-col px-5 pt-8 pb-24" >
 
           {/* Step 0: Upload */}
-          {step === 0 && !jobCreated && (
-            <div className="flex-1 flex flex-col justify-center animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="w-full max-w-sm space-y-8">
-                <div className="text-center space-y-2">
-                  <h1 className="text-2xl font-serif text-gray-900 tracking-tight">
-                    Generate Emails
-                  </h1>
-                  <p className="text-gray-500 text-sm font-light">
-                    Upload your lead list to get started
-                  </p>
-                </div>
-
-                {renderCreditBanner(true)}
-
-                <div
-                  className="group relative flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50/50 p-10 transition-all active:scale-[0.99] active:bg-gray-100"
-                  onClick={() => document.getElementById("mobile-file-input")?.click()}
-                >
-                  <input
-                    id="mobile-file-input"
-                    type="file"
-                    accept=".csv,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    className="hidden"
-                    onChange={(e) => {
-                      const next = e.target.files?.[0] || null;
-                      handleFileSelection(next);
-                      (e.target as HTMLInputElement).value = "";
-                    }}
-                  />
-                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-gray-100 group-active:scale-95 transition-transform">
-                    <UploadIcon className="h-6 w-6 text-gray-600" />
+          {
+            step === 0 && !jobCreated && (
+              <div className="flex-1 flex flex-col justify-center animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="w-full max-w-sm space-y-8">
+                  <div className="text-center space-y-2">
+                    <h1 className="text-2xl font-serif text-gray-900 tracking-tight">
+                      Generate Emails
+                    </h1>
+                    <p className="text-gray-500 text-sm font-light">
+                      Upload your lead list to get started
+                    </p>
                   </div>
-                  {file ? (
-                    <div className="text-center">
-                      <p className="text-sm font-medium text-gray-900 break-all line-clamp-1 px-4">
-                        {file.name}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Tap to change
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="text-center space-y-1">
-                      <p className="text-sm font-medium text-gray-900">
-                        Tap to upload
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        CSV or XLSX
-                      </p>
-                    </div>
-                  )}
-                </div>
 
-                <button
-                  onClick={handleParseHeaders}
-                  disabled={loading || !file}
-                  className="w-full h-12 rounded-full font-medium text-white text-[15px] shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-all active:scale-[0.98] flex items-center justify-center gap-2"
-                  style={{ backgroundColor: BRAND }}
-                >
-                  {loading ? (
-                    <>
-                      <SendItFastSpinner size={18} />
-                      <span>Processing...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Continue</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
+                  {renderCreditBanner(true)}
 
-          {/* Step 1: Confirm Headers */}
-          {step === 1 && !jobCreated && (
-            <div className="flex flex-col animate-in fade-in slide-in-from-right-4 duration-300">
-              <div className="w-full max-w-sm mx-auto space-y-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <button
-                    onClick={() => setStep(0)}
-                    className="p-1 -ml-1 text-gray-400 hover:text-gray-600"
+                  <div
+                    className="group relative flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50/50 p-10 transition-all active:scale-[0.99] active:bg-gray-100"
+                    onClick={() => document.getElementById("mobile-file-input")?.click()}
                   >
-                    <ArrowLeft className="w-5 h-5" />
-                  </button>
-                  <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Step 1 of 2</span>
-                </div>
-
-                <div className="space-y-2">
-                  <h1 className="text-2xl font-serif text-gray-900 tracking-tight">
-                    Confirm Email Column
-                  </h1>
-                  <p className="text-gray-500 text-sm font-light">
-                    Which column contains the email addresses?
-                  </p>
-                </div>
-
-                {renderCreditBanner(true)}
-
-                <div className="space-y-4 pt-2">
-                  <div className="relative">
-                    <button
-                      onClick={() => setIsHeaderSheetOpen(true)}
-                      className="w-full flex items-center justify-between appearance-none rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/5 transition-all active:bg-gray-50"
-                    >
-                      <span className={emailCol ? "text-gray-900 font-medium" : "text-gray-400"}>
-                        {emailCol || "Select a column..."}
-                      </span>
-                      <ChevronDown className="h-5 w-5 text-gray-400" />
-                    </button>
-
-                    {isHeaderSheetOpen && (
-                      <HeaderSelectionSheet
-                        headers={headers}
-                        currentValue={emailCol}
-                        onSelect={(val) => {
-                          setEmailCol(val);
-                          setIsHeaderSheetOpen(false);
-                        }}
-                        onClose={() => setIsHeaderSheetOpen(false)}
-                      />
+                    <input
+                      id="mobile-file-input"
+                      type="file"
+                      accept=".csv,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                      className="hidden"
+                      onChange={(e) => {
+                        const next = e.target.files?.[0] || null;
+                        handleFileSelection(next);
+                        (e.target as HTMLInputElement).value = "";
+                      }}
+                    />
+                    <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-gray-100 group-active:scale-95 transition-transform">
+                      <UploadIcon className="h-6 w-6 text-gray-600" />
+                    </div>
+                    {file ? (
+                      <div className="text-center">
+                        <p className="text-sm font-medium text-gray-900 break-all line-clamp-1 px-4">
+                          {file.name}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Tap to change
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="text-center space-y-1">
+                        <p className="text-sm font-medium text-gray-900">
+                          Tap to upload
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          CSV or XLSX
+                        </p>
+                      </div>
                     )}
                   </div>
 
-                  <div className="bg-blue-50/50 rounded-lg p-3 flex gap-3">
-                    <Info className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-blue-700 leading-relaxed">
-                      We'll use this column to send personalized emails to your leads.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="pt-4">
                   <button
-                    onClick={handleConfirmHeaders}
-                    disabled={loading || !emailCol}
-                    className="w-full h-12 rounded-full font-medium text-white text-[15px] shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                    onClick={handleParseHeaders}
+                    disabled={loading || !file}
+                    className="w-full h-12 rounded-full font-medium text-white text-[15px] shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                     style={{ backgroundColor: BRAND }}
                   >
-                    {loading ? "Saving..." : "Next Step"}
-                    {!loading && <ArrowRight className="w-4 h-4" />}
+                    {loading ? (
+                      <>
+                        <SendItFastSpinner size={18} />
+                        <span>Processing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Continue</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
-            </div>
-          )}
+            )
+          }
+
+          {/* Step 1: Confirm Headers */}
+          {
+            step === 1 && !jobCreated && (
+              <div className="flex flex-col animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="w-full max-w-sm mx-auto space-y-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <button
+                      onClick={() => setStep(0)}
+                      className="p-1 -ml-1 text-gray-400 hover:text-gray-600"
+                    >
+                      <ArrowLeft className="w-5 h-5" />
+                    </button>
+                    <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Step 1 of 2</span>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h1 className="text-2xl font-serif text-gray-900 tracking-tight">
+                      Confirm Email Column
+                    </h1>
+                    <p className="text-gray-500 text-sm font-light">
+                      Which column contains the email addresses?
+                    </p>
+                  </div>
+
+                  {renderCreditBanner(true)}
+
+                  <div className="space-y-4 pt-2">
+                    <div className="relative">
+                      <button
+                        onClick={() => setIsHeaderSheetOpen(true)}
+                        className="w-full flex items-center justify-between appearance-none rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/5 transition-all active:bg-gray-50"
+                      >
+                        <span className={emailCol ? "text-gray-900 font-medium" : "text-gray-400"}>
+                          {emailCol || "Select a column..."}
+                        </span>
+                        <ChevronDown className="h-5 w-5 text-gray-400" />
+                      </button>
+
+                      {isHeaderSheetOpen && (
+                        <HeaderSelectionSheet
+                          headers={headers}
+                          currentValue={emailCol}
+                          onSelect={(val) => {
+                            setEmailCol(val);
+                            setIsHeaderSheetOpen(false);
+                          }}
+                          onClose={() => setIsHeaderSheetOpen(false)}
+                        />
+                      )}
+                    </div>
+
+                    <div className="bg-blue-50/50 rounded-lg p-3 flex gap-3">
+                      <Info className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-blue-700 leading-relaxed">
+                        We'll use this column to send personalized emails to your leads.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="pt-4">
+                    <button
+                      onClick={handleConfirmHeaders}
+                      disabled={loading || !emailCol}
+                      className="w-full h-12 rounded-full font-medium text-white text-[15px] shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                      style={{ backgroundColor: BRAND }}
+                    >
+                      {loading ? "Saving..." : "Next Step"}
+                      {!loading && <ArrowRight className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
+          }
 
           {/* Step 2: Context & Preview */}
-          {step === 2 && !jobCreated && (
-            <div className="flex flex-col animate-in fade-in slide-in-from-right-4 duration-300">
-              <div className="w-full max-w-sm mx-auto space-y-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <button
-                    onClick={() => setStep(1)}
-                    className="p-1 -ml-1 text-gray-400 hover:text-gray-600"
-                  >
-                    <ArrowLeft className="w-5 h-5" />
-                  </button>
-                  <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Step 2 of 2</span>
-                </div>
+          {
+            step === 2 && !jobCreated && (
+              <div className="flex flex-col animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="w-full max-w-sm mx-auto space-y-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <button
+                      onClick={() => setStep(1)}
+                      className="p-1 -ml-1 text-gray-400 hover:text-gray-600"
+                    >
+                      <ArrowLeft className="w-5 h-5" />
+                    </button>
+                    <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Step 2 of 2</span>
+                  </div>
 
-                <div className="space-y-2">
-                  <h1 className="text-2xl font-serif text-gray-900 tracking-tight">
-                    Describe Your Service
-                  </h1>
-                  <p className="text-gray-500 text-sm font-light">
-                    Provide context for the AI to generate emails.
-                  </p>
-                </div>
+                  <div className="space-y-2">
+                    <h1 className="text-2xl font-serif text-gray-900 tracking-tight">
+                      Describe Your Service
+                    </h1>
+                    <p className="text-gray-500 text-sm font-light">
+                      Provide context for the AI to generate emails.
+                    </p>
+                  </div>
 
-                {/* Reusing renderServiceInputs but styling is handled by global CSS or passed classes? 
+                  {/* Reusing renderServiceInputs but styling is handled by global CSS or passed classes? 
                     The existing renderServiceInputs uses standard Tailwind classes which are fine.
                     We just need to ensure the container is clean.
                 */}
-                <div className="space-y-6">
-                  {renderServiceInputs()}
-                </div>
-
-                {error && (
-                  <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-xl text-sm flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                    <span className="flex-1">{error}</span>
+                  <div className="space-y-6">
+                    {renderServiceInputs()}
                   </div>
-                )}
 
-                {/* Mobile Preview Section */}
-                <div className="border-t border-gray-100 pt-6 space-y-6">
-                  <h3 className="text-sm font-semibold text-gray-900">Email Preview</h3>
-
-                  {!showPreview && !previewResult && (
-                    <button
-                      type="button"
-                      onClick={handleShowPreview}
-                      disabled={previewLoading || !isServiceContextComplete()}
-                      className="w-full h-11 rounded-xl border border-gray-200 bg-white text-gray-700 font-medium text-sm transition-all active:bg-gray-50 disabled:opacity-50"
-                    >
-                      {previewLoading ? "Loading..." : "Generate Preview"}
-                    </button>
+                  {error && (
+                    <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-xl text-sm flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <span className="flex-1">{error}</span>
+                    </div>
                   )}
 
-                  {showPreview && !previewResult && (
-                    <div className="space-y-4 bg-gray-50 rounded-xl p-4">
-                      <div className="space-y-2">
-                        <label className="text-xs font-medium text-gray-700">
-                          Select a recipient
-                        </label>
-                        <div className="relative">
-                          <select
-                            value={selectedPreviewEmail}
-                            onChange={(e) => setSelectedPreviewEmail(e.target.value)}
-                            className="w-full appearance-none rounded-lg border border-gray-200 bg-white pl-3 pr-8 py-2.5 text-sm text-gray-900 focus:border-gray-900 focus:ring-0"
+                  {/* Mobile Preview Section */}
+                  <div className="border-t border-gray-100 pt-6 space-y-6">
+                    <h3 className="text-sm font-semibold text-gray-900">Email Preview</h3>
+
+                    {!showPreview && !previewResult && (
+                      <button
+                        type="button"
+                        onClick={handleShowPreview}
+                        disabled={previewLoading || !isServiceContextComplete()}
+                        className="w-full h-11 rounded-xl border border-gray-200 bg-white text-gray-700 font-medium text-sm transition-all active:bg-gray-50 disabled:opacity-50"
+                      >
+                        {previewLoading ? "Loading..." : "Generate Preview"}
+                      </button>
+                    )}
+
+                    {showPreview && !previewResult && (
+                      <div className="space-y-4 bg-gray-50 rounded-xl p-4">
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium text-gray-700">
+                            Select a recipient
+                          </label>
+                          <div className="relative">
+                            <select
+                              value={selectedPreviewEmail}
+                              onChange={(e) => setSelectedPreviewEmail(e.target.value)}
+                              className="w-full appearance-none rounded-lg border border-gray-200 bg-white pl-3 pr-8 py-2.5 text-sm text-gray-900 focus:border-gray-900 focus:ring-0"
+                            >
+                              <option value="">Choose email...</option>
+                              {previewEmails.map((email) => (
+                                <option key={email} value={email}>{email}</option>
+                              ))}
+                            </select>
+                            <ChevronDown className="absolute right-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
+                          </div>
+                        </div>
+
+                        <div className="flex gap-3">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowExamples(false);
+                              setPreviewEmails([]);
+                              setSelectedPreviewEmail("");
+                              setShowPreview(false);
+                            }}
+                            className="flex-1 h-10 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-600"
                           >
-                            <option value="">Choose email...</option>
-                            {previewEmails.map((email) => (
-                              <option key={email} value={email}>{email}</option>
-                            ))}
-                          </select>
-                          <ChevronDown className="absolute right-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleGeneratePreview}
+                            disabled={previewLoading || !selectedPreviewEmail}
+                            className="flex-1 h-10 rounded-lg text-sm font-medium text-white shadow-sm disabled:opacity-50"
+                            style={{ backgroundColor: BRAND }}
+                          >
+                            {previewLoading ? "Generating..." : "Generate"}
+                          </button>
                         </div>
                       </div>
+                    )}
 
-                      <div className="flex gap-3">
+                    {previewResult && (
+                      <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+                        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                          <div className="bg-gray-50 px-4 py-3 border-b border-gray-100 flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-green-500" />
+                            <span className="text-xs font-medium text-gray-600 truncate flex-1">
+                              To: {previewResult.email}
+                            </span>
+                          </div>
+                          <div className="p-4">
+                            <p className="text-[11px] md:text-sm text-gray-800 whitespace-pre-wrap leading-relaxed font-sans">
+                              {previewResult.email_body}
+                            </p>
+                          </div>
+                        </div>
+
                         <button
                           type="button"
                           onClick={() => {
-                            setShowExamples(false);
-                            setPreviewEmails([]);
-                            setSelectedPreviewEmail("");
+                            setPreviewResult(null);
                             setShowPreview(false);
                           }}
-                          className="flex-1 h-10 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-600"
+                          className="w-full py-2 text-xs font-medium text-gray-500 hover:text-gray-900"
                         >
-                          Cancel
+                          Dismiss Preview
                         </button>
-                        <button
-                          type="button"
-                          onClick={handleGeneratePreview}
-                          disabled={previewLoading || !selectedPreviewEmail}
-                          className="flex-1 h-10 rounded-lg text-sm font-medium text-white shadow-sm disabled:opacity-50"
-                          style={{ backgroundColor: BRAND }}
-                        >
-                          {previewLoading ? "Generating..." : "Generate"}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {previewResult && (
-                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-                      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                        <div className="bg-gray-50 px-4 py-3 border-b border-gray-100 flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-green-500" />
-                          <span className="text-xs font-medium text-gray-600 truncate flex-1">
-                            To: {previewResult.email}
-                          </span>
-                        </div>
-                        <div className="p-4">
-                          <p className="text-[11px] md:text-sm text-gray-800 whitespace-pre-wrap leading-relaxed font-sans">
-                            {previewResult.email_body}
-                          </p>
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPreviewResult(null);
-                          setShowPreview(false);
-                        }}
-                        className="w-full py-2 text-xs font-medium text-gray-500 hover:text-gray-900"
-                      >
-                        Dismiss Preview
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <div className="pt-4 pb-8">
-                  <button
-                    onClick={handleCreateJob}
-                    disabled={loading}
-                    className="w-full h-14 rounded-xl font-semibold text-white text-base shadow-lg shadow-blue-900/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98] flex items-center justify-center gap-2"
-                    style={{ backgroundColor: BRAND }}
-                  >
-                    {loading ? "Starting..." : "Generate All Emails"}
-                    {!loading && (
-                      <div className="bg-white/20 rounded-full px-2 py-0.5 flex items-center gap-1">
-                        <PiCoinsDuotone className="w-3.5 h-3.5 text-white" />
-                        <span className="text-[10px] font-medium text-white">1/row</span>
                       </div>
                     )}
-                  </button>
+                  </div>
+
+                  <div className="pt-4 pb-8">
+                    <button
+                      onClick={handleCreateJob}
+                      disabled={loading}
+                      className="w-full h-14 rounded-2xl bg-[#4F55F1] border-2 border-[#3438a3] text-white font-semibold text-base shadow-none transition-all duration-200 active:scale-[0.98] hover:bg-[#3438a3] hover:border-[#9fa3f5] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {loading ? "Starting..." : "Generate All Emails"}
+                      {!loading && (
+                        <div className="bg-[#3438a3] rounded-full px-2 py-0.5 flex items-center gap-1">
+                          <PiCoinsDuotone className="w-3.5 h-3.5 text-white" />
+                          <span className="text-[10px] font-medium text-white">1/row</span>
+                        </div>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
+            )
+          }
+        </div >
 
         {/* Examples Drawer (Mobile) */}
         <AnimatePresence>
-          {showExamples && (
-            <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed inset-0 z-[60] bg-white md:hidden"
-            >
-              <MobileExamplesDrawerV2
-                onClose={() => setShowExamples(false)}
-                onUseExample={(example) => {
-                  setServiceComponents({
-                    core_offer: example.core_offer,
-                    key_differentiator: example.key_differentiator,
-                    cta: example.cta,
-                  });
-                  setShowExamples(false);
-                }}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+          {
+            showExamples && (
+              <motion.div
+                initial={{ x: "100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                className="fixed inset-0 z-[60] bg-white md:hidden"
+              >
+                <MobileExamplesDrawerV2
+                  onClose={() => setShowExamples(false)}
+                  onUseExample={(example) => {
+                    setServiceComponents({
+                      core_offer: example.core_offer,
+                      key_differentiator: example.key_differentiator,
+                      cta: example.cta,
+                    });
+                    setShowExamples(false);
+                  }}
+                />
+              </motion.div>
+            )
+          }
+        </AnimatePresence >
 
-      </div>
+      </div >
     </>
   );
 }

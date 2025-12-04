@@ -88,16 +88,13 @@ export default function Home() {
 
                     {/* Main Action Input (Perplexity Style - Adapted to Mobile Button Look) */}
                     <Link href="/upload" className="w-full group">
-                        <div className="group relative w-full bg-white border border-gray-200 rounded-2xl transition-all duration-300 p-4 flex items-center space-x-4 active:scale-[0.99] hover:border-[#4F55F1] hover:bg-[#4F55F1]/5">
-                            <div className="h-10 w-10 rounded-full bg-gray-50 flex items-center justify-center flex-shrink-0 text-gray-500 group-hover:text-black transition-colors">
-                                <Plus className="w-5 h-5" />
+                        <div className="group relative w-full bg-[#4F55F1]/10 border border-[#4F55F1] rounded-2xl transition-all duration-300 p-4 flex items-center space-x-4 active:scale-[0.99] hover:bg-[#4F55F1]/20 hover:border-black">
+                            <div className="h-10 w-10 rounded-full bg-[#4F55F1] flex items-center justify-center flex-shrink-0 text-white group-hover:bg-transparent group-hover:text-black transition-all duration-300">
+                                <Plus className="w-5 h-5 transition-transform duration-300 group-hover:rotate-90" />
                             </div>
                             <div className="flex-1 text-left">
                                 <span className="block text-[15px] font-medium text-gray-900">Start Generating Emails</span>
                                 <span className="block text-[12px] text-gray-400">Upload a CSV to begin</span>
-                            </div>
-                            <div className="h-8 w-8 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 opacity-0 group-hover:opacity-100 transition-all">
-                                <ChevronRight className="w-4 h-4" />
                             </div>
                         </div>
                     </Link>
@@ -141,16 +138,13 @@ export default function Home() {
 
                     {/* Primary Action - "Search Bar" Style Button */}
                     <Link href="/upload" className="block w-full">
-                        <div className="group relative w-full bg-white border border-gray-200 rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-all duration-300 p-4 flex items-center space-x-4 active:scale-[0.99]">
-                            <div className="h-10 w-10 rounded-full bg-gray-50 flex items-center justify-center flex-shrink-0 text-gray-500 group-hover:text-black transition-colors">
-                                <Plus className="w-5 h-5" />
+                        <div className="group relative w-full bg-[#4F55F1]/10 border border-[#4F55F1] rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-all duration-300 p-4 flex items-center space-x-4 active:scale-[0.99] hover:bg-[#4F55F1]/20 hover:border-black">
+                            <div className="h-10 w-10 rounded-full bg-[#4F55F1] flex items-center justify-center flex-shrink-0 text-white group-hover:bg-transparent group-hover:text-black transition-all duration-300">
+                                <Plus className="w-5 h-5 transition-transform duration-300 group-hover:rotate-90" />
                             </div>
                             <div className="flex-1 text-left">
                                 <span className="block text-[15px] font-medium text-gray-900">Start Generating Emails</span>
                                 <span className="block text-[12px] text-gray-400">Upload a CSV to begin</span>
-                            </div>
-                            <div className="h-8 w-8 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 opacity-0 group-hover:opacity-100 transition-all">
-                                <ChevronRight className="w-4 h-4" />
                             </div>
                         </div>
                     </Link>
@@ -244,4 +238,4 @@ export default function Home() {
     );
 }
 
-Home.disableWhiteCard = true;
+Home.disableWhiteCard = true; 

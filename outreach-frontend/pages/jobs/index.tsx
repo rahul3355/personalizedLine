@@ -1484,24 +1484,25 @@ function DetailPanel({
                 />
                 <InfoRow label="Job ID" value={job?.id ?? "—"} mono />
 
-                {/* Statement / Download like Revolut */}
+                {/* Download Button (Replaces Statement) */}
                 {job?.status === "succeeded" && (
-                  <>
-                    <InfoRow
-                      label="Statement"
-                      value={
-                        <button
-                          type="button"
-                          onClick={onDownload}
-                          disabled={downloading}
-                          className="inline-flex items-center gap-1 font-medium text-[#4F55F1] hover:underline disabled:opacity-60"
-                        >
-                          <Download className="h-4 w-4" />
-                          {downloading ? "Preparing…" : "Download"}
-                        </button>
-                      }
-                    />
-                  </>
+                  <div className="px-4 py-4">
+                    <button
+                      type="button"
+                      onClick={onDownload}
+                      disabled={downloading}
+                      className="group relative w-full bg-[#4F55F1]/10 border border-[#4F55F1] rounded-xl transition-all duration-300 py-3 px-4 flex items-center justify-center gap-2 active:scale-[0.99] hover:bg-[#4F55F1]/20 hover:border-black disabled:opacity-60 disabled:cursor-not-allowed font-sans"
+                    >
+                      {downloading ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-gray-900" />
+                      ) : (
+                        <Download className="h-4 w-4 text-gray-900" />
+                      )}
+                      <span className="text-[15px] font-medium text-gray-900">
+                        {downloading ? "Preparing download..." : "Download Result"}
+                      </span>
+                    </button>
+                  </div>
                 )}
               </>
             )}
