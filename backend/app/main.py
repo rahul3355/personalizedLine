@@ -753,22 +753,24 @@ def get_signup_reward(current_user: AuthenticatedUser = Depends(get_current_user
 
         # Check if active reward has expired (lazy expiration)
         if status == "active" and deadline_at:
-            deadline = datetime.fromisoformat(deadline_at.replace('Z', '+00:00'))
-            now = datetime.now(deadline.tzinfo)
-            if now >= deadline:
-                # Mark as expired
-                supabase.table("signup_rewards").update({
-                    "status": "expired"
-                }).eq("id", reward["id"]).execute()
-                status = "expired"
+            deadline = _parse_supabase_timestamp(deadline_at)
+            if deadline:
+                now = datetime.now(deadline.tzinfo) if deadline.tzinfo else datetime.utcnow()
+                if now >= deadline:
+                    # Mark as expired
+                    supabase.table("signup_rewards").update({
+                        "status": "expired"
+                    }).eq("id", reward["id"]).execute()
+                    status = "expired"
 
         # Calculate time remaining (for active status)
         time_remaining_seconds = None
         if status == "active" and deadline_at:
-            deadline = datetime.fromisoformat(deadline_at.replace('Z', '+00:00'))
-            now = datetime.now(deadline.tzinfo)
-            remaining = (deadline - now).total_seconds()
-            time_remaining_seconds = max(0, int(remaining))
+            deadline = _parse_supabase_timestamp(deadline_at)
+            if deadline:
+                now = datetime.now(deadline.tzinfo) if deadline.tzinfo else datetime.utcnow()
+                remaining = (deadline - now).total_seconds()
+                time_remaining_seconds = max(0, int(remaining))
 
         # Calculate progress percentage
         progress_percent = min(100, round((credits_used / credits_goal) * 100, 1)) if credits_goal > 0 else 0
@@ -1335,6 +1337,47 @@ def _reserve_credits_for_job(
     raise HTTPException(status_code=500, detail="Unable to reserve credits")
 
 
+def _parse_supabase_timestamp(ts_str: str) -> datetime:
+    """
+    Parse timestamp string from Supabase with variable microsecond precision.
+    Handles formats like '2025-12-11T22:48:34.19879+00:00' or '2025-12-11 22:48:34+00'
+    """
+    if not ts_str:
+        return None
+    try:
+        # Normalize: replace space with T, handle Z suffix
+        normalized = ts_str.replace(' ', 'T')
+        if normalized.endswith('Z'):
+            normalized = normalized[:-1] + '+00:00'
+
+        # Handle +00 without :00
+        if normalized.endswith('+00') and not normalized.endswith('+00:00'):
+            normalized += ':00'
+
+        # Try parsing directly
+        try:
+            return datetime.fromisoformat(normalized)
+        except ValueError:
+            pass
+
+        # If that fails due to microsecond precision, normalize microseconds
+        import re
+        # Match microseconds and pad/truncate to 6 digits
+        def fix_microseconds(match):
+            micro = match.group(1)
+            if len(micro) < 6:
+                micro = micro.ljust(6, '0')
+            elif len(micro) > 6:
+                micro = micro[:6]
+            return '.' + micro
+
+        normalized = re.sub(r'\.(\d+)', fix_microseconds, normalized)
+        return datetime.fromisoformat(normalized)
+    except Exception as e:
+        print(f"[Rewards] Failed to parse timestamp '{ts_str}': {e}")
+        return None
+
+
 def _update_signup_reward_after_deduction(supabase_client, user_id: str, credits_deducted: int):
     """
     Update signup_rewards table after credits are deducted.
@@ -1368,14 +1411,15 @@ def _update_signup_reward_after_deduction(supabase_client, user_id: str, credits
         # Check if deadline has passed
         deadline_str = reward.get("deadline_at")
         if deadline_str:
-            deadline = datetime.fromisoformat(deadline_str.replace('Z', '+00:00'))
-            now = datetime.now(deadline.tzinfo)
-            if now >= deadline:
-                supabase_client.table("signup_rewards").update({
-                    "status": "expired"
-                }).eq("id", reward["id"]).execute()
-                print(f"[Rewards] Signup reward expired for user {user_id}")
-                return
+            deadline = _parse_supabase_timestamp(deadline_str)
+            if deadline:
+                now = datetime.now(deadline.tzinfo) if deadline.tzinfo else datetime.utcnow()
+                if now >= deadline:
+                    supabase_client.table("signup_rewards").update({
+                        "status": "expired"
+                    }).eq("id", reward["id"]).execute()
+                    print(f"[Rewards] Signup reward expired for user {user_id}")
+                    return
 
         # Increment credits_used
         current_used = reward.get("credits_used", 0)
