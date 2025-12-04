@@ -663,37 +663,80 @@ def _deduct_job_credits(
         ).eq("id", job_id).execute()
         return False
     finally:
-        # Check for welcome reward unlock (500 credits used within 7 days)
+        # Update signup_rewards tracking after successful credit deduction
         if deducted:
             try:
-                # 1. Check current status
-                p_res = supabase_client.table("profiles").select("created_at, welcome_reward_status").eq("id", user_id).single().execute()
-                if p_res.data:
-                    status = p_res.data.get("welcome_reward_status")
-                    created_at_str = p_res.data.get("created_at")
-                    
-                    if status == "locked" and created_at_str:
-                        # 2. Check time constraint (7 days)
-                        created_at = datetime.fromisoformat(created_at_str.replace('Z', '+00:00'))
-                        if datetime.now(created_at.tzinfo) < created_at + timedelta(days=7):
-                            # 3. Check total usage
-                            l_res = supabase_client.rpc(
-                                "get_total_credits_used", 
-                                {"user_uuid": user_id}
-                            ).execute()
-                            
-                            total_used = 0
-                            if hasattr(l_res, 'data') and l_res.data is not None:
-                                total_used = l_res.data
-                            
-                            if total_used >= 500:
-                                supabase_client.table("profiles").update({
-                                    "welcome_reward_status": "unlocked"
-                                }).eq("id", user_id).execute()
-                                print(f"[Rewards] Unlocked welcome reward for user {user_id}")
-
+                _update_signup_reward_progress(user_id, total, supabase_client)
             except Exception as e:
-                print(f"[Rewards] Failed to check reward status: {e}")
+                print(f"[Rewards] Failed to update signup reward progress: {e}")
+
+
+def _update_signup_reward_progress(user_id: str, credits_deducted: int, supabase_client=supabase):
+    """
+    Update signup_rewards table after credits are deducted.
+    Increments credits_used and checks if reward should be unlocked.
+    """
+    if credits_deducted <= 0:
+        return
+
+    try:
+        # Get current signup reward record
+        reward_res = (
+            supabase_client.table("signup_rewards")
+            .select("id, credits_used, credits_goal, deadline_at, status")
+            .eq("user_id", user_id)
+            .single()
+            .execute()
+        )
+
+        if not reward_res.data:
+            print(f"[Rewards] No signup_rewards record found for user {user_id}")
+            return
+
+        reward = reward_res.data
+        current_status = reward.get("status")
+
+        # Only update if status is 'active' (not already unlocked, claimed, or expired)
+        if current_status != "active":
+            print(f"[Rewards] Signup reward for user {user_id} is already {current_status}, skipping update")
+            return
+
+        # Check if deadline has passed
+        deadline_str = reward.get("deadline_at")
+        if deadline_str:
+            deadline = datetime.fromisoformat(deadline_str.replace('Z', '+00:00'))
+            now = datetime.now(deadline.tzinfo)
+            if now >= deadline:
+                # Deadline passed, mark as expired
+                supabase_client.table("signup_rewards").update({
+                    "status": "expired"
+                }).eq("id", reward["id"]).execute()
+                print(f"[Rewards] Signup reward expired for user {user_id}")
+                return
+
+        # Increment credits_used
+        current_used = reward.get("credits_used", 0)
+        credits_goal = reward.get("credits_goal", 500)
+        new_used = current_used + credits_deducted
+
+        # Check if goal is reached
+        if new_used >= credits_goal:
+            # Goal reached! Unlock the reward
+            supabase_client.table("signup_rewards").update({
+                "credits_used": new_used,
+                "status": "unlocked",
+                "unlocked_at": datetime.utcnow().isoformat() + "Z"
+            }).eq("id", reward["id"]).execute()
+            print(f"[Rewards] Unlocked signup reward for user {user_id} (used {new_used}/{credits_goal} credits)")
+        else:
+            # Just update credits_used
+            supabase_client.table("signup_rewards").update({
+                "credits_used": new_used
+            }).eq("id", reward["id"]).execute()
+            print(f"[Rewards] Updated signup reward progress for user {user_id}: {new_used}/{credits_goal}")
+
+    except Exception as e:
+        print(f"[Rewards] Error updating signup reward for user {user_id}: {e}")
 
 
 def _get_job_timeout():
