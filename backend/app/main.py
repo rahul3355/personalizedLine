@@ -1319,6 +1319,9 @@ def _reserve_credits_for_job(
                     status_code=500, detail="Unable to record credit deduction"
                 )
 
+            # Update signup reward progress after successful credit deduction
+            _update_signup_reward_after_deduction(supabase_client, user_id, row_count)
+
             return {
                 "previous_balance": credits_remaining + addon_credits,
                 "new_balance": new_monthly + new_addon,
@@ -1330,6 +1333,72 @@ def _reserve_credits_for_job(
         time.sleep(0.1)
 
     raise HTTPException(status_code=500, detail="Unable to reserve credits")
+
+
+def _update_signup_reward_after_deduction(supabase_client, user_id: str, credits_deducted: int):
+    """
+    Update signup_rewards table after credits are deducted.
+    Called from _reserve_credits_for_job in the API.
+    """
+    if credits_deducted <= 0:
+        return
+
+    try:
+        # Get current signup reward record
+        reward_res = (
+            supabase_client.table("signup_rewards")
+            .select("id, credits_used, credits_goal, deadline_at, status")
+            .eq("user_id", user_id)
+            .single()
+            .execute()
+        )
+
+        if not reward_res.data:
+            print(f"[Rewards] No signup_rewards record found for user {user_id}")
+            return
+
+        reward = reward_res.data
+        current_status = reward.get("status")
+
+        # Only update if status is 'active'
+        if current_status != "active":
+            print(f"[Rewards] Signup reward for user {user_id} is already {current_status}, skipping update")
+            return
+
+        # Check if deadline has passed
+        deadline_str = reward.get("deadline_at")
+        if deadline_str:
+            deadline = datetime.fromisoformat(deadline_str.replace('Z', '+00:00'))
+            now = datetime.now(deadline.tzinfo)
+            if now >= deadline:
+                supabase_client.table("signup_rewards").update({
+                    "status": "expired"
+                }).eq("id", reward["id"]).execute()
+                print(f"[Rewards] Signup reward expired for user {user_id}")
+                return
+
+        # Increment credits_used
+        current_used = reward.get("credits_used", 0)
+        credits_goal = reward.get("credits_goal", 500)
+        new_used = current_used + credits_deducted
+
+        # Check if goal is reached
+        if new_used >= credits_goal:
+            supabase_client.table("signup_rewards").update({
+                "credits_used": new_used,
+                "status": "unlocked",
+                "unlocked_at": datetime.utcnow().isoformat() + "Z"
+            }).eq("id", reward["id"]).execute()
+            print(f"[Rewards] Unlocked signup reward for user {user_id} (used {new_used}/{credits_goal} credits)")
+        else:
+            supabase_client.table("signup_rewards").update({
+                "credits_used": new_used
+            }).eq("id", reward["id"]).execute()
+            print(f"[Rewards] Updated signup reward progress for user {user_id}: {new_used}/{credits_goal}")
+
+    except Exception as e:
+        # Non-critical: don't fail the credit deduction if reward update fails
+        print(f"[Rewards] Error updating signup reward for user {user_id}: {e}")
 
 
 def _rollback_credit_reservation(
