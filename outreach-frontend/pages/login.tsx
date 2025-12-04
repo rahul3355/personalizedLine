@@ -15,6 +15,25 @@ import Sign from "../assets/sign.png";
 import SendItFastLogo from "../assets/senditfast-logo.png";
 import Whiteboard from "../assets/whiteboard2.png";
 import SendItFastSpinner from "../components/SendItFastSpinner";
+import { SafariWindow } from "@/components/ui/safari-window";
+
+// Carousel Imports
+import Autoplay from "embla-carousel-autoplay";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+
+// Carousel Images
+import Img1 from "../assets/senditfast_ppt/1.png";
+import Img2 from "../assets/senditfast_ppt/2.png";
+import Img3 from "../assets/senditfast_ppt/3.png";
+import Img4 from "../assets/senditfast_ppt/4.png";
+import Img5 from "../assets/senditfast_ppt/5.png";
 
 // Company Logos
 import AppleLogo from "../assets/apple.png";
@@ -342,37 +361,62 @@ function LoginPage() {
                 Ideal for B2B Sales, Agencies, and GTM Teams
               </p>
             </div>
-            {/* Whiteboard Image */}
-            <div className="w-full max-w-xl mt-4 group">
-              <Lens
-                zoomFactor={2}
-                lensSize={200}
-                isStatic={false}
-                ariaLabel="Zoom Area"
+            {/* Carousel Section */}
+            <div className="w-full max-w-2xl mt-8 group relative px-12">
+              <Carousel
+                opts={{
+                  align: "start",
+                  loop: true,
+                }}
+                plugins={[
+                  Autoplay({
+                    delay: 3000,
+                  }),
+                ]}
+                className="w-full"
               >
-                <Image
-                  src={Whiteboard}
-                  alt="Whiteboard demonstration"
-                  className="w-full h-auto rounded-3xl grayscale group-hover:grayscale-0 transition-all duration-300"
-                  priority
-                />
-              </Lens>
+                <SafariWindow className="w-full">
+                  <CarouselContent>
+                    {[Img1, Img2, Img3, Img4, Img5].map((img, index) => (
+                      <CarouselItem key={index} className="basis-full">
+                        <div className="flex aspect-[16/10] items-center justify-center p-0 bg-white">
+                          <Image
+                            src={img}
+                            alt={`Slide ${index + 1}`}
+                            className="w-full h-full object-contain"
+                            priority={index === 0}
+                          />
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                </SafariWindow>
+
+                {/* Controls - Always visible, positioned outside/on edge */}
+                <div className="absolute top-1/2 -left-16 -translate-y-1/2 z-10">
+                  <CarouselPrevious className="static translate-y-0 h-10 w-10 rounded-full border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 hover:text-black transition-all duration-200" />
+                </div>
+                <div className="absolute top-1/2 -right-16 -translate-y-1/2 z-10">
+                  <CarouselNext className="static translate-y-0 h-10 w-10 rounded-full border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 hover:text-black transition-all duration-200" />
+                </div>
+              </Carousel>
             </div>
           </div>
 
           {/* Hero Section with Globe and Logos */}
+          {/*
           <section className="flex flex-col space-y-6">
             <p className="text-md font-regular tracking-widest text-gray-900 mb-2 text-center uppercase font-sans">
               POSITIVE REPLIES FROM TEAMS AT:
             </p>
 
             <div className="grid grid-cols-2 gap-1 items-center">
-              {/* Left: Globe */}
+              {/* Left: Globe *}
               <div className="relative flex items-center justify-center h-[250px]">
                 <Globe className="scale-75" />
               </div>
 
-              {/* Right: Company Logos Section */}
+              {/* Right: Company Logos Section *}
               <div className="rounded-xl p-6 flex flex-col items-center justify-center h-full">
                 <div className="grid grid-cols-4 gap-x-4 gap-y-6 justify-items-center items-center w-full">
                   <Image src={AppleLogo} alt="Apple" className="h-12 w-auto object-contain" />
@@ -386,7 +430,7 @@ function LoginPage() {
                   <Image src={StarbucksLogo} alt="Starbucks" className="h-12 w-auto object-contain" />
                   <Image src={UberLogo} alt="Uber" className="h-4 w-auto object-contain" />
 
-                  {/* New Logos */}
+                  {/* New Logos *}
                   <Image src={Logo12} alt="12" className="h-12 w-auto object-contain" />
                   <Image src={AsdaLogo} alt="Asda" className="h-5 w-auto object-contain" />
                   <Image src={CdLogo} alt="CD" className="h-12 w-auto object-contain" />
@@ -405,6 +449,7 @@ function LoginPage() {
               </div>
             </div>
           </section>
+          */}
 
           {/* Manifesto */}
           <section className="bg-white p-6 space-y-4">
