@@ -25,6 +25,7 @@ import { PiListFill } from "react-icons/pi";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PiPlus } from "react-icons/pi";
+import SignupRewardDropdown from "./SignupRewardDropdown";
 
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthProvider";
@@ -43,6 +44,8 @@ export default function Navbar() {
   const [shinePlayed, setShinePlayed] = useState(false); // kept for parity (unused in rail now)
   const [menuOpen, setMenuOpen] = useState(false);
   const [showAddCreditsTooltip, setShowAddCreditsTooltip] = useState(false);
+  const [rewardDropdownOpen, setRewardDropdownOpen] = useState(false);
+  const rewardDropdownRef = useRef<HTMLDivElement>(null);
   const iconWrapperRef = useRef<HTMLSpanElement | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -64,6 +67,12 @@ export default function Navbar() {
         !dropdownRef.current.contains(event.target as Node)
       ) {
         setDropdownOpen(false);
+      }
+      if (
+        rewardDropdownRef.current &&
+        !rewardDropdownRef.current.contains(event.target as Node)
+      ) {
+        setRewardDropdownOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -266,21 +275,25 @@ export default function Navbar() {
             <span className="opacity-70 mr-2">Credits</span>
             {credits.toLocaleString()}
 
-            {/* Add Credits Button with Tooltip */}
-            <div className="relative inline-block">
+            {/* Add Credits Button with Dropdown */}
+            <div className="relative inline-block" ref={rewardDropdownRef}>
               <button
                 type="button"
-                onMouseEnter={() => setShowAddCreditsTooltip(true)}
+                onMouseEnter={() => !rewardDropdownOpen && setShowAddCreditsTooltip(true)}
                 onMouseLeave={() => setShowAddCreditsTooltip(false)}
-                onClick={() => window.location.href = '/billing'}
+                onClick={() => {
+                  setRewardDropdownOpen(v => !v);
+                  setShowAddCreditsTooltip(false);
+                }}
                 className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#E9ECF2] hover:bg-[#4F55F1] active:bg-[#3D42D8] transition-colors group"
                 aria-label="Add Credits"
+                aria-expanded={rewardDropdownOpen}
               >
                 <PiPlus className="w-3 h-3 text-[#717173] group-hover:text-white transition-colors" />
               </button>
 
-              {/* Tooltip */}
-              {showAddCreditsTooltip && (
+              {/* Tooltip - only show when dropdown is closed */}
+              {showAddCreditsTooltip && !rewardDropdownOpen && (
                 <div
                   className="absolute z-50 px-3 py-2 rounded-md whitespace-nowrap pointer-events-none"
                   style={{
@@ -292,9 +305,16 @@ export default function Navbar() {
                     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
                   }}
                 >
-                  <p className="text-sm font-bold text-white">Add Credits</p>
+                  <p className="text-sm font-bold text-white">Rewards & Credits</p>
                 </div>
               )}
+
+              {/* Signup Reward Dropdown */}
+              <AnimatePresence>
+                {rewardDropdownOpen && (
+                  <SignupRewardDropdown onClose={() => setRewardDropdownOpen(false)} />
+                )}
+              </AnimatePresence>
             </div>
           </div>
 

@@ -9,7 +9,6 @@ import { cn, truncateMiddle } from "@/lib/utils";
 import WelcomeHeader from "@/components/dashboard/WelcomeHeader";
 import StatsOverview from "@/components/dashboard/StatsOverview";
 import RecentActivity from "@/components/dashboard/RecentActivity";
-import OfferCard from "@/components/dashboard/OfferCard";
 import { Button } from "@/components/ui/button";
 import { Search, Plus, FileText, Clock, ChevronRight, Sparkles, ArrowRight, FileSpreadsheet } from "lucide-react";
 import { PiCoinsDuotone } from "react-icons/pi";

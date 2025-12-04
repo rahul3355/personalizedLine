@@ -716,56 +716,167 @@ def get_me(current_user: AuthenticatedUser = Depends(get_current_user)):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@app.post("/claim-welcome-reward")
-def claim_welcome_reward(current_user: AuthenticatedUser = Depends(get_current_user)):
+@app.get("/signup-reward")
+def get_signup_reward(current_user: AuthenticatedUser = Depends(get_current_user)):
+    """
+    Get the current user's signup reward status and progress.
+    Returns progress toward the 500 credit goal and time remaining.
+    """
     try:
         user_id = current_user.user_id
-        
-        # 1. Verify status is unlocked
-        res = (
+
+        # Get signup reward record
+        reward_res = (
+            supabase.table("signup_rewards")
+            .select("*")
+            .eq("user_id", user_id)
+            .single()
+            .execute()
+        )
+
+        if not reward_res.data:
+            # No reward record found - user may have signed up before this feature
+            return {
+                "has_reward": False,
+                "message": "No signup reward available"
+            }
+
+        reward = reward_res.data
+        status = reward.get("status", "active")
+        credits_used = reward.get("credits_used", 0)
+        credits_goal = reward.get("credits_goal", 500)
+        reward_credits = reward.get("reward_credits", 500)
+        deadline_at = reward.get("deadline_at")
+        started_at = reward.get("started_at")
+        unlocked_at = reward.get("unlocked_at")
+        claimed_at = reward.get("claimed_at")
+
+        # Check if active reward has expired (lazy expiration)
+        if status == "active" and deadline_at:
+            deadline = datetime.fromisoformat(deadline_at.replace('Z', '+00:00'))
+            now = datetime.now(deadline.tzinfo)
+            if now >= deadline:
+                # Mark as expired
+                supabase.table("signup_rewards").update({
+                    "status": "expired"
+                }).eq("id", reward["id"]).execute()
+                status = "expired"
+
+        # Calculate time remaining (for active status)
+        time_remaining_seconds = None
+        if status == "active" and deadline_at:
+            deadline = datetime.fromisoformat(deadline_at.replace('Z', '+00:00'))
+            now = datetime.now(deadline.tzinfo)
+            remaining = (deadline - now).total_seconds()
+            time_remaining_seconds = max(0, int(remaining))
+
+        # Calculate progress percentage
+        progress_percent = min(100, round((credits_used / credits_goal) * 100, 1)) if credits_goal > 0 else 0
+        credits_remaining_to_goal = max(0, credits_goal - credits_used)
+
+        return {
+            "has_reward": True,
+            "status": status,
+            "credits_used": credits_used,
+            "credits_goal": credits_goal,
+            "credits_remaining_to_goal": credits_remaining_to_goal,
+            "reward_credits": reward_credits,
+            "progress_percent": progress_percent,
+            "deadline_at": deadline_at,
+            "started_at": started_at,
+            "time_remaining_seconds": time_remaining_seconds,
+            "unlocked_at": unlocked_at,
+            "claimed_at": claimed_at
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Rewards] Get signup reward error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/signup-reward/claim")
+def claim_signup_reward(current_user: AuthenticatedUser = Depends(get_current_user)):
+    """
+    Claim the signup reward (500 bonus credits) after unlocking it.
+    User must have status 'unlocked' to claim.
+    """
+    try:
+        user_id = current_user.user_id
+
+        # Get signup reward record
+        reward_res = (
+            supabase.table("signup_rewards")
+            .select("id, status, reward_credits")
+            .eq("user_id", user_id)
+            .single()
+            .execute()
+        )
+
+        if not reward_res.data:
+            raise HTTPException(status_code=404, detail="No signup reward found")
+
+        reward = reward_res.data
+        status = reward.get("status")
+        reward_credits = reward.get("reward_credits", 500)
+
+        if status == "claimed":
+            raise HTTPException(status_code=400, detail="Reward already claimed")
+
+        if status == "expired":
+            raise HTTPException(status_code=400, detail="Reward has expired")
+
+        if status != "unlocked":
+            raise HTTPException(status_code=400, detail="Reward is not yet unlocked. Use 500 credits within 7 days to unlock.")
+
+        # Get current credits
+        profile_res = (
             supabase.table("profiles")
-            .select("welcome_reward_status, credits_remaining")
+            .select("credits_remaining")
             .eq("id", user_id)
             .single()
             .execute()
         )
-        
-        if not res.data:
-            raise HTTPException(status_code=404, detail="User not found")
-            
-        status = res.data.get("welcome_reward_status")
-        current_credits = res.data.get("credits_remaining", 0)
-        
-        if status == "claimed":
-            raise HTTPException(status_code=400, detail="Reward already claimed")
-            
-        if status != "unlocked":
-            raise HTTPException(status_code=400, detail="Reward is locked")
-            
-        # 2. Apply reward
-        reward_amount = 500
-        
-        # Update profile
+
+        if not profile_res.data:
+            raise HTTPException(status_code=404, detail="User profile not found")
+
+        current_credits = profile_res.data.get("credits_remaining", 0)
+
+        # Update signup_rewards status to claimed
+        supabase.table("signup_rewards").update({
+            "status": "claimed",
+            "claimed_at": datetime.utcnow().isoformat() + "Z"
+        }).eq("id", reward["id"]).execute()
+
+        # Add reward credits to profile
         supabase.table("profiles").update({
-            "credits_remaining": current_credits + reward_amount,
-            "welcome_reward_status": "claimed"
+            "credits_remaining": current_credits + reward_credits
         }).eq("id", user_id).execute()
-        
-        # Add to ledger
+
+        # Add to ledger for audit trail
         supabase.table("ledger").insert({
             "user_id": user_id,
-            "change": reward_amount,
+            "change": reward_credits,
             "amount": 0,
-            "reason": "welcome reward claimed",
+            "reason": "signup reward claimed",
             "ts": datetime.utcnow().isoformat()
         }).execute()
-        
-        return {"status": "success", "message": "Reward claimed successfully"}
-        
+
+        print(f"[Rewards] User {user_id} claimed signup reward of {reward_credits} credits")
+
+        return {
+            "status": "success",
+            "message": f"Successfully claimed {reward_credits} bonus credits!",
+            "credits_added": reward_credits,
+            "new_balance": current_credits + reward_credits
+        }
+
     except HTTPException:
         raise
     except Exception as e:
-        print(f"[Rewards] Claim error: {e}")
+        print(f"[Rewards] Claim signup reward error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/account/ledger")
