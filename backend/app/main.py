@@ -2551,8 +2551,21 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                     supabase.table("profiles").update({
                         "subscription_status": "past_due"
                     }).eq("id", user_id).execute()
+                    
+                    # Log to ledger for audit trail
+                    supabase.table("ledger").insert({
+                        "user_id": user_id,
+                        "change": 0,
+                        "amount": 0,
+                        "reason": f"payment_failed - subscription {subscription_id}",
+                        "ts": datetime.utcnow().isoformat(),
+                    }).execute()
              except Exception as e:
                  print(f"[PAYMENT_FAILED] Error handling payment failure: {e}")
+        
+        # Mark event as processed
+        _mark_event_processed(event_id, event_type)
+        return {"status": "payment_failure_handled", "event_id": event_id}
 
     # Handle refunds and disputes (Revoke credits)
     if event_type in ["charge.refunded", "charge.dispute.created"]:
@@ -2735,6 +2748,8 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
         # Get subscription details from the invoice
         subscription_id = obj.get("subscription")
         billing_reason = obj.get("billing_reason")
+        
+        print(f"[INVOICE] billing_reason={billing_reason}, subscription_id={subscription_id}")
 
         # Skip initial subscription invoice (already handled by checkout.session.completed)
         if billing_reason == "subscription_create":
@@ -2760,7 +2775,7 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                     # Get the user's current plan
                     profile = (
                         supabase.table("profiles")
-                        .select("plan_type, subscription_status, billing_frequency")
+                        .select("plan_type, subscription_status, billing_frequency, credits_remaining")
                         .eq("id", user_id)
                         .single()
                         .execute()
@@ -2787,23 +2802,30 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                             # Annual subscriptions don't get monthly credit resets
                             # They received all 12 months of credits upfront at purchase time
                         else:
-                            # For plan changes, get the new plan from subscription
+                            # For subscription_cycle renewals or plan changes
+                            # First, try to get the plan from subscription items (most reliable)
+                            items = subscription.get("items", {}).get("data", [])
+                            actual_plan = plan_type
+                            if items:
+                                price_id = items[0].get("price", {}).get("id")
+                                detected_plan = PRICE_TO_PLAN.get(price_id)
+                                if detected_plan:
+                                    actual_plan = detected_plan
+                                    print(f"[INVOICE] Detected plan from subscription: {actual_plan}")
+                            
                             old_plan_type = plan_type
                             is_plan_change = False
-                            if billing_reason == "subscription_update":
-                                # Get plan from subscription items
-                                items = subscription.get("items", {}).get("data", [])
-                                if items:
-                                    price_id = items[0].get("price", {}).get("id")
-                                    new_plan = PRICE_TO_PLAN.get(price_id, plan_type)
-                                    if new_plan != plan_type:
-                                        print(f"[PLAN_CHANGE] {plan_type} → {new_plan}")
-                                        is_plan_change = True
-                                        old_plan_type = plan_type
-                                        plan_type = new_plan
+                            
+                            # Check if this is a plan change
+                            if billing_reason == "subscription_update" or actual_plan != plan_type:
+                                if actual_plan != plan_type:
+                                    print(f"[PLAN_CHANGE] {plan_type} → {actual_plan}")
+                                    is_plan_change = True
+                                    plan_type = actual_plan
 
-                            # Only reset credits for active MONTHLY subscriptions with paid plans
-                            if subscription_status == "active" and plan_type in CREDITS_MAP:
+                            # Handle renewals for any paid plan
+                            # Also handle case where subscription_status might be missing (Dashboard-created subs)
+                            if plan_type in CREDITS_MAP and plan_type != "free":
                                 monthly_credits = CREDITS_MAP.get(plan_type, 0)
                                 old_monthly_credits = CREDITS_MAP.get(old_plan_type, 0)
 
@@ -2811,12 +2833,10 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                                 should_reset_credits = True
                                 ledger_reason = f"monthly renewal - {plan_type}"
 
-                                if billing_reason == "subscription_update" and is_plan_change:
+                                if is_plan_change:
                                     # Check if upgrade or downgrade
                                     if monthly_credits > old_monthly_credits:
-                                        # UPGRADE: Credits should be handled here (Single Source of Truth)
-                                        # We removed the credit addition from subscription.updated
-                                        # So we MUST reset credits here.
+                                        # UPGRADE: Reset to new plan credits
                                         should_reset_credits = True
                                         ledger_reason = f"Plan upgrade - {old_plan_type} to {plan_type}"
                                         print(
@@ -2830,12 +2850,16 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                                             f"[INVOICE_DOWNGRADE] Resetting credits for downgrade "
                                             f"{old_plan_type}→{plan_type}: {current_credits}→{monthly_credits}"
                                         )
+                                elif billing_reason == "subscription_cycle":
+                                    # Regular monthly renewal
+                                    print(f"[INVOICE] Processing subscription_cycle renewal for {plan_type}")
+                                    ledger_reason = f"monthly renewal - {plan_type}"
 
                                 if should_reset_credits:
                                     # Check if rollover is enabled for this plan
                                     rollover_config = ROLLOVER_RULES.get(plan_type, {"enabled": False, "max_multiplier": 1})
 
-                                    if rollover_config["enabled"]:
+                                    if rollover_config["enabled"] and billing_reason == "subscription_cycle":
                                         # ROLLOVER ENABLED (Growth/Pro): Add to existing, cap at 2x
                                         new_total = current_credits + monthly_credits
                                         max_allowed = monthly_credits * rollover_config["max_multiplier"]
@@ -2849,16 +2873,18 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                                         if rollover_lost > 0:
                                             print(f"[ROLLOVER_CAP] User {user_id} lost {rollover_lost} credits (capped at {max_allowed})")
                                     else:
-                                        # NO ROLLOVER (Starter): Hard reset
+                                        # NO ROLLOVER (Starter) or plan change: Hard reset
                                         final_credits = monthly_credits
-                                        ledger_reason = f"monthly renewal - {plan_type} (no rollover, reset to {monthly_credits})"
+                                        if billing_reason == "subscription_cycle":
+                                            ledger_reason = f"monthly renewal - {plan_type} (no rollover, reset to {monthly_credits})"
 
-                                    # Update credits
+                                    # Update credits and ensure subscription is marked active
                                     res_update = (
                                         supabase.table("profiles")
                                         .update({
                                             "credits_remaining": final_credits,
                                             "plan_type": plan_type,
+                                            "subscription_status": "active",  # Ensure status is active on successful renewal
                                         })
                                         .eq("id", user_id)
                                         .execute()
@@ -2885,7 +2911,7 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                             else:
                                 print(
                                     f"[INVOICE] Skipping credit reset for user {user_id}: "
-                                    f"status={subscription_status}, plan={plan_type}"
+                                    f"plan={plan_type} (free or unknown)"
                                 )
             except Exception as exc:
                 print(f"[INVOICE] Error processing monthly renewal: {exc}")
@@ -2930,23 +2956,33 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
 
                             # UPGRADE: New plan has more credits than old plan
                             if new_plan_credits > old_plan_credits:
-                                # ONLY update plan_type. DO NOT add credits here.
-                                # Credits will be handled by the invoice.paid event (Single Source of Truth)
+                                # Update plan_type AND credits immediately for upgrades
+                                # This ensures credits are allocated even if invoice.paid doesn't fire
+                                # (e.g., when upgrading via Stripe dashboard with test clocks)
                                 
                                 res_update = (
                                     supabase.table("profiles")
                                     .update({
                                         "plan_type": new_plan,
-                                        # "credits_remaining": updated_credits,  <-- REMOVED
+                                        "credits_remaining": new_plan_credits,  # Allocate new plan credits
                                     })
                                     .eq("id", user_id)
                                     .execute()
                                 )
-                                log_db("upgrade_plan_metadata_only", res_update)
+                                log_db("upgrade_plan_with_credits", res_update)
+                                
+                                # Log to ledger
+                                supabase.table("ledger").insert({
+                                    "user_id": user_id,
+                                    "change": new_plan_credits,
+                                    "amount": 0,  # Prorated amount from Stripe, not captured here
+                                    "reason": f"plan upgrade - {old_plan} to {new_plan}",
+                                    "ts": datetime.utcnow().isoformat(),
+                                }).execute()
 
                                 print(
-                                    f"[UPGRADE] user={user_id}, {old_plan}→{new_plan}. "
-                                    f"Credits will be updated via invoice.paid."
+                                    f"[UPGRADE] user={user_id}, {old_plan}→{new_plan}, "
+                                    f"credits: {current_credits}→{new_plan_credits}"
                                 )
 
                             # DOWNGRADE: New plan has fewer credits than old plan
@@ -2980,21 +3016,33 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
         if user_id:
             linked_user_id = user_id
             try:
+                # First, get current credits to preserve them
+                profile_res = (
+                    supabase.table("profiles")
+                    .select("credits_remaining, addon_credits")
+                    .eq("id", user_id)
+                    .single()
+                    .execute()
+                )
+                
+                current_credits = profile_res.data.get("credits_remaining", 0) if profile_res.data else 0
+                current_addon = profile_res.data.get("addon_credits", 0) if profile_res.data else 0
+                
+                # Update status but PRESERVE credits - user paid for them
                 res_update = (
                     supabase.table("profiles")
                     .update({
                         "subscription_status": "canceled",
                         "plan_type": "free",
-                        "credits_remaining": 0, # Wipe monthly credits
-                        # "addon_credits": 0 # Optional: Wipe addons too? Usually yes for cancellation.
-                        # For now, let's keep addons if they paid for them separately, but wipe monthly.
+                        # PRESERVE credits_remaining - user can use remaining credits
+                        # PRESERVE addon_credits - user paid separately for these
                     })
                     .eq("id", user_id)
                     .execute()
                 )
                 log_db("cancel_subscription", res_update)
 
-                print(f"[CANCELED] user={user_id}, subscription={subscription_id}")
+                print(f"[CANCELED] user={user_id}, subscription={subscription_id}, preserved credits: {current_credits} monthly + {current_addon} addon")
             except Exception as exc:
                 print(f"[CANCEL] Error updating canceled subscription: {exc}")
         else:
