@@ -570,7 +570,12 @@ export default function BillingPage() {
   const isYearly = billingCycle === "yearly";
   // Prioritize subscriptionInfo.plan_type as it is freshly fetched from the backend
   const currentPlan = subscriptionInfo?.plan_type || userInfo?.plan_type || "free";
-  const hasActiveSub = subscriptionInfo && subscriptionInfo.subscription_status === "active";
+  // hasActiveSub: true if subscription_status is active OR if there's a subscription_id (meaning connected to Stripe)
+  const hasActiveSub = subscriptionInfo && (
+    subscriptionInfo.subscription_status === "active" ||
+    subscriptionInfo.subscription_id ||
+    (currentPlan !== "free" && subscriptionInfo.subscription_status !== "canceled")
+  );
 
   if (!mounted) return null;
 

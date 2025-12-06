@@ -1042,7 +1042,36 @@ def upgrade_subscription(
     stripe_customer_id = profile.get("stripe_customer_id")
 
     if not stripe_subscription_id:
-        raise HTTPException(status_code=400, detail="No active subscription found")
+        raise HTTPException(status_code=400, detail="No active subscription found. Please subscribe to a plan first.")
+
+    # Verify subscription is active in Stripe
+    try:
+        stripe_sub = stripe.Subscription.retrieve(stripe_subscription_id)
+        sub_status = stripe_sub.get("status")
+        if sub_status in ["canceled", "incomplete_expired"]:
+            # Clear the stale subscription ID from profile
+            supabase.table("profiles").update({
+                "stripe_subscription_id": None,
+                "subscription_status": "canceled",
+            }).eq("id", user_id).execute()
+            raise HTTPException(
+                status_code=400, 
+                detail="Your subscription has been canceled. Please subscribe to a new plan from the billing page."
+            )
+        elif sub_status not in ["active", "trialing"]:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Cannot upgrade: subscription status is '{sub_status}'. Please contact support."
+            )
+    except stripe.error.InvalidRequestError:
+        # Subscription doesn't exist in Stripe
+        supabase.table("profiles").update({
+            "stripe_subscription_id": None,
+        }).eq("id", user_id).execute()
+        raise HTTPException(
+            status_code=400, 
+            detail="Subscription not found. Please subscribe to a new plan."
+        )
 
     # Block annual plan upgrades
     if "annual" in current_plan.lower():
@@ -1222,7 +1251,31 @@ def downgrade_subscription(
     stripe_subscription_id = profile.get("stripe_subscription_id")
 
     if not stripe_subscription_id:
-        raise HTTPException(status_code=400, detail="No active subscription found")
+        raise HTTPException(status_code=400, detail="No active subscription found. Please subscribe to a plan first.")
+
+    # Verify subscription is active in Stripe before attempting downgrade
+    try:
+        stripe_sub = stripe.Subscription.retrieve(stripe_subscription_id)
+        sub_status = stripe_sub.get("status")
+        if sub_status in ["canceled", "incomplete_expired"]:
+            supabase.table("profiles").update({
+                "stripe_subscription_id": None,
+                "subscription_status": "canceled",
+            }).eq("id", user_id).execute()
+            raise HTTPException(
+                status_code=400, 
+                detail="Your subscription has been canceled. Please subscribe to a new plan."
+            )
+        elif sub_status not in ["active", "trialing"]:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Cannot downgrade: subscription status is '{sub_status}'."
+            )
+    except stripe.error.InvalidRequestError:
+        supabase.table("profiles").update({
+            "stripe_subscription_id": None,
+        }).eq("id", user_id).execute()
+        raise HTTPException(status_code=400, detail="Subscription not found. Please subscribe to a new plan.")
 
     # Verify this is actually a downgrade
     current_plan_credits = CREDITS_MAP.get(current_plan, 0)
