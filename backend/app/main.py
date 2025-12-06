@@ -1003,6 +1003,10 @@ def get_subscription_info(current_user: AuthenticatedUser = Depends(get_current_
     pending_downgrade = profile.get("pending_downgrade")
     if pending_downgrade and "pending_plan_change" not in subscription_info:
         subscription_info["pending_plan_change"] = pending_downgrade
+        # Add effective date if available
+        effective_date = profile.get("pending_downgrade_effective_date")
+        if effective_date:
+            subscription_info["pending_plan_change_date"] = effective_date
 
     return subscription_info
 
@@ -1290,48 +1294,19 @@ def downgrade_subscription(
         raise HTTPException(status_code=400, detail="Plan price not configured")
 
     try:
-        # Get current subscription details
+        # Get current subscription details to know when downgrade takes effect
         subscription = stripe.Subscription.retrieve(stripe_subscription_id)
         current_period_end = subscription.get("current_period_end")
         
-        # Get current subscription item
-        items = stripe.SubscriptionItem.list(subscription=stripe_subscription_id, limit=1)
-        if not items.data:
-            raise HTTPException(status_code=400, detail="No subscription items found")
-        
-        item_id = items.data[0].id
-        
-        print(f"[DOWNGRADE] {current_plan}→{plan}, user={user_id}, period_end={current_period_end}")
+        print(f"[DOWNGRADE] Scheduling: {current_plan}→{plan}, user={user_id}, effective at period_end={current_period_end}")
 
-        # If there's an existing schedule, release it first
-        existing_schedule_id = subscription.get("schedule")
-        if existing_schedule_id:
-            try:
-                stripe.SubscriptionSchedule.release(existing_schedule_id)
-                print(f"[DOWNGRADE] Released existing schedule: {existing_schedule_id}")
-            except Exception as e:
-                print(f"[DOWNGRADE] Could not release schedule: {e}")
-
-        # Simple approach: Modify subscription directly
-        # proration_behavior="none" means no immediate charge/refund
-        # The new price takes effect at the next billing cycle
-        updated_subscription = stripe.Subscription.modify(
-            stripe_subscription_id,
-            items=[{"id": item_id, "price": new_price_id}],
-            proration_behavior="none",  # No proration - new price at next cycle
-            metadata={
-                "user_id": user_id,
-                "downgrade_from": current_plan,
-                "downgrade_to": plan,
-            }
-        )
+        # DO NOT modify the Stripe subscription!
+        # Just store the pending downgrade - it will be applied in invoice.paid webhook
+        # when the subscription renews to the new billing period
         
-        print(f"[DOWNGRADE] Subscription modified: {current_plan}→{plan}")
-
-        # Store pending downgrade in profile
-        # Note: The plan_type stays as current_plan until invoice.paid with new price
         supabase.table("profiles").update({
             "pending_downgrade": plan,
+            "pending_downgrade_effective_date": current_period_end,
         }).eq("id", user_id).execute()
 
         # Add ledger entry for audit
@@ -1339,9 +1314,11 @@ def downgrade_subscription(
             "user_id": user_id,
             "change": 0,
             "amount": 0,
-            "reason": f"downgrade scheduled - {current_plan} to {plan} (effective at period end)",
+            "reason": f"downgrade scheduled - {current_plan} to {plan} (effective at period end: {current_period_end})",
             "ts": datetime.utcnow().isoformat(),
         }).execute()
+        
+        print(f"[DOWNGRADE] Scheduled {current_plan}→{plan} for user={user_id}")
 
         return {
             "status": "success",
@@ -3041,10 +3018,10 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                 else:
                     linked_user_id = user_id
 
-                    # Get the user's current plan
+                    # Get the user's current plan AND pending_downgrade
                     profile = (
                         supabase.table("profiles")
-                        .select("plan_type, subscription_status, billing_frequency, credits_remaining")
+                        .select("plan_type, subscription_status, billing_frequency, credits_remaining, pending_downgrade")
                         .eq("id", user_id)
                         .single()
                         .execute()
@@ -3057,7 +3034,38 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                         plan_type = profile.data.get("plan_type", "free")
                         current_credits = profile.data.get("credits_remaining", 0)
                         subscription_status = profile.data.get("subscription_status")
-                        print(f"[INVOICE] Plan: {plan_type}, Status: {subscription_status}, Credits: {current_credits}")
+                        pending_downgrade = profile.data.get("pending_downgrade")
+                        
+                        print(f"[INVOICE] Plan: {plan_type}, Status: {subscription_status}, Credits: {current_credits}, Pending: {pending_downgrade}")
+
+                        # If there's a pending downgrade, apply it NOW
+                        if pending_downgrade and pending_downgrade in PLAN_PRICE_MAP:
+                            print(f"[INVOICE] Applying pending downgrade: {plan_type} → {pending_downgrade}")
+                            try:
+                                # Get subscription items to modify
+                                items = stripe.SubscriptionItem.list(subscription=subscription_id, limit=1)
+                                if items.data:
+                                    item_id = items.data[0].id
+                                    new_price_id = PLAN_PRICE_MAP[pending_downgrade]
+                                    
+                                    # NOW modify the Stripe subscription
+                                    stripe.Subscription.modify(
+                                        subscription_id,
+                                        items=[{"id": item_id, "price": new_price_id}],
+                                        proration_behavior="none",
+                                    )
+                                    print(f"[INVOICE] Stripe subscription modified to {pending_downgrade}")
+                                    
+                                    # Update profile with new plan and clear pending
+                                    plan_type = pending_downgrade  # Use the new plan for credit calculation
+                                    
+                                supabase.table("profiles").update({
+                                    "pending_downgrade": None,
+                                    "pending_downgrade_effective_date": None,
+                                }).eq("id", user_id).execute()
+                                
+                            except Exception as e:
+                                print(f"[INVOICE] Error applying downgrade: {e}")
 
                         # Use stored billing_frequency instead of querying Stripe
                         billing_frequency = profile.data.get("billing_frequency")

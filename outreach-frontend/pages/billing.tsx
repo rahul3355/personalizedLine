@@ -56,6 +56,7 @@ type SubscriptionInfo = {
   cancel_at_period_end: boolean;
   current_period_end: number | null;
   pending_plan_change?: string;
+  pending_plan_change_date?: number;  // Unix timestamp of when downgrade takes effect
 };
 
 // ============================================================================
