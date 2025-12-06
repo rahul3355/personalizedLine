@@ -794,7 +794,7 @@ export default function BillingPage() {
                       ) : (
                         (() => {
                           // Determine if this is an upgrade or downgrade
-                          const currentPlanCredits = PLANS.find(p => p.id === normalizedCurrentPlan)?.monthlyCredits ?? 0;
+                          const currentPlanCredits = plans.find(p => p.id === normalizedCurrentPlan)?.monthlyCredits ?? 0;
                           const isDowngrade = plan.monthlyCredits < currentPlanCredits;
                           const actionType = isDowngrade ? 'downgrade' : 'upgrade';
                           const actionHandler = isDowngrade ? handleDowngrade : handleUpgrade;
