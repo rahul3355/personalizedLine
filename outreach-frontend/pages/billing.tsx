@@ -843,15 +843,15 @@ export default function BillingPage() {
                           const currentPlanCredits = plans.find(p => p.id === normalizedCurrentPlan)?.monthlyCredits ?? 0;
                           const isDowngrade = plan.monthlyCredits < currentPlanCredits;
 
-                          // For downgrades: show disabled button - users must cancel to switch
+                          // For downgrades: show disabled greyed out button
                           if (isDowngrade) {
                             return (
                               <button
                                 type="button"
                                 disabled
-                                className="group relative mt-auto w-full overflow-visible rounded-full border border-neutral-200 bg-neutral-50 px-6 py-3 text-sm font-semibold text-neutral-400 cursor-default"
+                                className="group relative mt-auto w-full overflow-visible rounded-full border border-neutral-200 bg-neutral-100 px-6 py-3 text-sm font-semibold text-neutral-400 cursor-not-allowed"
                               >
-                                Cancel to Switch Plans
+                                Downgrade to {plan.name}
                               </button>
                             );
                           }
