@@ -1007,15 +1007,10 @@ def upgrade_subscription(
     current_user: AuthenticatedUser = Depends(get_current_user)
 ):
     """
-    Upgrade subscription to a higher plan with bonus credits for unused time.
-    
-    Strategy: Full Charge + Prorated Bonus Credits
-    - Charges full new plan price (no Stripe proration)
-    - Grants new plan credits + bonus credits for unused old plan time
-    - Downgrades are blocked
+    Upgrade subscription to a higher plan.
+    Charges full new plan price and grants new plan credits.
     """
     from datetime import datetime
-    import math
     
     supabase = get_supabase()
     user_id = current_user.user_id
@@ -1038,186 +1033,82 @@ def upgrade_subscription(
 
     profile = profile_res.data
     current_plan = profile.get("plan_type", "free")
+    stripe_subscription_id = profile.get("stripe_subscription_id")  # Use stored subscription ID
     stripe_customer_id = profile.get("stripe_customer_id")
 
-    if not stripe_customer_id:
+    if not stripe_subscription_id:
         raise HTTPException(status_code=400, detail="No active subscription found")
 
-    # Reject annual plan upgrades
+    # Block annual plan upgrades
     if "annual" in current_plan.lower():
         raise HTTPException(
             status_code=400,
-            detail="Annual plan upgrades are not supported. Please contact support at founders@personalizedline.com"
+            detail="Annual plan upgrades are not supported. Please contact support."
         )
 
-    # Validate it's an upgrade (block downgrades)
+    # Block downgrades
     current_plan_credits = CREDITS_MAP.get(current_plan, 0)
     new_plan_credits = CREDITS_MAP.get(plan, 0)
 
     if new_plan_credits <= current_plan_credits:
-        raise HTTPException(status_code=400, detail="Downgrades are not supported. Please contact support.")
+        raise HTTPException(status_code=400, detail="Downgrades are not supported.")
 
-    # Get price ID and prices for calculations
+    # Get new price ID
     new_price_id = PLAN_PRICE_MAP.get(plan)
     if not new_price_id:
         raise HTTPException(status_code=400, detail="Plan price not configured")
 
-    old_plan_price = PLAN_PRICES.get(current_plan, 0)
-    old_plan_credits = CREDITS_MAP.get(current_plan, 0)
     new_plan_price = PLAN_PRICES.get(plan, 0)
 
     try:
-        # Get current subscription - first find the subscription ID
-        subscriptions = stripe.Subscription.list(
-            customer=stripe_customer_id,
-            status="active",
-            limit=1
-        )
-
-        if not subscriptions.data:
-            raise HTTPException(status_code=400, detail="No active subscription found")
-
-        subscription_id = subscriptions.data[0].id
+        # Get subscription items using SubscriptionItem.list API
+        items = stripe.SubscriptionItem.list(subscription=stripe_subscription_id, limit=1)
         
-        # Retrieve the FULL subscription with expanded items
-        # Note: list() returns a minimal object, retrieve() gets all fields including period dates
-        subscription = stripe.Subscription.retrieve(
-            subscription_id,
-            expand=["items"]  # Expand items to get subscription items data
-        )
-        
-        # Debug: print subscription object keys to understand structure
-        print(f"[SUBSCRIPTION_UPGRADE] Found subscription: {subscription_id}")
-        print(f"[SUBSCRIPTION_UPGRADE] Subscription keys: {list(subscription.keys()) if hasattr(subscription, 'keys') else 'no keys method'}")
-        
-        # Get billing period dates for bonus calculation
-        # Try multiple access methods since Stripe objects can be dict-like or attribute-like
-        current_period_start = None
-        current_period_end = None
-        
-        # Method 1: Direct attribute access
-        if hasattr(subscription, 'current_period_start'):
-            current_period_start = subscription.current_period_start
-            current_period_end = subscription.current_period_end
-        # Method 2: Bracket notation (StripeObject supports this)
-        elif 'current_period_start' in subscription:
-            current_period_start = subscription['current_period_start']
-            current_period_end = subscription['current_period_end']
-        # Method 3: Get method if available
-        elif hasattr(subscription, 'get'):
-            current_period_start = subscription.get('current_period_start')
-            current_period_end = subscription.get('current_period_end')
-        
-        print(f"[SUBSCRIPTION_UPGRADE] Period: {current_period_start} to {current_period_end}")
-
-        # Calculate bonus credits from unused old plan time
-        bonus_credits = 0
-        if current_period_start and current_period_end and old_plan_price > 0:
-            now = datetime.utcnow().timestamp()
-            total_seconds = current_period_end - current_period_start
-            remaining_seconds = max(0, current_period_end - now)
-            
-            if total_seconds > 0:
-                unused_ratio = remaining_seconds / total_seconds
-                unused_value = old_plan_price * unused_ratio
-                credits_per_dollar = old_plan_credits / old_plan_price
-                bonus_credits = int(unused_value * credits_per_dollar)
-                
-                print(f"[SUBSCRIPTION_UPGRADE] Unused ratio: {unused_ratio:.2%}")
-                print(f"[SUBSCRIPTION_UPGRADE] Unused value: ${unused_value:.2f}")
-                print(f"[SUBSCRIPTION_UPGRADE] Bonus credits: {bonus_credits}")
-        else:
-            # If we can't get period dates (e.g., test clock), still proceed without bonus
-            print(f"[SUBSCRIPTION_UPGRADE] Could not calculate bonus (missing period dates or free plan), proceeding with base credits only")
-
-        # Cap bonus credits at new plan allocation (prevent abuse)
-        max_bonus = new_plan_credits
-        bonus_credits = min(bonus_credits, max_bonus)
-
-        # Calculate final credits
-        final_credits = new_plan_credits + bonus_credits
-        
-        # Get current subscription item (try multiple access methods)
-        items_data = []
-        if hasattr(subscription, 'items') and subscription.items:
-            if hasattr(subscription.items, 'data'):
-                items_data = subscription.items.data
-            elif hasattr(subscription.items, '__iter__'):
-                items_data = list(subscription.items)
-        elif 'items' in subscription and subscription['items']:
-            items_obj = subscription['items']
-            if 'data' in items_obj:
-                items_data = items_obj['data']
-        
-        print(f"[SUBSCRIPTION_UPGRADE] Found {len(items_data)} subscription items")
-            
-        if not items_data:
+        if not items.data:
             raise HTTPException(status_code=400, detail="No subscription items found")
+        
+        item_id = items.data[0].id
+        print(f"[UPGRADE] subscription={stripe_subscription_id}, item={item_id}, {current_plan}→{plan}")
 
-        item_id = items_data[0].id if hasattr(items_data[0], 'id') else items_data[0]['id']
-        print(f"[SUBSCRIPTION_UPGRADE] Using item_id: {item_id}")
-
-        # Upgrade subscription with NO proration (we handle credits ourselves)
-        updated_subscription = stripe.Subscription.modify(
-            subscription_id,
-            items=[{
-                "id": item_id,
-                "price": new_price_id,
-            }],
-            proration_behavior="none",  # No Stripe proration - charge full amount
+        # Modify subscription with new price
+        stripe.Subscription.modify(
+            stripe_subscription_id,
+            items=[{"id": item_id, "price": new_price_id}],
+            proration_behavior="none",
             metadata={
                 "user_id": user_id,
                 "upgrade_from": current_plan,
                 "upgrade_to": plan,
-                "bonus_credits": str(bonus_credits),
             }
         )
 
-        # Update profile with new plan and credits FIRST (before invoice)
-        # This ensures credits are granted even if invoice creation fails
+        # Update profile with new plan and credits
         supabase.table("profiles").update({
             "plan_type": plan,
-            "credits_remaining": final_credits,
+            "credits_remaining": new_plan_credits,
             "subscription_status": "active",
         }).eq("id", user_id).execute()
 
-        # Add ledger entry with bonus credits noted
+        # Add ledger entry
         supabase.table("ledger").insert({
             "user_id": user_id,
-            "change": final_credits,
+            "change": new_plan_credits,
             "amount": new_plan_price,
-            "reason": f"plan upgrade - {current_plan} to {plan} (+{bonus_credits} bonus credits)",
+            "reason": f"plan upgrade - {current_plan} to {plan}",
             "ts": datetime.utcnow().isoformat(),
         }).execute()
 
-        print(f"[SUBSCRIPTION_UPGRADE] SUCCESS: {current_plan}→{plan}, credits: {final_credits} (base: {new_plan_credits} + bonus: {bonus_credits})")
-
-        # Create and charge invoice for full new plan price
-        # The next billing cycle will charge the new price automatically
-        # For immediate charge, we create a one-off invoice
-        try:
-            invoice = stripe.Invoice.create(
-                customer=stripe_customer_id,
-                auto_advance=True,  # Automatically finalize and attempt payment
-                description=f"Upgrade to {plan.capitalize()} Plan",
-            )
-            # Wait for auto_advance to process - don't call pay() manually
-            print(f"[SUBSCRIPTION_UPGRADE] Created invoice: {invoice.id} (auto_advance will handle payment)")
-        except stripe.error.StripeError as invoice_error:
-            # Invoice creation failed, but credits are already granted
-            print(f"[SUBSCRIPTION_UPGRADE] Invoice creation failed (credits already granted): {invoice_error}")
+        print(f"[UPGRADE] SUCCESS: {current_plan}→{plan}, credits={new_plan_credits}")
 
         return {
             "status": "success",
-            "message": f"Upgraded to {plan} plan with {bonus_credits} bonus credits!",
-            "subscription_id": updated_subscription.id,
+            "message": f"Upgraded to {plan} plan!",
             "new_plan": plan,
-            "credits": final_credits,
-            "bonus_credits": bonus_credits,
+            "credits": new_plan_credits,
         }
 
     except stripe.error.StripeError as e:
-        print(f"[SUBSCRIPTION_UPGRADE] Stripe error: {e}")
+        print(f"[UPGRADE] Stripe error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/subscription/cancel")
