@@ -691,6 +691,12 @@ export default function BillingPage() {
                           Current
                         </div>
                       )}
+                      {/* Show scheduled badge if this plan is the pending downgrade target */}
+                      {subscriptionInfo?.pending_plan_change === plan.id && (
+                        <div className="absolute top-4 right-4 px-2.5 py-1 bg-amber-500 text-white text-xs font-semibold uppercase tracking-wide">
+                          Scheduled
+                        </div>
+                      )}
                       <header className="relative flex items-start gap-3">
                         <div>
                           <p className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
@@ -793,6 +799,21 @@ export default function BillingPage() {
                         </button>
                       ) : (
                         (() => {
+                          // Check if this plan is already scheduled
+                          const isPendingDowngrade = subscriptionInfo?.pending_plan_change === plan.id;
+
+                          if (isPendingDowngrade) {
+                            return (
+                              <button
+                                type="button"
+                                disabled
+                                className="group relative mt-auto w-full overflow-visible rounded-full border border-amber-300 bg-amber-50 px-6 py-3 text-sm font-semibold text-amber-700 cursor-default"
+                              >
+                                Scheduled for Next Billing Cycle
+                              </button>
+                            );
+                          }
+
                           // Determine if this is an upgrade or downgrade
                           const currentPlanCredits = plans.find(p => p.id === normalizedCurrentPlan)?.monthlyCredits ?? 0;
                           const isDowngrade = plan.monthlyCredits < currentPlanCredits;

@@ -1194,6 +1194,7 @@ def downgrade_subscription(
     """
     Schedule a downgrade to take effect at next billing cycle.
     User keeps current plan and credits until then.
+    Uses Stripe's proration_behavior="none" for seamless transition.
     """
     from datetime import datetime
     
@@ -1219,7 +1220,6 @@ def downgrade_subscription(
     profile = profile_res.data
     current_plan = profile.get("plan_type", "free")
     stripe_subscription_id = profile.get("stripe_subscription_id")
-    stripe_customer_id = profile.get("stripe_customer_id")
 
     if not stripe_subscription_id:
         raise HTTPException(status_code=400, detail="No active subscription found")
@@ -1246,51 +1246,37 @@ def downgrade_subscription(
         if not items.data:
             raise HTTPException(status_code=400, detail="No subscription items found")
         
-        current_price_id = items.data[0].price.id
+        item_id = items.data[0].id
         
         print(f"[DOWNGRADE] {current_plan}→{plan}, user={user_id}, period_end={current_period_end}")
 
-        # Create subscription schedule to change plan at period end
-        # First, check if there's already a schedule
+        # If there's an existing schedule, release it first
         existing_schedule_id = subscription.get("schedule")
-        
         if existing_schedule_id:
-            # Cancel existing schedule and create new one
             try:
-                stripe.SubscriptionSchedule.cancel(existing_schedule_id)
-                print(f"[DOWNGRADE] Canceled existing schedule: {existing_schedule_id}")
-            except:
-                pass
+                stripe.SubscriptionSchedule.release(existing_schedule_id)
+                print(f"[DOWNGRADE] Released existing schedule: {existing_schedule_id}")
+            except Exception as e:
+                print(f"[DOWNGRADE] Could not release schedule: {e}")
 
-        # Create new schedule from existing subscription
-        schedule = stripe.SubscriptionSchedule.create(
-            from_subscription=stripe_subscription_id,
+        # Simple approach: Modify subscription directly
+        # proration_behavior="none" means no immediate charge/refund
+        # The new price takes effect at the next billing cycle
+        updated_subscription = stripe.Subscription.modify(
+            stripe_subscription_id,
+            items=[{"id": item_id, "price": new_price_id}],
+            proration_behavior="none",  # No proration - new price at next cycle
+            metadata={
+                "user_id": user_id,
+                "downgrade_from": current_plan,
+                "downgrade_to": plan,
+            }
         )
         
-        # Update schedule with two phases:
-        # 1. Current plan until period end
-        # 2. New (lower) plan after
-        stripe.SubscriptionSchedule.modify(
-            schedule.id,
-            end_behavior="release",  # Release back to normal subscription after phases
-            phases=[
-                {
-                    # Current phase - keep current plan
-                    "items": [{"price": current_price_id, "quantity": 1}],
-                    "start_date": subscription.get("current_period_start"),
-                    "end_date": current_period_end,
-                },
-                {
-                    # Next phase - new lower plan
-                    "items": [{"price": new_price_id, "quantity": 1}],
-                    "iterations": 1,
-                }
-            ]
-        )
-        
-        print(f"[DOWNGRADE] Created schedule {schedule.id} for {current_plan}→{plan} at period end")
+        print(f"[DOWNGRADE] Subscription modified: {current_plan}→{plan}")
 
-        # Store pending downgrade in profile metadata
+        # Store pending downgrade in profile
+        # Note: The plan_type stays as current_plan until invoice.paid with new price
         supabase.table("profiles").update({
             "pending_downgrade": plan,
         }).eq("id", user_id).execute()
