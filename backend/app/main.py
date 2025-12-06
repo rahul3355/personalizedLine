@@ -1081,8 +1081,9 @@ def upgrade_subscription(
         subscription_id = subscription.id
         
         # Get billing period dates for bonus calculation
-        current_period_start = subscription.get("current_period_start")
-        current_period_end = subscription.get("current_period_end")
+        # Use attribute access, not dictionary access for Stripe objects
+        current_period_start = getattr(subscription, 'current_period_start', None)
+        current_period_end = getattr(subscription, 'current_period_end', None)
         
         print(f"[SUBSCRIPTION_UPGRADE] Found subscription: {subscription_id}")
         print(f"[SUBSCRIPTION_UPGRADE] Period: {current_period_start} to {current_period_end}")
@@ -1103,6 +1104,8 @@ def upgrade_subscription(
                 print(f"[SUBSCRIPTION_UPGRADE] Unused ratio: {unused_ratio:.2%}")
                 print(f"[SUBSCRIPTION_UPGRADE] Unused value: ${unused_value:.2f}")
                 print(f"[SUBSCRIPTION_UPGRADE] Bonus credits: {bonus_credits}")
+        else:
+            print(f"[SUBSCRIPTION_UPGRADE] Could not calculate bonus (missing period dates or free plan)")
 
         # Cap bonus credits at new plan allocation (prevent abuse)
         max_bonus = new_plan_credits
@@ -1112,11 +1115,16 @@ def upgrade_subscription(
         final_credits = new_plan_credits + bonus_credits
         
         # Get current subscription item
-        subscription_items = subscription.get("items", {}).get("data", [])
-        if not subscription_items:
+        subscription_items = getattr(subscription, 'items', None)
+        if subscription_items:
+            items_data = getattr(subscription_items, 'data', [])
+        else:
+            items_data = []
+            
+        if not items_data:
             raise HTTPException(status_code=400, detail="No subscription items found")
 
-        item_id = subscription_items[0].get("id")
+        item_id = items_data[0].id
 
         # Upgrade subscription with NO proration (we handle credits ourselves)
         updated_subscription = stripe.Subscription.modify(
@@ -1134,18 +1142,8 @@ def upgrade_subscription(
             }
         )
 
-        # Create invoice for full new plan price
-        # This charges the customer immediately for the full new plan amount
-        invoice = stripe.Invoice.create(
-            customer=stripe_customer_id,
-            auto_advance=True,  # Automatically finalize and charge
-        )
-        stripe.Invoice.finalize_invoice(invoice.id)
-        stripe.Invoice.pay(invoice.id)
-        
-        print(f"[SUBSCRIPTION_UPGRADE] Created and paid invoice: {invoice.id}")
-
-        # Update profile with new plan and credits (including bonus)
+        # Update profile with new plan and credits FIRST (before invoice)
+        # This ensures credits are granted even if invoice creation fails
         supabase.table("profiles").update({
             "plan_type": plan,
             "credits_remaining": final_credits,
@@ -1162,6 +1160,21 @@ def upgrade_subscription(
         }).execute()
 
         print(f"[SUBSCRIPTION_UPGRADE] SUCCESS: {current_plan}→{plan}, credits: {final_credits} (base: {new_plan_credits} + bonus: {bonus_credits})")
+
+        # Create and charge invoice for full new plan price
+        # The next billing cycle will charge the new price automatically
+        # For immediate charge, we create a one-off invoice
+        try:
+            invoice = stripe.Invoice.create(
+                customer=stripe_customer_id,
+                auto_advance=True,  # Automatically finalize and attempt payment
+                description=f"Upgrade to {plan.capitalize()} Plan",
+            )
+            # Wait for auto_advance to process - don't call pay() manually
+            print(f"[SUBSCRIPTION_UPGRADE] Created invoice: {invoice.id} (auto_advance will handle payment)")
+        except stripe.error.StripeError as invoice_error:
+            # Invoice creation failed, but credits are already granted
+            print(f"[SUBSCRIPTION_UPGRADE] Invoice creation failed (credits already granted): {invoice_error}")
 
         return {
             "status": "success",
