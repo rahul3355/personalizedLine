@@ -1074,9 +1074,13 @@ def upgrade_subscription(
         bonus_credits = 0
         try:
             subscription = stripe.Subscription.retrieve(stripe_subscription_id)
-            # Use bracket notation - dot notation fails in some Stripe SDK versions
-            period_start = subscription.get('current_period_start') or subscription['current_period_start']
-            period_end = subscription.get('current_period_end') or subscription['current_period_end']
+            
+            # Convert to dict to reliably access fields
+            sub_dict = dict(subscription)
+            print(f"[UPGRADE] Subscription keys: {list(sub_dict.keys())}")
+            
+            period_start = sub_dict.get('current_period_start')
+            period_end = sub_dict.get('current_period_end')
             
             print(f"[UPGRADE] Period: start={period_start}, end={period_end}")
             
@@ -1091,7 +1095,9 @@ def upgrade_subscription(
                     bonus_credits = min(bonus_credits, new_plan_credits)  # Cap
                     print(f"[UPGRADE] Bonus: {remaining_days:.1f}/{total_days:.1f} days = {bonus_credits} credits")
         except Exception as e:
-            print(f"[UPGRADE] Bonus calculation skipped: {e}")
+            import traceback
+            print(f"[UPGRADE] Bonus calculation error: {e}")
+            traceback.print_exc()
 
         final_credits = new_plan_credits + bonus_credits
         print(f"[UPGRADE] {current_plan}→{plan}: base={new_plan_credits}, bonus={bonus_credits}, total={final_credits}")
