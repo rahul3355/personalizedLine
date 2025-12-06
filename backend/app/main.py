@@ -139,6 +139,14 @@ ROLLOVER_RULES = {
     "pro": {"enabled": True, "max_multiplier": 2},
 }
 
+# Monthly plan prices in USD (for bonus credit calculation on upgrade)
+PLAN_PRICES = {
+    "free": 0,
+    "starter": 49,
+    "growth": 149,
+    "pro": 499,
+}
+
 # Addon credit expiration (in months)
 ADDON_EXPIRATION_MONTHS = {
     "free": 12,
@@ -999,9 +1007,16 @@ def upgrade_subscription(
     current_user: AuthenticatedUser = Depends(get_current_user)
 ):
     """
-    Upgrade subscription to a higher plan with immediate proration
-    Only supports monthly plans - annual plan users must contact support
+    Upgrade subscription to a higher plan with bonus credits for unused time.
+    
+    Strategy: Full Charge + Prorated Bonus Credits
+    - Charges full new plan price (no Stripe proration)
+    - Grants new plan credits + bonus credits for unused old plan time
+    - Downgrades are blocked
     """
+    from datetime import datetime
+    import math
+    
     supabase = get_supabase()
     user_id = current_user.user_id
 
@@ -1035,17 +1050,21 @@ def upgrade_subscription(
             detail="Annual plan upgrades are not supported. Please contact support at founders@personalizedline.com"
         )
 
-    # Validate it's an upgrade
-    current_credits = CREDITS_MAP.get(current_plan, 0)
-    new_credits = CREDITS_MAP.get(plan, 0)
+    # Validate it's an upgrade (block downgrades)
+    current_plan_credits = CREDITS_MAP.get(current_plan, 0)
+    new_plan_credits = CREDITS_MAP.get(plan, 0)
 
-    if new_credits <= current_credits:
-        raise HTTPException(status_code=400, detail="Can only upgrade to a higher plan")
+    if new_plan_credits <= current_plan_credits:
+        raise HTTPException(status_code=400, detail="Downgrades are not supported. Please contact support.")
 
-    # Get price ID for new plan
+    # Get price ID and prices for calculations
     new_price_id = PLAN_PRICE_MAP.get(plan)
     if not new_price_id:
         raise HTTPException(status_code=400, detail="Plan price not configured")
+
+    old_plan_price = PLAN_PRICES.get(current_plan, 0)
+    old_plan_credits = CREDITS_MAP.get(current_plan, 0)
+    new_plan_price = PLAN_PRICES.get(plan, 0)
 
     try:
         # Get current subscription
@@ -1060,36 +1079,101 @@ def upgrade_subscription(
 
         subscription = subscriptions.data[0]
         subscription_id = subscription.id
+        
+        # Get billing period dates for bonus calculation
+        current_period_start = subscription.get("current_period_start")
+        current_period_end = subscription.get("current_period_end")
+        
         print(f"[SUBSCRIPTION_UPGRADE] Found subscription: {subscription_id}")
+        print(f"[SUBSCRIPTION_UPGRADE] Period: {current_period_start} to {current_period_end}")
 
-        # Get current subscription item - use dictionary access for reliability
+        # Calculate bonus credits from unused old plan time
+        bonus_credits = 0
+        if current_period_start and current_period_end and old_plan_price > 0:
+            now = datetime.utcnow().timestamp()
+            total_seconds = current_period_end - current_period_start
+            remaining_seconds = max(0, current_period_end - now)
+            
+            if total_seconds > 0:
+                unused_ratio = remaining_seconds / total_seconds
+                unused_value = old_plan_price * unused_ratio
+                credits_per_dollar = old_plan_credits / old_plan_price
+                bonus_credits = int(unused_value * credits_per_dollar)
+                
+                print(f"[SUBSCRIPTION_UPGRADE] Unused ratio: {unused_ratio:.2%}")
+                print(f"[SUBSCRIPTION_UPGRADE] Unused value: ${unused_value:.2f}")
+                print(f"[SUBSCRIPTION_UPGRADE] Bonus credits: {bonus_credits}")
+
+        # Cap bonus credits at new plan allocation (prevent abuse)
+        max_bonus = new_plan_credits
+        bonus_credits = min(bonus_credits, max_bonus)
+
+        # Calculate final credits
+        final_credits = new_plan_credits + bonus_credits
+        
+        # Get current subscription item
         subscription_items = subscription.get("items", {}).get("data", [])
         if not subscription_items:
             raise HTTPException(status_code=400, detail="No subscription items found")
 
         item_id = subscription_items[0].get("id")
 
-        # Upgrade with proration
+        # Upgrade subscription with NO proration (we handle credits ourselves)
         updated_subscription = stripe.Subscription.modify(
             subscription_id,
             items=[{
                 "id": item_id,
                 "price": new_price_id,
             }],
-            proration_behavior="always_invoice",  # Create invoice for proration
+            proration_behavior="none",  # No Stripe proration - charge full amount
             metadata={
                 "user_id": user_id,
+                "upgrade_from": current_plan,
+                "upgrade_to": plan,
+                "bonus_credits": str(bonus_credits),
             }
         )
 
+        # Create invoice for full new plan price
+        # This charges the customer immediately for the full new plan amount
+        invoice = stripe.Invoice.create(
+            customer=stripe_customer_id,
+            auto_advance=True,  # Automatically finalize and charge
+        )
+        stripe.Invoice.finalize_invoice(invoice.id)
+        stripe.Invoice.pay(invoice.id)
+        
+        print(f"[SUBSCRIPTION_UPGRADE] Created and paid invoice: {invoice.id}")
+
+        # Update profile with new plan and credits (including bonus)
+        supabase.table("profiles").update({
+            "plan_type": plan,
+            "credits_remaining": final_credits,
+            "subscription_status": "active",
+        }).eq("id", user_id).execute()
+
+        # Add ledger entry with bonus credits noted
+        supabase.table("ledger").insert({
+            "user_id": user_id,
+            "change": final_credits,
+            "amount": new_plan_price,
+            "reason": f"plan upgrade - {current_plan} to {plan} (+{bonus_credits} bonus credits)",
+            "ts": datetime.utcnow().isoformat(),
+        }).execute()
+
+        print(f"[SUBSCRIPTION_UPGRADE] SUCCESS: {current_plan}→{plan}, credits: {final_credits} (base: {new_plan_credits} + bonus: {bonus_credits})")
+
         return {
             "status": "success",
-            "message": f"Upgraded to {plan} plan",
+            "message": f"Upgraded to {plan} plan with {bonus_credits} bonus credits!",
             "subscription_id": updated_subscription.id,
-            "new_plan": plan
+            "new_plan": plan,
+            "credits": final_credits,
+            "bonus_credits": bonus_credits,
         }
 
     except stripe.error.StripeError as e:
+        print(f"[SUBSCRIPTION_UPGRADE] Stripe error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/subscription/cancel")
@@ -2756,6 +2840,10 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
         # Skip initial subscription invoice (already handled by checkout.session.completed)
         if billing_reason == "subscription_create":
             print(f"[INVOICE] Skipping subscription_create invoice (already handled by checkout)")
+        elif billing_reason == "subscription_update":
+            # This is an upgrade/downgrade invoice - check if it was API-initiated
+            # If API-initiated, credits were already handled there
+            print(f"[INVOICE] Skipping subscription_update invoice (upgrade credits handled by API)")
         elif not subscription_id:
             print(f"[INVOICE] No subscription_id in invoice, skipping")
         else:
@@ -2955,18 +3043,28 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                         if new_plan and new_plan != old_plan:
                             old_plan_credits = CREDITS_MAP.get(old_plan, 0)
                             new_plan_credits = CREDITS_MAP.get(new_plan, 0)
+                            
+                            # Check if this upgrade was handled by our API (has bonus_credits in metadata)
+                            # If so, skip credit allocation here to prevent double-granting
+                            if sub_metadata.get("bonus_credits"):
+                                print(
+                                    f"[SUBSCRIPTION_UPDATED] Upgrade via API detected (bonus_credits={sub_metadata.get('bonus_credits')}), "
+                                    f"skipping webhook credit allocation"
+                                )
+                                # Still update plan_type if needed (shouldn't be, but just in case)
+                                if profile.data.get("plan_type") != new_plan:
+                                    supabase.table("profiles").update({
+                                        "plan_type": new_plan,
+                                    }).eq("id", user_id).execute()
 
-                            # UPGRADE: New plan has more credits than old plan
-                            if new_plan_credits > old_plan_credits:
-                                # Update plan_type AND credits immediately for upgrades
-                                # This ensures credits are allocated even if invoice.paid doesn't fire
-                                # (e.g., when upgrading via Stripe dashboard with test clocks)
-                                
+                            # UPGRADE: New plan has more credits than old plan (Dashboard-initiated)
+                            elif new_plan_credits > old_plan_credits:
+                                # Update plan_type AND credits for Dashboard-initiated upgrades
                                 res_update = (
                                     supabase.table("profiles")
                                     .update({
                                         "plan_type": new_plan,
-                                        "credits_remaining": new_plan_credits,  # Allocate new plan credits
+                                        "credits_remaining": new_plan_credits,
                                     })
                                     .eq("id", user_id)
                                     .execute()
@@ -2977,14 +3075,14 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                                 supabase.table("ledger").insert({
                                     "user_id": user_id,
                                     "change": new_plan_credits,
-                                    "amount": 0,  # Prorated amount from Stripe, not captured here
-                                    "reason": f"plan upgrade - {old_plan} to {new_plan}",
+                                    "amount": 0,
+                                    "reason": f"plan upgrade - {old_plan} to {new_plan} (via Stripe Dashboard)",
                                     "ts": datetime.utcnow().isoformat(),
                                 }).execute()
 
                                 print(
                                     f"[UPGRADE] user={user_id}, {old_plan}→{new_plan}, "
-                                    f"credits: {current_credits}→{new_plan_credits}"
+                                    f"credits: {current_credits}→{new_plan_credits} (Dashboard)"
                                 )
 
                             # DOWNGRADE: New plan has fewer credits than old plan

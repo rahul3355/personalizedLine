@@ -465,8 +465,11 @@ export default function BillingPage() {
       }
 
       if (data.status === "success") {
-        // Refresh subscri info and reload the page to show updated plan
-        alert(`Successfully upgraded to ${data.new_plan} plan!`);
+        // Show success with bonus credits info
+        const bonusMsg = data.bonus_credits > 0
+          ? ` You received ${data.credits.toLocaleString()} credits (including ${data.bonus_credits.toLocaleString()} bonus credits for upgrading early)!`
+          : ` You received ${data.credits?.toLocaleString() || 'your new'} credits!`;
+        alert(`Successfully upgraded to ${data.new_plan} plan!${bonusMsg}`);
         window.location.reload();
       }
     } catch (err) {
