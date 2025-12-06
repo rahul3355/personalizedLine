@@ -1074,30 +1074,35 @@ def upgrade_subscription(
         bonus_credits = 0
         try:
             subscription = stripe.Subscription.retrieve(stripe_subscription_id)
-            
-            # Convert to dict to reliably access fields
             sub_dict = dict(subscription)
-            print(f"[UPGRADE] Subscription keys: {list(sub_dict.keys())}")
             
             period_start = sub_dict.get('current_period_start')
             period_end = sub_dict.get('current_period_end')
             
-            print(f"[UPGRADE] Period: start={period_start}, end={period_end}")
-            
-            if period_start and period_end and old_plan_price > 0:
+            # Fallback for test clocks: use start_date + 30-day billing cycle
+            if not period_start or not period_end:
+                start_date = sub_dict.get('start_date') or sub_dict.get('created')
+                if start_date and old_plan_price > 0:
+                    now = datetime.utcnow().timestamp()
+                    days_since_start = (now - start_date) / 86400
+                    day_in_cycle = days_since_start % 30  # Assume 30-day cycle
+                    remaining_days = 30 - day_in_cycle
+                    unused_ratio = remaining_days / 30
+                    bonus_credits = int(old_plan_credits * unused_ratio)
+                    bonus_credits = min(bonus_credits, new_plan_credits)
+                    print(f"[UPGRADE] Bonus (via start_date): {remaining_days:.1f}/30 days = {bonus_credits} credits")
+            elif old_plan_price > 0:
+                # Real subscription with period dates
                 now = datetime.utcnow().timestamp()
                 total_days = (period_end - period_start) / 86400
                 remaining_days = max(0, (period_end - now) / 86400)
-                
                 if total_days > 0:
                     unused_ratio = remaining_days / total_days
                     bonus_credits = int(old_plan_credits * unused_ratio)
-                    bonus_credits = min(bonus_credits, new_plan_credits)  # Cap
+                    bonus_credits = min(bonus_credits, new_plan_credits)
                     print(f"[UPGRADE] Bonus: {remaining_days:.1f}/{total_days:.1f} days = {bonus_credits} credits")
         except Exception as e:
-            import traceback
             print(f"[UPGRADE] Bonus calculation error: {e}")
-            traceback.print_exc()
 
         final_credits = new_plan_credits + bonus_credits
         print(f"[UPGRADE] {current_plan}→{plan}: base={new_plan_credits}, bonus={bonus_credits}, total={final_credits}")
