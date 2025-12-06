@@ -1067,7 +1067,7 @@ def upgrade_subscription(
     new_plan_price = PLAN_PRICES.get(plan, 0)
 
     try:
-        # Get current subscription
+        # Get current subscription - first find the subscription ID
         subscriptions = stripe.Subscription.list(
             customer=stripe_customer_id,
             status="active",
@@ -1077,8 +1077,14 @@ def upgrade_subscription(
         if not subscriptions.data:
             raise HTTPException(status_code=400, detail="No active subscription found")
 
-        subscription = subscriptions.data[0]
-        subscription_id = subscription.id
+        subscription_id = subscriptions.data[0].id
+        
+        # Retrieve the FULL subscription with expanded items
+        # Note: list() returns a minimal object, retrieve() gets all fields including period dates
+        subscription = stripe.Subscription.retrieve(
+            subscription_id,
+            expand=["items"]  # Expand items to get subscription items data
+        )
         
         # Debug: print subscription object keys to understand structure
         print(f"[SUBSCRIPTION_UPGRADE] Found subscription: {subscription_id}")
