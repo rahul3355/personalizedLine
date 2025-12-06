@@ -999,6 +999,11 @@ def get_subscription_info(current_user: AuthenticatedUser = Depends(get_current_
         except Exception as e:
             print(f"Error fetching Stripe subscription: {e}")
 
+    # Also check profile for pending_downgrade (fallback if Stripe schedule lookup fails)
+    pending_downgrade = profile.get("pending_downgrade")
+    if pending_downgrade and "pending_plan_change" not in subscription_info:
+        subscription_info["pending_plan_change"] = pending_downgrade
+
     return subscription_info
 
 @app.post("/subscription/upgrade")
@@ -1179,6 +1184,136 @@ def upgrade_subscription(
 
     except stripe.error.StripeError as e:
         print(f"[UPGRADE] Stripe error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/subscription/downgrade")
+def downgrade_subscription(
+    plan: str,
+    current_user: AuthenticatedUser = Depends(get_current_user)
+):
+    """
+    Schedule a downgrade to take effect at next billing cycle.
+    User keeps current plan and credits until then.
+    """
+    from datetime import datetime
+    
+    supabase = get_supabase()
+    user_id = current_user.user_id
+
+    # Validate plan
+    if plan not in CREDITS_MAP:
+        raise HTTPException(status_code=400, detail="Invalid plan")
+
+    # Get current profile
+    profile_res = (
+        supabase.table("profiles")
+        .select("*")
+        .eq("id", user_id)
+        .single()
+        .execute()
+    )
+
+    if not profile_res.data:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    profile = profile_res.data
+    current_plan = profile.get("plan_type", "free")
+    stripe_subscription_id = profile.get("stripe_subscription_id")
+    stripe_customer_id = profile.get("stripe_customer_id")
+
+    if not stripe_subscription_id:
+        raise HTTPException(status_code=400, detail="No active subscription found")
+
+    # Verify this is actually a downgrade
+    current_plan_credits = CREDITS_MAP.get(current_plan, 0)
+    new_plan_credits = CREDITS_MAP.get(plan, 0)
+
+    if new_plan_credits >= current_plan_credits:
+        raise HTTPException(status_code=400, detail="This is not a downgrade. Use /subscription/upgrade instead.")
+
+    # Get new price ID
+    new_price_id = PLAN_PRICE_MAP.get(plan)
+    if not new_price_id:
+        raise HTTPException(status_code=400, detail="Plan price not configured")
+
+    try:
+        # Get current subscription details
+        subscription = stripe.Subscription.retrieve(stripe_subscription_id)
+        current_period_end = subscription.get("current_period_end")
+        
+        # Get current subscription item
+        items = stripe.SubscriptionItem.list(subscription=stripe_subscription_id, limit=1)
+        if not items.data:
+            raise HTTPException(status_code=400, detail="No subscription items found")
+        
+        current_price_id = items.data[0].price.id
+        
+        print(f"[DOWNGRADE] {current_plan}→{plan}, user={user_id}, period_end={current_period_end}")
+
+        # Create subscription schedule to change plan at period end
+        # First, check if there's already a schedule
+        existing_schedule_id = subscription.get("schedule")
+        
+        if existing_schedule_id:
+            # Cancel existing schedule and create new one
+            try:
+                stripe.SubscriptionSchedule.cancel(existing_schedule_id)
+                print(f"[DOWNGRADE] Canceled existing schedule: {existing_schedule_id}")
+            except:
+                pass
+
+        # Create new schedule from existing subscription
+        schedule = stripe.SubscriptionSchedule.create(
+            from_subscription=stripe_subscription_id,
+        )
+        
+        # Update schedule with two phases:
+        # 1. Current plan until period end
+        # 2. New (lower) plan after
+        stripe.SubscriptionSchedule.modify(
+            schedule.id,
+            end_behavior="release",  # Release back to normal subscription after phases
+            phases=[
+                {
+                    # Current phase - keep current plan
+                    "items": [{"price": current_price_id, "quantity": 1}],
+                    "start_date": subscription.get("current_period_start"),
+                    "end_date": current_period_end,
+                },
+                {
+                    # Next phase - new lower plan
+                    "items": [{"price": new_price_id, "quantity": 1}],
+                    "iterations": 1,
+                }
+            ]
+        )
+        
+        print(f"[DOWNGRADE] Created schedule {schedule.id} for {current_plan}→{plan} at period end")
+
+        # Store pending downgrade in profile metadata
+        supabase.table("profiles").update({
+            "pending_downgrade": plan,
+        }).eq("id", user_id).execute()
+
+        # Add ledger entry for audit
+        supabase.table("ledger").insert({
+            "user_id": user_id,
+            "change": 0,
+            "amount": 0,
+            "reason": f"downgrade scheduled - {current_plan} to {plan} (effective at period end)",
+            "ts": datetime.utcnow().isoformat(),
+        }).execute()
+
+        return {
+            "status": "success",
+            "message": f"Downgrade to {plan} scheduled. Takes effect at next billing cycle.",
+            "current_plan": current_plan,
+            "new_plan": plan,
+            "effective_date": current_period_end,
+        }
+
+    except stripe.error.StripeError as e:
+        print(f"[DOWNGRADE] Stripe error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/subscription/cancel")
@@ -3133,21 +3268,23 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                 current_credits = profile_res.data.get("credits_remaining", 0) if profile_res.data else 0
                 current_addon = profile_res.data.get("addon_credits", 0) if profile_res.data else 0
                 
-                # Update status but PRESERVE credits - user paid for them
+                # Reset monthly credits to 0 (subscription ended)
+                # Addon credits preserved (user paid separately for these)
                 res_update = (
                     supabase.table("profiles")
                     .update({
                         "subscription_status": "canceled",
                         "plan_type": "free",
-                        # PRESERVE credits_remaining - user can use remaining credits
-                        # PRESERVE addon_credits - user paid separately for these
+                        "credits_remaining": 0,  # Reset monthly credits - subscription ended
+                        "pending_downgrade": None,  # Clear any pending downgrade
+                        # addon_credits preserved - user paid separately
                     })
                     .eq("id", user_id)
                     .execute()
                 )
                 log_db("cancel_subscription", res_update)
 
-                print(f"[CANCELED] user={user_id}, subscription={subscription_id}, preserved credits: {current_credits} monthly + {current_addon} addon")
+                print(f"[CANCELED] user={user_id}, subscription={subscription_id}, reset monthly credits: {current_credits}→0, kept addon: {current_addon}")
             except Exception as exc:
                 print(f"[CANCEL] Error updating canceled subscription: {exc}")
         else:
