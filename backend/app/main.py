@@ -1074,8 +1074,11 @@ def upgrade_subscription(
         bonus_credits = 0
         try:
             subscription = stripe.Subscription.retrieve(stripe_subscription_id)
-            period_start = subscription.current_period_start
-            period_end = subscription.current_period_end
+            # Use bracket notation - dot notation fails in some Stripe SDK versions
+            period_start = subscription.get('current_period_start') or subscription['current_period_start']
+            period_end = subscription.get('current_period_end') or subscription['current_period_end']
+            
+            print(f"[UPGRADE] Period: start={period_start}, end={period_end}")
             
             if period_start and period_end and old_plan_price > 0:
                 now = datetime.utcnow().timestamp()
