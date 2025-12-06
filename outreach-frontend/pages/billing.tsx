@@ -445,32 +445,33 @@ export default function BillingPage() {
     setLoadingAction(`upgrade-${planId}`);
 
     try {
-      // Create checkout session for upgrade
-      const res = await fetch(`${API_URL}/create_checkout_session`, {
+      // Call the proper upgrade endpoint that modifies the existing subscription
+      // instead of creating a new one (which would cause double billing)
+      const res = await fetch(`${API_URL}/subscription/upgrade?plan=${planId}`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${session.access_token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          plan: planId,
-          addon: false,
-          quantity: 1,
-          user_id: userInfo.id,
-        }),
       });
 
       const data = await res.json();
 
-      if (data.id) {
-        // Redirect to Stripe checkout
-        const stripe = await stripePromise;
-        if (stripe) {
-          await stripe.redirectToCheckout({ sessionId: data.id });
-        }
+      if (!res.ok) {
+        const errorMessage = data.detail || data.error || "Failed to upgrade subscription";
+        alert(errorMessage);
+        setLoadingAction(null);
+        return;
+      }
+
+      if (data.status === "success") {
+        // Refresh subscri info and reload the page to show updated plan
+        alert(`Successfully upgraded to ${data.new_plan} plan!`);
+        window.location.reload();
       }
     } catch (err) {
       console.error("Upgrade error:", err);
+      alert("An unexpected error occurred during upgrade. Please try again.");
       setLoadingAction(null);
     }
   };

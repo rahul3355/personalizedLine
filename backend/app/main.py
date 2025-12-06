@@ -2459,10 +2459,10 @@ def _is_event_processed(event_id: str) -> bool:
             supabase.table("processed_stripe_events")
             .select("event_id")
             .eq("event_id", event_id)
-            .maybeSingle()
+            .limit(1)
             .execute()
         )
-        return result.data is not None
+        return result.data is not None and len(result.data) > 0
     except Exception as e:
         print(f"[IDEMPOTENCY] Error checking event {event_id}: {e}")
         # If table doesn't exist or error, allow processing (fail open)
