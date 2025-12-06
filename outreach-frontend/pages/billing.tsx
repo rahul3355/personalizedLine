@@ -842,25 +842,34 @@ export default function BillingPage() {
                           // Determine if this is an upgrade or downgrade
                           const currentPlanCredits = plans.find(p => p.id === normalizedCurrentPlan)?.monthlyCredits ?? 0;
                           const isDowngrade = plan.monthlyCredits < currentPlanCredits;
-                          const actionType = isDowngrade ? 'downgrade' : 'upgrade';
-                          const actionHandler = isDowngrade ? handleDowngrade : handleUpgrade;
-                          const buttonText = isDowngrade
-                            ? `Downgrade to ${plan.name}`
-                            : `Upgrade to ${plan.name}`;
 
+                          // For downgrades: show disabled button - users must cancel to switch
+                          if (isDowngrade) {
+                            return (
+                              <button
+                                type="button"
+                                disabled
+                                className="group relative mt-auto w-full overflow-visible rounded-full border border-neutral-200 bg-neutral-50 px-6 py-3 text-sm font-semibold text-neutral-400 cursor-default"
+                              >
+                                Cancel to Switch Plans
+                              </button>
+                            );
+                          }
+
+                          // For upgrades: normal upgrade button
                           return (
                             <button
                               type="button"
-                              onClick={() => actionHandler(plan.id)}
-                              disabled={loadingAction === `${actionType}-${plan.id}`}
+                              onClick={() => handleUpgrade(plan.id)}
+                              disabled={loadingAction === `upgrade-${plan.id}`}
                               className="group relative mt-auto w-full overflow-visible rounded-full px-6 py-3 text-sm font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-black disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               <span
                                 aria-hidden="true"
-                                className={`pointer-events-none absolute inset-0 rounded-full transition-all duration-200 ease-out ${isDowngrade ? 'bg-neutral-500' : 'bg-neutral-900'} group-hover:-inset-1 group-hover:bg-neutral-800 group-active:-inset-0.5`}
+                                className="pointer-events-none absolute inset-0 rounded-full bg-neutral-900 transition-all duration-200 ease-out group-hover:-inset-1 group-hover:bg-neutral-800 group-active:-inset-0.5"
                               />
                               <span className="relative">
-                                {loadingAction === `${actionType}-${plan.id}` ? "Processing..." : buttonText}
+                                {loadingAction === `upgrade-${plan.id}` ? "Processing..." : `Upgrade to ${plan.name}`}
                               </span>
                             </button>
                           );
