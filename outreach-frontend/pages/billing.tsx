@@ -646,6 +646,10 @@ export default function BillingPage() {
 
                   const normalizedCurrentPlan = normalizePlanId(currentPlan);
                   const isCurrentPlan = plan.id === normalizedCurrentPlan && hasActiveSub;
+                  // User was on this plan but subscription is now canceled (they can still use remaining credits)
+                  const isCanceledPlan = plan.id === normalizedCurrentPlan &&
+                    subscriptionInfo?.subscription_status === "canceled" &&
+                    currentPlan !== "free";
                   const creditsForCycle = isYearly
                     ? plan.monthlyCredits * 12
                     : plan.monthlyCredits;
@@ -688,6 +692,12 @@ export default function BillingPage() {
                       {isCurrentPlan && (
                         <div className="absolute top-4 right-4 px-2.5 py-1 bg-black text-white text-xs font-semibold uppercase tracking-wide">
                           Current
+                        </div>
+                      )}
+                      {/* Show canceled badge if user was on this plan but subscription ended */}
+                      {isCanceledPlan && (
+                        <div className="absolute top-4 right-4 px-2.5 py-1 bg-red-500 text-white text-xs font-semibold uppercase tracking-wide">
+                          Canceled
                         </div>
                       )}
                       {/* Show scheduled badge if this plan is the pending downgrade target */}
@@ -765,6 +775,21 @@ export default function BillingPage() {
                           className="group relative mt-auto w-full overflow-visible rounded-full border border-neutral-200 bg-neutral-100 px-6 py-3 text-sm font-semibold text-neutral-400 cursor-default"
                         >
                           Current Plan
+                        </button>
+                      ) : isCanceledPlan ? (
+                        <button
+                          type="button"
+                          onClick={() => handleCheckout(plan.id)}
+                          disabled={loadingPlanId === plan.id}
+                          className="group relative mt-auto w-full overflow-visible rounded-full px-6 py-3 text-sm font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-black disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <span
+                            aria-hidden="true"
+                            className="pointer-events-none absolute inset-0 rounded-full bg-green-600 transition-all duration-200 ease-out group-hover:-inset-1 group-hover:bg-green-500 group-active:-inset-0.5"
+                          />
+                          <span className="relative">
+                            {loadingPlanId === plan.id ? "Processing..." : "Resubscribe"}
+                          </span>
                         </button>
                       ) : !hasActiveSub ? (
                         <button
