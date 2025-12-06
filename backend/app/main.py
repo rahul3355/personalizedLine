@@ -1064,40 +1064,58 @@ def upgrade_subscription(
     old_plan_credits = CREDITS_MAP.get(current_plan, 0)
 
     try:
-        # Get subscription items using SubscriptionItem.list API
+        # Step 1: Get subscription item
         items = stripe.SubscriptionItem.list(subscription=stripe_subscription_id, limit=1)
-        
         if not items.data:
             raise HTTPException(status_code=400, detail="No subscription items found")
-        
         item_id = items.data[0].id
-        
-        # Calculate bonus credits from unused old plan time
+
+        # Step 2: Calculate bonus credits (unused time on old plan)
         bonus_credits = 0
         try:
             subscription = stripe.Subscription.retrieve(stripe_subscription_id)
-            current_period_start = subscription.current_period_start
-            current_period_end = subscription.current_period_end
+            period_start = subscription.current_period_start
+            period_end = subscription.current_period_end
             
-            if current_period_start and current_period_end and old_plan_price > 0:
+            if period_start and period_end and old_plan_price > 0:
                 now = datetime.utcnow().timestamp()
-                total_seconds = current_period_end - current_period_start
-                remaining_seconds = max(0, current_period_end - now)
+                total_days = (period_end - period_start) / 86400
+                remaining_days = max(0, (period_end - now) / 86400)
                 
-                if total_seconds > 0:
-                    unused_ratio = remaining_seconds / total_seconds
-                    unused_value = old_plan_price * unused_ratio
-                    credits_per_dollar = old_plan_credits / old_plan_price
-                    bonus_credits = int(unused_value * credits_per_dollar)
-                    bonus_credits = min(bonus_credits, new_plan_credits)
-                    print(f"[UPGRADE] Bonus: {unused_ratio:.1%} unused = {bonus_credits} credits")
+                if total_days > 0:
+                    unused_ratio = remaining_days / total_days
+                    bonus_credits = int(old_plan_credits * unused_ratio)
+                    bonus_credits = min(bonus_credits, new_plan_credits)  # Cap
+                    print(f"[UPGRADE] Bonus: {remaining_days:.1f}/{total_days:.1f} days = {bonus_credits} credits")
         except Exception as e:
-            print(f"[UPGRADE] Could not calculate bonus (test clock?): {e}")
-        
-        final_credits = new_plan_credits + bonus_credits
-        print(f"[UPGRADE] subscription={stripe_subscription_id}, item={item_id}, {current_plan}→{plan}")
+            print(f"[UPGRADE] Bonus calculation skipped: {e}")
 
-        # Modify subscription with new price
+        final_credits = new_plan_credits + bonus_credits
+        print(f"[UPGRADE] {current_plan}→{plan}: base={new_plan_credits}, bonus={bonus_credits}, total={final_credits}")
+
+        # Step 3: Create invoice item for FULL new plan price
+        invoice_item = stripe.InvoiceItem.create(
+            customer=stripe_customer_id,
+            amount=int(new_plan_price * 100),  # Convert to cents
+            currency="usd",
+            description=f"Upgrade to {plan.capitalize()} Plan"
+        )
+        print(f"[UPGRADE] Created invoice item: {invoice_item.id} for ${new_plan_price}")
+
+        # Step 4: Create and pay invoice immediately
+        invoice = stripe.Invoice.create(
+            customer=stripe_customer_id,
+            auto_advance=False,  # We'll finalize and pay manually
+        )
+        invoice = stripe.Invoice.finalize_invoice(invoice.id)
+        paid_invoice = stripe.Invoice.pay(invoice.id)
+        
+        if paid_invoice.status != "paid":
+            raise HTTPException(status_code=400, detail="Payment failed. Please update your payment method.")
+        
+        print(f"[UPGRADE] Invoice {invoice.id} paid successfully")
+
+        # Step 5: Modify subscription for future billing
         stripe.Subscription.modify(
             stripe_subscription_id,
             items=[{"id": item_id, "price": new_price_id}],
@@ -1106,18 +1124,17 @@ def upgrade_subscription(
                 "user_id": user_id,
                 "upgrade_from": current_plan,
                 "upgrade_to": plan,
-                "bonus_credits": str(bonus_credits),
             }
         )
 
-        # Update profile with new plan and credits (including bonus)
+        # Step 6: Update profile with new plan and credits
         supabase.table("profiles").update({
             "plan_type": plan,
             "credits_remaining": final_credits,
             "subscription_status": "active",
         }).eq("id", user_id).execute()
 
-        # Add ledger entry
+        # Step 7: Add ledger entry
         supabase.table("ledger").insert({
             "user_id": user_id,
             "change": final_credits,
@@ -1126,14 +1143,15 @@ def upgrade_subscription(
             "ts": datetime.utcnow().isoformat(),
         }).execute()
 
-        print(f"[UPGRADE] SUCCESS: {current_plan}→{plan}, credits={final_credits} (base={new_plan_credits}, bonus={bonus_credits})")
+        print(f"[UPGRADE] SUCCESS: Charged ${new_plan_price}, credits={final_credits}")
 
         return {
             "status": "success",
-            "message": f"Upgraded to {plan} plan with {bonus_credits} bonus credits!",
+            "message": f"Upgraded to {plan} plan! Charged ${new_plan_price}.",
             "new_plan": plan,
             "credits": final_credits,
             "bonus_credits": bonus_credits,
+            "amount_charged": new_plan_price,
         }
 
     except stripe.error.StripeError as e:
