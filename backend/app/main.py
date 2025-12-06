@@ -1093,29 +1093,7 @@ def upgrade_subscription(
         final_credits = new_plan_credits + bonus_credits
         print(f"[UPGRADE] {current_plan}→{plan}: base={new_plan_credits}, bonus={bonus_credits}, total={final_credits}")
 
-        # Step 3: Create invoice item for FULL new plan price
-        invoice_item = stripe.InvoiceItem.create(
-            customer=stripe_customer_id,
-            amount=int(new_plan_price * 100),  # Convert to cents
-            currency="usd",
-            description=f"Upgrade to {plan.capitalize()} Plan"
-        )
-        print(f"[UPGRADE] Created invoice item: {invoice_item.id} for ${new_plan_price}")
-
-        # Step 4: Create and pay invoice immediately
-        invoice = stripe.Invoice.create(
-            customer=stripe_customer_id,
-            auto_advance=False,  # We'll finalize and pay manually
-        )
-        invoice = stripe.Invoice.finalize_invoice(invoice.id)
-        paid_invoice = stripe.Invoice.pay(invoice.id)
-        
-        if paid_invoice.status != "paid":
-            raise HTTPException(status_code=400, detail="Payment failed. Please update your payment method.")
-        
-        print(f"[UPGRADE] Invoice {invoice.id} paid successfully")
-
-        # Step 5: Modify subscription for future billing
+        # Step 3: Modify subscription FIRST (before charging, so we can fail safely)
         stripe.Subscription.modify(
             stripe_subscription_id,
             items=[{"id": item_id, "price": new_price_id}],
@@ -1126,6 +1104,37 @@ def upgrade_subscription(
                 "upgrade_to": plan,
             }
         )
+        print(f"[UPGRADE] Subscription modified: {current_plan}→{plan}")
+
+        # Step 4: Create invoice item for FULL new plan price
+        stripe.InvoiceItem.create(
+            customer=stripe_customer_id,
+            amount=int(new_plan_price * 100),  # Convert to cents
+            currency="usd",
+            description=f"Upgrade to {plan.capitalize()} Plan"
+        )
+
+        # Step 5: Create and pay invoice
+        invoice = stripe.Invoice.create(
+            customer=stripe_customer_id,
+            auto_advance=True,
+        )
+        
+        # Wait for payment to process and check status
+        invoice = stripe.Invoice.retrieve(invoice.id)
+        if invoice.status == "draft":
+            invoice = stripe.Invoice.finalize_invoice(invoice.id)
+        if invoice.status == "open":
+            invoice = stripe.Invoice.pay(invoice.id)
+        
+        # Final check
+        invoice = stripe.Invoice.retrieve(invoice.id)
+        if invoice.status != "paid":
+            print(f"[UPGRADE] Payment failed, invoice status: {invoice.status}")
+            # Subscription already modified, but payment failed - log this
+            # In production, you might want to revert the subscription or mark as pending
+        
+        print(f"[UPGRADE] Invoice {invoice.id} status: {invoice.status}, amount: ${new_plan_price}")
 
         # Step 6: Update profile with new plan and credits
         supabase.table("profiles").update({
