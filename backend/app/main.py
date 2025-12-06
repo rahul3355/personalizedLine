@@ -1060,12 +1060,14 @@ def upgrade_subscription(
 
         subscription = subscriptions.data[0]
         subscription_id = subscription.id
+        print(f"[SUBSCRIPTION_UPGRADE] Found subscription: {subscription_id}")
 
-        # Get current subscription item
-        if not subscription.items.data:
+        # Get current subscription item - use dictionary access for reliability
+        subscription_items = subscription.get("items", {}).get("data", [])
+        if not subscription_items:
             raise HTTPException(status_code=400, detail="No subscription items found")
 
-        item_id = subscription.items.data[0].id
+        item_id = subscription_items[0].get("id")
 
         # Upgrade with proration
         updated_subscription = stripe.Subscription.modify(
