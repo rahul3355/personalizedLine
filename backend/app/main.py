@@ -1072,26 +1072,27 @@ def upgrade_subscription(
         
         item_id = items.data[0].id
         
-        # Get subscription for period dates (for bonus calculation)
-        subscription = stripe.Subscription.retrieve(stripe_subscription_id)
-        current_period_start = subscription.current_period_start
-        current_period_end = subscription.current_period_end
-        
         # Calculate bonus credits from unused old plan time
         bonus_credits = 0
-        if current_period_start and current_period_end and old_plan_price > 0:
-            now = datetime.utcnow().timestamp()
-            total_seconds = current_period_end - current_period_start
-            remaining_seconds = max(0, current_period_end - now)
+        try:
+            subscription = stripe.Subscription.retrieve(stripe_subscription_id)
+            current_period_start = subscription.current_period_start
+            current_period_end = subscription.current_period_end
             
-            if total_seconds > 0:
-                unused_ratio = remaining_seconds / total_seconds
-                unused_value = old_plan_price * unused_ratio
-                credits_per_dollar = old_plan_credits / old_plan_price
-                bonus_credits = int(unused_value * credits_per_dollar)
-                # Cap at new plan allocation
-                bonus_credits = min(bonus_credits, new_plan_credits)
-                print(f"[UPGRADE] Bonus: {unused_ratio:.1%} unused = {bonus_credits} credits")
+            if current_period_start and current_period_end and old_plan_price > 0:
+                now = datetime.utcnow().timestamp()
+                total_seconds = current_period_end - current_period_start
+                remaining_seconds = max(0, current_period_end - now)
+                
+                if total_seconds > 0:
+                    unused_ratio = remaining_seconds / total_seconds
+                    unused_value = old_plan_price * unused_ratio
+                    credits_per_dollar = old_plan_credits / old_plan_price
+                    bonus_credits = int(unused_value * credits_per_dollar)
+                    bonus_credits = min(bonus_credits, new_plan_credits)
+                    print(f"[UPGRADE] Bonus: {unused_ratio:.1%} unused = {bonus_credits} credits")
+        except Exception as e:
+            print(f"[UPGRADE] Could not calculate bonus (test clock?): {e}")
         
         final_credits = new_plan_credits + bonus_credits
         print(f"[UPGRADE] subscription={stripe_subscription_id}, item={item_id}, {current_plan}→{plan}")
