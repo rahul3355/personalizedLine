@@ -479,6 +479,49 @@ export default function BillingPage() {
     }
   };
 
+  const handleDowngrade = async (planId: string) => {
+    if (!session || !userInfo?.id) return;
+
+    // Confirm downgrade with user
+    const confirmed = confirm(
+      `Downgrade to ${planId.charAt(0).toUpperCase() + planId.slice(1)} plan?\n\n` +
+      `Your current plan will remain active until the end of this billing period.\n` +
+      `After that, you'll be charged the new lower rate and your credits will reset.`
+    );
+
+    if (!confirmed) return;
+
+    setLoadingAction(`downgrade-${planId}`);
+
+    try {
+      const res = await fetch(`${API_URL}/subscription/downgrade?plan=${planId}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        const errorMessage = data.detail || data.error || "Failed to downgrade subscription";
+        alert(errorMessage);
+        setLoadingAction(null);
+        return;
+      }
+
+      if (data.status === "success") {
+        alert(`Downgrade scheduled! You'll switch to ${data.new_plan} plan at the end of your current billing period.`);
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error("Downgrade error:", err);
+      alert("An unexpected error occurred during downgrade. Please try again.");
+      setLoadingAction(null);
+    }
+  };
+
 
   const handleCancel = async () => {
     if (!session) return;
@@ -749,20 +792,33 @@ export default function BillingPage() {
                           </span>
                         </button>
                       ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleUpgrade(plan.id)}
-                          disabled={loadingAction === `upgrade-${plan.id}`}
-                          className="group relative mt-auto w-full overflow-visible rounded-full px-6 py-3 text-sm font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-black disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <span
-                            aria-hidden="true"
-                            className={`pointer-events-none absolute inset-0 rounded-full transition-all duration-200 ease-out bg-neutral-900 group-hover:-inset-1 group-hover:bg-neutral-800 group-active:-inset-0.5`}
-                          />
-                          <span className="relative">
-                            {loadingAction === `upgrade-${plan.id}` ? "Processing..." : `Upgrade to ${plan.name}`}
-                          </span>
-                        </button>
+                        (() => {
+                          // Determine if this is an upgrade or downgrade
+                          const currentPlanCredits = PLANS.find(p => p.id === normalizedCurrentPlan)?.monthlyCredits ?? 0;
+                          const isDowngrade = plan.monthlyCredits < currentPlanCredits;
+                          const actionType = isDowngrade ? 'downgrade' : 'upgrade';
+                          const actionHandler = isDowngrade ? handleDowngrade : handleUpgrade;
+                          const buttonText = isDowngrade
+                            ? `Downgrade to ${plan.name}`
+                            : `Upgrade to ${plan.name}`;
+
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => actionHandler(plan.id)}
+                              disabled={loadingAction === `${actionType}-${plan.id}`}
+                              className="group relative mt-auto w-full overflow-visible rounded-full px-6 py-3 text-sm font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-black disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <span
+                                aria-hidden="true"
+                                className={`pointer-events-none absolute inset-0 rounded-full transition-all duration-200 ease-out ${isDowngrade ? 'bg-neutral-500' : 'bg-neutral-900'} group-hover:-inset-1 group-hover:bg-neutral-800 group-active:-inset-0.5`}
+                              />
+                              <span className="relative">
+                                {loadingAction === `${actionType}-${plan.id}` ? "Processing..." : buttonText}
+                              </span>
+                            </button>
+                          );
+                        })()
                       )}
 
 
