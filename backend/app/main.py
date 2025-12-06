@@ -1080,12 +1080,28 @@ def upgrade_subscription(
         subscription = subscriptions.data[0]
         subscription_id = subscription.id
         
-        # Get billing period dates for bonus calculation
-        # Use attribute access, not dictionary access for Stripe objects
-        current_period_start = getattr(subscription, 'current_period_start', None)
-        current_period_end = getattr(subscription, 'current_period_end', None)
-        
+        # Debug: print subscription object keys to understand structure
         print(f"[SUBSCRIPTION_UPGRADE] Found subscription: {subscription_id}")
+        print(f"[SUBSCRIPTION_UPGRADE] Subscription keys: {list(subscription.keys()) if hasattr(subscription, 'keys') else 'no keys method'}")
+        
+        # Get billing period dates for bonus calculation
+        # Try multiple access methods since Stripe objects can be dict-like or attribute-like
+        current_period_start = None
+        current_period_end = None
+        
+        # Method 1: Direct attribute access
+        if hasattr(subscription, 'current_period_start'):
+            current_period_start = subscription.current_period_start
+            current_period_end = subscription.current_period_end
+        # Method 2: Bracket notation (StripeObject supports this)
+        elif 'current_period_start' in subscription:
+            current_period_start = subscription['current_period_start']
+            current_period_end = subscription['current_period_end']
+        # Method 3: Get method if available
+        elif hasattr(subscription, 'get'):
+            current_period_start = subscription.get('current_period_start')
+            current_period_end = subscription.get('current_period_end')
+        
         print(f"[SUBSCRIPTION_UPGRADE] Period: {current_period_start} to {current_period_end}")
 
         # Calculate bonus credits from unused old plan time
@@ -1105,7 +1121,8 @@ def upgrade_subscription(
                 print(f"[SUBSCRIPTION_UPGRADE] Unused value: ${unused_value:.2f}")
                 print(f"[SUBSCRIPTION_UPGRADE] Bonus credits: {bonus_credits}")
         else:
-            print(f"[SUBSCRIPTION_UPGRADE] Could not calculate bonus (missing period dates or free plan)")
+            # If we can't get period dates (e.g., test clock), still proceed without bonus
+            print(f"[SUBSCRIPTION_UPGRADE] Could not calculate bonus (missing period dates or free plan), proceeding with base credits only")
 
         # Cap bonus credits at new plan allocation (prevent abuse)
         max_bonus = new_plan_credits
@@ -1114,17 +1131,25 @@ def upgrade_subscription(
         # Calculate final credits
         final_credits = new_plan_credits + bonus_credits
         
-        # Get current subscription item
-        subscription_items = getattr(subscription, 'items', None)
-        if subscription_items:
-            items_data = getattr(subscription_items, 'data', [])
-        else:
-            items_data = []
+        # Get current subscription item (try multiple access methods)
+        items_data = []
+        if hasattr(subscription, 'items') and subscription.items:
+            if hasattr(subscription.items, 'data'):
+                items_data = subscription.items.data
+            elif hasattr(subscription.items, '__iter__'):
+                items_data = list(subscription.items)
+        elif 'items' in subscription and subscription['items']:
+            items_obj = subscription['items']
+            if 'data' in items_obj:
+                items_data = items_obj['data']
+        
+        print(f"[SUBSCRIPTION_UPGRADE] Found {len(items_data)} subscription items")
             
         if not items_data:
             raise HTTPException(status_code=400, detail="No subscription items found")
 
-        item_id = items_data[0].id
+        item_id = items_data[0].id if hasattr(items_data[0], 'id') else items_data[0]['id']
+        print(f"[SUBSCRIPTION_UPGRADE] Using item_id: {item_id}")
 
         # Upgrade subscription with NO proration (we handle credits ourselves)
         updated_subscription = stripe.Subscription.modify(
