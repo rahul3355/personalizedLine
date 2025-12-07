@@ -14,7 +14,9 @@ import {
   Check,
   ArrowUpRight,
   Clock,
-  Receipt
+  Receipt,
+  Download,
+  FileText
 } from "lucide-react";
 import SendItFastSpinner from "../components/SendItFastSpinner";
 
@@ -38,6 +40,17 @@ interface SubscriptionInfo {
   stripe_price_id?: string;
 }
 
+interface Invoice {
+  id: string;
+  number: string;
+  amount: number;
+  status: string;
+  pdf_url: string | null;
+  hosted_url: string | null;
+  date: number;
+  description: string;
+}
+
 export default function AccountPage() {
   const { session, userInfo } = useAuth();
   const router = useRouter();
@@ -54,6 +67,10 @@ export default function AccountPage() {
   const [selectedPlan, setSelectedPlan] = useState<string>("");
   const [actionLoading, setActionLoading] = useState(false);
 
+  // Invoices state
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [invoicesLoading, setInvoicesLoading] = useState(true);
+
   useEffect(() => {
     if (!session) {
       router.push("/login");
@@ -62,6 +79,7 @@ export default function AccountPage() {
 
     fetchLedger();
     fetchSubscriptionInfo();
+    fetchInvoices();
   }, [session, offset]);
 
   const fetchLedger = async () => {
@@ -102,6 +120,26 @@ export default function AccountPage() {
       }
     } catch (err) {
       console.error("Failed to fetch subscription info:", err);
+    }
+  };
+
+  const fetchInvoices = async () => {
+    try {
+      setInvoicesLoading(true);
+      const res = await fetch(`${API_URL}/billing/invoices`, {
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setInvoices(data.invoices || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch invoices:", err);
+    } finally {
+      setInvoicesLoading(false);
     }
   };
 
@@ -363,6 +401,83 @@ export default function AccountPage() {
           </section>
         )}
 
+        {/* Invoices */}
+        <section className="mb-16">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-medium tracking-tight">Invoices</h2>
+          </div>
+
+          <div className="border border-gray-100 rounded-2xl bg-white overflow-hidden">
+            {invoicesLoading ? (
+              <div className="py-12 flex items-center justify-center">
+                <SendItFastSpinner size={24} />
+              </div>
+            ) : invoices.length === 0 ? (
+              <div className="py-12 text-center">
+                <FileText className="w-8 h-8 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-400 font-light">No invoices yet</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {invoices.map((invoice, index) => (
+                  <motion.div
+                    key={invoice.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.03, duration: 0.3 }}
+                    className="px-6 py-4 flex items-center justify-between gap-4 hover:bg-gray-50/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0">
+                        <Receipt className="w-5 h-5 text-gray-400" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {invoice.description || `Invoice ${invoice.number}`}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {new Date(invoice.date * 1000).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <span className="text-sm font-medium text-gray-900">
+                        ${invoice.amount.toFixed(2)}
+                      </span>
+
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${invoice.status === "paid"
+                          ? "bg-emerald-50 text-emerald-600"
+                          : invoice.status === "open"
+                            ? "bg-amber-50 text-amber-600"
+                            : "bg-gray-100 text-gray-500"
+                        }`}>
+                        {invoice.status === "paid" ? "Paid" : invoice.status === "open" ? "Pending" : invoice.status}
+                      </span>
+
+                      {invoice.pdf_url && (
+                        <a
+                          href={invoice.pdf_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                          title="Download PDF"
+                        >
+                          <Download className="w-4 h-4" />
+                        </a>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
         {/* Transactions */}
         <section>
           <div className="flex items-center justify-between mb-8">
@@ -548,8 +663,8 @@ export default function AccountPage() {
                       key={plan}
                       onClick={() => setSelectedPlan(plan)}
                       className={`w-full text-left p-6 rounded-xl border transition-all duration-200 ${selectedPlan === plan
-                          ? "border-black bg-gray-50 ring-1 ring-black/5"
-                          : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/50"
+                        ? "border-black bg-gray-50 ring-1 ring-black/5"
+                        : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/50"
                         }`}
                     >
                       <div className="flex items-start justify-between">

@@ -1011,6 +1011,70 @@ def get_subscription_info(current_user: AuthenticatedUser = Depends(get_current_
 
     return subscription_info
 
+
+@app.get("/billing/invoices")
+def list_invoices(
+    limit: int = 20,
+    current_user: AuthenticatedUser = Depends(get_current_user)
+):
+    """
+    List invoices for the current user from Stripe.
+    Returns invoice number, amount, status, date, and PDF download URL.
+    """
+    user_id = current_user.user_id
+    
+    # Get profile with stripe_customer_id
+    profile = _fetch_profile(user_id, columns="id,stripe_customer_id")
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    
+    stripe_customer_id = profile.get("stripe_customer_id")
+    if not stripe_customer_id:
+        # No Stripe customer = no invoices
+        return {"invoices": []}
+    
+    try:
+        # Fetch invoices from Stripe
+        invoices = stripe.Invoice.list(
+            customer=stripe_customer_id,
+            limit=limit,
+        )
+        
+        invoice_list = []
+        for inv in invoices.data:
+            # Only include paid/finalized invoices
+            if inv.status not in ["paid", "open", "uncollectible"]:
+                continue
+                
+            invoice_list.append({
+                "id": inv.id,
+                "number": inv.number or inv.id[:12],
+                "amount": (inv.amount_paid or 0) / 100,  # Convert cents to dollars
+                "status": inv.status,
+                "pdf_url": inv.invoice_pdf,
+                "hosted_url": inv.hosted_invoice_url,
+                "date": inv.created,  # Unix timestamp
+                "description": inv.description or _get_invoice_description(inv),
+            })
+        
+        return {"invoices": invoice_list}
+        
+    except stripe.error.StripeError as e:
+        print(f"[INVOICES] Stripe error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch invoices")
+
+
+def _get_invoice_description(invoice) -> str:
+    """Generate a description from invoice line items"""
+    if invoice.lines and invoice.lines.data:
+        first_line = invoice.lines.data[0]
+        if first_line.description:
+            return first_line.description
+        if first_line.price and first_line.price.nickname:
+            return first_line.price.nickname
+    return "Invoice"
+
+
 @app.get("/subscription/upgrade/preview")
 def preview_upgrade(
     plan: str,
