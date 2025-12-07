@@ -1025,8 +1025,11 @@ def upgrade_subscription(
     supabase = get_supabase()
     user_id = current_user.user_id
 
+    # Extract base plan name for validation (remove _annual/_monthly suffix)
+    base_plan = plan.replace("_annual", "").replace("_monthly", "")
+    
     # Validate plan
-    if plan not in CREDITS_MAP:
+    if base_plan not in CREDITS_MAP:
         raise HTTPException(status_code=400, detail="Invalid plan")
 
     # Get current profile
