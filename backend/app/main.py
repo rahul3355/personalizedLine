@@ -1187,24 +1187,23 @@ def upgrade_subscription(
         )
         print(f"[UPGRADE] Subscription modified: {current_plan}→{plan}")
 
-        # Step 4: Create invoice item for FULL new plan price
+        # Step 4: Create invoice FIRST (as draft), then add item to it
+        invoice = stripe.Invoice.create(
+            customer=stripe_customer_id,
+            auto_advance=False,  # Don't auto-advance, we'll finalize manually
+        )
+        
+        # Step 5: Create invoice item attached to this specific invoice
         stripe.InvoiceItem.create(
             customer=stripe_customer_id,
+            invoice=invoice.id,  # CRITICAL: Attach to our invoice so it's not left pending!
             amount=int(new_plan_price * 100),  # Convert to cents
             currency="usd",
             description=f"Upgrade to {plan.capitalize()} Plan"
         )
-
-        # Step 5: Create and pay invoice
-        invoice = stripe.Invoice.create(
-            customer=stripe_customer_id,
-            auto_advance=True,
-        )
         
-        # Wait for payment to process and check status
-        invoice = stripe.Invoice.retrieve(invoice.id)
-        if invoice.status == "draft":
-            invoice = stripe.Invoice.finalize_invoice(invoice.id)
+        # Step 6: Finalize and pay the invoice
+        invoice = stripe.Invoice.finalize_invoice(invoice.id)
         if invoice.status == "open":
             invoice = stripe.Invoice.pay(invoice.id)
         
