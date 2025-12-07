@@ -1063,37 +1063,38 @@ export default function BillingPage() {
                       )}
 
 
-                      <ul className="mt-6 space-y-3 text-left text-sm text-neutral-700">
-                        {featureLabels.map((feature, index) => (
-                          <li
-                            key={`${plan.id}-feature-${index}`}
-                            className={`flex items-start gap-2 font-medium ${index === 2 ? "text-green-600" : ""}`}
-                          >
-                            {index === 0 ? (
-                              <PiCoinsDuotone className="mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-900" />
-                            ) : index === 1 ? (
-                              <Plus className="h-4 w-4 mt-0.5 flex-shrink-0 text-neutral-900" />
-                            ) : index === 2 ? (
-                              <PiCoinsDuotone className="h-4 w-4 mt-0.5 flex-shrink-0 text-green-500" style={{ color: '#22c55e' }} />
-                            ) : null}
-                            <div className="flex flex-col">
-                              <span className="flex items-center gap-2">
-                                {feature}
-                                {index === 0 ? (
-                                  <DiscordTooltip message="1 credit = 1 email (research + personalized email + icebreaker)" />
-                                ) : null}
-                              </span>
-                              <ul className={`mt-1 space-y-1 text-xs font-normal ${index === 2 ? "text-green-500" : "text-neutral-400"}`}>
-                                <li className="flex items-start gap-2">
+                      <div className="flex-1">
+                        <ul className="mt-6 space-y-3 text-left text-sm text-neutral-700">
+                          {featureLabels.map((feature, index) => (
+                            <li
+                              key={`${plan.id}-feature-${index}`}
+                              className={`flex items-start gap-2 font-medium ${index === 2 ? "text-green-600" : ""}`}
+                            >
+                              {index === 0 ? (
+                                <PiCoinsDuotone className="mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-900" />
+                              ) : index === 1 ? (
+                                <Plus className="h-4 w-4 mt-0.5 flex-shrink-0 text-neutral-900" />
+                              ) : index === 2 ? (
+                                <PiCoinsDuotone className="h-4 w-4 mt-0.5 flex-shrink-0 text-green-500" style={{ color: '#22c55e' }} />
+                              ) : null}
+                              <div className="flex flex-col">
+                                <span className="flex items-center gap-2">
+                                  {feature}
+                                  {index === 0 ? (
+                                    <DiscordTooltip message="1 credit = 1 email (research + personalized email + icebreaker)" />
+                                  ) : null}
+                                </span>
+                                <ul className={`mt-1 space-y-1 text-xs font-normal ${index === 2 ? "text-green-500" : "text-neutral-400"}`}>
+                                  <li className="flex items-start gap-2">
 
-                                  <span>{featureDetails[index] ?? ""}</span>
-                                </li>
-                              </ul>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                      <br /><br />
+                                    <span>{featureDetails[index] ?? ""}</span>
+                                  </li>
+                                </ul>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
 
 
                     </article>
