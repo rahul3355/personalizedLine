@@ -26,6 +26,7 @@ import { Switch } from "@headlessui/react";
 import { useAuth } from "../lib/AuthProvider";
 import { API_URL } from "../lib/api";
 import SendItFastSpinner from "../components/SendItFastSpinner";
+import { UpgradeConfirmModal, ResultModal } from "../components/UpgradeModal";
 
 type BillingCycle = "monthly" | "yearly";
 type AudienceSegment = "individual" | "business";
@@ -302,6 +303,23 @@ export default function BillingPage() {
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [loadingSubscription, setLoadingSubscription] = useState(true);
 
+  // Modal state
+  const [upgradeModal, setUpgradeModal] = useState<{
+    isOpen: boolean;
+    planId: string;
+    planName: string;
+    price: number;
+    credits: number;
+    isAnnual: boolean;
+  } | null>(null);
+  const [resultModal, setResultModal] = useState<{
+    isOpen: boolean;
+    type: "success" | "error";
+    title: string;
+    message: string;
+    details?: { plan?: string; credits?: number; amountCharged?: number };
+  } | null>(null);
+
   const closeBilling = () => {
     if (window.history.length > 1) {
       router.back();
@@ -442,13 +460,31 @@ export default function BillingPage() {
     }
   };
 
-  const handleUpgrade = async (planId: string) => {
+  // Show upgrade confirmation modal
+  const showUpgradeConfirmation = (planId: string, isAnnual: boolean = false) => {
+    const plan = planConfigurations.find(p => p.id === planId);
+    if (!plan || !subscriptionInfo) return;
+
+    const price = isAnnual ? plan.yearlyPrice : plan.monthlyPrice;
+    const credits = isAnnual ? plan.monthlyCredits * 12 : plan.monthlyCredits;
+
+    setUpgradeModal({
+      isOpen: true,
+      planId: isAnnual ? `${planId}_annual` : planId,
+      planName: plan.name,
+      price,
+      credits,
+      isAnnual,
+    });
+  };
+
+  // Execute the actual upgrade API call
+  const executeUpgrade = async (planId: string) => {
     if (!session || !userInfo?.id) return;
+
     setLoadingAction(`upgrade-${planId}`);
 
     try {
-      // Call the proper upgrade endpoint that modifies the existing subscription
-      // instead of creating a new one (which would cause double billing)
       const res = await fetch(`${API_URL}/subscription/upgrade?plan=${planId}`, {
         method: "POST",
         headers: {
@@ -459,70 +495,57 @@ export default function BillingPage() {
 
       const data = await res.json();
 
+      // Close confirmation modal
+      setUpgradeModal(null);
+      setLoadingAction(null);
+
       if (!res.ok) {
         const errorMessage = data.detail || data.error || "Failed to upgrade subscription";
-        alert(errorMessage);
-        setLoadingAction(null);
+        setResultModal({
+          isOpen: true,
+          type: "error",
+          title: "Upgrade Failed",
+          message: errorMessage,
+        });
         return;
       }
 
       if (data.status === "success") {
-        // Show success with bonus credits info
-        const bonusMsg = data.bonus_credits > 0
-          ? ` You received ${data.credits.toLocaleString()} credits (including ${data.bonus_credits.toLocaleString()} bonus credits for upgrading early)!`
-          : ` You received ${data.credits?.toLocaleString() || 'your new'} credits!`;
-        alert(`Successfully upgraded to ${data.new_plan} plan!${bonusMsg}`);
-        window.location.reload();
+        setResultModal({
+          isOpen: true,
+          type: "success",
+          title: "Upgrade Successful!",
+          message: data.bonus_credits > 0
+            ? `You received ${data.credits?.toLocaleString()} credits (including ${data.bonus_credits?.toLocaleString()} bonus credits for upgrading early)!`
+            : `You received ${data.credits?.toLocaleString() || 'your new'} credits!`,
+          details: {
+            plan: data.new_plan,
+            credits: data.credits,
+            amountCharged: data.amount_charged,
+          },
+        });
       }
     } catch (err) {
       console.error("Upgrade error:", err);
-      alert("An unexpected error occurred during upgrade. Please try again.");
+      setUpgradeModal(null);
       setLoadingAction(null);
+      setResultModal({
+        isOpen: true,
+        type: "error",
+        title: "Upgrade Failed",
+        message: "An unexpected error occurred. Please try again.",
+      });
     }
   };
 
+  // Legacy handleUpgrade for backward compatibility
+  const handleUpgrade = (planId: string) => {
+    showUpgradeConfirmation(planId, false);
+  };
+
   // Switch from monthly to annual billing (same plan)
-  const handleSwitchToAnnual = async (planId: string) => {
-    if (!session || !userInfo?.id) return;
-
-    const confirmed = confirm(
-      `Switch to annual billing?\n\n` +
-      `You'll save 20% compared to monthly billing.\n` +
-      `Your remaining balance will be applied as credit.`
-    );
-
-    if (!confirmed) return;
-
-    setLoadingAction(`switch-annual-${planId}`);
-
-    try {
-      // Call upgrade endpoint with the annual version of the plan
-      const res = await fetch(`${API_URL}/subscription/upgrade?plan=${planId}_annual`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        const errorMessage = data.detail || data.error || "Failed to switch to annual";
-        alert(errorMessage);
-        setLoadingAction(null);
-        return;
-      }
-
-      if (data.status === "success") {
-        alert(`Successfully switched to annual billing! You're now saving 20%.`);
-        window.location.reload();
-      }
-    } catch (err) {
-      console.error("Switch to annual error:", err);
-      alert("An unexpected error occurred. Please try again.");
-      setLoadingAction(null);
-    }
+  const handleSwitchToAnnual = (planId: string) => {
+    showUpgradeConfirmation(planId, true);
   };
 
   const handleDowngrade = async (planId: string) => {
@@ -619,7 +642,7 @@ export default function BillingPage() {
   // hasActiveSub: ONLY true if subscription_status is explicitly 'active'
   const hasActiveSub = subscriptionInfo?.subscription_status === "active";
 
-  return createPortal(
+  const portalContent = createPortal(
     <div className="fixed inset-0 z-[9999] bg-white" style={{ fontFamily: AEONIK_FONT_FAMILY }}>
       <div className="h-full overflow-y-auto">
         {loadingSubscription ? (
@@ -1012,5 +1035,45 @@ export default function BillingPage() {
       </div>
     </div>,
     document.body
+  );
+
+  return (
+    <>
+      {portalContent}
+
+      {/* Upgrade Confirmation Modal */}
+      {upgradeModal && (
+        <UpgradeConfirmModal
+          isOpen={upgradeModal.isOpen}
+          onClose={() => setUpgradeModal(null)}
+          onConfirm={() => executeUpgrade(upgradeModal.planId)}
+          isLoading={loadingAction?.startsWith("upgrade-") || false}
+          currentPlan={subscriptionInfo?.plan_type || "free"}
+          newPlan={upgradeModal.planName}
+          currentCredits={subscriptionInfo?.credits_remaining || 0}
+          newCredits={upgradeModal.credits}
+          bonusCredits={0}
+          price={upgradeModal.price}
+          billingCycle={upgradeModal.isAnnual ? "annual" : "monthly"}
+        />
+      )}
+
+      {/* Result Modal */}
+      {resultModal && (
+        <ResultModal
+          isOpen={resultModal.isOpen}
+          onClose={() => {
+            setResultModal(null);
+            if (resultModal.type === "success") {
+              window.location.reload();
+            }
+          }}
+          type={resultModal.type}
+          title={resultModal.title}
+          message={resultModal.message}
+          details={resultModal.details}
+        />
+      )}
+    </>
   );
 }
