@@ -523,6 +523,15 @@ async def parse_headers(
         if not file_path:
             raise HTTPException(status_code=400, detail="file_path required")
 
+        # Security: Validate file extension
+        allowed_extensions = {'.csv', '.xlsx', '.xls', '.tsv'}
+        file_ext = os.path.splitext(file_path.lower())[1]
+        if file_ext not in allowed_extensions:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid file type. Only CSV and Excel files are allowed."
+            )
+
         file_path = assert_user_owns_path(file_path, current_user.user_id)
 
         supabase_client = get_supabase()
@@ -2067,6 +2076,15 @@ async def create_job(
 
     try:
         file_path = assert_user_owns_path(req.file_path, current_user.user_id)
+
+        # Security: Validate file extension
+        allowed_extensions = {'.csv', '.xlsx', '.xls', '.tsv'}
+        file_ext = os.path.splitext(file_path.lower())[1]
+        if file_ext not in allowed_extensions:
+            raise HTTPException(
+                status_code=400, 
+                detail="Invalid file type. Only CSV and Excel files are allowed."
+            )
 
         email_col = (req.email_col or "").strip()
         if not email_col:
