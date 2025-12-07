@@ -462,11 +462,18 @@ export default function BillingPage() {
 
   // Show upgrade confirmation modal
   const showUpgradeConfirmation = (planId: string, isAnnual: boolean = false) => {
+    console.log("[DEBUG] showUpgradeConfirmation called", { planId, isAnnual, subscriptionInfo });
+
     const plan = planConfigurations.find(p => p.id === planId);
-    if (!plan || !subscriptionInfo) return;
+    if (!plan) {
+      console.log("[DEBUG] Plan not found:", planId);
+      return;
+    }
 
     const price = isAnnual ? plan.yearlyPrice : plan.monthlyPrice;
     const credits = isAnnual ? plan.monthlyCredits * 12 : plan.monthlyCredits;
+
+    console.log("[DEBUG] Setting upgradeModal", { planId, planName: plan.name, price, credits, isAnnual });
 
     setUpgradeModal({
       isOpen: true,
