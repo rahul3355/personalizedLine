@@ -954,6 +954,7 @@ def get_subscription_info(current_user: AuthenticatedUser = Depends(get_current_
     subscription_info = {
         "plan_type": profile.get("plan_type", "free"),
         "subscription_status": profile.get("subscription_status"),
+        "billing_frequency": profile.get("billing_frequency", "monthly"),
         "credits_remaining": profile.get("credits_remaining", 0),
         "addon_credits": profile.get("addon_credits", 0),
         "max_credits": CREDITS_MAP.get(profile.get("plan_type", "free"), 0),
@@ -1077,29 +1078,54 @@ def upgrade_subscription(
             detail="Subscription not found. Please subscribe to a new plan."
         )
 
-    # Block annual plan upgrades
-    if "annual" in current_plan.lower():
+    # Extract base plan names (without _annual suffix)
+    base_current_plan = current_plan.replace("_annual", "").replace("_monthly", "")
+    base_new_plan = plan.replace("_annual", "").replace("_monthly", "")
+    is_annual_switch = plan.endswith("_annual") and not current_plan.endswith("_annual")
+    
+    # Block annual→monthly switch (that's a downgrade effectively)
+    if current_plan.endswith("_annual") and not plan.endswith("_annual"):
         raise HTTPException(
             status_code=400,
-            detail="Annual plan upgrades are not supported. Please contact support."
+            detail="Please cancel your annual plan to switch to monthly billing."
         )
 
-    # Block downgrades
-    current_plan_credits = CREDITS_MAP.get(current_plan, 0)
-    new_plan_credits = CREDITS_MAP.get(plan, 0)
+    # Allow monthly→annual for same plan (this is what "Switch to Annual" does)
+    # For different plans, compare credits
+    current_plan_credits = CREDITS_MAP.get(base_current_plan, 0)
+    new_plan_credits = CREDITS_MAP.get(base_new_plan, 0)
 
-    if new_plan_credits <= current_plan_credits:
+    # Block actual downgrades (switching to a lower tier plan)
+    if new_plan_credits < current_plan_credits:
         raise HTTPException(status_code=400, detail="Downgrades are not supported.")
+    
+    # If same credits but not an annual switch, it's the same plan (no action needed)
+    if new_plan_credits == current_plan_credits and not is_annual_switch:
+        raise HTTPException(status_code=400, detail="You're already on this plan.")
 
-    # Get new price ID
-    new_price_id = PLAN_PRICE_MAP.get(plan)
+    # Get new price ID - check annual map first if _annual suffix
+    if plan.endswith("_annual"):
+        new_price_id = PLAN_PRICE_MAP_ANNUAL.get(plan)
+    else:
+        new_price_id = PLAN_PRICE_MAP.get(plan)
+    
     if not new_price_id:
         raise HTTPException(status_code=400, detail="Plan price not configured")
 
-
-    new_plan_price = PLAN_PRICES.get(plan, 0)
-    old_plan_price = PLAN_PRICES.get(current_plan, 0)
-    old_plan_credits = CREDITS_MAP.get(current_plan, 0)
+    # Calculate prices and credits using BASE plan names
+    base_monthly_price = PLAN_PRICES.get(base_new_plan, 0)
+    if plan.endswith("_annual"):
+        # Annual price is 12 months * monthly * 80% (20% discount)
+        new_plan_price = int(base_monthly_price * 12 * 0.8)
+    else:
+        new_plan_price = base_monthly_price
+    
+    old_plan_price = PLAN_PRICES.get(base_current_plan, 0)
+    old_plan_credits = CREDITS_MAP.get(base_current_plan, 0)
+    
+    # For annual, multiply credits by 12 (full year upfront)
+    if plan.endswith("_annual"):
+        new_plan_credits = new_plan_credits * 12
 
     try:
         # Step 1: Get subscription item
@@ -1189,8 +1215,14 @@ def upgrade_subscription(
         print(f"[UPGRADE] Invoice {invoice.id} status: {invoice.status}, amount: ${new_plan_price}")
 
         # Step 6: Update profile with new plan and credits
+        # Determine billing frequency from plan name
+        new_billing_frequency = "annual" if plan.endswith("_annual") else "monthly"
+        # Store base plan name without _annual/_monthly suffix
+        stored_plan_type = base_new_plan
+        
         supabase.table("profiles").update({
-            "plan_type": plan,
+            "plan_type": stored_plan_type,
+            "billing_frequency": new_billing_frequency,
             "credits_remaining": final_credits,
             "subscription_status": "active",
         }).eq("id", user_id).execute()

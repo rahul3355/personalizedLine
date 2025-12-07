@@ -50,6 +50,7 @@ type PlanConfig = {
 type SubscriptionInfo = {
   plan_type: string;
   subscription_status: string;
+  billing_frequency?: "monthly" | "annual";
   credits_remaining: number;
   addon_credits: number;
   max_credits: number;
@@ -480,6 +481,50 @@ export default function BillingPage() {
     }
   };
 
+  // Switch from monthly to annual billing (same plan)
+  const handleSwitchToAnnual = async (planId: string) => {
+    if (!session || !userInfo?.id) return;
+
+    const confirmed = confirm(
+      `Switch to annual billing?\n\n` +
+      `You'll save 20% compared to monthly billing.\n` +
+      `Your remaining balance will be applied as credit.`
+    );
+
+    if (!confirmed) return;
+
+    setLoadingAction(`switch-annual-${planId}`);
+
+    try {
+      // Call upgrade endpoint with the annual version of the plan
+      const res = await fetch(`${API_URL}/subscription/upgrade?plan=${planId}_annual`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        const errorMessage = data.detail || data.error || "Failed to switch to annual";
+        alert(errorMessage);
+        setLoadingAction(null);
+        return;
+      }
+
+      if (data.status === "success") {
+        alert(`Successfully switched to annual billing! You're now saving 20%.`);
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error("Switch to annual error:", err);
+      alert("An unexpected error occurred. Please try again.");
+      setLoadingAction(null);
+    }
+  };
+
   const handleDowngrade = async (planId: string) => {
     if (!session || !userInfo?.id) return;
 
@@ -770,13 +815,31 @@ export default function BillingPage() {
                       </div>
                       <br />
                       {isCurrentPlan ? (
-                        <button
-                          type="button"
-                          disabled
-                          className="group relative mt-auto w-full overflow-visible rounded-full border border-neutral-200 bg-neutral-100 px-6 py-3 text-sm font-semibold text-neutral-400 cursor-default"
-                        >
-                          Current Plan
-                        </button>
+                        // Check if user can switch to annual (on monthly, viewing yearly)
+                        isYearly && subscriptionInfo?.billing_frequency === "monthly" ? (
+                          <button
+                            type="button"
+                            onClick={() => handleSwitchToAnnual(plan.id)}
+                            disabled={loadingAction === `switch-annual-${plan.id}`}
+                            className="group relative mt-auto w-full overflow-visible rounded-full px-6 py-3 text-sm font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-black disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <span
+                              aria-hidden="true"
+                              className="pointer-events-none absolute inset-0 rounded-full bg-green-600 transition-all duration-200 ease-out group-hover:-inset-1 group-hover:bg-green-500 group-active:-inset-0.5"
+                            />
+                            <span className="relative">
+                              {loadingAction === `switch-annual-${plan.id}` ? "Processing..." : "Switch to Annual - Save 20%"}
+                            </span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled
+                            className="group relative mt-auto w-full overflow-visible rounded-full border border-neutral-200 bg-neutral-100 px-6 py-3 text-sm font-semibold text-neutral-400 cursor-default"
+                          >
+                            Current Plan
+                          </button>
+                        )
                       ) : isCanceledPlan ? (
                         <button
                           type="button"
