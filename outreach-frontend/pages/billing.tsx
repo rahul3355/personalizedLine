@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   Star,
   AlertCircle,
+  Sparkles,
 } from "lucide-react";
 import { TbHelpCircle } from "react-icons/tb";
 import { Switch } from "@headlessui/react";
@@ -824,11 +825,15 @@ export default function BillingPage() {
                     `$${plan.pricePerThousandCredits} per 1000 credits`,
                   ];
                   const featureDetails = [
-                    bonusCredits > 0
-                      ? `+${bonusCredits.toLocaleString()} bonus credits now`
-                      : `${formatPerCredit(perCreditRate)} per credit`,
+                    `${formatPerCredit(perCreditRate)} per credit`,
                     `${formatPerCredit(bulkPerCredit)} per credit`,
                   ];
+
+                  // Add bonus credits as third item if applicable
+                  if (bonusCredits > 0) {
+                    featureLabels.push(`+${bonusCredits.toLocaleString()} bonus credits`);
+                    featureDetails.push("one-time upgrade bonus");
+                  }
 
                   return (
                     <article
@@ -1059,11 +1064,16 @@ export default function BillingPage() {
 
                       <ul className="mt-6 space-y-3 text-left text-sm text-neutral-700">
                         {featureLabels.map((feature, index) => (
-                          <li key={`${plan.id}-feature-${index}`} className="flex items-start gap-2 font-medium">
+                          <li
+                            key={`${plan.id}-feature-${index}`}
+                            className={`flex items-start gap-2 font-medium ${index === 2 ? "text-green-600" : ""}`}
+                          >
                             {index === 0 ? (
                               <CreditCard className="mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-900" />
                             ) : index === 1 ? (
                               <Plus className="h-4 w-4 mt-0.5 flex-shrink-0 text-neutral-900" />
+                            ) : index === 2 ? (
+                              <Sparkles className="h-4 w-4 mt-0.5 flex-shrink-0 text-green-600" />
                             ) : null}
                             <div className="flex flex-col">
                               <span className="flex items-center gap-2">
@@ -1072,7 +1082,7 @@ export default function BillingPage() {
                                   <DiscordTooltip message="1 credit = 1 email (research + personalized email + icebreaker)" />
                                 ) : null}
                               </span>
-                              <ul className="mt-1 space-y-1 text-xs font-normal text-neutral-400">
+                              <ul className={`mt-1 space-y-1 text-xs font-normal ${index === 2 ? "text-green-500" : "text-neutral-400"}`}>
                                 <li className="flex items-start gap-2">
 
                                   <span>{featureDetails[index] ?? ""}</span>
