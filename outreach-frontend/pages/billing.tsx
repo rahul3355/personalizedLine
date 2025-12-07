@@ -310,6 +310,7 @@ export default function BillingPage() {
     planName: string;
     price: number;
     credits: number;
+    bonusCredits: number;
     isAnnual: boolean;
   } | null>(null);
   const [resultModal, setResultModal] = useState<{
@@ -473,7 +474,28 @@ export default function BillingPage() {
     const price = isAnnual ? plan.yearlyPrice : plan.monthlyPrice;
     const credits = isAnnual ? plan.monthlyCredits * 12 : plan.monthlyCredits;
 
-    console.log("[DEBUG] Setting upgradeModal", { planId, planName: plan.name, price, credits, isAnnual });
+    // Calculate estimated bonus credits (prorated from current plan)
+    let bonusCredits = 0;
+    if (subscriptionInfo?.current_period_end) {
+      const currentPlanConfig = planConfigurations.find(
+        p => p.id === (subscriptionInfo.plan_type || "free")
+      );
+      if (currentPlanConfig) {
+        const now = Date.now() / 1000; // Current time in seconds
+        const periodEnd = subscriptionInfo.current_period_end;
+        const remainingSeconds = Math.max(0, periodEnd - now);
+        const remainingDays = remainingSeconds / 86400;
+        const totalDays = 30; // Assume 30-day billing cycle
+        const unusedRatio = Math.min(remainingDays / totalDays, 1);
+        const oldPlanCredits = currentPlanConfig.monthlyCredits;
+        bonusCredits = Math.floor(oldPlanCredits * unusedRatio);
+        // Cap bonus at new plan credits
+        bonusCredits = Math.min(bonusCredits, credits);
+        console.log("[DEBUG] Bonus calculation", { remainingDays, unusedRatio, oldPlanCredits, bonusCredits });
+      }
+    }
+
+    console.log("[DEBUG] Setting upgradeModal", { planId, planName: plan.name, price, credits, bonusCredits, isAnnual });
 
     setUpgradeModal({
       isOpen: true,
@@ -481,6 +503,7 @@ export default function BillingPage() {
       planName: plan.name,
       price,
       credits,
+      bonusCredits,
       isAnnual,
     });
   };
@@ -1059,7 +1082,7 @@ export default function BillingPage() {
           newPlan={upgradeModal.planName}
           currentCredits={subscriptionInfo?.credits_remaining || 0}
           newCredits={upgradeModal.credits}
-          bonusCredits={0}
+          bonusCredits={upgradeModal.bonusCredits}
           price={upgradeModal.price}
           billingCycle={upgradeModal.isAnnual ? "annual" : "monthly"}
         />
