@@ -1,4 +1,5 @@
-import { Fragment, useState } from "react";
+import { Fragment, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, CreditCard, Sparkles, ArrowRight, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 
@@ -34,18 +35,26 @@ export function UpgradeConfirmModal({
 }: UpgradeConfirmModalProps) {
     const isAnnual = billingCycle === "annual";
     const totalCredits = newCredits + bonusCredits;
+    const [mounted, setMounted] = useState(false);
 
-    return (
+    useEffect(() => {
+        setMounted(true);
+        return () => setMounted(false);
+    }, []);
+
+    if (!mounted || !isOpen) return null;
+
+    const modalContent = (
         <AnimatePresence>
             {isOpen && (
-                <>
+                <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
                     {/* Backdrop */}
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
-                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[10000]"
+                        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
                     />
 
                     {/* Modal */}
@@ -53,8 +62,8 @@ export function UpgradeConfirmModal({
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
-                        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[10000] w-full max-w-md"
+                        transition={{ type: "spring", duration: 0.4, bounce: 0.2 }}
+                        className="relative w-full max-w-md mx-auto"
                     >
                         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-neutral-200">
                             {/* Header */}
@@ -72,7 +81,7 @@ export function UpgradeConfirmModal({
                                         <Sparkles className="w-5 h-5 text-white" />
                                     </div>
                                     <h2 className="text-xl font-semibold text-neutral-900">
-                                        Upgrade to {newPlan.charAt(0).toUpperCase() + newPlan.slice(1)}
+                                        Upgrade to {newPlan}
                                     </h2>
                                 </div>
                                 <p className="text-neutral-500 text-sm">
@@ -90,7 +99,7 @@ export function UpgradeConfirmModal({
                                             <p className="font-medium text-neutral-700 capitalize">{currentPlan}</p>
                                             <p className="text-sm text-neutral-500">{currentCredits.toLocaleString()} credits</p>
                                         </div>
-                                        <ArrowRight className="w-5 h-5 text-neutral-400 mx-4" />
+                                        <ArrowRight className="w-5 h-5 text-neutral-400 mx-4 flex-shrink-0" />
                                         <div className="text-center flex-1">
                                             <p className="text-xs text-neutral-500 uppercase tracking-wide mb-1">New Plan</p>
                                             <p className="font-semibold text-neutral-900 capitalize">{newPlan}</p>
@@ -168,10 +177,12 @@ export function UpgradeConfirmModal({
                             </div>
                         </div>
                     </motion.div>
-                </>
+                </div>
             )}
         </AnimatePresence>
     );
+
+    return createPortal(modalContent, document.body);
 }
 
 // ============================================================================
@@ -199,18 +210,26 @@ export function ResultModal({
     details,
 }: ResultModalProps) {
     const isSuccess = type === "success";
+    const [mounted, setMounted] = useState(false);
 
-    return (
+    useEffect(() => {
+        setMounted(true);
+        return () => setMounted(false);
+    }, []);
+
+    if (!mounted || !isOpen) return null;
+
+    const modalContent = (
         <AnimatePresence>
             {isOpen && (
-                <>
+                <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
                     {/* Backdrop */}
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
-                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[10000]"
+                        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
                     />
 
                     {/* Modal */}
@@ -218,8 +237,8 @@ export function ResultModal({
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
-                        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[10000] w-full max-w-sm"
+                        transition={{ type: "spring", duration: 0.4, bounce: 0.2 }}
+                        className="relative w-full max-w-sm mx-auto"
                     >
                         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-neutral-200">
                             {/* Icon */}
@@ -292,8 +311,10 @@ export function ResultModal({
                             </div>
                         </div>
                     </motion.div>
-                </>
+                </div>
             )}
         </AnimatePresence>
     );
+
+    return createPortal(modalContent, document.body);
 }
