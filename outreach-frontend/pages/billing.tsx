@@ -474,24 +474,30 @@ export default function BillingPage() {
     const price = isAnnual ? plan.yearlyPrice : plan.monthlyPrice;
     const credits = isAnnual ? plan.monthlyCredits * 12 : plan.monthlyCredits;
 
-    // Calculate estimated bonus credits (prorated from current plan)
+    // Estimate bonus credits = user's current remaining credits (prorated value from old subscription)
+    // This is approximate - actual bonus is calculated server-side based on unused subscription value
+    const currentCreditsRemaining = subscriptionInfo?.credits_remaining || 0;
+    // Backend calculates bonus based on: (remaining_days / total_days) * old_plan_price / new_plan_price * new_plan_credits
+    // For simplicity, we estimate: you keep roughly your current credits proportionally
+    const currentPlanConfig = planConfigurations.find(
+      p => p.id === (subscriptionInfo?.plan_type || "free")
+    );
+    const oldPlanCredits = currentPlanConfig?.monthlyCredits || 0;
+
+    // Estimated bonus: proportional to remaining credits vs old plan total
     let bonusCredits = 0;
-    if (subscriptionInfo?.current_period_end) {
-      const currentPlanConfig = planConfigurations.find(
-        p => p.id === (subscriptionInfo.plan_type || "free")
-      );
-      if (currentPlanConfig) {
-        const now = Date.now() / 1000; // Current time in seconds
-        const periodEnd = subscriptionInfo.current_period_end;
-        const remainingSeconds = Math.max(0, periodEnd - now);
-        const remainingDays = remainingSeconds / 86400;
-        const totalDays = 30; // Assume 30-day billing cycle
-        const unusedRatio = Math.min(remainingDays / totalDays, 1);
-        const oldPlanCredits = currentPlanConfig.monthlyCredits;
-        bonusCredits = Math.floor(oldPlanCredits * unusedRatio);
-        // Cap bonus at new plan credits
-        bonusCredits = Math.min(bonusCredits, credits);
-        console.log("[DEBUG] Bonus calculation", { remainingDays, unusedRatio, oldPlanCredits, bonusCredits });
+    if (oldPlanCredits > 0 && subscriptionInfo?.current_period_end) {
+      const now = Date.now() / 1000;
+      const periodEnd = subscriptionInfo.current_period_end;
+      const remainingSeconds = Math.max(0, periodEnd - now);
+      const remainingDays = remainingSeconds / 86400;
+      const totalDays = 30;
+      const unusedRatio = Math.min(remainingDays / totalDays, 1);
+      // Bonus is based on unused subscription VALUE, converted to new plan credits
+      const oldPlanPrice = currentPlanConfig?.monthlyPrice || 0;
+      const newPlanPrice = plan.monthlyPrice;
+      if (newPlanPrice > 0) {
+        bonusCredits = Math.floor((unusedRatio * oldPlanPrice / newPlanPrice) * credits);
       }
     }
 
