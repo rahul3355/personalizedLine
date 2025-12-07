@@ -45,7 +45,7 @@ export function UpgradeConfirmModal({
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
-                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
+                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[10000]"
                     />
 
                     {/* Modal */}
@@ -54,7 +54,7 @@ export function UpgradeConfirmModal({
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
                         transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
-                        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md"
+                        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[10000] w-full max-w-md"
                     >
                         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-neutral-200">
                             {/* Header */}
@@ -210,7 +210,7 @@ export function ResultModal({
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
-                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
+                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[10000]"
                     />
 
                     {/* Modal */}
@@ -219,7 +219,7 @@ export function ResultModal({
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
                         transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
-                        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-sm"
+                        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[10000] w-full max-w-sm"
                     >
                         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-neutral-200">
                             {/* Icon */}
@@ -229,8 +229,8 @@ export function ResultModal({
                                     animate={{ scale: 1 }}
                                     transition={{ type: "spring", delay: 0.1, duration: 0.5 }}
                                     className={`p-4 rounded-full ${isSuccess
-                                            ? "bg-green-100"
-                                            : "bg-red-100"
+                                        ? "bg-green-100"
+                                        : "bg-red-100"
                                         }`}
                                 >
                                     {isSuccess ? (
@@ -283,8 +283,8 @@ export function ResultModal({
                                 <button
                                     onClick={onClose}
                                     className={`w-full px-4 py-3 rounded-xl font-medium transition-colors ${isSuccess
-                                            ? "bg-green-600 text-white hover:bg-green-700"
-                                            : "bg-neutral-900 text-white hover:bg-neutral-800"
+                                        ? "bg-green-600 text-white hover:bg-green-700"
+                                        : "bg-neutral-900 text-white hover:bg-neutral-800"
                                         }`}
                                 >
                                     {isSuccess ? "Continue" : "Try Again"}
