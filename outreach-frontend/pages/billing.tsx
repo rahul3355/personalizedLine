@@ -22,6 +22,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { TbHelpCircle } from "react-icons/tb";
+import { PiCoinsDuotone } from "react-icons/pi";
 import { Switch } from "@headlessui/react";
 
 import { useAuth } from "../lib/AuthProvider";
@@ -1069,11 +1070,11 @@ export default function BillingPage() {
                             className={`flex items-start gap-2 font-medium ${index === 2 ? "text-green-600" : ""}`}
                           >
                             {index === 0 ? (
-                              <CreditCard className="mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-900" />
+                              <PiCoinsDuotone className="mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-900" />
                             ) : index === 1 ? (
                               <Plus className="h-4 w-4 mt-0.5 flex-shrink-0 text-neutral-900" />
                             ) : index === 2 ? (
-                              <Sparkles className="h-4 w-4 mt-0.5 flex-shrink-0 text-green-600" />
+                              <PiCoinsDuotone className="h-4 w-4 mt-0.5 flex-shrink-0 text-green-500" style={{ color: '#22c55e' }} />
                             ) : null}
                             <div className="flex flex-col">
                               <span className="flex items-center gap-2">
