@@ -461,57 +461,49 @@ export default function BillingPage() {
     }
   };
 
-  // Show upgrade confirmation modal
-  const showUpgradeConfirmation = (planId: string, isAnnual: boolean = false) => {
-    console.log("[DEBUG] showUpgradeConfirmation called", { planId, isAnnual, subscriptionInfo });
+  // Show upgrade confirmation modal - calls backend for exact values
+  const showUpgradeConfirmation = async (planId: string, isAnnual: boolean = false) => {
+    if (!session) return;
 
-    const plan = planConfigurations.find(p => p.id === planId);
-    if (!plan) {
-      console.log("[DEBUG] Plan not found:", planId);
-      return;
-    }
+    const targetPlan = isAnnual ? `${planId}_annual` : planId;
+    console.log("[DEBUG] showUpgradeConfirmation called", { planId, isAnnual, targetPlan });
 
-    const price = isAnnual ? plan.yearlyPrice : plan.monthlyPrice;
-    const credits = isAnnual ? plan.monthlyCredits * 12 : plan.monthlyCredits;
+    // Show loading state
+    setLoadingAction(`preview-${planId}`);
 
-    // Estimate bonus credits = user's current remaining credits (prorated value from old subscription)
-    // This is approximate - actual bonus is calculated server-side based on unused subscription value
-    const currentCreditsRemaining = subscriptionInfo?.credits_remaining || 0;
-    // Backend calculates bonus based on: (remaining_days / total_days) * old_plan_price / new_plan_price * new_plan_credits
-    // For simplicity, we estimate: you keep roughly your current credits proportionally
-    const currentPlanConfig = planConfigurations.find(
-      p => p.id === (subscriptionInfo?.plan_type || "free")
-    );
-    const oldPlanCredits = currentPlanConfig?.monthlyCredits || 0;
+    try {
+      // Call backend to get exact preview values
+      const res = await fetch(`${API_URL}/subscription/upgrade/preview?plan=${targetPlan}`, {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
 
-    // Estimated bonus: proportional to remaining credits vs old plan total
-    let bonusCredits = 0;
-    if (oldPlanCredits > 0 && subscriptionInfo?.current_period_end) {
-      const now = Date.now() / 1000;
-      const periodEnd = subscriptionInfo.current_period_end;
-      const remainingSeconds = Math.max(0, periodEnd - now);
-      const remainingDays = remainingSeconds / 86400;
-      const totalDays = 30;
-      const unusedRatio = Math.min(remainingDays / totalDays, 1);
-      // Bonus is based on unused subscription VALUE, converted to new plan credits
-      const oldPlanPrice = currentPlanConfig?.monthlyPrice || 0;
-      const newPlanPrice = plan.monthlyPrice;
-      if (newPlanPrice > 0) {
-        bonusCredits = Math.floor((unusedRatio * oldPlanPrice / newPlanPrice) * credits);
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.detail || "Failed to load upgrade details");
+        setLoadingAction(null);
+        return;
       }
+
+      const preview = await res.json();
+      console.log("[DEBUG] Preview response", preview);
+
+      setUpgradeModal({
+        isOpen: true,
+        planId: targetPlan,
+        planName: planConfigurations.find(p => p.id === planId)?.name || planId,
+        price: preview.price,
+        credits: preview.new_plan_credits,
+        bonusCredits: preview.bonus_credits,
+        isAnnual,
+      });
+    } catch (err) {
+      console.error("Preview error:", err);
+      alert("Failed to load upgrade details. Please try again.");
+    } finally {
+      setLoadingAction(null);
     }
-
-    console.log("[DEBUG] Setting upgradeModal", { planId, planName: plan.name, price, credits, bonusCredits, isAnnual });
-
-    setUpgradeModal({
-      isOpen: true,
-      planId: isAnnual ? `${planId}_annual` : planId,
-      planName: plan.name,
-      price,
-      credits,
-      bonusCredits,
-      isAnnual,
-    });
   };
 
   // Execute the actual upgrade API call

@@ -1011,6 +1011,101 @@ def get_subscription_info(current_user: AuthenticatedUser = Depends(get_current_
 
     return subscription_info
 
+@app.get("/subscription/upgrade/preview")
+def preview_upgrade(
+    plan: str,
+    current_user: AuthenticatedUser = Depends(get_current_user)
+):
+    """
+    Preview an upgrade - returns exact bonus credits, total credits, and price
+    without performing the actual upgrade. Used to show accurate info in the UI.
+    """
+    from datetime import datetime
+    
+    supabase = get_supabase()
+    user_id = current_user.user_id
+
+    # Extract base plan name
+    base_plan = plan.replace("_annual", "").replace("_monthly", "")
+    
+    if base_plan not in CREDITS_MAP:
+        raise HTTPException(status_code=400, detail="Invalid plan")
+
+    # Get profile
+    profile_res = (
+        supabase.table("profiles")
+        .select("*")
+        .eq("id", user_id)
+        .single()
+        .execute()
+    )
+    
+    if not profile_res.data:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    profile = profile_res.data
+    current_plan = profile.get("plan_type", "free")
+    stripe_subscription_id = profile.get("stripe_subscription_id")
+    
+    base_current_plan = current_plan.replace("_annual", "").replace("_monthly", "")
+    base_new_plan = plan.replace("_annual", "").replace("_monthly", "")
+    
+    # Get plan prices and credits
+    base_monthly_price = PLAN_PRICES.get(base_new_plan, 0)
+    if plan.endswith("_annual"):
+        new_plan_price = int(base_monthly_price * 12 * 0.8)
+        new_plan_credits = CREDITS_MAP.get(base_new_plan, 0) * 12
+    else:
+        new_plan_price = base_monthly_price
+        new_plan_credits = CREDITS_MAP.get(base_new_plan, 0)
+    
+    old_plan_credits = CREDITS_MAP.get(base_current_plan, 0)
+    old_plan_price = PLAN_PRICES.get(base_current_plan, 0)
+    current_credits = profile.get("credits_remaining", 0)
+    
+    # Calculate bonus credits (same logic as upgrade endpoint)
+    bonus_credits = 0
+    if stripe_subscription_id and old_plan_price > 0:
+        try:
+            subscription = stripe.Subscription.retrieve(stripe_subscription_id)
+            sub_dict = dict(subscription)
+            period_start = sub_dict.get('current_period_start')
+            period_end = sub_dict.get('current_period_end')
+            
+            if not period_start or not period_end:
+                start_date = sub_dict.get('start_date') or sub_dict.get('created')
+                if start_date:
+                    now = datetime.utcnow().timestamp()
+                    days_since_start = (now - start_date) / 86400
+                    day_in_cycle = days_since_start % 30
+                    remaining_days = 30 - day_in_cycle
+                    unused_ratio = remaining_days / 30
+                    bonus_credits = int(old_plan_credits * unused_ratio)
+                    bonus_credits = min(bonus_credits, new_plan_credits)
+            elif old_plan_price > 0:
+                now = datetime.utcnow().timestamp()
+                total_days = (period_end - period_start) / 86400
+                remaining_days = max(0, (period_end - now) / 86400)
+                if total_days > 0:
+                    unused_ratio = remaining_days / total_days
+                    bonus_credits = int(old_plan_credits * unused_ratio)
+                    bonus_credits = min(bonus_credits, new_plan_credits)
+        except Exception as e:
+            print(f"[PREVIEW] Bonus calculation error: {e}")
+
+    final_credits = new_plan_credits + bonus_credits
+
+    return {
+        "current_plan": current_plan,
+        "new_plan": plan,
+        "current_credits": current_credits,
+        "new_plan_credits": new_plan_credits,
+        "bonus_credits": bonus_credits,
+        "total_credits": final_credits,
+        "price": new_plan_price,
+        "billing_cycle": "annual" if plan.endswith("_annual") else "monthly"
+    }
+
 @app.post("/subscription/upgrade")
 def upgrade_subscription(
     plan: str,
