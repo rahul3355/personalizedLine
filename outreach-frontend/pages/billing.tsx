@@ -815,21 +815,17 @@ export default function BillingPage() {
                   const isUpgradePlan = !isCurrentPlan && !isCanceledPlan &&
                     plan.monthlyCredits > (plans.find(p => p.id === normalizedCurrentPlan)?.monthlyCredits ?? 0);
 
-                  // Show total credits with bonus if available, otherwise show base credits
-                  const displayCredits = isUpgradePlan && preview?.total_credits
-                    ? preview.total_credits
-                    : creditsForCycle;
+                  // Bonus credits (one-time upgrade bonus)
                   const bonusCredits = isUpgradePlan && preview?.bonus_credits || 0;
 
+                  // Always show original plan credits - bonus is a one-time upgrade bonus
                   const featureLabels = [
-                    bonusCredits > 0
-                      ? `${displayCredits.toLocaleString()} credits/${cycleUnit}`
-                      : `${creditsForCycle.toLocaleString()} credits/${cycleUnit}`,
+                    `${creditsForCycle.toLocaleString()} credits/${cycleUnit}`,
                     `$${plan.pricePerThousandCredits} per 1000 credits`,
                   ];
                   const featureDetails = [
                     bonusCredits > 0
-                      ? `incl. +${bonusCredits.toLocaleString()} bonus`
+                      ? `+${bonusCredits.toLocaleString()} bonus credits now`
                       : `${formatPerCredit(perCreditRate)} per credit`,
                     `${formatPerCredit(bulkPerCredit)} per credit`,
                   ];
