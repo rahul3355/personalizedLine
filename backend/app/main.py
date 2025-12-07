@@ -1018,7 +1018,16 @@ def upgrade_subscription(
 ):
     """
     Upgrade subscription to a higher plan.
-    Charges full new plan price and grants new plan credits.
+    
+    FLOW:
+    1. Validate plan and subscription
+    2. Check payment method exists FIRST
+    3. Check idempotency (not already processing)
+    4. Set processing flag
+    5. Create and PAY invoice FIRST (before modifying subscription)
+    6. ONLY if payment succeeds, modify subscription
+    7. Update profile only after payment + subscription both succeed
+    8. Clear processing flag
     """
     from datetime import datetime
     
@@ -1046,18 +1055,45 @@ def upgrade_subscription(
 
     profile = profile_res.data
     current_plan = profile.get("plan_type", "free")
-    stripe_subscription_id = profile.get("stripe_subscription_id")  # Use stored subscription ID
+    stripe_subscription_id = profile.get("stripe_subscription_id")
     stripe_customer_id = profile.get("stripe_customer_id")
+
+    # ============================================================
+    # STEP 1: IDEMPOTENCY CHECK - prevent double-processing
+    # ============================================================
+    if profile.get("upgrade_in_progress"):
+        raise HTTPException(
+            status_code=409, 
+            detail="An upgrade is already being processed. Please wait a moment and try again."
+        )
 
     if not stripe_subscription_id:
         raise HTTPException(status_code=400, detail="No active subscription found. Please subscribe to a plan first.")
 
-    # Verify subscription is active in Stripe
+    # ============================================================
+    # STEP 2: VALIDATE PAYMENT METHOD FIRST (before any mutations)
+    # ============================================================
+    customer = stripe.Customer.retrieve(stripe_customer_id)
+    default_pm = customer.get("invoice_settings", {}).get("default_payment_method")
+    if not default_pm:
+        # Fallback: get first payment method attached to customer
+        payment_methods = stripe.PaymentMethod.list(customer=stripe_customer_id, type="card", limit=1)
+        if payment_methods.data:
+            default_pm = payment_methods.data[0].id
+
+    if not default_pm:
+        raise HTTPException(
+            status_code=400, 
+            detail="No payment method on file. Please add a payment method before upgrading."
+        )
+
+    # ============================================================
+    # STEP 3: VALIDATE SUBSCRIPTION STATUS
+    # ============================================================
     try:
         stripe_sub = stripe.Subscription.retrieve(stripe_subscription_id)
         sub_status = stripe_sub.get("status")
         if sub_status in ["canceled", "incomplete_expired"]:
-            # Clear the stale subscription ID from profile
             supabase.table("profiles").update({
                 "stripe_subscription_id": None,
                 "subscription_status": "canceled",
@@ -1072,7 +1108,6 @@ def upgrade_subscription(
                 detail=f"Cannot upgrade: subscription status is '{sub_status}'. Please contact support."
             )
     except stripe.error.InvalidRequestError:
-        # Subscription doesn't exist in Stripe
         supabase.table("profiles").update({
             "stripe_subscription_id": None,
         }).eq("id", user_id).execute()
@@ -1081,32 +1116,32 @@ def upgrade_subscription(
             detail="Subscription not found. Please subscribe to a new plan."
         )
 
-    # Extract base plan names (without _annual suffix)
+    # ============================================================
+    # STEP 4: VALIDATE UPGRADE DIRECTION
+    # ============================================================
     base_current_plan = current_plan.replace("_annual", "").replace("_monthly", "")
     base_new_plan = plan.replace("_annual", "").replace("_monthly", "")
     is_annual_switch = plan.endswith("_annual") and not current_plan.endswith("_annual")
     
-    # Block annual→monthly switch (that's a downgrade effectively)
+    # Block annual→monthly switch
     if current_plan.endswith("_annual") and not plan.endswith("_annual"):
         raise HTTPException(
             status_code=400,
             detail="Please cancel your annual plan to switch to monthly billing."
         )
 
-    # Allow monthly→annual for same plan (this is what "Switch to Annual" does)
-    # For different plans, compare credits
     current_plan_credits = CREDITS_MAP.get(base_current_plan, 0)
     new_plan_credits = CREDITS_MAP.get(base_new_plan, 0)
 
-    # Block actual downgrades (switching to a lower tier plan)
+    # Block downgrades
     if new_plan_credits < current_plan_credits:
         raise HTTPException(status_code=400, detail="Downgrades are not supported.")
     
-    # If same credits but not an annual switch, it's the same plan (no action needed)
+    # Block same plan (unless annual switch)
     if new_plan_credits == current_plan_credits and not is_annual_switch:
         raise HTTPException(status_code=400, detail="You're already on this plan.")
 
-    # Get new price ID - check annual map first if _annual suffix
+    # Get new price ID
     if plan.endswith("_annual"):
         new_price_id = PLAN_PRICE_MAP_ANNUAL.get(plan)
     else:
@@ -1115,10 +1150,9 @@ def upgrade_subscription(
     if not new_price_id:
         raise HTTPException(status_code=400, detail="Plan price not configured")
 
-    # Calculate prices and credits using BASE plan names
+    # Calculate price
     base_monthly_price = PLAN_PRICES.get(base_new_plan, 0)
     if plan.endswith("_annual"):
-        # Annual price is 12 months * monthly * 80% (20% discount)
         new_plan_price = int(base_monthly_price * 12 * 0.8)
     else:
         new_plan_price = base_monthly_price
@@ -1126,40 +1160,45 @@ def upgrade_subscription(
     old_plan_price = PLAN_PRICES.get(base_current_plan, 0)
     old_plan_credits = CREDITS_MAP.get(base_current_plan, 0)
     
-    # For annual, multiply credits by 12 (full year upfront)
+    # For annual, multiply credits by 12
     if plan.endswith("_annual"):
         new_plan_credits = new_plan_credits * 12
 
+    # ============================================================
+    # STEP 5: SET PROCESSING FLAG (idempotency)
+    # ============================================================
+    supabase.table("profiles").update({
+        "upgrade_in_progress": True
+    }).eq("id", user_id).execute()
+    print(f"[UPGRADE] Processing flag set for user {user_id}")
+
     try:
-        # Step 1: Get subscription item
+        # Get subscription item
         items = stripe.SubscriptionItem.list(subscription=stripe_subscription_id, limit=1)
         if not items.data:
             raise HTTPException(status_code=400, detail="No subscription items found")
         item_id = items.data[0].id
 
-        # Step 2: Calculate bonus credits (unused time on old plan)
+        # Calculate bonus credits
         bonus_credits = 0
         try:
             subscription = stripe.Subscription.retrieve(stripe_subscription_id)
             sub_dict = dict(subscription)
-            
             period_start = sub_dict.get('current_period_start')
             period_end = sub_dict.get('current_period_end')
             
-            # Fallback for test clocks: use start_date + 30-day billing cycle
             if not period_start or not period_end:
                 start_date = sub_dict.get('start_date') or sub_dict.get('created')
                 if start_date and old_plan_price > 0:
                     now = datetime.utcnow().timestamp()
                     days_since_start = (now - start_date) / 86400
-                    day_in_cycle = days_since_start % 30  # Assume 30-day cycle
+                    day_in_cycle = days_since_start % 30
                     remaining_days = 30 - day_in_cycle
                     unused_ratio = remaining_days / 30
                     bonus_credits = int(old_plan_credits * unused_ratio)
                     bonus_credits = min(bonus_credits, new_plan_credits)
                     print(f"[UPGRADE] Bonus (via start_date): {remaining_days:.1f}/30 days = {bonus_credits} credits")
             elif old_plan_price > 0:
-                # Real subscription with period dates
                 now = datetime.utcnow().timestamp()
                 total_days = (period_end - period_start) / 86400
                 remaining_days = max(0, (period_end - now) / 86400)
@@ -1174,52 +1213,108 @@ def upgrade_subscription(
         final_credits = new_plan_credits + bonus_credits
         print(f"[UPGRADE] {current_plan}→{plan}: base={new_plan_credits}, bonus={bonus_credits}, total={final_credits}")
 
-        # Step 3: Modify subscription FIRST (before charging, so we can fail safely)
-        stripe.Subscription.modify(
-            stripe_subscription_id,
-            items=[{"id": item_id, "price": new_price_id}],
-            proration_behavior="none",
-            metadata={
-                "user_id": user_id,
-                "upgrade_from": current_plan,
-                "upgrade_to": plan,
-            }
-        )
-        print(f"[UPGRADE] Subscription modified: {current_plan}→{plan}")
-
-        # Step 4: Create invoice FIRST (as draft), then add item to it
+        # ============================================================
+        # STEP 6: CHARGE FIRST (before modifying subscription!)
+        # ============================================================
         invoice = stripe.Invoice.create(
             customer=stripe_customer_id,
-            auto_advance=False,  # Don't auto-advance, we'll finalize manually
+            auto_advance=False,
         )
         
-        # Step 5: Create invoice item attached to this specific invoice
         stripe.InvoiceItem.create(
             customer=stripe_customer_id,
-            invoice=invoice.id,  # CRITICAL: Attach to our invoice so it's not left pending!
-            amount=int(new_plan_price * 100),  # Convert to cents
+            invoice=invoice.id,
+            amount=int(new_plan_price * 100),
             currency="usd",
             description=f"Upgrade to {plan.capitalize()} Plan"
         )
         
-        # Step 6: Finalize and pay the invoice
         invoice = stripe.Invoice.finalize_invoice(invoice.id)
-        if invoice.status == "open":
-            invoice = stripe.Invoice.pay(invoice.id)
+        print(f"[UPGRADE] Invoice {invoice.id} created and finalized, amount: ${new_plan_price}")
         
-        # Final check
+        # Try to pay the invoice
+        try:
+            invoice = stripe.Invoice.pay(invoice.id, payment_method=default_pm)
+            print(f"[UPGRADE] Invoice {invoice.id} payment attempted, status: {invoice.status}")
+        except stripe.error.StripeError as payment_error:
+            # Payment failed - void invoice, clear flag, return error
+            print(f"[UPGRADE] Payment failed: {payment_error}")
+            try:
+                stripe.Invoice.void_invoice(invoice.id)
+            except:
+                pass  # Invoice might already be voided or uncollectible
+            
+            # Clear processing flag
+            supabase.table("profiles").update({
+                "upgrade_in_progress": False
+            }).eq("id", user_id).execute()
+            
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Payment failed: {str(payment_error)}"
+            )
+        
+        # Verify payment succeeded
         invoice = stripe.Invoice.retrieve(invoice.id)
         if invoice.status != "paid":
-            print(f"[UPGRADE] Payment failed, invoice status: {invoice.status}")
-            # Subscription already modified, but payment failed - log this
-            # In production, you might want to revert the subscription or mark as pending
+            print(f"[UPGRADE] Invoice not paid, status: {invoice.status}")
+            # Try to void the invoice
+            try:
+                stripe.Invoice.void_invoice(invoice.id)
+            except:
+                pass
+            
+            # Clear processing flag
+            supabase.table("profiles").update({
+                "upgrade_in_progress": False
+            }).eq("id", user_id).execute()
+            
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Payment was not successful. Please try again or use a different payment method."
+            )
         
-        print(f"[UPGRADE] Invoice {invoice.id} status: {invoice.status}, amount: ${new_plan_price}")
+        print(f"[UPGRADE] Payment successful! Invoice {invoice.id} paid.")
 
-        # Step 6: Update profile with new plan and credits
-        # Determine billing frequency from plan name
+        # ============================================================
+        # STEP 7: PAYMENT SUCCEEDED - NOW MODIFY SUBSCRIPTION
+        # ============================================================
+        try:
+            stripe.Subscription.modify(
+                stripe_subscription_id,
+                items=[{"id": item_id, "price": new_price_id}],
+                proration_behavior="none",
+                metadata={
+                    "user_id": user_id,
+                    "upgrade_from": current_plan,
+                    "upgrade_to": plan,
+                }
+            )
+            print(f"[UPGRADE] Subscription modified: {current_plan}→{plan}")
+        except stripe.error.StripeError as sub_error:
+            # Subscription modification failed after payment - REFUND
+            print(f"[UPGRADE] Subscription modify failed after payment: {sub_error}")
+            try:
+                if invoice.payment_intent:
+                    stripe.Refund.create(payment_intent=invoice.payment_intent)
+                    print(f"[UPGRADE] Refunded payment_intent {invoice.payment_intent}")
+            except Exception as refund_error:
+                print(f"[UPGRADE] Refund failed: {refund_error}")
+            
+            # Clear processing flag
+            supabase.table("profiles").update({
+                "upgrade_in_progress": False
+            }).eq("id", user_id).execute()
+            
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Failed to update subscription after payment. Your payment has been refunded. Error: {str(sub_error)}"
+            )
+
+        # ============================================================
+        # STEP 8: BOTH PAYMENT AND SUBSCRIPTION SUCCEEDED - UPDATE PROFILE
+        # ============================================================
         new_billing_frequency = "annual" if plan.endswith("_annual") else "monthly"
-        # Store base plan name without _annual/_monthly suffix
         stored_plan_type = base_new_plan
         
         supabase.table("profiles").update({
@@ -1227,9 +1322,13 @@ def upgrade_subscription(
             "billing_frequency": new_billing_frequency,
             "credits_remaining": final_credits,
             "subscription_status": "active",
+            "pending_downgrade": None,  # Clear any pending downgrade
+            "pending_downgrade_effective_date": None,
+            "upgrade_in_progress": False,  # Clear processing flag
         }).eq("id", user_id).execute()
+        print(f"[UPGRADE] Profile updated: plan={stored_plan_type}, credits={final_credits}, frequency={new_billing_frequency}")
 
-        # Step 7: Add ledger entry
+        # Add ledger entry
         supabase.table("ledger").insert({
             "user_id": user_id,
             "change": final_credits,
@@ -1249,9 +1348,23 @@ def upgrade_subscription(
             "amount_charged": new_plan_price,
         }
 
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
     except stripe.error.StripeError as e:
         print(f"[UPGRADE] Stripe error: {e}")
+        # Clear processing flag on any Stripe error
+        supabase.table("profiles").update({
+            "upgrade_in_progress": False
+        }).eq("id", user_id).execute()
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        print(f"[UPGRADE] Unexpected error: {e}")
+        # Clear processing flag on any error
+        supabase.table("profiles").update({
+            "upgrade_in_progress": False
+        }).eq("id", user_id).execute()
+        raise HTTPException(status_code=500, detail="An unexpected error occurred. Please try again.")
 
 @app.post("/subscription/downgrade")
 def downgrade_subscription(
