@@ -321,6 +321,14 @@ export default function BillingPage() {
     details?: { plan?: string; credits?: number; amountCharged?: number };
   } | null>(null);
 
+  // Upgrade previews for each plan (shows total credits on cards)
+  const [upgradePreviews, setUpgradePreviews] = useState<Record<string, {
+    total_credits: number;
+    bonus_credits: number;
+    new_plan_credits: number;
+    price: number;
+  }>>({});
+
   const closeBilling = () => {
     if (window.history.length > 1) {
       router.back();
@@ -364,6 +372,52 @@ export default function BillingPage() {
       setLoadingSubscription(false);
     }
   };
+
+  // Fetch upgrade previews for all plans (to show total credits on cards)
+  const fetchUpgradePreviews = async () => {
+    if (!session || !subscriptionInfo) return;
+
+    const plans = ["starter", "growth", "pro"];
+    const previews: Record<string, any> = {};
+
+    for (const planId of plans) {
+      // Skip current plan and lower plans
+      const currentPlanCredits = PRICING[subscriptionInfo.plan_type as keyof typeof PRICING]?.credits || 0;
+      const planCredits = PRICING[planId as keyof typeof PRICING]?.credits || 0;
+      if (planCredits <= currentPlanCredits) continue;
+
+      try {
+        // Fetch for both monthly and annual versions
+        const isAnnual = billingCycle === "yearly";
+        const targetPlan = isAnnual ? `${planId}_annual` : planId;
+
+        const res = await fetch(`${API_URL}/subscription/upgrade/preview?plan=${targetPlan}`, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          previews[planId] = {
+            total_credits: data.total_credits,
+            bonus_credits: data.bonus_credits,
+            new_plan_credits: data.new_plan_credits,
+            price: data.price,
+          };
+        }
+      } catch (err) {
+        console.error(`Failed to fetch preview for ${planId}:`, err);
+      }
+    }
+
+    setUpgradePreviews(previews);
+  };
+
+  // Fetch previews when subscription info changes or billing cycle changes
+  useEffect(() => {
+    if (subscriptionInfo && session) {
+      fetchUpgradePreviews();
+    }
+  }, [subscriptionInfo, billingCycle, session]);
 
   useEffect(() => {
     const { body } = document;
@@ -755,12 +809,28 @@ export default function BillingPage() {
                   const cycleUnit = isYearly ? "year" : "month";
                   const cycleDescriptor = isYearly ? "yearly plan" : "monthly plan";
                   const savingsText = plan.yearlySavings ?? "";
+
+                  // Check if we have preview data for this plan (shows total credits with bonus)
+                  const preview = upgradePreviews[plan.id];
+                  const isUpgradePlan = !isCurrentPlan && !isCanceledPlan &&
+                    plan.monthlyCredits > (plans.find(p => p.id === normalizedCurrentPlan)?.monthlyCredits ?? 0);
+
+                  // Show total credits with bonus if available, otherwise show base credits
+                  const displayCredits = isUpgradePlan && preview?.total_credits
+                    ? preview.total_credits
+                    : creditsForCycle;
+                  const bonusCredits = isUpgradePlan && preview?.bonus_credits || 0;
+
                   const featureLabels = [
-                    `${creditsForCycle.toLocaleString()} credits/${cycleUnit}`,
+                    bonusCredits > 0
+                      ? `${displayCredits.toLocaleString()} credits/${cycleUnit}`
+                      : `${creditsForCycle.toLocaleString()} credits/${cycleUnit}`,
                     `$${plan.pricePerThousandCredits} per 1000 credits`,
                   ];
                   const featureDetails = [
-                    `${formatPerCredit(perCreditRate)} per credit`,
+                    bonusCredits > 0
+                      ? `incl. +${bonusCredits.toLocaleString()} bonus`
+                      : `${formatPerCredit(perCreditRate)} per credit`,
                     `${formatPerCredit(bulkPerCredit)} per credit`,
                   ];
 
