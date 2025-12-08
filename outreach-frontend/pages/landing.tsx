@@ -548,7 +548,7 @@ export default function LandingPage() {
                 transition={{ duration: 0.5, delay: 0.1 }}
                 className="text-4xl sm:text-5xl lg:text-6xl font-medium text-gray-900 tracking-tight leading-[1.1] mb-6 font-serif"
               >
-                Personalized cold emails
+                Personalize Cold Emails
                 <br />
 
               </motion.h1>
@@ -577,7 +577,7 @@ export default function LandingPage() {
                   <button
                     onClick={handleGoogleLogin}
                     disabled={loading}
-                    className="flex items-center justify-center px-8 py-4 rounded-xl text-base font-medium text-white tracking-tight shadow-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center justify-center px-16 py-4 rounded-xl text-base font-medium text-white tracking-tight shadow-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{
                       background: loading ? "#D1D5DB" : "linear-gradient(#5a5a5a, #1c1c1c)",
                       fontFamily: '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
