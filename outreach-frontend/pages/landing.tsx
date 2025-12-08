@@ -384,41 +384,46 @@ export default function LandingPage() {
                 >
                   Log in
                 </Link>
-                <button
-                  onClick={handleGoogleLogin}
-                  disabled={loading}
-                  className="inline-flex items-center px-4 py-2 rounded-xl text-sm font-medium text-white transition-all duration-200 disabled:opacity-50"
-                  style={{
-                    background: "linear-gradient(#5a5a5a, #1c1c1c)",
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
-                  }}
-                >
-                  {loading ? (
-                    <span className="flex items-center">
-                      <svg
-                        className="animate-spin h-4 w-4 mr-2"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                      >
-                        <circle
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="3"
-                          strokeDasharray="31.4 31.4"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                      Loading...
-                    </span>
-                  ) : (
-                    <>
-                      Get Started Free
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </>
+                <div className="relative group">
+                  <button
+                    onClick={handleGoogleLogin}
+                    disabled={loading}
+                    className="flex items-center justify-center px-4 py-2 rounded-xl text-sm font-medium text-white tracking-tight transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      background: loading ? "#D1D5DB" : "linear-gradient(#5a5a5a, #1c1c1c)",
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
+                    }}
+                  >
+                    {loading ? (
+                      <>
+                        <svg
+                          className="animate-spin h-4 w-4 mr-2"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                        >
+                          <circle
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="white"
+                            strokeWidth="3"
+                            strokeDasharray="31.4 31.4"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        Signing in...
+                      </>
+                    ) : (
+                      <>
+                        <FcGoogle className="h-4 w-4 mr-2 rounded-full" />
+                        Sign in with Google
+                      </>
+                    )}
+                  </button>
+                  {!loading && (
+                    <div className="absolute -inset-1 rounded-xl border-2 border-dashed border-black opacity-0 transition-opacity duration-300 pointer-events-none group-hover:opacity-100"></div>
                   )}
-                </button>
+                </div>
               </div>
 
               {/* Mobile menu button */}
@@ -474,18 +479,46 @@ export default function LandingPage() {
                     >
                       Log in
                     </Link>
-                    <button
-                      onClick={handleGoogleLogin}
-                      disabled={loading}
-                      className="w-full mt-2 inline-flex items-center justify-center px-4 py-3 rounded-xl text-sm font-medium text-white"
-                      style={{
-                        background: "linear-gradient(#5a5a5a, #1c1c1c)",
-                        fontFamily: '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
-                      }}
-                    >
-                      Get Started Free
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </button>
+                    <div className="relative group w-full mt-2">
+                      <button
+                        onClick={handleGoogleLogin}
+                        disabled={loading}
+                        className="w-full flex items-center justify-center px-4 py-3 rounded-xl text-sm font-medium text-white tracking-tight transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{
+                          background: loading ? "#D1D5DB" : "linear-gradient(#5a5a5a, #1c1c1c)",
+                          fontFamily: '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
+                        }}
+                      >
+                        {loading ? (
+                          <>
+                            <svg
+                              className="animate-spin h-4 w-4 mr-2"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                            >
+                              <circle
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="white"
+                                strokeWidth="3"
+                                strokeDasharray="31.4 31.4"
+                                strokeLinecap="round"
+                              />
+                            </svg>
+                            Signing in...
+                          </>
+                        ) : (
+                          <>
+                            <FcGoogle className="h-4 w-4 mr-2 rounded-full" />
+                            Sign in with Google
+                          </>
+                        )}
+                      </button>
+                      {!loading && (
+                        <div className="absolute -inset-1 rounded-xl border-2 border-dashed border-black opacity-0 transition-opacity duration-300 pointer-events-none group-hover:opacity-100"></div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -502,10 +535,10 @@ export default function LandingPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="inline-flex items-center px-4 py-1.5 rounded-full bg-gray-100 text-gray-900 text-sm font-medium mb-8"
+                className="inline-flex items-center px-4 py-1.5 rounded-full bg-gray-100 text-gray-400 text-sm font-medium mb-8"
               >
-                <Sparkles className="h-4 w-4 mr-2" />
-                AI-Powered Email Personalization
+
+                Best-in-class personalization
               </motion.div>
 
               {/* Headline */}
@@ -517,19 +550,20 @@ export default function LandingPage() {
               >
                 Personalized cold emails
                 <br />
-                <span className="text-gray-900">at scale</span>
+
               </motion.h1>
+              <br></br>
 
               {/* Subheadline */}
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
-                className="text-xl text-gray-600 max-w-2xl mx-auto mb-10 leading-relaxed"
+                className="text-lg text-gray-600 max-w-2xl mx-auto mb-10 leading-relaxed"
               >
-                Upload your prospect list. Our AI researches each person and
-                generates unique, human-sounding email openers that actually get
-                replies.
+                Upload your lead list. Our AI Agent researches each person and
+                generates well-researched, sincere email and personalized opener that actually get
+                replies
               </motion.p>
 
               {/* CTA Buttons */}
@@ -537,25 +571,48 @@ export default function LandingPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
-                className="flex flex-col sm:flex-row items-center justify-center gap-4"
+                className="flex flex-col items-center justify-center"
               >
-                <button
-                  onClick={handleGoogleLogin}
-                  disabled={loading}
-                  className="group relative inline-flex items-center px-8 py-4 rounded-xl text-base font-semibold text-white transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
-                  style={{
-                    background: "linear-gradient(#5a5a5a, #1c1c1c)",
-                    boxShadow: "0 4px 14px rgba(0, 0, 0, 0.15)",
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
-                  }}
-                >
-                  <FcGoogle className="h-5 w-5 mr-3 bg-white rounded-full p-0.5" />
-                  Start Free with Google
-                  <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
-                </button>
-                <span className="text-sm text-gray-500">
-                  500 free credits, no card required
-                </span>
+                <div className="relative group">
+                  <button
+                    onClick={handleGoogleLogin}
+                    disabled={loading}
+                    className="flex items-center justify-center px-8 py-4 rounded-xl text-base font-medium text-white tracking-tight shadow-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      background: loading ? "#D1D5DB" : "linear-gradient(#5a5a5a, #1c1c1c)",
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
+                    }}
+                  >
+                    {loading ? (
+                      <>
+                        <svg
+                          className="animate-spin h-5 w-5 mr-2"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                        >
+                          <circle
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="white"
+                            strokeWidth="3"
+                            strokeDasharray="31.4 31.4"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        Signing in...
+                      </>
+                    ) : (
+                      <>
+                        <FcGoogle className="h-5 w-5 mr-3 rounded-full" />
+                        Sign in with Google
+                      </>
+                    )}
+                  </button>
+                  {!loading && (
+                    <div className="absolute -inset-1 rounded-xl border-2 border-dashed border-black opacity-0 transition-opacity duration-300 pointer-events-none group-hover:opacity-100"></div>
+                  )}
+                </div>
               </motion.div>
 
               {/* Trust indicators */}
@@ -955,20 +1012,46 @@ export default function LandingPage() {
               Join thousands of sales professionals who've already made the
               switch to AI-powered personalization.
             </p>
-            <button
-              onClick={handleGoogleLogin}
-              disabled={loading}
-              className="group relative inline-flex items-center px-8 py-4 rounded-xl text-base font-semibold text-white transition-all duration-200 hover:scale-105 disabled:opacity-50"
-              style={{
-                background: "linear-gradient(#5a5a5a, #1c1c1c)",
-                boxShadow: "0 4px 14px rgba(0, 0, 0, 0.15)",
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
-              }}
-            >
-              <FcGoogle className="h-5 w-5 mr-3 bg-white rounded-full p-0.5" />
-              Get Started Free
-              <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
-            </button>
+            <div className="relative group inline-block">
+              <button
+                onClick={handleGoogleLogin}
+                disabled={loading}
+                className="flex items-center justify-center px-8 py-4 rounded-xl text-base font-medium text-white tracking-tight shadow-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  background: loading ? "#D1D5DB" : "linear-gradient(#5a5a5a, #1c1c1c)",
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
+                }}
+              >
+                {loading ? (
+                  <>
+                    <svg
+                      className="animate-spin h-5 w-5 mr-2"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="white"
+                        strokeWidth="3"
+                        strokeDasharray="31.4 31.4"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    Signing in...
+                  </>
+                ) : (
+                  <>
+                    <FcGoogle className="h-5 w-5 mr-3 rounded-full" />
+                    Sign in with Google
+                  </>
+                )}
+              </button>
+              {!loading && (
+                <div className="absolute -inset-1 rounded-xl border-2 border-dashed border-black opacity-0 transition-opacity duration-300 pointer-events-none group-hover:opacity-100"></div>
+              )}
+            </div>
             <p className="mt-4 text-sm text-gray-500">
               500 free credits to start. No credit card required.
             </p>
