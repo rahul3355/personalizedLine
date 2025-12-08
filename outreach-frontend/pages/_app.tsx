@@ -20,10 +20,28 @@ interface LayoutProps {
   pageProps: AppProps["pageProps"];
 }
 
+// Public routes that don't require authentication
+const PUBLIC_ROUTES = [
+  "/",
+  "/login",
+  "/landing",
+  "/features",
+  "/pricing",
+  "/about",
+  "/terms",
+  "/privacy",
+  "/cookies",
+  "/gdpr",
+  "/billing/success",
+];
+
 function Layout({ Component, pageProps }: LayoutProps) {
   const { session, loading } = useAuth();
   const router = useRouter();
   const [pageLoading, setPageLoading] = useState(false);
+
+  // Check if current route is public
+  const isPublicRoute = PUBLIC_ROUTES.includes(router.pathname);
 
   useEffect(() => {
     const handleStart = (_url: string, { shallow } = { shallow: false }) => {
@@ -45,10 +63,11 @@ function Layout({ Component, pageProps }: LayoutProps) {
   }, [router]);
 
   useEffect(() => {
-    if (!loading && !session && router.pathname !== "/login") {
+    // Only redirect to login for non-public routes when not authenticated
+    if (!loading && !session && !isPublicRoute) {
       router.push("/login");
     }
-  }, [session, loading, router]);
+  }, [session, loading, router, isPublicRoute]);
 
   // Block render until session is resolved
   if (loading) {
@@ -57,6 +76,9 @@ function Layout({ Component, pageProps }: LayoutProps) {
   const backgroundClassName = Component.backgroundClassName ?? "bg-[#F7F7F7]";
   const disableWhiteCard = Component.disableWhiteCard ?? false;
   const isLoginPage = router.pathname === "/login";
+
+  // For public pages (landing, features, pricing, about), render without app shell
+  const showAppShell = session && !isPublicRoute;
 
   const renderPage = () => {
     if (pageLoading) {
@@ -70,16 +92,25 @@ function Layout({ Component, pageProps }: LayoutProps) {
     return <Component {...pageProps} />;
   };
 
+  // For public routes without session, render the page directly without app shell
+  if (isPublicRoute && !session) {
+    return (
+      <div className={`min-h-screen ${backgroundClassName}`}>
+        {renderPage()}
+      </div>
+    );
+  }
+
   return (
     <div className={`min-h-screen flex ${backgroundClassName}`}>
-      {session && <Navbar />}
+      {showAppShell && <Navbar />}
       <main
-        className={`flex-1 flex flex-col transition-all duration-200 ${session ? `mt-16 px-0 ${disableWhiteCard ? "lg:pb-10" : "pb-10"}` : ""
+        className={`flex-1 flex flex-col transition-all duration-200 ${showAppShell ? `mt-16 px-0 ${disableWhiteCard ? "lg:pb-10" : "pb-10"}` : ""
           }`}
       >
         <div
           className={`flex min-h-0 flex-1 flex-col ${disableWhiteCard
-            ? `overflow-visible ml-0 mr-0 ${isLoginPage ? "" : "lg:ml-[108px]"}`
+            ? `overflow-visible ml-0 mr-0 ${isLoginPage || isPublicRoute ? "" : "lg:ml-[108px]"}`
             : "overflow-hidden rounded-[32px] bg-white shadow-sm ml-0 mr-4 lg:ml-[108px]"
             }`}
         >
