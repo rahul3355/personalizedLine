@@ -27,6 +27,7 @@ import {
 import { FcGoogle } from "react-icons/fc";
 
 import SendItFastLogo from "../assets/senditfast-logo.png";
+import BgBgImage from "../assets/bgbg1.png";
 import { useAuth } from "../lib/AuthProvider";
 import { supabase } from "../lib/supabaseClient";
 import Footer from "../components/Footer";
@@ -138,8 +139,8 @@ const useCases = [
 
 // Stats
 const stats = [
-  { value: "10x", label: "Faster than manual research" },
-  { value: "140%", label: "Higher response rates" },
+  { value: "30+", label: "Sources used for research" },
+  { value: "1.2M", label: "Emails used to fine-tune the AI model" },
   { value: "100K", label: "Prospects per upload" },
   { value: "500", label: "Free credits to start" },
 ];
@@ -527,8 +528,19 @@ export default function LandingPage() {
         </nav>
 
         {/* Hero Section */}
-        <section className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto">
+        <section className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8">
+          {/* Background Image */}
+          <div className="absolute inset-0 z-0">
+            <Image
+              src={BgBgImage}
+              alt="Background"
+              fill
+              style={{ objectFit: 'cover', objectPosition: 'center bottom' }}
+              priority
+              quality={100}
+            />
+          </div>
+          <div className="relative z-10 max-w-7xl mx-auto">
             <div className="text-center max-w-4xl mx-auto">
               {/* Badge */}
               <motion.div
@@ -562,8 +574,8 @@ export default function LandingPage() {
                 className="text-lg text-gray-600 max-w-2xl mx-auto mb-10 leading-relaxed"
               >
                 Upload your lead list. Our AI Agent researches each person and
-                generates well-researched, sincere email and personalized opener that actually get
-                replies
+                generates well-researched email and personalized opener that gets a
+                reply
               </motion.p>
 
               {/* CTA Buttons */}
@@ -623,16 +635,16 @@ export default function LandingPage() {
                 className="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm text-gray-400"
               >
                 <div className="flex items-center">
-                  <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
+                  <CheckCircle className="h-4 w-4 mr-2 text-gray-500" />
                   No credit card required
                 </div>
                 <div className="flex items-center">
-                  <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
-                  Export to any CRM
+                  <CheckCircle className="h-4 w-4 mr-2 text-gray-500" />
+                  Free 500 credits
                 </div>
                 <div className="flex items-center">
-                  <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
-                  GDPR compliant
+                  <CheckCircle className="h-4 w-4 mr-2 text-gray-500" />
+                  Bonus reward
                 </div>
               </motion.div>
             </div>
@@ -687,15 +699,14 @@ export default function LandingPage() {
                   <p className="flex items-start">
                     <X className="h-5 w-5 text-red-500 mr-3 mt-1 flex-shrink-0" />
                     <span>
-                      86% of buyers expect personalization - generic emails get
+                      Buyers expect personalization, templated email gets
                       ignored
                     </span>
                   </p>
                   <p className="flex items-start">
                     <X className="h-5 w-5 text-red-500 mr-3 mt-1 flex-shrink-0" />
                     <span>
-                      SDRs spend 12+ hours per week writing emails that don't
-                      convert
+                      Agencies spend money hiring third-world VAs that just aren't good enough
                     </span>
                   </p>
                 </div>
