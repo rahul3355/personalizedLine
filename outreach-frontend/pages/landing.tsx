@@ -652,7 +652,7 @@ export default function LandingPage() {
         </section>
 
         {/* Stats Section */}
-        <section className="py-16 bg-gray-50">
+        <section className="py-16 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
               {stats.map((stat, index) => (
@@ -664,7 +664,7 @@ export default function LandingPage() {
                   viewport={{ once: true }}
                   className="text-center"
                 >
-                  <div className="text-4xl sm:text-5xl font-medium text-gray-900 tracking-tight mb-2 font-serif">
+                  <div className="text-4xl sm:text-5xl font-medium text-gray-900 smb-2 font-mono">
                     {stat.value}
                   </div>
                   <div className="text-sm text-gray-600">{stat.label}</div>
@@ -675,76 +675,86 @@ export default function LandingPage() {
         </section>
 
         {/* Problem/Solution Section */}
-        <section className="py-24 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="grid lg:grid-cols-2 gap-16 items-center">
-              <div>
-                <h2 className="text-3xl sm:text-4xl font-medium text-gray-900 tracking-tight mb-6 font-serif">
+        <section className="py-32 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-6xl mx-auto">
+            <div className="grid lg:grid-cols-2 gap-8 items-stretch">
+              {/* Problem Card */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                viewport={{ once: true }}
+                className="bg-white border border-gray-100 rounded-2xl p-10 hover:shadow-lg hover:border-gray-200 transition-all duration-300"
+              >
+                <h2 className="text-2xl sm:text-3xl font-medium text-gray-900 tracking-tight mb-8 font-serif">
                   Cold email personalization is broken
                 </h2>
-                <div className="space-y-4 text-gray-600">
+                <div className="space-y-5 text-gray-600">
                   <p className="flex items-start">
-                    <X className="h-5 w-5 text-red-500 mr-3 mt-1 flex-shrink-0" />
-                    <span>
-                      Manual research takes hours per prospect - impossible to
-                      scale
+                    <X className="h-4 w-4 text-red-400 mr-3 mt-1 flex-shrink-0" />
+                    <span className="leading-relaxed">
+                      Manual research is impossible to scale
                     </span>
                   </p>
                   <p className="flex items-start">
-                    <X className="h-5 w-5 text-red-500 mr-3 mt-1 flex-shrink-0" />
-                    <span>
-                      Template tools produce generic, robotic-sounding emails
+                    <X className="h-4 w-4 text-red-400 mr-3 mt-1 flex-shrink-0" />
+                    <span className="leading-relaxed">
+                      Templates produce generic, bad marketing emails
                     </span>
                   </p>
                   <p className="flex items-start">
-                    <X className="h-5 w-5 text-red-500 mr-3 mt-1 flex-shrink-0" />
-                    <span>
-                      Buyers expect personalization, templated email gets
-                      ignored
+                    <X className="h-4 w-4 text-red-400 mr-3 mt-1 flex-shrink-0" />
+                    <span className="leading-relaxed">
+                      Buyers expect personalization, templated email gets ignored
                     </span>
                   </p>
                   <p className="flex items-start">
-                    <X className="h-5 w-5 text-red-500 mr-3 mt-1 flex-shrink-0" />
-                    <span>
-                      Agencies spend money hiring third-world VAs that just aren't good enough
+                    <X className="h-4 w-4 text-red-400 mr-3 mt-1 flex-shrink-0" />
+                    <span className="leading-relaxed">
+                      Agencies spend time behind third-world VAs that suck
                     </span>
                   </p>
                 </div>
-              </div>
-              <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-3xl p-8">
-                <h3 className="text-2xl font-medium text-gray-900 tracking-tight mb-6 font-serif">
+              </motion.div>
+
+              {/* Solution Card */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                viewport={{ once: true }}
+                className="bg-white border border-gray-100 rounded-2xl p-10 hover:shadow-lg hover:border-gray-200 transition-all duration-300"
+              >
+                <h3 className="text-2xl sm:text-3xl font-medium text-gray-900 tracking-tight mb-8 font-serif">
                   SendItFast changes everything
                 </h3>
-                <div className="space-y-4 text-gray-600">
+                <div className="space-y-5 text-gray-600">
                   <p className="flex items-start">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3 mt-1 flex-shrink-0" />
-                    <span>
-                      AI researches every prospect automatically - find real
-                      talking points
+                    <CheckCircle className="h-4 w-4 text-emerald-500 mr-3 mt-1 flex-shrink-0" />
+                    <span className="leading-relaxed">
+                      AI researches every prospect from 30+ sources, finds real signals
                     </span>
                   </p>
                   <p className="flex items-start">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3 mt-1 flex-shrink-0" />
-                    <span>
-                      Generate unique openers that sound like you actually did
-                      the work
+                    <CheckCircle className="h-4 w-4 text-emerald-500 mr-3 mt-1 flex-shrink-0" />
+                    <span className="leading-relaxed">
+                      Generate unique emails and openers that shows you did work
                     </span>
                   </p>
                   <p className="flex items-start">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3 mt-1 flex-shrink-0" />
-                    <span>
-                      Process thousands of prospects in minutes, not weeks
+                    <CheckCircle className="h-4 w-4 text-emerald-500 mr-3 mt-1 flex-shrink-0" />
+                    <span className="leading-relaxed">
+                      Process thousands of prospects in minutes
                     </span>
                   </p>
                   <p className="flex items-start">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3 mt-1 flex-shrink-0" />
-                    <span>
-                      2x higher reply rates compared to template-based
-                      approaches
+                    <CheckCircle className="h-4 w-4 text-emerald-500 mr-3 mt-1 flex-shrink-0" />
+                    <span className="leading-relaxed">
+                      Way higher reply rates compared to templates
                     </span>
                   </p>
                 </div>
-              </div>
+              </motion.div>
             </div>
           </div>
         </section>
