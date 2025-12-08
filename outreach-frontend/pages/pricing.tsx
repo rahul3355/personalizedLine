@@ -272,7 +272,7 @@ export default function PricingPage() {
                 </Link>
                 <Link
                   href="/pricing"
-                  className="text-[#4F55F1] text-sm font-medium"
+                  className="text-gray-900 font-semibold text-sm"
                 >
                   Pricing
                 </Link>
@@ -294,10 +294,10 @@ export default function PricingPage() {
                 <button
                   onClick={handleGoogleLogin}
                   disabled={loading}
-                  className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium text-white transition-all duration-200 disabled:opacity-50"
+                  className="inline-flex items-center px-4 py-2 rounded-xl text-sm font-medium text-white transition-all duration-200 disabled:opacity-50"
                   style={{
-                    background:
-                      "linear-gradient(135deg, #4F55F1 0%, #3D42D8 100%)",
+                    background: "linear-gradient(#5a5a5a, #1c1c1c)",
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
                   }}
                 >
                   Get Started Free
@@ -330,7 +330,7 @@ export default function PricingPage() {
                 </Link>
                 <Link
                   href="/pricing"
-                  className="block py-2 text-[#4F55F1] font-medium"
+                  className="block py-2 text-gray-900 font-semibold"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Pricing
@@ -345,10 +345,10 @@ export default function PricingPage() {
                 <div className="pt-3 border-t border-gray-100">
                   <button
                     onClick={handleGoogleLogin}
-                    className="w-full inline-flex items-center justify-center px-4 py-3 rounded-lg text-sm font-medium text-white"
+                    className="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl text-sm font-medium text-white"
                     style={{
-                      background:
-                        "linear-gradient(135deg, #4F55F1 0%, #3D42D8 100%)",
+                      background: "linear-gradient(#5a5a5a, #1c1c1c)",
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
                     }}
                   >
                     Get Started Free
@@ -366,7 +366,7 @@ export default function PricingPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 tracking-tight mb-6"
+              className="text-4xl sm:text-5xl lg:text-6xl font-medium text-gray-900 tracking-tight mb-6 font-serif"
             >
               Simple, transparent pricing
             </motion.h1>
@@ -389,29 +389,25 @@ export default function PricingPage() {
               className="flex items-center justify-center gap-4"
             >
               <span
-                className={`text-sm font-medium ${
-                  !annual ? "text-gray-900" : "text-gray-400"
-                }`}
+                className={`text-sm font-medium ${!annual ? "text-gray-900" : "text-gray-400"
+                  }`}
               >
                 Monthly
               </span>
               <Switch
                 checked={annual}
                 onChange={setAnnual}
-                className={`${
-                  annual ? "bg-[#4F55F1]" : "bg-gray-200"
-                } relative inline-flex h-6 w-11 items-center rounded-full transition-colors`}
+                className={`${annual ? "bg-gray-900" : "bg-gray-200"
+                  } relative inline-flex h-6 w-11 items-center rounded-full transition-colors`}
               >
                 <span
-                  className={`${
-                    annual ? "translate-x-6" : "translate-x-1"
-                  } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
+                  className={`${annual ? "translate-x-6" : "translate-x-1"
+                    } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
                 />
               </Switch>
               <span
-                className={`text-sm font-medium ${
-                  annual ? "text-gray-900" : "text-gray-400"
-                }`}
+                className={`text-sm font-medium ${annual ? "text-gray-900" : "text-gray-400"
+                  }`}
               >
                 Annual{" "}
                 <span className="text-green-500 font-semibold">
@@ -432,11 +428,10 @@ export default function PricingPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
-                  className={`relative rounded-2xl p-8 ${
-                    tier.popular
-                      ? "ring-2 ring-[#4F55F1] bg-white"
-                      : "bg-white border border-gray-100"
-                  }`}
+                  className={`relative rounded-2xl p-8 ${tier.popular
+                    ? "ring-2 ring-[#4F55F1] bg-white"
+                    : "bg-white border border-gray-100"
+                    }`}
                 >
                   {tier.popular && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-[#4F55F1] text-white text-xs font-medium rounded-full">
@@ -445,7 +440,7 @@ export default function PricingPage() {
                   )}
 
                   <div className="mb-6">
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">
+                    <h3 className="text-xl font-medium text-gray-900 tracking-tight mb-2 font-serif">
                       {tier.name}
                     </h3>
                     <p className="text-sm text-gray-500">{tier.description}</p>
@@ -474,11 +469,10 @@ export default function PricingPage() {
                   <button
                     onClick={handleGoogleLogin}
                     disabled={loading}
-                    className={`w-full py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-200 mb-6 ${
-                      tier.popular
-                        ? "bg-[#4F55F1] text-white hover:bg-[#3D42D8]"
-                        : "bg-gray-100 text-gray-900 hover:bg-gray-200"
-                    }`}
+                    className={`w-full py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-200 mb-6 ${tier.popular
+                      ? "bg-gray-900 text-white hover:bg-gray-800"
+                      : "bg-gray-100 text-gray-900 hover:bg-gray-200"
+                      }`}
                   >
                     {tier.cta}
                   </button>
@@ -506,7 +500,7 @@ export default function PricingPage() {
         {/* Enterprise CTA */}
         <section className="py-16 bg-gray-50 px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
+            <h2 className="text-2xl sm:text-3xl font-medium text-gray-900 tracking-tight mb-4 font-serif">
               Need more than 40,000 credits?
             </h2>
             <p className="text-gray-600 mb-8">
@@ -527,7 +521,7 @@ export default function PricingPage() {
         <section className="py-24 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              <h2 className="text-3xl sm:text-4xl font-medium text-gray-900 tracking-tight mb-4 font-serif">
                 Compare Plans
               </h2>
             </div>
@@ -542,9 +536,8 @@ export default function PricingPage() {
                     {tiers.map((tier) => (
                       <th
                         key={tier.id}
-                        className={`text-center py-4 px-4 font-semibold ${
-                          tier.popular ? "text-[#4F55F1]" : "text-gray-900"
-                        }`}
+                        className={`text-center py-4 px-4 font-semibold ${tier.popular ? "text-gray-900 font-bold" : "text-gray-900"
+                          }`}
                       >
                         {tier.name}
                       </th>
@@ -583,7 +576,7 @@ export default function PricingPage() {
         <section className="py-24 bg-gray-50 px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mx-auto">
             <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              <h2 className="text-3xl sm:text-4xl font-medium text-gray-900 tracking-tight mb-4 font-serif">
                 Frequently Asked Questions
               </h2>
             </div>
@@ -600,11 +593,10 @@ export default function PricingPage() {
                     }
                     className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
                   >
-                    <span className="font-medium text-gray-900">{faq.q}</span>
+                    <span className="font-bold text-gray-900">{faq.q}</span>
                     <HelpCircle
-                      className={`h-5 w-5 text-gray-400 transition-transform ${
-                        expandedFaq === index ? "rotate-180" : ""
-                      }`}
+                      className={`h-5 w-5 text-gray-400 transition-transform ${expandedFaq === index ? "rotate-180" : ""
+                        }`}
                     />
                   </button>
                   {expandedFaq === index && (
@@ -619,7 +611,7 @@ export default function PricingPage() {
         {/* Final CTA */}
         <section className="py-24 px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-6">
+            <h2 className="text-3xl sm:text-4xl font-medium text-gray-900 tracking-tight mb-6 font-serif">
               Ready to get started?
             </h2>
             <p className="text-xl text-gray-600 mb-10">
@@ -630,9 +622,9 @@ export default function PricingPage() {
               disabled={loading}
               className="inline-flex items-center px-8 py-4 rounded-xl text-base font-semibold text-white transition-all duration-200 hover:scale-105"
               style={{
-                background:
-                  "linear-gradient(135deg, #4F55F1 0%, #3D42D8 100%)",
-                boxShadow: "0 4px 14px rgba(79, 85, 241, 0.4)",
+                background: "linear-gradient(#5a5a5a, #1c1c1c)",
+                boxShadow: "0 4px 14px rgba(0, 0, 0, 0.15)",
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
               }}
             >
               <FcGoogle className="h-5 w-5 mr-3 bg-white rounded-full p-0.5" />

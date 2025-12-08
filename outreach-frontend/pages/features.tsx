@@ -299,7 +299,7 @@ export default function FeaturesPage() {
               <div className="hidden md:flex items-center space-x-8">
                 <Link
                   href="/features"
-                  className="text-[#4F55F1] text-sm font-medium"
+                  className="text-gray-900 font-semibold text-sm"
                 >
                   Features
                 </Link>
@@ -327,10 +327,10 @@ export default function FeaturesPage() {
                 <button
                   onClick={handleGoogleLogin}
                   disabled={loading}
-                  className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium text-white transition-all duration-200 disabled:opacity-50"
+                  className="inline-flex items-center px-4 py-2 rounded-xl text-sm font-bold text-white transition-all duration-200 disabled:opacity-50"
                   style={{
-                    background:
-                      "linear-gradient(135deg, #4F55F1 0%, #3D42D8 100%)",
+                    background: "linear-gradient(#5a5a5a, #1c1c1c)",
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
                   }}
                 >
                   Get Started Free
@@ -356,7 +356,7 @@ export default function FeaturesPage() {
               <div className="px-4 py-4 space-y-3">
                 <Link
                   href="/features"
-                  className="block py-2 text-[#4F55F1] font-medium"
+                  className="block py-2 text-gray-900 font-semibold"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Features
@@ -378,10 +378,10 @@ export default function FeaturesPage() {
                 <div className="pt-3 border-t border-gray-100">
                   <button
                     onClick={handleGoogleLogin}
-                    className="w-full inline-flex items-center justify-center px-4 py-3 rounded-lg text-sm font-medium text-white"
+                    className="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl text-sm font-bold text-white"
                     style={{
-                      background:
-                        "linear-gradient(135deg, #4F55F1 0%, #3D42D8 100%)",
+                      background: "linear-gradient(#5a5a5a, #1c1c1c)",
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
                     }}
                   >
                     Get Started Free
@@ -399,7 +399,7 @@ export default function FeaturesPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className="inline-flex items-center px-4 py-1.5 rounded-full bg-[#4F55F1]/10 text-[#4F55F1] text-sm font-medium mb-8"
+              className="inline-flex items-center px-4 py-1.5 rounded-full bg-gray-100 text-gray-900 text-sm font-medium mb-8"
             >
               <Sparkles className="h-4 w-4 mr-2" />
               Platform Features
@@ -409,11 +409,11 @@ export default function FeaturesPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 tracking-tight mb-6"
+              className="text-4xl sm:text-5xl lg:text-6xl font-medium text-gray-900 tracking-tight mb-6 font-serif"
             >
               Everything you need to
               <br />
-              <span className="text-[#4F55F1]">scale personalized outreach</span>
+              <span className="text-gray-900">scale personalized outreach</span>
             </motion.h1>
 
             <motion.p
@@ -432,7 +432,7 @@ export default function FeaturesPage() {
         <section className="py-24 bg-gray-50 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              <h2 className="text-3xl sm:text-4xl font-medium text-gray-900 tracking-tight mb-4 font-serif">
                 Core Features
               </h2>
               <p className="text-xl text-gray-600 max-w-2xl mx-auto">
@@ -449,15 +449,14 @@ export default function FeaturesPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5 }}
                   viewport={{ once: true }}
-                  className={`grid lg:grid-cols-2 gap-12 items-center ${
-                    index % 2 === 1 ? "lg:flex-row-reverse" : ""
-                  }`}
+                  className={`grid lg:grid-cols-2 gap-12 items-center ${index % 2 === 1 ? "lg:flex-row-reverse" : ""
+                    }`}
                 >
                   <div className={index % 2 === 1 ? "lg:order-2" : ""}>
-                    <div className="h-14 w-14 rounded-2xl bg-[#4F55F1]/10 flex items-center justify-center mb-6">
-                      <feature.icon className="h-7 w-7 text-[#4F55F1]" />
+                    <div className="h-14 w-14 rounded-2xl bg-gray-100 flex items-center justify-center mb-6">
+                      <feature.icon className="h-7 w-7 text-gray-700" />
                     </div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                    <h3 className="text-2xl font-medium text-gray-900 tracking-tight mb-4 font-serif">
                       {feature.title}
                     </h3>
                     <p className="text-gray-600 mb-6">{feature.description}</p>
@@ -471,11 +470,10 @@ export default function FeaturesPage() {
                     </ul>
                   </div>
                   <div
-                    className={`bg-gradient-to-br from-[#4F55F1]/5 to-[#4F55F1]/10 rounded-3xl p-8 h-80 flex items-center justify-center ${
-                      index % 2 === 1 ? "lg:order-1" : ""
-                    }`}
+                    className={`bg-gradient-to-br from-gray-50 to-gray-100 rounded-3xl p-8 h-80 flex items-center justify-center ${index % 2 === 1 ? "lg:order-1" : ""
+                      }`}
                   >
-                    <feature.icon className="h-32 w-32 text-[#4F55F1]/30" />
+                    <feature.icon className="h-32 w-32 text-gray-300" />
                   </div>
                 </motion.div>
               ))}
@@ -487,7 +485,7 @@ export default function FeaturesPage() {
         <section id="how-it-works" className="py-24 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              <h2 className="text-3xl sm:text-4xl font-medium text-gray-900 tracking-tight mb-4 font-serif">
                 How It Works
               </h2>
               <p className="text-xl text-gray-600 max-w-2xl mx-auto">
@@ -508,10 +506,10 @@ export default function FeaturesPage() {
                   <div className="grid md:grid-cols-2 gap-8 items-start">
                     <div>
                       <div className="flex items-center mb-4">
-                        <div className="h-12 w-12 rounded-full bg-[#4F55F1] text-white flex items-center justify-center font-bold text-xl mr-4">
+                        <div className="h-12 w-12 rounded-full bg-gray-900 text-white flex items-center justify-center font-bold text-xl mr-4">
                           {item.step}
                         </div>
-                        <h3 className="text-xl font-bold text-gray-900">
+                        <h3 className="text-xl font-medium text-gray-900 tracking-tight font-serif">
                           {item.title}
                         </h3>
                       </div>
@@ -520,7 +518,7 @@ export default function FeaturesPage() {
                     <ul className="space-y-3">
                       {item.details.map((detail, i) => (
                         <li key={i} className="flex items-start">
-                          <ChevronRight className="h-5 w-5 text-[#4F55F1] mr-2 mt-0.5 flex-shrink-0" />
+                          <ChevronRight className="h-5 w-5 text-gray-500 mr-2 mt-0.5 flex-shrink-0" />
                           <span className="text-gray-600">{detail}</span>
                         </li>
                       ))}
@@ -536,7 +534,7 @@ export default function FeaturesPage() {
         <section className="py-24 bg-gray-50 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              <h2 className="text-3xl sm:text-4xl font-medium text-gray-900 tracking-tight mb-4 font-serif">
                 Technical Specifications
               </h2>
               <p className="text-xl text-gray-600 max-w-2xl mx-auto">
@@ -554,10 +552,10 @@ export default function FeaturesPage() {
                   viewport={{ once: true }}
                   className="bg-white rounded-2xl p-6 text-center"
                 >
-                  <div className="h-12 w-12 rounded-xl bg-[#4F55F1]/10 flex items-center justify-center mx-auto mb-4">
-                    <spec.icon className="h-6 w-6 text-[#4F55F1]" />
+                  <div className="h-12 w-12 rounded-xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                    <spec.icon className="h-6 w-6 text-gray-700" />
                   </div>
-                  <div className="text-3xl font-bold text-[#4F55F1] mb-2">
+                  <div className="text-3xl font-bold text-gray-900 mb-2">
                     {spec.value}
                   </div>
                   <div className="font-semibold text-gray-900 mb-1">
@@ -574,7 +572,7 @@ export default function FeaturesPage() {
         <section className="py-24 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              <h2 className="text-3xl sm:text-4xl font-medium text-gray-900 tracking-tight mb-4 font-serif">
                 Works with Your Stack
               </h2>
               <p className="text-xl text-gray-600 max-w-2xl mx-auto">
@@ -601,9 +599,9 @@ export default function FeaturesPage() {
         </section>
 
         {/* CTA Section */}
-        <section className="py-24 bg-[#4F55F1] px-4 sm:px-6 lg:px-8">
+        <section className="py-24 bg-gray-900 px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
+            <h2 className="text-3xl sm:text-4xl font-medium text-white tracking-tight mb-6 font-serif">
               Ready to try SendItFast?
             </h2>
             <p className="text-xl text-white/80 mb-10 max-w-2xl mx-auto">
@@ -612,7 +610,7 @@ export default function FeaturesPage() {
             <button
               onClick={handleGoogleLogin}
               disabled={loading}
-              className="inline-flex items-center px-8 py-4 rounded-xl text-base font-semibold bg-white text-[#4F55F1] hover:bg-gray-100 transition-all duration-200"
+              className="inline-flex items-center px-8 py-4 rounded-xl text-base font-semibold bg-white text-gray-900 hover:bg-gray-100 transition-all duration-200"
             >
               <FcGoogle className="h-5 w-5 mr-3" />
               Get Started Free

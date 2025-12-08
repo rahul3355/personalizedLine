@@ -387,9 +387,10 @@ export default function LandingPage() {
                 <button
                   onClick={handleGoogleLogin}
                   disabled={loading}
-                  className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium text-white transition-all duration-200 disabled:opacity-50"
+                  className="inline-flex items-center px-4 py-2 rounded-xl text-sm font-medium text-white transition-all duration-200 disabled:opacity-50"
                   style={{
-                    background: "linear-gradient(135deg, #4F55F1 0%, #3D42D8 100%)",
+                    background: "linear-gradient(#5a5a5a, #1c1c1c)",
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
                   }}
                 >
                   {loading ? (
@@ -476,10 +477,10 @@ export default function LandingPage() {
                     <button
                       onClick={handleGoogleLogin}
                       disabled={loading}
-                      className="w-full mt-2 inline-flex items-center justify-center px-4 py-3 rounded-lg text-sm font-medium text-white"
+                      className="w-full mt-2 inline-flex items-center justify-center px-4 py-3 rounded-xl text-sm font-medium text-white"
                       style={{
-                        background:
-                          "linear-gradient(135deg, #4F55F1 0%, #3D42D8 100%)",
+                        background: "linear-gradient(#5a5a5a, #1c1c1c)",
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
                       }}
                     >
                       Get Started Free
@@ -501,7 +502,7 @@ export default function LandingPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="inline-flex items-center px-4 py-1.5 rounded-full bg-[#4F55F1]/10 text-[#4F55F1] text-sm font-medium mb-8"
+                className="inline-flex items-center px-4 py-1.5 rounded-full bg-gray-100 text-gray-900 text-sm font-medium mb-8"
               >
                 <Sparkles className="h-4 w-4 mr-2" />
                 AI-Powered Email Personalization
@@ -512,11 +513,11 @@ export default function LandingPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
-                className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 tracking-tight leading-[1.1] mb-6"
+                className="text-4xl sm:text-5xl lg:text-6xl font-medium text-gray-900 tracking-tight leading-[1.1] mb-6 font-serif"
               >
                 Personalized cold emails
                 <br />
-                <span className="text-[#4F55F1]">at scale</span>
+                <span className="text-gray-900">at scale</span>
               </motion.h1>
 
               {/* Subheadline */}
@@ -543,8 +544,9 @@ export default function LandingPage() {
                   disabled={loading}
                   className="group relative inline-flex items-center px-8 py-4 rounded-xl text-base font-semibold text-white transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
                   style={{
-                    background: "linear-gradient(135deg, #4F55F1 0%, #3D42D8 100%)",
-                    boxShadow: "0 4px 14px rgba(79, 85, 241, 0.4)",
+                    background: "linear-gradient(#5a5a5a, #1c1c1c)",
+                    boxShadow: "0 4px 14px rgba(0, 0, 0, 0.15)",
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
                   }}
                 >
                   <FcGoogle className="h-5 w-5 mr-3 bg-white rounded-full p-0.5" />
@@ -593,7 +595,7 @@ export default function LandingPage() {
                   viewport={{ once: true }}
                   className="text-center"
                 >
-                  <div className="text-4xl sm:text-5xl font-bold text-[#4F55F1] mb-2">
+                  <div className="text-4xl sm:text-5xl font-medium text-gray-900 tracking-tight mb-2 font-serif">
                     {stat.value}
                   </div>
                   <div className="text-sm text-gray-600">{stat.label}</div>
@@ -608,7 +610,7 @@ export default function LandingPage() {
           <div className="max-w-7xl mx-auto">
             <div className="grid lg:grid-cols-2 gap-16 items-center">
               <div>
-                <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-6">
+                <h2 className="text-3xl sm:text-4xl font-medium text-gray-900 tracking-tight mb-6 font-serif">
                   Cold email personalization is broken
                 </h2>
                 <div className="space-y-4 text-gray-600">
@@ -641,8 +643,8 @@ export default function LandingPage() {
                   </p>
                 </div>
               </div>
-              <div className="bg-gradient-to-br from-[#4F55F1]/5 to-[#4F55F1]/10 rounded-3xl p-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-6">
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-3xl p-8">
+                <h3 className="text-2xl font-medium text-gray-900 tracking-tight mb-6 font-serif">
                   SendItFast changes everything
                 </h3>
                 <div className="space-y-4 text-gray-600">
@@ -683,7 +685,7 @@ export default function LandingPage() {
         <section className="py-24 bg-gray-50 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              <h2 className="text-3xl sm:text-4xl font-medium text-gray-900 tracking-tight mb-4 font-serif">
                 How SendItFast works
               </h2>
               <p className="text-xl text-gray-600 max-w-2xl mx-auto">
@@ -702,15 +704,15 @@ export default function LandingPage() {
                   viewport={{ once: true }}
                   className="relative"
                 >
-                  <div className="text-6xl font-bold text-[#4F55F1]/10 mb-4">
+                  <div className="text-6xl font-bold text-gray-900/10 mb-4">
                     {step.number}
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  <h3 className="text-xl font-medium text-gray-900 tracking-tight mb-2 font-serif">
                     {step.title}
                   </h3>
                   <p className="text-gray-600">{step.description}</p>
                   {index < steps.length - 1 && (
-                    <ChevronRight className="hidden lg:block absolute top-8 -right-4 h-8 w-8 text-[#4F55F1]/30" />
+                    <ChevronRight className="hidden lg:block absolute top-8 -right-4 h-8 w-8 text-gray-400" />
                   )}
                 </motion.div>
               ))}
@@ -722,7 +724,7 @@ export default function LandingPage() {
         <section className="py-24 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              <h2 className="text-3xl sm:text-4xl font-medium text-gray-900 tracking-tight mb-4 font-serif">
                 Built for high-performing sales teams
               </h2>
               <p className="text-xl text-gray-600 max-w-2xl mx-auto">
@@ -738,12 +740,12 @@ export default function LandingPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                   viewport={{ once: true }}
-                  className="bg-white border border-gray-100 rounded-2xl p-8 hover:border-[#4F55F1]/30 hover:shadow-lg transition-all duration-300"
+                  className="bg-white border border-gray-100 rounded-2xl p-8 hover:border-gray-300 hover:shadow-lg transition-all duration-300"
                 >
-                  <div className="h-12 w-12 rounded-xl bg-[#4F55F1]/10 flex items-center justify-center mb-6">
-                    <feature.icon className="h-6 w-6 text-[#4F55F1]" />
+                  <div className="h-12 w-12 rounded-xl bg-gray-100 flex items-center justify-center mb-6">
+                    <feature.icon className="h-6 w-6 text-gray-700" />
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                  <h3 className="text-xl font-medium text-gray-900 tracking-tight mb-3 font-serif">
                     {feature.title}
                   </h3>
                   <p className="text-gray-600">{feature.description}</p>
@@ -757,7 +759,7 @@ export default function LandingPage() {
         <section className="py-24 bg-gray-50 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              <h2 className="text-3xl sm:text-4xl font-medium text-gray-900 tracking-tight mb-4 font-serif">
                 Who uses SendItFast
               </h2>
               <p className="text-xl text-gray-600 max-w-2xl mx-auto">
@@ -776,10 +778,10 @@ export default function LandingPage() {
                   viewport={{ once: true }}
                   className="bg-white rounded-2xl p-8 text-center"
                 >
-                  <div className="h-14 w-14 rounded-xl bg-[#4F55F1]/10 flex items-center justify-center mx-auto mb-6">
-                    <useCase.icon className="h-7 w-7 text-[#4F55F1]" />
+                  <div className="h-14 w-14 rounded-xl bg-gray-100 flex items-center justify-center mx-auto mb-6">
+                    <useCase.icon className="h-7 w-7 text-gray-700" />
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  <h3 className="text-lg font-medium text-gray-900 tracking-tight mb-2 font-serif">
                     {useCase.title}
                   </h3>
                   <p className="text-gray-600 text-sm">{useCase.description}</p>
@@ -793,7 +795,7 @@ export default function LandingPage() {
         <section className="py-24 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              <h2 className="text-3xl sm:text-4xl font-medium text-gray-900 tracking-tight mb-4 font-serif">
                 Loved by sales teams everywhere
               </h2>
             </div>
@@ -820,7 +822,7 @@ export default function LandingPage() {
                     "{testimonial.quote}"
                   </p>
                   <div className="flex items-center">
-                    <div className="h-10 w-10 rounded-full bg-[#4F55F1] flex items-center justify-center text-white font-medium mr-3">
+                    <div className="h-10 w-10 rounded-full bg-gray-900 flex items-center justify-center text-white font-medium mr-3">
                       {testimonial.avatar}
                     </div>
                     <div>
@@ -842,7 +844,7 @@ export default function LandingPage() {
         <section className="py-24 bg-gray-50 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              <h2 className="text-3xl sm:text-4xl font-medium text-gray-900 tracking-tight mb-4 font-serif">
                 Simple, transparent pricing
               </h2>
               <p className="text-xl text-gray-600 max-w-2xl mx-auto">
@@ -858,14 +860,13 @@ export default function LandingPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                   viewport={{ once: true }}
-                  className={`bg-white rounded-2xl p-8 ${
-                    plan.popular
-                      ? "ring-2 ring-[#4F55F1] relative"
-                      : "border border-gray-100"
-                  }`}
+                  className={`bg-white rounded-2xl p-8 ${plan.popular
+                    ? "ring-2 ring-gray-900 relative"
+                    : "border border-gray-100"
+                    }`}
                 >
                   {plan.popular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-[#4F55F1] text-white text-xs font-medium rounded-full">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gray-900 text-white text-xs font-medium rounded-full">
                       Popular
                     </div>
                   )}
@@ -889,7 +890,7 @@ export default function LandingPage() {
             <div className="text-center mt-10">
               <Link
                 href="/pricing"
-                className="inline-flex items-center text-[#4F55F1] font-medium hover:underline"
+                className="inline-flex items-center text-gray-700 font-medium hover:underline hover:text-gray-900"
               >
                 View full pricing details
                 <ArrowRight className="ml-2 h-4 w-4" />
@@ -902,7 +903,7 @@ export default function LandingPage() {
         <section className="py-24 px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mx-auto">
             <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              <h2 className="text-3xl sm:text-4xl font-medium text-gray-900 tracking-tight mb-4 font-serif">
                 Frequently asked questions
               </h2>
             </div>
@@ -921,9 +922,8 @@ export default function LandingPage() {
                   >
                     <span className="font-medium text-gray-900">{faq.q}</span>
                     <ChevronRight
-                      className={`h-5 w-5 text-gray-400 transition-transform ${
-                        expandedFaq === index ? "rotate-90" : ""
-                      }`}
+                      className={`h-5 w-5 text-gray-400 transition-transform ${expandedFaq === index ? "rotate-90" : ""
+                        }`}
                     />
                   </button>
                   <AnimatePresence>
@@ -948,7 +948,7 @@ export default function LandingPage() {
         {/* Final CTA Section */}
         <section className="py-24 px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-6">
+            <h2 className="text-3xl sm:text-4xl font-medium text-gray-900 tracking-tight mb-6 font-serif">
               Ready to scale your outreach?
             </h2>
             <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
@@ -960,8 +960,9 @@ export default function LandingPage() {
               disabled={loading}
               className="group relative inline-flex items-center px-8 py-4 rounded-xl text-base font-semibold text-white transition-all duration-200 hover:scale-105 disabled:opacity-50"
               style={{
-                background: "linear-gradient(135deg, #4F55F1 0%, #3D42D8 100%)",
-                boxShadow: "0 4px 14px rgba(79, 85, 241, 0.4)",
+                background: "linear-gradient(#5a5a5a, #1c1c1c)",
+                boxShadow: "0 4px 14px rgba(0, 0, 0, 0.15)",
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
               }}
             >
               <FcGoogle className="h-5 w-5 mr-3 bg-white rounded-full p-0.5" />
