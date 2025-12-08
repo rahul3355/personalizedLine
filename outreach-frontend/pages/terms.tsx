@@ -1,0 +1,168 @@
+import Head from "next/head";
+import Link from "next/link";
+import Image from "next/image";
+import { ArrowLeft } from "lucide-react";
+import SendItFastLogo from "../assets/senditfast-logo.png";
+import Footer from "../components/Footer";
+
+const SEO = {
+  title: "Terms of Service | SendItFast.ai",
+  description:
+    "Terms of Service for SendItFast.ai - AI-powered personalized cold email at scale. Read our terms and conditions.",
+  url: "https://senditfast.ai/terms",
+};
+
+export default function TermsPage() {
+  return (
+    <>
+      <Head>
+        <title>{SEO.title}</title>
+        <meta name="description" content={SEO.description} />
+        <meta name="robots" content="index, follow" />
+        <link rel="canonical" href={SEO.url} />
+      </Head>
+
+      <div className="min-h-screen bg-white">
+        {/* Navigation */}
+        <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <Link href="/" className="flex items-center">
+                <Image
+                  src={SendItFastLogo}
+                  alt="SendItFast.ai"
+                  width={120}
+                  height={28}
+                  priority
+                />
+              </Link>
+              <Link
+                href="/"
+                className="inline-flex items-center text-gray-600 hover:text-gray-900 text-sm font-medium"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Home
+              </Link>
+            </div>
+          </div>
+        </nav>
+
+        {/* Content */}
+        <div className="pt-32 pb-24 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-3xl mx-auto">
+            <h1 className="text-4xl font-bold text-gray-900 mb-8">
+              Terms of Service
+            </h1>
+            <p className="text-gray-500 mb-8">Last updated: December 8, 2024</p>
+
+            <div className="prose prose-gray max-w-none">
+              <h2>1. Acceptance of Terms</h2>
+              <p>
+                By accessing or using SendItFast.ai ("Service"), you agree to be
+                bound by these Terms of Service ("Terms"). If you do not agree
+                to these Terms, you may not use the Service.
+              </p>
+
+              <h2>2. Description of Service</h2>
+              <p>
+                SendItFast.ai is an AI-powered platform that researches
+                prospects and generates personalized cold email openers at
+                scale. Users upload CSV or Excel files containing prospect
+                information, and the Service generates personalized content
+                based on publicly available information.
+              </p>
+
+              <h2>3. Account Registration</h2>
+              <p>
+                To use the Service, you must create an account using Google
+                OAuth. You agree to provide accurate information and maintain
+                the security of your account. You are responsible for all
+                activities that occur under your account.
+              </p>
+
+              <h2>4. Acceptable Use</h2>
+              <p>You agree to use the Service only for lawful purposes. You may not:</p>
+              <ul>
+                <li>
+                  Use the Service to send spam or unsolicited commercial emails
+                </li>
+                <li>
+                  Upload data that you do not have the right to use
+                </li>
+                <li>
+                  Violate any applicable laws, including anti-spam laws (CAN-SPAM, GDPR, etc.)
+                </li>
+                <li>
+                  Attempt to reverse engineer or circumvent any security measures
+                </li>
+                <li>
+                  Use the Service to harass, abuse, or harm others
+                </li>
+              </ul>
+
+              <h2>5. Credits and Billing</h2>
+              <p>
+                The Service operates on a credit-based system. Credits are used
+                to process prospect data. Unused credits on Free and Starter
+                plans expire at the end of each billing cycle. Growth and Pro
+                plans include credit rollover as specified in the pricing page.
+              </p>
+
+              <h2>6. Data Processing</h2>
+              <p>
+                By uploading prospect data, you represent that you have the
+                legal right to use that data. The Service processes publicly
+                available information to generate personalized content. We do
+                not sell or share your prospect data with third parties.
+              </p>
+
+              <h2>7. Intellectual Property</h2>
+              <p>
+                You retain ownership of all data you upload to the Service. The
+                personalized content generated by the Service is owned by you.
+                SendItFast.ai retains ownership of the Service, including all
+                software, algorithms, and intellectual property.
+              </p>
+
+              <h2>8. Limitation of Liability</h2>
+              <p>
+                The Service is provided "as is" without warranties of any kind.
+                SendItFast.ai is not liable for any indirect, incidental, or
+                consequential damages arising from your use of the Service. Our
+                total liability is limited to the amount you paid for the
+                Service in the past 12 months.
+              </p>
+
+              <h2>9. Termination</h2>
+              <p>
+                You may terminate your account at any time. We may terminate or
+                suspend your account for violation of these Terms. Upon
+                termination, your data will be deleted according to our data
+                retention policy.
+              </p>
+
+              <h2>10. Changes to Terms</h2>
+              <p>
+                We may update these Terms from time to time. We will notify you
+                of material changes via email or through the Service. Continued
+                use of the Service after changes constitutes acceptance of the
+                new Terms.
+              </p>
+
+              <h2>11. Contact</h2>
+              <p>
+                For questions about these Terms, contact us at{" "}
+                <a href="mailto:legal@senditfast.ai">legal@senditfast.ai</a>.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <Footer />
+      </div>
+    </>
+  );
+}
+
+TermsPage.disableWhiteCard = true;
+TermsPage.backgroundClassName = "bg-white";

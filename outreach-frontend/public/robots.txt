@@ -1,0 +1,57 @@
+# SendItFast.ai Robots.txt
+# https://senditfast.ai
+
+User-agent: *
+Allow: /
+Allow: /features
+Allow: /pricing
+Allow: /about
+Allow: /terms
+Allow: /privacy
+Allow: /cookies
+Allow: /gdpr
+Allow: /login
+
+# Disallow authenticated/private areas
+Disallow: /dashboard
+Disallow: /upload
+Disallow: /jobs
+Disallow: /billing
+Disallow: /account
+Disallow: /add-on-credits
+Disallow: /user-settings
+Disallow: /api/
+Disallow: /support-console-rahul
+Disallow: /test-button
+Disallow: /jobs11
+Disallow: /AddonSection
+
+# Disallow internal assets
+Disallow: /_next/
+Disallow: /static/
+
+# Googlebot specific rules
+User-agent: Googlebot
+Allow: /
+Disallow: /dashboard
+Disallow: /upload
+Disallow: /jobs
+Disallow: /billing
+Disallow: /account
+Disallow: /api/
+
+# Bingbot specific rules
+User-agent: Bingbot
+Allow: /
+Disallow: /dashboard
+Disallow: /upload
+Disallow: /jobs
+Disallow: /billing
+Disallow: /account
+Disallow: /api/
+
+# Sitemap location
+Sitemap: https://senditfast.ai/sitemap.xml
+
+# Crawl delay for all bots (be nice to our servers)
+Crawl-delay: 1
