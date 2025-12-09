@@ -233,6 +233,7 @@ export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+  const [showSolution, setShowSolution] = useState(false);
 
   // Redirect authenticated users to dashboard
   useEffect(() => {
@@ -573,7 +574,7 @@ export default function LandingPage() {
                 transition={{ duration: 0.5, delay: 0.2 }}
                 className="text-lg text-gray-600 max-w-2xl mx-auto mb-10 leading-relaxed"
               >
-                Upload your lead list. Our AI Agent researches each person and
+                Our AI Agent researches each person and
                 generates well-researched email and personalized opener that gets a
                 reply
               </motion.p>
@@ -676,86 +677,115 @@ export default function LandingPage() {
 
         {/* Problem/Solution Section */}
         <section className="py-32 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-6xl mx-auto">
-            <div className="grid lg:grid-cols-2 gap-8 items-stretch">
-              {/* Problem Card */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                viewport={{ once: true }}
-                className="bg-white border border-gray-100 rounded-2xl p-10 hover:shadow-lg hover:border-gray-200 transition-all duration-300"
-              >
-                <h2 className="text-2xl sm:text-3xl font-medium text-gray-900 tracking-tight mb-8 font-serif">
-                  Cold email personalization is broken
-                </h2>
-                <div className="space-y-5 text-gray-600">
-                  <p className="flex items-start">
-                    <X className="h-4 w-4 text-red-400 mr-3 mt-1 flex-shrink-0" />
-                    <span className="leading-relaxed">
-                      Manual research is impossible to scale
-                    </span>
-                  </p>
-                  <p className="flex items-start">
-                    <X className="h-4 w-4 text-red-400 mr-3 mt-1 flex-shrink-0" />
-                    <span className="leading-relaxed">
-                      Templates produce generic, bad marketing emails
-                    </span>
-                  </p>
-                  <p className="flex items-start">
-                    <X className="h-4 w-4 text-red-400 mr-3 mt-1 flex-shrink-0" />
-                    <span className="leading-relaxed">
-                      Buyers expect personalization, templated email gets ignored
-                    </span>
-                  </p>
-                  <p className="flex items-start">
-                    <X className="h-4 w-4 text-red-400 mr-3 mt-1 flex-shrink-0" />
-                    <span className="leading-relaxed">
-                      Agencies spend time behind third-world VAs that suck
-                    </span>
-                  </p>
-                </div>
-              </motion.div>
-
-              {/* Solution Card */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 }}
-                viewport={{ once: true }}
-                className="bg-white border border-gray-100 rounded-2xl p-10 hover:shadow-lg hover:border-gray-200 transition-all duration-300"
-              >
-                <h3 className="text-2xl sm:text-3xl font-medium text-gray-900 tracking-tight mb-8 font-serif">
-                  SendItFast changes everything
-                </h3>
-                <div className="space-y-5 text-gray-600">
-                  <p className="flex items-start">
-                    <CheckCircle className="h-4 w-4 text-emerald-500 mr-3 mt-1 flex-shrink-0" />
-                    <span className="leading-relaxed">
-                      AI researches every prospect from 30+ sources, finds real signals
-                    </span>
-                  </p>
-                  <p className="flex items-start">
-                    <CheckCircle className="h-4 w-4 text-emerald-500 mr-3 mt-1 flex-shrink-0" />
-                    <span className="leading-relaxed">
-                      Generate unique emails and openers that shows you did work
-                    </span>
-                  </p>
-                  <p className="flex items-start">
-                    <CheckCircle className="h-4 w-4 text-emerald-500 mr-3 mt-1 flex-shrink-0" />
-                    <span className="leading-relaxed">
-                      Process thousands of prospects in minutes
-                    </span>
-                  </p>
-                  <p className="flex items-start">
-                    <CheckCircle className="h-4 w-4 text-emerald-500 mr-3 mt-1 flex-shrink-0" />
-                    <span className="leading-relaxed">
-                      Way higher reply rates compared to templates
-                    </span>
-                  </p>
-                </div>
-              </motion.div>
+          <div className="max-w-2xl mx-auto">
+            {/* Toggle Switch */}
+            <div className="flex justify-center mb-10">
+              <div className="inline-flex items-center bg-gray-100 rounded-full p-1">
+                <button
+                  onClick={() => setShowSolution(false)}
+                  className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 ${!showSolution
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
+                    }`}
+                >
+                  The Problem
+                </button>
+                <button
+                  onClick={() => setShowSolution(true)}
+                  className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 ${showSolution
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
+                    }`}
+                >
+                  Our Solution
+                </button>
+              </div>
             </div>
+
+            {/* Card Container with Animation */}
+            <AnimatePresence mode="wait">
+              {!showSolution ? (
+                /* Problem Card */
+                <motion.div
+                  key="problem"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.1 }}
+                  className="bg-white border border-gray-100 rounded-2xl p-10 hover:shadow-lg hover:border-gray-200 transition-all duration-300"
+                >
+                  <h2 className="text-2xl sm:text-3xl font-medium text-gray-900 tracking-tight mb-8 font-serif">
+                    Cold email personalization is broken
+                  </h2>
+                  <div className="space-y-5 text-gray-600">
+                    <p className="flex items-start">
+                      <X className="h-4 w-4 text-red-400 mr-3 mt-1 flex-shrink-0" />
+                      <span className="leading-relaxed">
+                        Manual research is impossible to scale
+                      </span>
+                    </p>
+                    <p className="flex items-start">
+                      <X className="h-4 w-4 text-red-400 mr-3 mt-1 flex-shrink-0" />
+                      <span className="leading-relaxed">
+                        Templates produce generic, bad marketing emails
+                      </span>
+                    </p>
+                    <p className="flex items-start">
+                      <X className="h-4 w-4 text-red-400 mr-3 mt-1 flex-shrink-0" />
+                      <span className="leading-relaxed">
+                        Buyers expect personalization, templated email gets ignored
+                      </span>
+                    </p>
+                    <p className="flex items-start">
+                      <X className="h-4 w-4 text-red-400 mr-3 mt-1 flex-shrink-0" />
+                      <span className="leading-relaxed">
+                        Agencies spend time behind third-world VAs that suck
+                      </span>
+                    </p>
+                  </div>
+                </motion.div>
+              ) : (
+                /* Solution Card */
+                <motion.div
+                  key="solution"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.1 }}
+                  className="bg-white border border-gray-100 rounded-2xl p-10 hover:shadow-lg hover:border-gray-200 transition-all duration-300"
+                >
+                  <h3 className="text-2xl sm:text-3xl font-medium text-gray-900 tracking-tight mb-8 font-serif">
+                    SendItFast changes everything
+                  </h3>
+                  <div className="space-y-5 text-gray-600">
+                    <p className="flex items-start">
+                      <CheckCircle className="h-4 w-4 text-emerald-500 mr-3 mt-1 flex-shrink-0" />
+                      <span className="leading-relaxed">
+                        AI researches every prospect from 30+ sources, finds real signals
+                      </span>
+                    </p>
+                    <p className="flex items-start">
+                      <CheckCircle className="h-4 w-4 text-emerald-500 mr-3 mt-1 flex-shrink-0" />
+                      <span className="leading-relaxed">
+                        Generate unique emails and openers that shows you did work
+                      </span>
+                    </p>
+                    <p className="flex items-start">
+                      <CheckCircle className="h-4 w-4 text-emerald-500 mr-3 mt-1 flex-shrink-0" />
+                      <span className="leading-relaxed">
+                        Process thousands of prospects in minutes
+                      </span>
+                    </p>
+                    <p className="flex items-start">
+                      <CheckCircle className="h-4 w-4 text-emerald-500 mr-3 mt-1 flex-shrink-0" />
+                      <span className="leading-relaxed">
+                        Way higher reply rates compared to templates
+                      </span>
+                    </p>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </section>
 
@@ -780,9 +810,9 @@ export default function LandingPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                   viewport={{ once: true }}
-                  className="relative"
+                  className="relative group"
                 >
-                  <div className="text-6xl font-bold text-gray-900/10 mb-4">
+                  <div className="text-6xl font-bold text-gray-900/10 mb-4 transition-colors duration-200 group-hover:text-gray-900">
                     {step.number}
                   </div>
                   <h3 className="text-xl font-medium text-gray-900 tracking-tight mb-2 font-serif">
