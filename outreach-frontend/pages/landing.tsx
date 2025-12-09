@@ -899,114 +899,6 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Testimonials Section */}
-        <section className="py-24 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-medium text-gray-900 tracking-tight mb-4 font-serif">
-                Loved by sales teams everywhere
-              </h2>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-8">
-              {testimonials.map((testimonial, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  viewport={{ once: true }}
-                  className="bg-gray-50 rounded-2xl p-8"
-                >
-                  <div className="flex items-center mb-4">
-                    {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className="h-5 w-5 text-yellow-400 fill-current"
-                      />
-                    ))}
-                  </div>
-                  <p className="text-gray-700 mb-6 italic">
-                    "{testimonial.quote}"
-                  </p>
-                  <div className="flex items-center">
-                    <div className="h-10 w-10 rounded-full bg-gray-900 flex items-center justify-center text-white font-medium mr-3">
-                      {testimonial.avatar}
-                    </div>
-                    <div>
-                      <div className="font-semibold text-gray-900">
-                        {testimonial.author}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {testimonial.role}
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Pricing Preview Section */}
-        <section className="py-24 bg-gray-50 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-medium text-gray-900 tracking-tight mb-4 font-serif">
-                Simple, transparent pricing
-              </h2>
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                Start free, upgrade when you're ready. No hidden fees.
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {pricingPreview.map((plan, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  viewport={{ once: true }}
-                  className={`bg-white rounded-2xl p-8 ${plan.popular
-                    ? "ring-2 ring-gray-900 relative"
-                    : "border border-gray-100"
-                    }`}
-                >
-                  {plan.popular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gray-900 text-white text-xs font-medium rounded-full">
-                      Popular
-                    </div>
-                  )}
-                  <div className="text-lg font-semibold text-gray-900 mb-2">
-                    {plan.name}
-                  </div>
-                  <div className="mb-4">
-                    <span className="text-4xl font-bold text-gray-900">
-                      ${plan.price}
-                    </span>
-                    <span className="text-gray-500">/month</span>
-                  </div>
-                  <div className="text-sm text-gray-600 mb-4">
-                    {plan.credits} credits/month
-                  </div>
-                  <p className="text-sm text-gray-500">{plan.description}</p>
-                </motion.div>
-              ))}
-            </div>
-
-            <div className="text-center mt-10">
-              <Link
-                href="/pricing"
-                className="inline-flex items-center text-gray-700 font-medium hover:underline hover:text-gray-900"
-              >
-                View full pricing details
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </div>
-          </div>
-        </section>
-
         {/* FAQ Section */}
         <section className="py-24 px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mx-auto">
@@ -1056,13 +948,9 @@ export default function LandingPage() {
         {/* Final CTA Section */}
         <section className="py-24 px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl sm:text-4xl font-medium text-gray-900 tracking-tight mb-6 font-serif">
-              Ready to scale your outreach?
+            <h2 className="text-5xl sm:text-6xl lg:text-7xl font-medium text-gray-900 tracking-tight mb-12 font-serif">
+              Try SendItFast
             </h2>
-            <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
-              Join thousands of sales professionals who've already made the
-              switch to AI-powered personalization.
-            </p>
             <div className="relative group inline-block">
               <button
                 onClick={handleGoogleLogin}
@@ -1094,8 +982,8 @@ export default function LandingPage() {
                   </>
                 ) : (
                   <>
-                    <FcGoogle className="h-5 w-5 mr-3 rounded-full" />
-                    Sign in with Google
+                    Start for free
+                    <ArrowRight className="h-5 w-5 ml-2" />
                   </>
                 )}
               </button>
@@ -1103,9 +991,6 @@ export default function LandingPage() {
                 <div className="absolute -inset-1 rounded-xl border-2 border-dashed border-black opacity-0 transition-opacity duration-300 pointer-events-none group-hover:opacity-100"></div>
               )}
             </div>
-            <p className="mt-4 text-sm text-gray-500">
-              500 free credits to start. No credit card required.
-            </p>
           </div>
         </section>
 
