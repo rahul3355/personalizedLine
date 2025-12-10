@@ -16,6 +16,7 @@ import {
 import { FcGoogle } from "react-icons/fc";
 
 import SendItFastLogo from "../assets/senditfast-logo.png";
+import AboutImage from "../assets/about-1.png";
 import { useAuth } from "../lib/AuthProvider";
 import { supabase } from "../lib/supabaseClient";
 import Footer from "../components/Footer";
@@ -251,15 +252,7 @@ export default function AboutPage() {
         <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
             <div className="max-w-3xl mx-auto text-center">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="inline-flex items-center px-4 py-1.5 rounded-full bg-[#4F55F1]/10 text-[#4F55F1] text-sm font-medium mb-8"
-              >
-                <Sparkles className="h-4 w-4 mr-2" />
-                Our Story
-              </motion.div>
+
 
               <motion.h1
                 initial={{ opacity: 0, y: 20 }}
@@ -315,15 +308,12 @@ export default function AboutPage() {
                   </p>
                 </div>
               </div>
-              <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-3xl p-12 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="text-6xl font-bold text-gray-900 mb-4">
-                    10x
-                  </div>
-                  <div className="text-xl text-gray-600">
-                    faster than manual research
-                  </div>
-                </div>
+              <div className="rounded-3xl overflow-hidden flex items-center justify-center">
+                <Image
+                  src={AboutImage}
+                  alt="About SendItFast"
+                  className="w-full h-auto object-cover rounded-3xl"
+                />
               </div>
             </div>
           </div>
