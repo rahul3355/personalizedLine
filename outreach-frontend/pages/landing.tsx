@@ -28,6 +28,12 @@ import { FcGoogle } from "react-icons/fc";
 
 import SendItFastLogo from "../assets/senditfast-logo.png";
 import BgBgImage from "../assets/bgbg1.png";
+import Bento1Image from "../assets/bento1.png";
+import Bento2Image from "../assets/bento2.png";
+import Bento3Image from "../assets/bento3.png";
+import Bento4Image from "../assets/bento4.png";
+import Bento5Image from "../assets/bento5.png";
+import Bento6Image from "../assets/bento6.png";
 import { useAuth } from "../lib/AuthProvider";
 import { supabase } from "../lib/supabaseClient";
 import Footer from "../components/Footer";
@@ -48,36 +54,48 @@ const features = [
     title: "Deep Prospect Research",
     description:
       "AI searches the web to find relevant signals about each prospect - recent news, company updates, and personal achievements.",
+    imagePosition: "center 40%",  // Adjust: 0% = top, 50% = center, 100% = bottom
+    whiteAreaHeight: "55%",        // Adjust: higher % = more white area, less image visible
   },
   {
     icon: Sparkles,
     title: "AI-Powered Personalization",
     description:
       "Generate unique, human-sounding email openers that reference specific details about each prospect. No templates, no generic lines.",
+    imagePosition: "center 40%",
+    whiteAreaHeight: "55%",
   },
   {
     icon: Upload,
     title: "Bulk Processing",
     description:
       "Upload CSV or Excel files with up to 100,000 prospects. Get personalized lines for every single row, delivered in minutes.",
+    imagePosition: "center 60%",
+    whiteAreaHeight: "55%",
   },
   {
     icon: FileSpreadsheet,
     title: "Export Anywhere",
     description:
       "Download enriched files with personalized columns. Works with any CRM or email tool - Salesforce, HubSpot, Instantly, Smartlead.",
+    imagePosition: "center 80%",
+    whiteAreaHeight: "55%",
   },
   {
     icon: Shield,
     title: "No Data Lock-in",
     description:
       "Your data stays yours. Download everything, cancel anytime. No proprietary formats or vendor lock-in.",
+    imagePosition: "center 80%",  // Use keywords: top, center, bottom
+    whiteAreaHeight: "55%",
   },
   {
     icon: Zap,
     title: "Lightning Fast",
     description:
       "Parallel processing means thousands of prospects get researched and personalized simultaneously. Hours of work done in minutes.",
+    imagePosition: "center 30%",
+    whiteAreaHeight: "55%",
   },
 ];
 
@@ -841,24 +859,59 @@ export default function LandingPage() {
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {features.map((feature, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  viewport={{ once: true }}
-                  className="bg-white border border-gray-100 rounded-2xl p-8 hover:border-gray-300 hover:shadow-lg transition-all duration-300"
-                >
-                  <div className="h-12 w-12 rounded-xl bg-gray-100 flex items-center justify-center mb-6">
-                    <feature.icon className="h-6 w-6 text-gray-700" />
-                  </div>
-                  <h3 className="text-xl font-medium text-gray-900 tracking-tight mb-3 font-serif">
-                    {feature.title}
-                  </h3>
-                  <p className="text-gray-600">{feature.description}</p>
-                </motion.div>
-              ))}
+              {features.map((feature, index) => {
+                // Map each feature to its corresponding bento image
+                const bentoImages = [Bento1Image, Bento2Image, Bento3Image, Bento4Image, Bento5Image, Bento6Image];
+                const bentoImage = bentoImages[index];
+                // Calculate image area height (100% - whiteAreaHeight)
+                const imageAreaHeight = `${100 - parseInt(feature.whiteAreaHeight)}%`;
+
+                return (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    viewport={{ once: true }}
+                    className="group relative overflow-hidden bg-white rounded-2xl transition-all duration-300 p-0"
+                  >
+                    {/* Background Image - constrained to visible image area */}
+                    <div
+                      className="absolute inset-x-0 top-0"
+                      style={{ height: imageAreaHeight }}
+                    >
+                      <Image
+                        src={bentoImage}
+                        alt={feature.title}
+                        fill
+                        className="object-cover"
+                        style={{ objectPosition: feature.imagePosition }}
+                      />
+                    </div>
+                    {/* Dark overlay on hover - only on image area */}
+                    <div
+                      className="absolute inset-x-0 top-0 bg-black/0 group-hover:bg-black/50 transition-all duration-300 flex items-center justify-center z-20"
+                      style={{ height: imageAreaHeight }}
+                    >
+                      <span className="text-white font-medium text-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-serif">
+                        Read More
+                      </span>
+                    </div>
+                    {/* Background at bottom - white default, ivory on hover */}
+                    <div
+                      className="absolute inset-x-0 bottom-0 bg-white group-hover:bg-[#FFFFF0] transition-colors duration-300"
+                      style={{ height: feature.whiteAreaHeight }}
+                    />
+                    {/* Content */}
+                    <div className="relative z-10 p-8 flex flex-col justify-end h-full min-h-[280px]">
+                      <h3 className="text-xl font-medium text-gray-900 tracking-tight mb-3 font-serif">
+                        {feature.title}
+                      </h3>
+                      <p className="text-gray-600">{feature.description}</p>
+                    </div>
+                  </motion.div>
+                );
+              })}
             </div>
           </div>
         </section>
