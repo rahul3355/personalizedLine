@@ -233,8 +233,7 @@ export default function AboutPage() {
                 className="text-xl text-gray-600 leading-relaxed"
               >
                 We started SendItFast because we believed there had to be a
-                better way to do cold outreach. Manual research doesn't scale,
-                but generic templates don't convert. So we built something
+                better way to do cold outreach.
                 better.
               </motion.p>
             </div>
