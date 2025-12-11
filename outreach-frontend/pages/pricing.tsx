@@ -5,14 +5,14 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
-  CheckCircle,
-  X,
   Sparkles,
   Menu,
   HelpCircle,
+  X,
+  Check,
+  ChevronDown,
 } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
-import { Switch } from "@headlessui/react";
 
 import SendItFastLogo from "../assets/senditfast-logo.png";
 import { useAuth } from "../lib/AuthProvider";
@@ -36,9 +36,18 @@ const tiers = [
     monthlyPrice: 0,
     yearlyPrice: 0,
     credits: 500,
+    yearlyCredits: 500,
     creditsLabel: "500 credits",
     description: "Perfect for trying out the platform",
     features: [
+      "500 credits to start",
+      "AI-powered research",
+      "Personalized email generation",
+      "CSV & Excel support",
+      "Export to any CRM",
+      "Email support",
+    ],
+    yearlyFeatures: [
       "500 credits to start",
       "AI-powered research",
       "Personalized email generation",
@@ -58,14 +67,23 @@ const tiers = [
     name: "Starter",
     id: "starter",
     monthlyPrice: 49,
-    yearlyPrice: 470,
+    yearlyPrice: 470, // $49 × 12 × 0.8 = $470/year
     credits: 2000,
+    yearlyCredits: 24000, // 2000 × 12
     creditsLabel: "2,000 credits/mo",
     pricePerCredit: "$0.0245",
     addonPrice: "$15 per 1,000",
     description: "For individual sales reps and small teams",
     features: [
       "2,000 credits per month",
+      "Everything in Free",
+      "$15 per 1,000 add-on credits",
+      "Faster processing",
+      "30-day file retention",
+      "Priority email support",
+    ],
+    yearlyFeatures: [
+      "24,000 credits per year",
       "Everything in Free",
       "$15 per 1,000 add-on credits",
       "Faster processing",
@@ -80,14 +98,23 @@ const tiers = [
     name: "Growth",
     id: "growth",
     monthlyPrice: 149,
-    yearlyPrice: 1430,
+    yearlyPrice: 1430, // $149 × 12 × 0.8 = $1430/year
     credits: 10000,
+    yearlyCredits: 120000, // 10000 × 12
     creditsLabel: "10,000 credits/mo",
     pricePerCredit: "$0.0149",
     addonPrice: "$13 per 1,000",
     description: "For growing sales teams and agencies",
     features: [
       "10,000 credits per month",
+      "Everything in Starter",
+      "$13 per 1,000 add-on credits",
+      "Credit rollover (up to 2x)",
+      "Priority processing queue",
+      "Slack support channel",
+    ],
+    yearlyFeatures: [
+      "120,000 credits per year",
       "Everything in Starter",
       "$13 per 1,000 add-on credits",
       "Credit rollover (up to 2x)",
@@ -102,14 +129,25 @@ const tiers = [
     name: "Pro",
     id: "pro",
     monthlyPrice: 499,
-    yearlyPrice: 4790,
+    yearlyPrice: 4790, // $499 × 12 × 0.8 = $4790/year
     credits: 40000,
+    yearlyCredits: 480000, // 40000 × 12
     creditsLabel: "40,000 credits/mo",
     pricePerCredit: "$0.0125",
     addonPrice: "$11 per 1,000",
     description: "For large teams and enterprises",
     features: [
       "40,000 credits per month",
+      "Everything in Growth",
+      "$11 per 1,000 add-on credits",
+      "Credit rollover (up to 3x)",
+      "Highest priority processing",
+      "Dedicated account manager",
+      "Custom onboarding",
+      "Phone support",
+    ],
+    yearlyFeatures: [
+      "480,000 credits per year",
       "Everything in Growth",
       "$11 per 1,000 add-on credits",
       "Credit rollover (up to 3x)",
@@ -360,67 +398,57 @@ export default function PricingPage() {
         </nav>
 
         {/* Hero Section */}
-        <section className="pt-32 pb-16 px-4 sm:px-6 lg:px-8">
+        <section className="pt-32 pb-12 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#F9FAFB' }}>
           <div className="max-w-7xl mx-auto text-center">
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className="text-4xl sm:text-5xl lg:text-6xl font-medium text-gray-900 tracking-tight mb-6 font-serif"
+              className="text-4xl sm:text-5xl lg:text-6xl font-medium text-gray-900 tracking-tight mb-10 font-serif"
             >
-              Simple, transparent pricing
+              Pricing
             </motion.h1>
 
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="text-xl text-gray-600 max-w-2xl mx-auto mb-10"
-            >
-              Start free, upgrade when you're ready. No hidden fees. Cancel
-              anytime.
-            </motion.p>
-
-            {/* Billing Toggle */}
+            {/* Pill-style Billing Toggle */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="flex items-center justify-center gap-4"
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="inline-flex items-center rounded-full border border-gray-200 p-1 bg-white"
             >
-              <span
-                className={`text-sm font-medium ${!annual ? "text-gray-900" : "text-gray-400"
+              <button
+                onClick={() => setAnnual(false)}
+                className={`px-5 py-2 text-sm font-medium rounded-full transition-all duration-200 ${!annual
+                  ? "bg-gray-900 text-white"
+                  : "text-gray-500 hover:text-gray-700"
                   }`}
               >
                 Monthly
-              </span>
-              <Switch
-                checked={annual}
-                onChange={setAnnual}
-                className={`${annual ? "bg-gray-900" : "bg-gray-200"
-                  } relative inline-flex h-6 w-11 items-center rounded-full transition-colors`}
-              >
-                <span
-                  className={`${annual ? "translate-x-6" : "translate-x-1"
-                    } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
-                />
-              </Switch>
-              <span
-                className={`text-sm font-medium ${annual ? "text-gray-900" : "text-gray-400"
+              </button>
+              <button
+                onClick={() => setAnnual(true)}
+                className={`px-5 py-2 text-sm font-medium rounded-full transition-all duration-200 ${annual
+                  ? "bg-gray-900 text-white"
+                  : "text-gray-500 hover:text-gray-700"
                   }`}
               >
-                Annual{" "}
-                <span className="text-green-500 font-semibold">
-                  (Save 20%)
-                </span>
-              </span>
+                Yearly
+              </button>
             </motion.div>
           </div>
         </section>
 
         {/* Pricing Cards */}
-        <section className="pb-24 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto">
+        <section className="pb-24 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#F9FAFB' }}>
+          <div className="max-w-7xl mx-auto pt-12">
+            {/* Section Label */}
+            <p
+              className="text-sm font-semibold text-gray-900 mb-8"
+              style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}
+            >
+              Individual Plans
+            </p>
+
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               {tiers.map((tier, index) => (
                 <motion.div
@@ -428,67 +456,168 @@ export default function PricingPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
-                  className={`relative rounded-2xl p-8 flex flex-col ${tier.popular
-                    ? "ring-2 ring-gray-900 bg-white"
-                    : "bg-white border border-gray-100"
-                    }`}
+                  className="relative flex flex-col rounded-2xl"
+                  style={{
+                    backgroundColor: '#ffffff',
+                    padding: '32px',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+                  }}
                 >
-                  {tier.popular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gray-900 text-white text-xs font-medium rounded-full">
-                      Most Popular
-                    </div>
-                  )}
-
-                  {/* Header Section - Fixed Height */}
-                  <div className="h-20 mb-4">
-                    <h3 className="text-xl font-medium text-gray-900 tracking-tight mb-2 font-serif">
+                  {/* 1. Plan Name - 20px semi-bold #1a1a1a */}
+                  <div className="flex items-center" style={{ gap: '8px' }}>
+                    <h3
+                      style={{
+                        fontSize: '20px',
+                        fontWeight: '600',
+                        color: '#1a1a1a',
+                        lineHeight: '1.3',
+                        margin: 0
+                      }}
+                    >
                       {tier.name}
                     </h3>
-                    <p className="text-sm text-gray-500">{tier.description}</p>
-                  </div>
-
-                  {/* Pricing Section - Fixed Height */}
-                  <div className="h-20 mb-4">
-                    <div className="flex items-baseline">
-                      <span className="text-4xl font-bold text-gray-900">
-                        $
-                        {annual
-                          ? Math.round(tier.yearlyPrice / 12)
-                          : tier.monthlyPrice}
+                    {tier.popular && (
+                      <span
+                        style={{
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          color: '#f97316'
+                        }}
+                      >
+                        Recommended
                       </span>
-                      <span className="text-gray-500 ml-2">/month</span>
-                    </div>
-                    <p className="text-sm text-gray-600 mt-2">
-                      {tier.creditsLabel}
-                    </p>
+                    )}
                   </div>
 
-                  {/* Button Section */}
-                  <button
-                    onClick={handleGoogleLogin}
-                    disabled={loading}
-                    className={`w-full py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-200 mb-6 ${tier.popular
-                      ? "bg-gray-900 text-white hover:bg-gray-800"
-                      : "bg-gray-100 text-gray-900 hover:bg-gray-200"
-                      }`}
-                  >
-                    {tier.cta}
-                  </button>
+                  {/* 2. Price - $XX 22px semi-bold, /mo. or /yr. 14px #9a9a9a */}
+                  <div style={{ marginTop: '4px' }}>
+                    {tier.monthlyPrice === 0 ? (
+                      <span
+                        style={{
+                          fontSize: '16px',
+                          fontWeight: '400',
+                          color: '#1a1a1a'
+                        }}
+                      >
+                        Free
+                      </span>
+                    ) : (
+                      <div className="flex items-baseline">
+                        <span
+                          style={{
+                            fontSize: '22px',
+                            fontWeight: '600',
+                            color: '#1a1a1a',
+                            lineHeight: '1.2'
+                          }}
+                        >
+                          ${annual ? tier.yearlyPrice : tier.monthlyPrice}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: '14px',
+                            fontWeight: '400',
+                            color: '#9a9a9a'
+                          }}
+                        >
+                          {annual ? '/yr.' : '/mo.'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
 
-                  {/* Features Section - Grows to fill remaining space */}
-                  <div className="space-y-3 flex-1">
-                    {tier.features.map((feature, i) => (
-                      <div key={i} className="flex items-start">
-                        <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
-                        <span className="text-sm text-gray-600">{feature}</span>
+                  {/* 3. Features Header - 14px italic #8b7355 */}
+                  <p
+                    className="italic"
+                    style={{
+                      fontSize: '14px',
+                      fontWeight: '400',
+                      color: '#8b7355',
+                      lineHeight: '1.5',
+                      marginTop: '24px',
+                      marginBottom: '16px'
+                    }}
+                  >
+                    {index === 0 ? "Includes:" : `Everything in ${tiers[index - 1].name}, plus:`}
+                  </p>
+
+                  {/* 4. Features List - compact 8px spacing, Check icon, pure black text */}
+                  <div className="flex-1" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {(annual ? tier.yearlyFeatures : tier.features).map((feature, i) => (
+                      <div key={i} className="flex" style={{ gap: '6px', alignItems: 'flex-start' }}>
+                        <Check
+                          size={14}
+                          strokeWidth={2}
+                          style={{
+                            color: '#8b7355',
+                            flexShrink: 0,
+                            marginTop: '2px'
+                          }}
+                        />
+                        <span
+                          style={{
+                            fontSize: '14px',
+                            fontWeight: '400',
+                            color: '#000000',
+                            lineHeight: '1.3'
+                          }}
+                        >
+                          {feature}
+                        </span>
                       </div>
                     ))}
                     {tier.notIncluded.map((feature, i) => (
-                      <div key={i} className="flex items-start opacity-50">
-                        <X className="h-5 w-5 text-gray-300 mr-3 flex-shrink-0" />
-                        <span className="text-sm text-gray-400">{feature}</span>
+                      <div key={i} className="flex" style={{ gap: '6px', alignItems: 'flex-start' }}>
+                        <X
+                          size={14}
+                          strokeWidth={2}
+                          style={{
+                            color: '#d1d5db',
+                            flexShrink: 0,
+                            marginTop: '2px'
+                          }}
+                        />
+                        <span
+                          style={{
+                            fontSize: '14px',
+                            fontWeight: '400',
+                            color: '#d1d5db',
+                            lineHeight: '1.3'
+                          }}
+                        >
+                          {feature}
+                        </span>
                       </div>
                     ))}
+                  </div>
+
+                  {/* 5. Button - pill, 14px medium, 10px 24px padding */}
+                  <div style={{ marginTop: '32px' }}>
+                    <button
+                      onClick={handleGoogleLogin}
+                      disabled={loading}
+                      className="transition-all duration-200"
+                      style={{
+                        display: 'inline-block',
+                        padding: '10px 24px',
+                        borderRadius: '9999px',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        border: 'none',
+                        cursor: 'pointer',
+                        backgroundColor: tier.popular ? '#1a1a1a' : '#e8e4dc',
+                        color: tier.popular ? '#ffffff' : '#1a1a1a',
+                        fontFamily: 'inherit'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = tier.popular ? '#2a2a2a' : '#dcd8d0';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = tier.popular ? '#1a1a1a' : '#e8e4dc';
+                      }}
+                    >
+                      {tier.cta}
+                    </button>
                   </div>
                 </motion.div>
               ))}
@@ -496,140 +625,238 @@ export default function PricingPage() {
           </div>
         </section>
 
-        {/* Enterprise CTA */}
-        <section className="py-16 bg-gray-50 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-2xl sm:text-3xl font-medium text-gray-900 tracking-tight mb-4 font-serif">
-              Need more than 40,000 credits?
-            </h2>
-            <p className="text-gray-600 mb-8">
-              Contact us for enterprise pricing with unlimited credits, custom
-              integrations, dedicated support, and more.
-            </p>
-            <Link
-              href="mailto:sales@senditfast.ai"
-              className="inline-flex items-center px-6 py-3 rounded-xl text-sm font-semibold bg-gray-900 text-white hover:bg-gray-800 transition-colors"
-            >
-              Contact Sales
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </div>
-        </section>
-
-        {/* Comparison Table */}
-        <section className="py-24 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-medium text-gray-900 tracking-tight mb-4 font-serif">
-                Compare Plans
-              </h2>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-4 px-4 font-semibold text-gray-900">
-                      Feature
-                    </th>
-                    {tiers.map((tier) => (
-                      <th
-                        key={tier.id}
-                        className={`text-center py-4 px-4 font-semibold ${tier.popular ? "text-gray-900 font-bold" : "text-gray-900"
-                          }`}
-                      >
-                        {tier.name}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {comparisonFeatures.map((feature, index) => (
-                    <tr key={index} className="border-b border-gray-100">
-                      <td className="py-4 px-4 text-gray-600">{feature.name}</td>
-                      {["free", "starter", "growth", "pro"].map((tierId) => {
-                        const value = feature[tierId as keyof typeof feature];
-                        return (
-                          <td key={tierId} className="text-center py-4 px-4">
-                            {typeof value === "boolean" ? (
-                              value ? (
-                                <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
-                              ) : (
-                                <X className="h-5 w-5 text-gray-300 mx-auto" />
-                              )
-                            ) : (
-                              <span className="text-gray-900">{value}</span>
-                            )}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-
-        {/* FAQ Section */}
-        <section className="py-24 bg-gray-50 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-3xl mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-medium text-gray-900 tracking-tight mb-4 font-serif">
-                Frequently Asked Questions
-              </h2>
-            </div>
-
-            <div className="space-y-4">
-              {faqs.map((faq, index) => (
-                <div
-                  key={index}
-                  className="bg-white rounded-xl border border-gray-100 overflow-hidden"
-                >
-                  <button
-                    onClick={() =>
-                      setExpandedFaq(expandedFaq === index ? null : index)
-                    }
-                    className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
-                  >
-                    <span className="font-bold text-gray-900">{faq.q}</span>
-                    <HelpCircle
-                      className={`h-5 w-5 text-gray-400 transition-transform ${expandedFaq === index ? "rotate-180" : ""
-                        }`}
-                    />
-                  </button>
-                  {expandedFaq === index && (
-                    <div className="px-6 pb-4 text-gray-600">{faq.a}</div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Final CTA */}
-        <section className="py-24 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl sm:text-4xl font-medium text-gray-900 tracking-tight mb-6 font-serif">
-              Ready to get started?
-            </h2>
-            <p className="text-xl text-gray-600 mb-10">
-              Start with 500 free credits. No credit card required.
-            </p>
-            <button
-              onClick={handleGoogleLogin}
-              disabled={loading}
-              className="inline-flex items-center px-8 py-4 rounded-xl text-base font-semibold text-white transition-all duration-200 hover:scale-105"
+        {/* Enterprise Section - Centered Card */}
+        <section className="py-20 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#F9FAFB' }}>
+          <div className="max-w-4xl mx-auto">
+            {/* Enterprise Card */}
+            <div
               style={{
-                background: "linear-gradient(#5a5a5a, #1c1c1c)",
-                boxShadow: "0 4px 14px rgba(0, 0, 0, 0.15)",
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
+                backgroundColor: '#ffffff',
+                border: '1px solid #e5e5e5',
+                borderRadius: '16px',
+                padding: '32px'
               }}
             >
-              <FcGoogle className="h-5 w-5 mr-3 bg-white rounded-full p-0.5" />
-              Get Started Free
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </button>
+              {/* Card Header */}
+              <h3
+                style={{
+                  fontSize: '22px',
+                  fontWeight: '600',
+                  color: '#1a1a1a',
+                  marginBottom: '4px',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+                }}
+              >
+                Enterprise
+              </h3>
+              <p
+                style={{
+                  fontSize: '16px',
+                  color: '#666666',
+                  marginBottom: '24px',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+                }}
+              >
+                Custom pricing for large teams
+              </p>
+
+              {/* Features intro */}
+              <p
+                style={{
+                  fontSize: '14px',
+                  color: '#666666',
+                  marginBottom: '16px',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+                }}
+              >
+                Everything in Pro, plus:
+              </p>
+
+              {/* Features Grid - Two Columns */}
+              <div className="grid md:grid-cols-2 gap-x-12 gap-y-3" style={{ marginBottom: '32px' }}>
+                {[
+                  'Unlimited credits',
+                  'Custom integrations',
+                  'Dedicated account manager',
+                  'Priority support channel',
+                  'Custom onboarding',
+                  'Phone support',
+                  'API access',
+                  'SSO/SAML authentication',
+                  'Advanced analytics & reporting',
+                  'Custom data retention',
+                  'SLA guarantee',
+                  'Invoice/PO billing'
+                ].map((feature, index) => (
+                  <div key={index} className="flex items-center" style={{ gap: '10px' }}>
+                    <Check
+                      size={16}
+                      strokeWidth={2}
+                      style={{ color: '#1a1a1a', flexShrink: 0 }}
+                    />
+                    <span
+                      style={{
+                        fontSize: '14px',
+                        fontWeight: '400',
+                        color: '#1a1a1a',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+                      }}
+                    >
+                      {feature}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Contact Sales Button */}
+              <Link
+                href="mailto:sales@senditfast.ai"
+                style={{
+                  display: 'inline-block',
+                  padding: '12px 24px',
+                  borderRadius: '9999px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  border: '1px solid #e5e5e5',
+                  backgroundColor: '#ffffff',
+                  color: '#1a1a1a',
+                  textDecoration: 'none',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f5f5f5';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#ffffff';
+                }}
+              >
+                Contact Sales
+              </Link>
+            </div>
+          </div>
+        </section>
+
+
+
+        {/* FAQ Section - Cursor Style */}
+        <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex flex-col md:flex-row md:justify-between">
+              {/* Left side - Title (30% width) */}
+              <div style={{ width: '30%', minWidth: '200px' }}>
+                <h2
+                  className="font-sans"
+                  style={{
+                    fontSize: '40px',
+                    fontWeight: '500',
+                    color: '#1a1a1a',
+                    lineHeight: '1.2',
+                    whiteSpace: 'nowrap',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+                  }}
+                >
+                  Questions & Answers
+                </h2>
+              </div>
+
+              {/* Right side - Questions (65% width) */}
+              <div style={{ width: '45%' }} className="mt-8 md:mt-0">
+                {faqs.map((faq, index) => (
+                  <div
+                    key={index}
+                    style={{ borderBottom: '1px solid #e5e5e5' }}
+                  >
+                    <button
+                      onClick={() =>
+                        setExpandedFaq(expandedFaq === index ? null : index)
+                      }
+                      className="w-full text-left flex items-center justify-between transition-opacity hover:opacity-60"
+                      style={{ padding: '16px 0' }}
+                    >
+                      <span
+                        style={{
+                          fontSize: '15px',
+                          fontWeight: '500',
+                          color: '#1a1a1a',
+                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+                        }}
+                      >
+                        {faq.q}
+                      </span>
+                      <ChevronDown
+                        size={18}
+                        strokeWidth={1.5}
+                        className={`text-gray-400 transition-transform duration-200 flex-shrink-0 ml-6 ${expandedFaq === index ? "rotate-180" : ""
+                          }`}
+                      />
+                    </button>
+                    {expandedFaq === index && (
+                      <div
+                        style={{
+                          paddingBottom: '16px',
+                          fontSize: '14px',
+                          lineHeight: '1.7',
+                          color: '#666666',
+                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+                        }}
+                      >
+                        {faq.a}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Final CTA Section - Try SendItFast */}
+        <section className="py-24 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-5xl sm:text-6xl lg:text-7xl font-medium text-gray-900 tracking-tight mb-12 font-serif">
+              Try SendItFast
+            </h2>
+            <div className="relative group inline-block">
+              <button
+                onClick={handleGoogleLogin}
+                disabled={loading}
+                className="flex items-center justify-center px-8 py-4 rounded-xl text-base font-medium text-white tracking-tight shadow-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  background: loading ? "#D1D5DB" : "linear-gradient(#5a5a5a, #1c1c1c)",
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
+                }}
+              >
+                {loading ? (
+                  <>
+                    <svg
+                      className="animate-spin h-5 w-5 mr-2"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="white"
+                        strokeWidth="3"
+                        strokeDasharray="31.4 31.4"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    Signing in...
+                  </>
+                ) : (
+                  <>
+                    Start for free
+                    <ArrowRight className="h-5 w-5 ml-2" />
+                  </>
+                )}
+              </button>
+              {!loading && (
+                <div className="absolute -inset-1 rounded-xl border-2 border-dashed border-black opacity-0 transition-opacity duration-300 pointer-events-none group-hover:opacity-100"></div>
+              )}
+            </div>
           </div>
         </section>
 
