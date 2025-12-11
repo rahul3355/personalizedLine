@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import Image from "next/image";
@@ -19,10 +19,16 @@ import {
   Users,
   TrendingUp,
   ChevronRight,
+  ChevronLeft,
   Play,
   Star,
   Menu,
   X,
+  Building2,
+  Briefcase,
+  Target,
+  Rocket,
+  Megaphone,
 } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 
@@ -153,6 +159,36 @@ const useCases = [
       "Stand out in candidates' inboxes. Personalized outreach that shows you actually researched them.",
     icon: Mail,
   },
+  {
+    title: "Founders & CEOs",
+    description:
+      "Close strategic partnerships and key accounts with research-backed outreach that gets replies.",
+    icon: Briefcase,
+  },
+  {
+    title: "Real Estate Agents",
+    description:
+      "Reach property investors and clients with personalized messages that reference their specific interests.",
+    icon: Building2,
+  },
+  {
+    title: "Consultants",
+    description:
+      "Win more clients by showing you understand their challenges before the first conversation.",
+    icon: Target,
+  },
+  {
+    title: "SaaS Startups",
+    description:
+      "Build your pipeline from scratch with personalized cold outreach that punches above your weight.",
+    icon: Rocket,
+  },
+  {
+    title: "Marketing Agencies",
+    description:
+      "Offer cold email as a service with AI-powered personalization at scale for multiple clients.",
+    icon: Megaphone,
+  },
 ];
 
 // Stats
@@ -252,6 +288,55 @@ export default function LandingPage() {
   const [loading, setLoading] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   const [showSolution, setShowSolution] = useState(false);
+  const carouselRef = useRef<HTMLDivElement>(null);
+
+  // Card dimensions
+  const cardWidth = 280;
+  const cardGap = 24;
+  const cardTotal = cardWidth + cardGap; // 304px per card
+
+  // Initialize carousel to show original cards (skip clones at start)
+  useEffect(() => {
+    const carousel = carouselRef.current;
+    if (carousel) {
+      // Start at the first real card (after the cloned set)
+      carousel.scrollLeft = useCases.length * cardTotal;
+    }
+  }, []);
+
+  // Seamless infinite scroll handler
+  const handleCarouselScroll = () => {
+    const carousel = carouselRef.current;
+    if (!carousel) return;
+
+    const scrollPos = carousel.scrollLeft;
+    const singleSetWidth = useCases.length * cardTotal;
+
+    // If scrolled to the cloned cards at the beginning, jump to real cards
+    if (scrollPos < cardTotal / 2) {
+      carousel.scrollLeft = scrollPos + singleSetWidth;
+    }
+    // If scrolled to the cloned cards at the end, jump back to real cards
+    else if (scrollPos > singleSetWidth * 2 - carousel.clientWidth) {
+      carousel.scrollLeft = scrollPos - singleSetWidth;
+    }
+  };
+
+  // Carousel navigation handlers
+  const scrollCarouselLeft = () => {
+    const carousel = carouselRef.current;
+    if (!carousel) return;
+    carousel.scrollBy({ left: -cardTotal, behavior: 'smooth' });
+  };
+
+  const scrollCarouselRight = () => {
+    const carousel = carouselRef.current;
+    if (!carousel) return;
+    carousel.scrollBy({ left: cardTotal, behavior: 'smooth' });
+  };
+
+  // Tripled array for seamless looping (clone + original + clone)
+  const infiniteUseCases = [...useCases, ...useCases, ...useCases];
 
   // Redirect authenticated users to dashboard
   useEffect(() => {
@@ -929,25 +1014,54 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {useCases.map((useCase, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  viewport={{ once: true }}
-                  className="bg-white rounded-2xl p-8 text-center"
-                >
-                  <div className="h-14 w-14 rounded-xl bg-gray-100 flex items-center justify-center mx-auto mb-6">
-                    <useCase.icon className="h-7 w-7 text-gray-700" />
+            {/* Carousel Container */}
+            <div className="relative">
+              {/* Left Arrow */}
+              <button
+                onClick={scrollCarouselLeft}
+                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-10 h-10 rounded-full bg-white shadow-md border border-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:shadow-lg transition-all duration-200 hidden lg:flex"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+
+              {/* Right Arrow */}
+              <button
+                onClick={scrollCarouselRight}
+                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-10 h-10 rounded-full bg-white shadow-md border border-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:shadow-lg transition-all duration-200 hidden lg:flex"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+
+              {/* Scrollable Cards */}
+              <div
+                ref={carouselRef}
+                id="useCasesCarousel"
+                className="flex gap-6 overflow-x-auto scrollbar-hide pb-4"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                onScroll={handleCarouselScroll}
+              >
+                {infiniteUseCases.map((useCase, index) => (
+                  <div
+                    key={index}
+                    className="flex-shrink-0 w-[280px] bg-white rounded-2xl p-8 text-center"
+                  >
+                    <div className="h-14 w-14 rounded-xl bg-gray-100 flex items-center justify-center mx-auto mb-6">
+                      <useCase.icon className="h-7 w-7 text-gray-700" />
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 tracking-tight mb-2 font-serif">
+                      {useCase.title}
+                    </h3>
+                    <p className="text-gray-600 text-sm">{useCase.description}</p>
                   </div>
-                  <h3 className="text-lg font-medium text-gray-900 tracking-tight mb-2 font-serif">
-                    {useCase.title}
-                  </h3>
-                  <p className="text-gray-600 text-sm">{useCase.description}</p>
-                </motion.div>
-              ))}
+                ))}
+              </div>
+            </div>
+
+            {/* Tagline */}
+            <div className="mt-12 text-center">
+              <p className="text-gray-500 text-lg italic">
+                ...literally anyone who uses cold emails
+              </p>
             </div>
           </div>
         </section>
