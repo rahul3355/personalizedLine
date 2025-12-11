@@ -815,7 +815,8 @@ export default function LandingPage() {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.1 }}
-                  className="bg-white border border-gray-100 rounded-2xl p-10 hover:shadow-lg hover:border-gray-200 transition-all duration-300"
+                  onClick={() => setShowSolution(true)}
+                  className="bg-white rounded-2xl p-10 transition-all duration-300 cursor-pointer"
                 >
                   <h2 className="text-2xl sm:text-3xl font-medium text-gray-900 tracking-tight mb-8 font-serif">
                     Cold email personalization is broken
@@ -855,7 +856,8 @@ export default function LandingPage() {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.1 }}
-                  className="bg-white border border-gray-100 rounded-2xl p-10 hover:shadow-lg hover:border-gray-200 transition-all duration-300"
+                  onClick={() => setShowSolution(false)}
+                  className="bg-white rounded-2xl p-10 transition-all duration-300 cursor-pointer"
                 >
                   <h3 className="text-2xl sm:text-3xl font-medium text-gray-900 tracking-tight mb-8 font-serif">
                     SendItFast changes everything
@@ -948,8 +950,6 @@ export default function LandingPage() {
                 // Map each feature to its corresponding bento image
                 const bentoImages = [Bento1Image, Bento2Image, Bento3Image, Bento4Image, Bento5Image, Bento6Image];
                 const bentoImage = bentoImages[index];
-                // Calculate image area height (100% - whiteAreaHeight)
-                const imageAreaHeight = `${100 - parseInt(feature.whiteAreaHeight)}%`;
 
                 return (
                   <motion.div
@@ -958,13 +958,10 @@ export default function LandingPage() {
                     whileInView={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: index * 0.1 }}
                     viewport={{ once: true }}
-                    className="group relative overflow-hidden bg-white rounded-2xl transition-all duration-300 p-0"
+                    className="group overflow-hidden bg-white rounded-2xl transition-all duration-300"
                   >
-                    {/* Background Image - constrained to visible image area */}
-                    <div
-                      className="absolute inset-x-0 top-0"
-                      style={{ height: imageAreaHeight }}
-                    >
+                    {/* Image Area - fixed height, not absolute positioned */}
+                    <div className="relative h-40 sm:h-44 md:h-48 overflow-hidden">
                       <Image
                         src={bentoImage}
                         alt={feature.title}
@@ -972,23 +969,15 @@ export default function LandingPage() {
                         className="object-cover"
                         style={{ objectPosition: feature.imagePosition }}
                       />
+                      {/* Dark overlay on hover */}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all duration-300 flex items-center justify-center z-10">
+                        <span className="text-white font-medium text-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-serif">
+                          Read More
+                        </span>
+                      </div>
                     </div>
-                    {/* Dark overlay on hover - only on image area */}
-                    <div
-                      className="absolute inset-x-0 top-0 bg-black/0 group-hover:bg-black/50 transition-all duration-300 flex items-center justify-center z-20"
-                      style={{ height: imageAreaHeight }}
-                    >
-                      <span className="text-white font-medium text-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-serif">
-                        Read More
-                      </span>
-                    </div>
-                    {/* Background at bottom - white default, ivory on hover */}
-                    <div
-                      className="absolute inset-x-0 bottom-0 bg-white group-hover:bg-[#FFFFF0] transition-colors duration-300"
-                      style={{ height: feature.whiteAreaHeight }}
-                    />
-                    {/* Content */}
-                    <div className="relative z-10 p-8 flex flex-col justify-end h-full min-h-[280px]">
+                    {/* Content Area - separate from image, no overlap possible */}
+                    <div className="p-6 sm:p-8 bg-white group-hover:bg-[#FFFFF0] transition-colors duration-300">
                       <h3 className="text-xl font-medium text-gray-900 tracking-tight mb-3 font-serif">
                         {feature.title}
                       </h3>

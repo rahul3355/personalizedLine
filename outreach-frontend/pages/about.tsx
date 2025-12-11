@@ -5,18 +5,13 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
-  Sparkles,
   Menu,
   X,
-  Target,
-  Heart,
-  Users,
-  Zap,
 } from "lucide-react";
-import { FcGoogle } from "react-icons/fc";
 
 import SendItFastLogo from "../assets/senditfast-logo.png";
 import AboutImage from "../assets/about-1.png";
+import Frame1 from "../assets/frame1.png";
 import { useAuth } from "../lib/AuthProvider";
 import { supabase } from "../lib/supabaseClient";
 import Footer from "../components/Footer";
@@ -30,41 +25,7 @@ const SEO = {
   image: "https://senditfast.ai/og-about.png",
 };
 
-// Values
-const values = [
-  {
-    icon: Target,
-    title: "Quality Over Quantity",
-    description:
-      "We believe in personalization that actually works. Every line should feel researched and relevant, not templated and generic.",
-  },
-  {
-    icon: Heart,
-    title: "Respect for Recipients",
-    description:
-      "Good personalization respects the recipient's time. Our AI crafts openers that earn attention, not annoy.",
-  },
-  {
-    icon: Users,
-    title: "Built for Teams",
-    description:
-      "From solo founders to enterprise sales teams, our platform scales with you. Same quality, any volume.",
-  },
-  {
-    icon: Zap,
-    title: "Speed Without Sacrifice",
-    description:
-      "Fast doesn't mean cheap. Our AI does in minutes what would take humans hours, without cutting corners on quality.",
-  },
-];
 
-// Stats
-const stats = [
-  { value: "10M+", label: "Emails personalized" },
-  { value: "5,000+", label: "Sales teams served" },
-  { value: "127", label: "Countries reached" },
-  { value: "4.9/5", label: "Average rating" },
-];
 
 export default function AboutPage() {
   const { session } = useAuth();
@@ -319,138 +280,120 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* Stats Section */}
-        <section className="py-24 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-              {stats.map((stat, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  viewport={{ once: true }}
-                  className="text-center"
-                >
-                  <div className="text-4xl sm:text-5xl font-medium text-gray-900 tracking-tight mb-2 font-serif">
-                    {stat.value}
+        {/* Why SendItFast Section with Frame */}
+        <section className="py-16 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-5xl mx-auto">
+            {/* Frame Container */}
+            <div className="relative">
+              {/* Frame Image - positioned absolutely around the content */}
+              <div className="absolute inset-0 pointer-events-none opacity-50 rounded-sm overflow-hidden" style={{ margin: '-40px', padding: '40px' }}>
+                <Image
+                  src={Frame1}
+                  alt=""
+                  fill
+                  className="object-contain rounded-sm"
+                  style={{ objectFit: 'fill' }}
+                />
+              </div>
+
+              {/* Content inside the frame */}
+              <div className="relative bg-white p-10 space-y-6 rounded-sm" style={{ margin: '20px' }}>
+                <h3 className="text-sm font-semibold tracking-wide text-gray-500 uppercase">
+                  Why SendItFast?
+                </h3>
+                <h4 className="text-2xl font-semibold text-black">
+                  Emails deserves better than "quick personalization hacks"
+                </h4>
+                <p className="text-base text-gray-700 leading-relaxed">
+                  SendItFast is built on a simple belief: personalization isn't a trick to
+                  dodge spam filters. It's a way to show you actually did the work. That's
+                  why every row is treated like a mini research task, not just a mail merge.
+                </p>
+                <div className="grid gap-6 md:grid-cols-3 pt-4">
+                  <div className="space-y-2">
+                    <p className="font-semibold text-black text-sm">Real context</p>
+                    <p className="text-sm text-gray-700 leading-relaxed">
+                      Pull from signals prospects actually care about, not just "saw you
+                      went to X university."
+                    </p>
                   </div>
-                  <div className="text-gray-600">{stat.label}</div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Values Section */}
-        <section className="py-24 bg-gray-50 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-medium text-gray-900 mb-4 font-serif">
-                What We Believe
-              </h2>
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                Our values guide everything we build
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {values.map((value, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  viewport={{ once: true }}
-                  className="bg-white rounded-2xl p-8 text-center"
-                >
-                  <div className="h-14 w-14 rounded-xl bg-gray-100 flex items-center justify-center mx-auto mb-6">
-                    <value.icon className="h-7 w-7 text-gray-700" />
+                  <div className="space-y-2">
+                    <p className="font-semibold text-black text-sm">Respectful brevity</p>
+                    <p className="text-sm text-gray-700 leading-relaxed">
+                      One sharp opener that earns a reply, instead of templated slops.
+                    </p>
                   </div>
-                  <h3 className="text-lg font-medium text-gray-900 tracking-tight mb-2 font-serif">
-                    {value.title}
-                  </h3>
-                  <p className="text-gray-600 text-sm">{value.description}</p>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* The Problem Section */}
-        <section className="py-24 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="max-w-3xl mx-auto">
-              <h2 className="text-3xl sm:text-4xl font-medium text-gray-900 tracking-tight mb-8 text-center font-serif">
-                The Problem We Solve
-              </h2>
-
-              <div className="space-y-8 text-gray-600 text-lg leading-relaxed">
-                <div className="bg-red-50 border border-red-100 rounded-2xl p-8">
-                  <h3 className="text-xl font-medium text-gray-900 tracking-tight mb-4 font-serif">
-                    The Old Way
-                  </h3>
-                  <ul className="space-y-3">
-                    <li>
-                      Spend 5-10 minutes researching each prospect manually
-                    </li>
-                    <li>
-                      Write custom openers that reference what you found
-                    </li>
-                    <li>
-                      Process maybe 10-20 prospects per hour
-                    </li>
-                    <li>Burn out your SDR team doing repetitive work</li>
-                    <li>Or give up and send generic templates that get ignored</li>
-                  </ul>
-                </div>
-
-                <div className="bg-green-50 border border-green-100 rounded-2xl p-8">
-                  <h3 className="text-xl font-medium text-gray-900 tracking-tight mb-4 font-serif">
-                    The SendItFast Way
-                  </h3>
-                  <ul className="space-y-3">
-                    <li>
-                      Upload your entire prospect list at once
-                    </li>
-                    <li>
-                      AI researches each person in real-time using web search
-                    </li>
-                    <li>
-                      Generate personalized openers that reference specific
-                      details
-                    </li>
-                    <li>Process thousands of prospects in parallel</li>
-                    <li>Download enriched file ready for your email tool</li>
-                  </ul>
+                  <div className="space-y-2">
+                    <p className="font-semibold text-black text-sm">Measurable lift</p>
+                    <p className="text-sm text-gray-700 leading-relaxed">
+                      Structured outputs so you can test, track, and iterate without
+                      rebuilding your workflow.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="font-semibold text-black text-sm">Efficiency at scale</p>
+                    <p className="text-sm text-gray-700 leading-relaxed">
+                      Sound human, not algorithmic. No robotic tells. Lines that feel researched, not generated.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="font-semibold text-black text-sm">Your data, your control</p>
+                    <p className="text-sm text-gray-700 leading-relaxed">
+                      Copyright-free. Export everything. Move to any CRM. No lock-in, no proprietary formatting that holds your work hostage.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* CTA Section */}
-        <section className="py-24 bg-gray-900 px-4 sm:px-6 lg:px-8">
+        {/* Final CTA Section */}
+        <section className="py-24 px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl sm:text-4xl font-medium text-white mb-6 font-serif">
-              Ready to try it yourself?
+            <h2 className="text-5xl sm:text-6xl lg:text-7xl font-medium text-gray-900 tracking-tight mb-12 font-serif">
+              Try SendItFast
             </h2>
-            <p className="text-xl text-white/80 mb-10 max-w-2xl mx-auto">
-              Join thousands of sales teams who've made the switch to
-              AI-powered personalization.
-            </p>
-            <button
-              onClick={handleGoogleLogin}
-              disabled={loading}
-              className="inline-flex items-center px-8 py-4 rounded-xl text-base font-semibold bg-white text-gray-900 hover:bg-gray-100 transition-all duration-200"
-            >
-              <FcGoogle className="h-5 w-5 mr-3" />
-              Get Started Free
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </button>
-            <p className="mt-4 text-sm text-white/60">
-              500 free credits. No credit card required.
-            </p>
+            <div className="relative group inline-block">
+              <button
+                onClick={handleGoogleLogin}
+                disabled={loading}
+                className="flex items-center justify-center px-8 py-4 rounded-xl text-base font-medium text-white tracking-tight shadow-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  background: loading ? "#D1D5DB" : "linear-gradient(#5a5a5a, #1c1c1c)",
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
+                }}
+              >
+                {loading ? (
+                  <>
+                    <svg
+                      className="animate-spin h-5 w-5 mr-2"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="white"
+                        strokeWidth="3"
+                        strokeDasharray="31.4 31.4"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    Signing in...
+                  </>
+                ) : (
+                  <>
+                    Start for free
+                    <ArrowRight className="h-5 w-5 ml-2" />
+                  </>
+                )}
+              </button>
+              {!loading && (
+                <div className="absolute -inset-1 rounded-xl border-2 border-dashed border-black opacity-0 transition-opacity duration-300 pointer-events-none group-hover:opacity-100"></div>
+              )}
+            </div>
           </div>
         </section>
 

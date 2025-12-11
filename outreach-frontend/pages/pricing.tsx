@@ -428,25 +428,27 @@ export default function PricingPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
-                  className={`relative rounded-2xl p-8 ${tier.popular
-                    ? "ring-2 ring-[#4F55F1] bg-white"
+                  className={`relative rounded-2xl p-8 flex flex-col ${tier.popular
+                    ? "ring-2 ring-gray-900 bg-white"
                     : "bg-white border border-gray-100"
                     }`}
                 >
                   {tier.popular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-[#4F55F1] text-white text-xs font-medium rounded-full">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gray-900 text-white text-xs font-medium rounded-full">
                       Most Popular
                     </div>
                   )}
 
-                  <div className="mb-6">
+                  {/* Header Section - Fixed Height */}
+                  <div className="h-20 mb-4">
                     <h3 className="text-xl font-medium text-gray-900 tracking-tight mb-2 font-serif">
                       {tier.name}
                     </h3>
                     <p className="text-sm text-gray-500">{tier.description}</p>
                   </div>
 
-                  <div className="mb-6">
+                  {/* Pricing Section - Fixed Height */}
+                  <div className="h-20 mb-4">
                     <div className="flex items-baseline">
                       <span className="text-4xl font-bold text-gray-900">
                         $
@@ -456,16 +458,12 @@ export default function PricingPage() {
                       </span>
                       <span className="text-gray-500 ml-2">/month</span>
                     </div>
-                    {annual && tier.monthlyPrice > 0 && (
-                      <p className="text-sm text-green-500 mt-1">
-                        ${tier.yearlyPrice} billed annually
-                      </p>
-                    )}
                     <p className="text-sm text-gray-600 mt-2">
                       {tier.creditsLabel}
                     </p>
                   </div>
 
+                  {/* Button Section */}
                   <button
                     onClick={handleGoogleLogin}
                     disabled={loading}
@@ -477,7 +475,8 @@ export default function PricingPage() {
                     {tier.cta}
                   </button>
 
-                  <div className="space-y-3">
+                  {/* Features Section - Grows to fill remaining space */}
+                  <div className="space-y-3 flex-1">
                     {tier.features.map((feature, i) => (
                       <div key={i} className="flex items-start">
                         <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />

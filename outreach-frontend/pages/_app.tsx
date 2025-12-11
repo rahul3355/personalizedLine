@@ -8,6 +8,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import SendItFastLoader from "../components/SendItFastLoader";
 import InlineLoader from "@/components/InlineLoader";
+import LandingPageLoader from "@/components/LandingPageLoader";
 import { ToastProvider } from "@/components/Toast";
 
 type AugmentedComponent = AppProps["Component"] & {
@@ -94,9 +95,12 @@ function Layout({ Component, pageProps }: LayoutProps) {
 
   // For public routes without session, render the page directly without app shell
   if (isPublicRoute && !session) {
+    if (pageLoading) {
+      return <LandingPageLoader />;
+    }
     return (
       <div className={`min-h-screen ${backgroundClassName}`}>
-        {renderPage()}
+        <Component {...pageProps} />
       </div>
     );
   }
