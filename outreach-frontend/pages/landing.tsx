@@ -1056,47 +1056,66 @@ export default function LandingPage() {
         </section>
 
         {/* FAQ Section */}
-        <section className="py-24 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-3xl mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-medium text-gray-900 tracking-tight mb-4 font-serif">
-                Frequently asked questions
-              </h2>
-            </div>
+        <section className="py-24 px-4 sm:px-6 lg:px-8 bg-white">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-24">
+              {/* Left Column - Heading */}
+              <div className="lg:col-span-4">
+                <h2 className="text-3xl sm:text-4xl lg:text-[2.5rem] font-normal text-gray-900 tracking-tight leading-tight">
+                  Questions & Answers
+                </h2>
+              </div>
 
-            <div className="space-y-4">
-              {faqs.map((faq, index) => (
-                <div
-                  key={index}
-                  className="border border-gray-200 rounded-xl overflow-hidden"
-                >
-                  <button
-                    onClick={() =>
-                      setExpandedFaq(expandedFaq === index ? null : index)
-                    }
-                    className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+              {/* Right Column - FAQ Items */}
+              <div className="lg:col-span-8 space-y-0">
+                {faqs.map((faq, index) => (
+                  <div
+                    key={index}
+                    className="border-b border-gray-200 last:border-b-0"
                   >
-                    <span className="font-medium text-gray-900">{faq.q}</span>
-                    <ChevronRight
-                      className={`h-5 w-5 text-gray-400 transition-transform ${expandedFaq === index ? "rotate-90" : ""
+                    <button
+                      onClick={() =>
+                        setExpandedFaq(expandedFaq === index ? null : index)
+                      }
+                      className="w-full py-6 text-left flex items-center justify-between hover:opacity-70 transition-opacity group"
+                    >
+                      <span className="font-normal text-gray-900 text-base pr-8">
+                        {faq.q}
+                      </span>
+                      <svg
+                        className={`h-5 w-5 text-gray-900 flex-shrink-0 transition-transform duration-200 ${
+                          expandedFaq === index ? "rotate-180" : ""
                         }`}
-                    />
-                  </button>
-                  <AnimatePresence>
-                    {expandedFaq === index && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="overflow-hidden"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
                       >
-                        <div className="px-6 pb-4 text-gray-600">{faq.a}</div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              ))}
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </button>
+                    <AnimatePresence>
+                      {expandedFaq === index && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="pb-6 pr-12 text-gray-600 text-[15px] leading-relaxed">
+                            {faq.a}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </section>
