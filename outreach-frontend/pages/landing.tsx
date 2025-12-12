@@ -675,9 +675,11 @@ export default function LandingPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
-                className="text-4xl sm:text-5xl lg:text-6xl font-medium tracking-tight leading-[1.1] mb-6 font-serif animated-gradient-text"
+                className="text-4xl sm:text-5xl lg:text-6xl font-medium tracking-tight leading-[1.1] mb-6 font-serif"
               >
-                Personalize Cold Emails
+                <span className="animated-gradient-text">
+                  Personalize Cold Emails
+                </span>
                 <br />
 
               </motion.h1>
@@ -685,27 +687,33 @@ export default function LandingPage() {
               <style jsx>{`
                 @keyframes gradient-sweep {
                   0% {
-                    background-position: -200% center;
+                    background-position: 0% 50%;
+                  }
+                  50% {
+                    background-position: 100% 50%;
                   }
                   100% {
-                    background-position: 200% center;
+                    background-position: 0% 50%;
                   }
                 }
 
                 .animated-gradient-text {
                   background: linear-gradient(
                     90deg,
-                    #111827 0%,
-                    #111827 30%,
+                    #1f2937 0%,
+                    #1f2937 25%,
+                    #60a5fa 40%,
                     #3b82f6 50%,
-                    #111827 70%,
-                    #111827 100%
+                    #60a5fa 60%,
+                    #1f2937 75%,
+                    #1f2937 100%
                   );
-                  background-size: 200% auto;
+                  background-size: 300% 100%;
                   -webkit-background-clip: text;
-                  background-clip: text;
                   -webkit-text-fill-color: transparent;
-                  animation: gradient-sweep 3s ease-in-out infinite;
+                  background-clip: text;
+                  animation: gradient-sweep 4s linear infinite;
+                  display: inline-block;
                 }
               `}</style>
               <br></br>
