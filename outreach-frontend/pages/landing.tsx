@@ -6,7 +6,7 @@ import { useRouter } from "next/router";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight,
-  CheckCircle,
+  Check,
   Upload,
   Search,
   Sparkles,
@@ -193,7 +193,7 @@ const useCases = [
 
 // Stats
 const stats = [
-  { value: "30+", label: "Sources used for research" },
+  { value: "30+", label: "Sources used to research each email" },
   { value: "1.2M", label: "Emails used to fine-tune the AI model" },
   { value: "100K", label: "Prospects per upload" },
   { value: "500", label: "Free credits to start" },
@@ -739,15 +739,15 @@ export default function LandingPage() {
                 className="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm text-gray-400"
               >
                 <div className="flex items-center">
-                  <CheckCircle className="h-4 w-4 mr-2 text-gray-500" />
+                  <Check className="h-4 w-4 mr-2 text-gray-500" />
                   No credit card required
                 </div>
                 <div className="flex items-center">
-                  <CheckCircle className="h-4 w-4 mr-2 text-gray-500" />
+                  <Check className="h-4 w-4 mr-2 text-gray-500" />
                   Free 500 credits
                 </div>
                 <div className="flex items-center">
-                  <CheckCircle className="h-4 w-4 mr-2 text-gray-500" />
+                  <Check className="h-4 w-4 mr-2 text-gray-500" />
                   Bonus reward
                 </div>
               </motion.div>
@@ -864,25 +864,25 @@ export default function LandingPage() {
                   </h3>
                   <div className="space-y-5 text-gray-600">
                     <p className="flex items-start">
-                      <CheckCircle className="h-4 w-4 text-emerald-500 mr-3 mt-1 flex-shrink-0" />
+                      <Check className="h-4 w-4 text-emerald-500 mr-3 mt-1 flex-shrink-0" />
                       <span className="leading-relaxed">
                         AI researches every prospect from 30+ sources, finds real signals
                       </span>
                     </p>
                     <p className="flex items-start">
-                      <CheckCircle className="h-4 w-4 text-emerald-500 mr-3 mt-1 flex-shrink-0" />
+                      <Check className="h-4 w-4 text-emerald-500 mr-3 mt-1 flex-shrink-0" />
                       <span className="leading-relaxed">
                         Generate unique emails and openers that shows you did work
                       </span>
                     </p>
                     <p className="flex items-start">
-                      <CheckCircle className="h-4 w-4 text-emerald-500 mr-3 mt-1 flex-shrink-0" />
+                      <Check className="h-4 w-4 text-emerald-500 mr-3 mt-1 flex-shrink-0" />
                       <span className="leading-relaxed">
                         Process thousands of prospects in minutes
                       </span>
                     </p>
                     <p className="flex items-start">
-                      <CheckCircle className="h-4 w-4 text-emerald-500 mr-3 mt-1 flex-shrink-0" />
+                      <Check className="h-4 w-4 text-emerald-500 mr-3 mt-1 flex-shrink-0" />
                       <span className="leading-relaxed">
                         Way higher reply rates compared to templates
                       </span>
@@ -1083,9 +1083,8 @@ export default function LandingPage() {
                         {faq.q}
                       </span>
                       <svg
-                        className={`h-5 w-5 text-gray-900 flex-shrink-0 transition-transform duration-200 ${
-                          expandedFaq === index ? "rotate-180" : ""
-                        }`}
+                        className={`h-5 w-5 text-gray-900 flex-shrink-0 transition-transform duration-200 ${expandedFaq === index ? "rotate-180" : ""
+                          }`}
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
