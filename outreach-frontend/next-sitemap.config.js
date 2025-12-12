@@ -74,6 +74,10 @@ module.exports = {
     } else if (path === '/features' || path === '/pricing') {
       priority = 0.9;
       changefreq = 'weekly';
+    } else if (path === '/blog' || path.startsWith('/blog/')) {
+      // Blog posts are high priority for SEO
+      priority = 0.8;
+      changefreq = 'weekly';
     } else if (path === '/about') {
       priority = 0.8;
       changefreq = 'monthly';
