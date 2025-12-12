@@ -6,7 +6,7 @@ import { GetStaticProps } from 'next';
 import { motion } from 'framer-motion';
 import { BlogPostMetadata } from '@/lib/blog/types';
 import { getAllPostsMetadata, getFeaturedPosts, getAllCategories, getAllTags } from '@/lib/blog/utils';
-import { Search, Filter, Check, ArrowRight, Calendar, Clock } from 'lucide-react';
+import { Search, Filter, Check, ArrowRight, Calendar, Clock, ArrowLeft } from 'lucide-react';
 import BgBgImage from "../../assets/bgbg1.png";
 import Bento1Image from "../../assets/bento1.png";
 import Bento2Image from "../../assets/bento2.png";
@@ -119,6 +119,17 @@ export default function BlogIndex({ allPosts, featuredPosts, categories, tags }:
       </Head>
 
       <div className="min-h-screen bg-white">
+        {/* Back Button */}
+        <div className="absolute top-6 left-6 z-20">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/90 backdrop-blur-sm border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 shadow-sm"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-sm font-medium">Back</span>
+          </Link>
+        </div>
+
         {/* Hero Section - matching landing page style */}
         <section className="relative min-h-[60vh] flex items-center justify-center px-4 sm:px-6 lg:px-8">
           {/* Background Image */}
