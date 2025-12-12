@@ -129,7 +129,7 @@ export default function Navbar() {
   const squircle =
     "rounded-[14px] bg-white ";
   const hit =
-    "flex flex-col items-center justify-start py-3 px-0 transition-all duration-150 ease-[cubic-bezier(.2,.8,.2,1)] focus:outline-none cursor-pointer select-none ";
+    "flex flex-col items-center justify-start py-3 px-0 transition-all duration-150 ease-out focus:outline-none cursor-pointer select-none ";
 
   const pageTitle = {
     "/": "Home",

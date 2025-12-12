@@ -1195,10 +1195,10 @@ function UploadPage() {
           type="button"
           ref={examplesTriggerRef}
           onClick={() => setShowExamples(true)}
-          className="group w-full flex items-center justify-center gap-2 rounded-lg border border-[#4F55F1] bg-[#4F55F1]/10 px-4 py-3 text-sm font-medium text-slate-900 transition-all duration-[250ms] hover:bg-[#4F55F1]/20 hover:border-black active:scale-[0.99]"
+          className="group w-full flex items-center justify-center gap-2 rounded-lg border border-[#4F55F1] bg-[#4F55F1]/10 px-4 py-3 text-sm font-medium text-slate-900 transition-all duration-200 hover:bg-[#4F55F1]/20 hover:border-black active:scale-[0.99]"
           style={{ fontFamily: '"Times New Roman", Times, serif' }}
         >
-          <Plus className="w-4 h-4 transition-transform duration-[250ms] group-hover:rotate-90" />
+          <Plus className="w-4 h-4 transition-transform duration-200 group-hover:rotate-90" />
           Browse all examples
         </button>
 
@@ -2016,10 +2016,10 @@ function UploadPage() {
       {/* DESKTOP */}
       <div className="hidden md:block">
         <section
-          className={`md:py-6 min-h-[calc(100vh-110px)] bg-white rounded-[32px] shadow-sm mr-4 flex flex-col items-center transition-all duration-[250ms] ease-in-out ${step === 2 && isExpanded ? 'pl-6 sm:pl-8 lg:pl-10 pr-0' : 'px-6 sm:px-8 lg:px-10'}`}
+          className={`md:py-6 min-h-[calc(100vh-110px)] bg-white rounded-[32px] shadow-sm mr-4 flex flex-col items-center transition-all duration-200 ease-in-out ${step === 2 && isExpanded ? 'pl-6 sm:pl-8 lg:pl-10 pr-0' : 'px-6 sm:px-8 lg:px-10'}`}
           style={{ fontFamily: '"Aeonik Pro", ui-sans-serif, system-ui' }}
         >
-          <div className={`transition-all duration-[250ms] ease-in-out w-full ${step === 2 && isExpanded ? 'max-w-full' : 'max-w-[960px]'}`}>
+          <div className={`transition-all duration-200 ease-in-out w-full ${step === 2 && isExpanded ? 'max-w-full' : 'max-w-[960px]'}`}>
             {/* Header: stepper first, then dynamic title */}
             <div className="mb-2">
               <StepTracker step={step} jobCreated={jobCreated} />
@@ -2452,7 +2452,7 @@ function UploadPage() {
                               "Creating..."
                             ) : (
                               <>
-                                {previewResult && <RefreshCcw className="w-3.5 h-3.5 transition-transform duration-[250ms] group-hover:rotate-90" />}
+                                {previewResult && <RefreshCcw className="w-3.5 h-3.5 transition-transform duration-200 group-hover:rotate-90" />}
                                 {previewResult ? "Regenerate" : "Preview Email"}
                                 <div className="ml-2 bg-white rounded-full px-2 py-0.5 flex items-center gap-1.5 h-6">
                                   <PiCoinDuotone className="w-3.5 h-3.5 text-[#D4AF37]" />

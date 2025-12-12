@@ -4,8 +4,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { GetStaticProps } from 'next';
 import { motion } from 'framer-motion';
-import { BlogPost } from '@/lib/blog/types';
-import { getAllPosts, getFeaturedPosts, getAllCategories, getAllTags } from '@/lib/blog/utils';
+import { BlogPostMetadata } from '@/lib/blog/types';
+import { getAllPostsMetadata, getFeaturedPosts, getAllCategories, getAllTags } from '@/lib/blog/utils';
 import { Search, Filter, Check, ArrowRight, Calendar, Clock } from 'lucide-react';
 import BgBgImage from "../../assets/bgbg1.png";
 import Bento1Image from "../../assets/bento1.png";
@@ -17,8 +17,8 @@ import Bento6Image from "../../assets/bento6.png";
 import Footer from "../../components/Footer";
 
 interface BlogIndexProps {
-  allPosts: BlogPost[];
-  featuredPosts: BlogPost[];
+  allPosts: BlogPostMetadata[];
+  featuredPosts: BlogPostMetadata[];
   categories: Array<{ name: string; slug: string; count: number }>;
   tags: Array<{ name: string; slug: string; count: number }>;
 }
@@ -440,7 +440,8 @@ export default function BlogIndex({ allPosts, featuredPosts, categories, tags }:
 }
 
 export const getStaticProps: GetStaticProps = async () => {
-  const allPosts = getAllPosts();
+  // Use optimized metadata-only functions (excludes heavy content field)
+  const allPosts = getAllPostsMetadata();
   const featuredPosts = getFeaturedPosts(2);
   const categories = getAllCategories();
   const tags = getAllTags();
