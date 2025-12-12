@@ -661,9 +661,9 @@ export default function LandingPage() {
             <div className="text-center max-w-4xl mx-auto">
               {/* Badge */}
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.15, delay: 0.33 }}
                 className="inline-flex items-center px-4 py-1.5 rounded-full bg-gray-100 text-gray-400 text-sm font-medium mb-8"
               >
 
@@ -729,9 +729,9 @@ export default function LandingPage() {
 
               {/* Subheadline */}
               <motion.p
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.15, delay: 0.33 }}
                 className="text-lg text-gray-600 max-w-2xl mx-auto mb-10 leading-relaxed"
               >
                 Our AI Agent researches each person and
@@ -741,9 +741,9 @@ export default function LandingPage() {
 
               {/* CTA Buttons */}
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.3 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.15, delay: 0.33 }}
                 className="flex flex-col items-center justify-center"
               >
                 <div className="relative group">
@@ -792,7 +792,7 @@ export default function LandingPage() {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ duration: 0.5, delay: 0.5 }}
+                transition={{ duration: 0.15, delay: 0.33 }}
                 className="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm text-gray-400"
               >
                 <div className="flex items-center">
