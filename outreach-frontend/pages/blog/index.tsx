@@ -6,8 +6,7 @@ import { GetStaticProps } from 'next';
 import { motion } from 'framer-motion';
 import { BlogPostMetadata } from '@/lib/blog/types';
 import { getAllPostsMetadata, getFeaturedPosts, getAllCategories, getAllTags } from '@/lib/blog/utils';
-import { Search, Filter, Check, ArrowRight, Calendar, Clock, ArrowLeft } from 'lucide-react';
-import BgBgImage from "../../assets/bgbg1.png";
+import { Search, Filter, Calendar, Clock, ArrowLeft } from 'lucide-react';
 import Bento1Image from "../../assets/bento1.png";
 import Bento2Image from "../../assets/bento2.png";
 import Bento3Image from "../../assets/bento3.png";
@@ -130,80 +129,14 @@ export default function BlogIndex({ allPosts, featuredPosts, categories, tags }:
           </Link>
         </div>
 
-        {/* Hero Section - matching landing page style */}
-        <section className="relative min-h-[60vh] flex items-center justify-center px-4 sm:px-6 lg:px-8">
-          {/* Background Image */}
-          <div className="absolute inset-0 z-0">
-            <Image
-              src={BgBgImage}
-              alt="Background"
-              fill
-              style={{ objectFit: 'cover', objectPosition: 'center bottom' }}
-              priority
-              quality={100}
-            />
-          </div>
-
-          <div className="relative z-10 max-w-7xl mx-auto w-full">
-            <div className="text-center max-w-4xl mx-auto">
-              {/* Badge */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="inline-flex items-center px-4 py-1.5 rounded-full bg-gray-100 text-gray-400 text-sm font-medium mb-8"
-              >
-                Expert insights & strategies
-              </motion.div>
-
-              {/* Headline */}
-              <motion.h1
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 }}
-                className="text-4xl sm:text-5xl lg:text-6xl font-medium text-gray-900 tracking-tight leading-[1.1] mb-6 font-serif"
-              >
-                Cold Email Marketing Blog
-              </motion.h1>
-
-              {/* Subheadline */}
-              <motion.p
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-                className="text-lg text-gray-600 max-w-2xl mx-auto mb-10 leading-relaxed"
-              >
-                Expert strategies, tips, and insights to help you master cold email outreach and
-                increase your reply rates
-              </motion.p>
-
-              {/* Trust indicators */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5, delay: 0.3 }}
-                className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm text-gray-400"
-              >
-                <div className="flex items-center">
-                  <Check className="h-4 w-4 mr-2 text-gray-500" />
-                  2,000+ word guides
-                </div>
-                <div className="flex items-center">
-                  <Check className="h-4 w-4 mr-2 text-gray-500" />
-                  Real data & examples
-                </div>
-                <div className="flex items-center">
-                  <Check className="h-4 w-4 mr-2 text-gray-500" />
-                  Actionable strategies
-                </div>
-              </motion.div>
-            </div>
-          </div>
-        </section>
-
-        {/* Search Section */}
-        <section className="py-16 bg-gray-50 px-4 sm:px-6 lg:px-8">
+        {/* Simple Header */}
+        <section className="pt-24 pb-12 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
+            <h1 className="text-4xl sm:text-5xl font-medium text-gray-900 tracking-tight mb-8 font-serif">
+              Blog
+            </h1>
+
+            {/* Search and Filter */}
             <div className="flex flex-col md:flex-row gap-4 mb-8">
               {/* Search */}
               <div className="flex-1 relative">
@@ -241,15 +174,7 @@ export default function BlogIndex({ allPosts, featuredPosts, categories, tags }:
               </div>
             </div>
 
-            <p className="text-gray-600 text-sm">
-              Showing {paginatedPosts.length} of {filteredPosts.length} articles
-            </p>
-          </div>
-        </section>
-
-        {/* Blog Posts Grid - Bento Grid Style */}
-        <section className="py-24 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto">
+            {/* Blog Posts Grid */}
             {paginatedPosts.length === 0 ? (
               <div className="text-center py-16">
                 <p className="text-xl text-gray-600">
@@ -370,77 +295,6 @@ export default function BlogIndex({ allPosts, featuredPosts, categories, tags }:
                 )}
               </>
             )}
-          </div>
-        </section>
-
-        {/* Popular Topics Section */}
-        <section className="py-24 bg-gray-50 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl sm:text-4xl font-medium text-gray-900 tracking-tight mb-4 font-serif">
-                Popular Topics
-              </h2>
-              <p className="text-xl text-gray-600">
-                Explore our most-read categories
-              </p>
-            </div>
-
-            <div className="flex flex-wrap justify-center gap-3">
-              {tags.slice(0, 20).map((tag) => (
-                <button
-                  key={tag.slug}
-                  onClick={() => {
-                    setSearchQuery(tag.name);
-                    setCurrentPage(1);
-                  }}
-                  className="px-4 py-2 bg-white text-gray-700 rounded-full hover:bg-gray-100 transition-colors border border-gray-200"
-                >
-                  #{tag.name} <span className="text-sm text-gray-400">({tag.count})</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* CTA Section - matching landing page style */}
-        <section className="py-24 px-4 sm:px-6 lg:px-8 bg-white">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl sm:text-4xl font-medium text-gray-900 tracking-tight mb-4 font-serif">
-              Ready to scale your cold email outreach?
-            </h2>
-            <p className="text-lg text-gray-600 mb-10 leading-relaxed">
-              Try SendItFast and generate personalized emails at scale with AI
-            </p>
-
-            <div className="relative group inline-block">
-              <Link
-                href="/pricing"
-                className="inline-flex items-center justify-center px-16 py-4 rounded-xl text-base font-medium text-white tracking-tight shadow-sm transition-all duration-300"
-                style={{
-                  background: "linear-gradient(#5a5a5a, #1c1c1c)",
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
-                }}
-              >
-                Start Free Trial
-                <ArrowRight className="ml-3 h-5 w-5" />
-              </Link>
-              <div className="absolute -inset-1 rounded-xl border-2 border-dashed border-black opacity-0 transition-opacity duration-300 pointer-events-none group-hover:opacity-100"></div>
-            </div>
-
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm text-gray-400">
-              <div className="flex items-center">
-                <Check className="h-4 w-4 mr-2 text-gray-500" />
-                No credit card required
-              </div>
-              <div className="flex items-center">
-                <Check className="h-4 w-4 mr-2 text-gray-500" />
-                Free 500 credits
-              </div>
-              <div className="flex items-center">
-                <Check className="h-4 w-4 mr-2 text-gray-500" />
-                Cancel anytime
-              </div>
-            </div>
           </div>
         </section>
 
