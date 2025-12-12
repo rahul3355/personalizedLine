@@ -670,17 +670,44 @@ export default function LandingPage() {
                 Best-in-class personalization
               </motion.div>
 
-              {/* Headline */}
+              {/* Headline with animated gradient */}
               <motion.h1
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
-                className="text-4xl sm:text-5xl lg:text-6xl font-medium text-gray-900 tracking-tight leading-[1.1] mb-6 font-serif"
+                className="text-4xl sm:text-5xl lg:text-6xl font-medium tracking-tight leading-[1.1] mb-6 font-serif animated-gradient-text"
               >
                 Personalize Cold Emails
                 <br />
 
               </motion.h1>
+
+              <style jsx>{`
+                @keyframes gradient-sweep {
+                  0% {
+                    background-position: -200% center;
+                  }
+                  100% {
+                    background-position: 200% center;
+                  }
+                }
+
+                .animated-gradient-text {
+                  background: linear-gradient(
+                    90deg,
+                    #111827 0%,
+                    #111827 30%,
+                    #3b82f6 50%,
+                    #111827 70%,
+                    #111827 100%
+                  );
+                  background-size: 200% auto;
+                  -webkit-background-clip: text;
+                  background-clip: text;
+                  -webkit-text-fill-color: transparent;
+                  animation: gradient-sweep 3s ease-in-out infinite;
+                }
+              `}</style>
               <br></br>
 
               {/* Subheadline */}
