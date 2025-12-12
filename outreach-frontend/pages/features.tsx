@@ -20,6 +20,7 @@ import SendItFastLogo from "../assets/senditfast-logo.png";
 import { useAuth } from "../lib/AuthProvider";
 import { supabase } from "../lib/supabaseClient";
 import Footer from "../components/Footer";
+import LandingNavbar from "../components/LandingNavbar";
 
 // SEO
 const SEO = {
@@ -33,55 +34,35 @@ const SEO = {
 const features = [
   {
     title: "Deep Prospect Research",
-    example: "Finds their recent Series B funding round on TechCrunch.",
+    example: "Scans LinkedIn, Company Website, Google, Reddit, Glassdoor, Apollo, Sales Navigator, and 30+ other sources.",
   },
   {
     title: "Context-Aware Personalization",
-    example: "Mentions their podcast interview about 'Future of AI' in the intro.",
+    example: "Answers 'What are their pain points?' and 'How does my product solve them?' to craft sincere, relevant copy.",
   },
   {
     title: "Live Web Analysis",
-    example: "Scans their careers page to specific open roles you can help fill.",
-  },
-  {
-    title: "Verified Email Discovery",
-    example: "Validates 'john.d@company.com' against SMTP servers before sending.",
+    example: "Analyzes company revenue, latest news, buying intent, and strategic focus areas from real-time data.",
   },
   {
     title: "Social Signal Detection",
-    example: "Notices they just posted about 'hiring SDRs' on LinkedIn.",
-  },
-  {
-    title: "Custom Tone Matching",
-    example: "Mimics your 'casual but professional' writing style automatically.",
-  },
-  {
-    title: "Multi-Channel Support",
-    example: "Generates content formatted for both Email and LinkedIn DM limits.",
-  },
-  {
-    title: "One-Click CRM Sync",
-    example: "Pushes 'Interested' leads directly to your HubSpot pipeline.",
+    example: "Identifies hiring surges, leadership changes, and relevant discussions across blogs, forums, and news.",
   },
   {
     title: "High-Throughput Engine",
-    example: "Processes a list of 5,000 leads in under 20 minutes.",
-  },
-  {
-    title: "Enterprise Security Standards",
-    example: "Encrypts your prospect data with AES-256 at rest.",
+    example: "Processes massive lists rapidly without performance bottlenecks.",
   },
   {
     title: "Parallel Processing Grid",
-    example: "Researches 50 prospects simultaneously to save you time.",
+    example: "Researches multiple prospects simultaneously to maximize efficiency.",
   },
   {
     title: "99.99% Uptime Reliability",
-    example: "Always ready to send, even during end-of-quarter spikes.",
+    example: "Enterprise-grade availability ensures your campaigns are never interrupted.",
   },
   {
     title: "Auto-Scaling Architecture",
-    example: "Handles your 100k lead upload as easily as a 100 lead list.",
+    example: "Infrastructure dynamically adapts to handle uploads of any size.",
   },
   {
     title: "Secure Data Isolation",
@@ -89,13 +70,27 @@ const features = [
   },
   {
     title: "Low Latency Response",
-    example: "Get your first personalized batch back in seconds, not hours.",
+    example: "Delivers personalized outputs instantly, eliminating long wait times.",
   },
   {
     title: "Real-Time Job Monitoring",
-    example: "Watch the progress bar update as each email is crafted.",
+    example: "Track progress in real-time as your campaign is processed.",
   },
 ];
+
+const distributeFeatures = (cols: number) => {
+  const result: Array<Array<{ feature: typeof features[0]; index: number }>> = Array.from(
+    { length: cols },
+    () => []
+  );
+  features.forEach((feature, index) => {
+    result[index % cols].push({ feature, index });
+  });
+  return result;
+};
+
+const desktopFeatures = distributeFeatures(3);
+const tabletFeatures = distributeFeatures(2);
 
 // Feature Dropdown Component
 interface FeatureProps {
@@ -115,7 +110,7 @@ const FeatureDropdown = ({ feature, index }: FeatureProps) => {
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: index * 0.05 }}
       viewport={{ once: true }}
-      className="bg-gray-50 rounded-xl overflow-hidden transition-all duration-200 hover:shadow-sm"
+      className="bg-white rounded-xl overflow-hidden transition-all duration-200 hover:shadow-sm hover:bg-[#FFFFF0]"
     >
       <button
         onClick={() => setIsOpen(!isOpen)}
@@ -172,7 +167,7 @@ const DetailDropdown = ({ detail }: DetailProps) => {
     <div className="border-b border-gray-50 last:border-0">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-start text-left py-3 hover:bg-gray-50 rounded-lg transition-colors group focus:outline-none"
+        className="w-full flex items-start text-left py-3 hover:bg-[#FFFFF0] rounded-lg transition-colors group focus:outline-none"
       >
         <ChevronRight
           className={`h-5 w-5 text-gray-400 mr-2 mt-0.5 flex-shrink-0 transition-transform duration-200 ${isOpen ? "transform rotate-90 text-gray-900" : "group-hover:text-gray-600"
@@ -373,179 +368,61 @@ export default function FeaturesPage() {
 
       <div className="min-h-screen bg-white">
         {/* Navigation */}
-        <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              <Link href="/" className="flex items-center">
-                <Image
-                  src={SendItFastLogo}
-                  alt="SendItFast.ai"
-                  width={120}
-                  height={28}
-                  priority
-                />
-              </Link>
-
-              <div className="hidden md:flex items-center space-x-8">
-                <Link
-                  href="/features"
-                  className="text-gray-900 font-semibold text-sm"
-                >
-                  Features
-                </Link>
-                <Link
-                  href="/pricing"
-                  className="text-gray-600 hover:text-gray-900 text-sm font-medium transition-colors"
-                >
-                  Pricing
-                </Link>
-                <Link
-                  href="/blog"
-                  className="text-gray-600 hover:text-gray-900 text-sm font-medium transition-colors"
-                >
-                  Blog
-                </Link>
-                <Link
-                  href="/about"
-                  className="text-gray-600 hover:text-gray-900 text-sm font-medium transition-colors"
-                >
-                  About
-                </Link>
-              </div>
-
-              <div className="hidden md:flex items-center space-x-4">
-                <Link
-                  href="/login"
-                  className="text-gray-600 hover:text-gray-900 text-sm font-medium transition-colors"
-                >
-                  Log in
-                </Link>
-                <button
-                  onClick={handleGoogleLogin}
-                  disabled={loading}
-                  className="inline-flex items-center px-4 py-2 rounded-xl text-sm font-bold text-white transition-all duration-200 disabled:opacity-50"
-                  style={{
-                    background: "linear-gradient(#5a5a5a, #1c1c1c)",
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
-                  }}
-                >
-                  Get Started Free
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </button>
-              </div>
-
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100"
-              >
-                {mobileMenuOpen ? (
-                  <X className="h-6 w-6" />
-                ) : (
-                  <Menu className="h-6 w-6" />
-                )}
-              </button>
-            </div>
-          </div>
-
-          {mobileMenuOpen && (
-            <div className="md:hidden bg-white border-t border-gray-100">
-              <div className="px-4 py-4 space-y-3">
-                <Link
-                  href="/features"
-                  className="block py-2 text-gray-900 font-semibold"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Features
-                </Link>
-                <Link
-                  href="/pricing"
-                  className="block py-2 text-gray-600 font-medium"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Pricing
-                </Link>
-                <Link
-                  href="/blog"
-                  className="block py-2 text-gray-600 font-medium"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Blog
-                </Link>
-                <Link
-                  href="/about"
-                  className="block py-2 text-gray-600 font-medium"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  About
-                </Link>
-                <div className="pt-3 border-t border-gray-100">
-                  <button
-                    onClick={handleGoogleLogin}
-                    className="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl text-sm font-bold text-white"
-                    style={{
-                      background: "linear-gradient(#5a5a5a, #1c1c1c)",
-                      fontFamily: '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
-                    }}
-                  >
-                    Get Started Free
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </nav>
+        {/* Navigation */}
+        <LandingNavbar />
 
         {/* Hero Section */}
-        <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+        <section className="pt-32 pb-4 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="inline-flex items-center px-4 py-1.5 rounded-full bg-gray-100 text-gray-900 text-sm font-medium mb-8"
-            >
-              <Sparkles className="h-4 w-4 mr-2" />
-              Platform Features
-            </motion.div>
+
 
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="text-4xl sm:text-5xl lg:text-6xl font-medium text-gray-900 tracking-tight mb-6 font-serif"
+              className="text-4xl sm:text-5xl lg:text-6xl font-medium text-gray-900 tracking-tight mb-2 font-serif"
             >
-              Everything you need to
-              <br />
-              <span className="text-gray-900">scale personalized outreach</span>
-            </motion.h1>
+              Capabilities
 
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="text-xl text-gray-600 max-w-2xl mx-auto mb-10"
-            >
-              AI-powered research and email generation that turns cold lists
-              into warm conversations.
-            </motion.p>
+            </motion.h1>
+            <br />
+            <br />
+
+
           </div>
         </section>
 
         {/* Features Grid Section */}
-        <section className="py-24 bg-white px-4 sm:px-6 lg:px-8">
+        <section className="pt-4 pb-24 bg-white px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-medium text-gray-900 tracking-tight mb-4 font-serif">
-                Powerful Capabilities
-              </h2>
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                Built for scale, security, and performance
-              </p>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+
+            {/* Mobile View (1 Column) */}
+            <div className="flex flex-col space-y-4 md:hidden">
               {features.map((feature, index) => (
                 <FeatureDropdown key={index} feature={feature} index={index} />
+              ))}
+            </div>
+
+            {/* Tablet View (2 Columns) */}
+            <div className="hidden md:flex lg:hidden gap-4 items-start">
+              {tabletFeatures.map((col, colIndex) => (
+                <div key={colIndex} className="flex-1 space-y-4">
+                  {col.map(({ feature, index }) => (
+                    <FeatureDropdown key={index} feature={feature} index={index} />
+                  ))}
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop View (4 Columns) */}
+            <div className="hidden lg:flex gap-4 items-start">
+              {desktopFeatures.map((col, colIndex) => (
+                <div key={colIndex} className="flex-1 space-y-4">
+                  {col.map(({ feature, index }) => (
+                    <FeatureDropdown key={index} feature={feature} index={index} />
+                  ))}
+                </div>
               ))}
             </div>
           </div>

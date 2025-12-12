@@ -15,6 +15,7 @@ import Frame1 from "../assets/frame1.png";
 import { useAuth } from "../lib/AuthProvider";
 import { supabase } from "../lib/supabaseClient";
 import Footer from "../components/Footer";
+import LandingNavbar from "../components/LandingNavbar";
 
 // SEO
 const SEO = {
@@ -100,127 +101,8 @@ export default function AboutPage() {
 
       <div className="min-h-screen bg-white">
         {/* Navigation */}
-        <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              <Link href="/" className="flex items-center">
-                <Image
-                  src={SendItFastLogo}
-                  alt="SendItFast.ai"
-                  width={120}
-                  height={28}
-                  priority
-                />
-              </Link>
-
-              <div className="hidden md:flex items-center space-x-8">
-                <Link
-                  href="/features"
-                  className="text-gray-600 hover:text-gray-900 text-sm font-medium transition-colors"
-                >
-                  Features
-                </Link>
-                <Link
-                  href="/pricing"
-                  className="text-gray-600 hover:text-gray-900 text-sm font-medium transition-colors"
-                >
-                  Pricing
-                </Link>
-                <Link
-                  href="/blog"
-                  className="text-gray-600 hover:text-gray-900 text-sm font-medium transition-colors"
-                >
-                  Blog
-                </Link>
-                <Link
-                  href="/about"
-                  className="text-gray-900 font-semibold text-sm"
-                >
-                  About
-                </Link>
-              </div>
-
-              <div className="hidden md:flex items-center space-x-4">
-                <Link
-                  href="/login"
-                  className="text-gray-600 hover:text-gray-900 text-sm font-medium transition-colors"
-                >
-                  Log in
-                </Link>
-                <button
-                  onClick={handleGoogleLogin}
-                  disabled={loading}
-                  className="inline-flex items-center px-4 py-2 rounded-xl text-sm font-medium text-white transition-all duration-200 disabled:opacity-50"
-                  style={{
-                    background: "linear-gradient(#5a5a5a, #1c1c1c)",
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
-                  }}
-                >
-                  Get Started Free
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </button>
-              </div>
-
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100"
-              >
-                {mobileMenuOpen ? (
-                  <X className="h-6 w-6" />
-                ) : (
-                  <Menu className="h-6 w-6" />
-                )}
-              </button>
-            </div>
-          </div>
-
-          {mobileMenuOpen && (
-            <div className="md:hidden bg-white border-t border-gray-100">
-              <div className="px-4 py-4 space-y-3">
-                <Link
-                  href="/features"
-                  className="block py-2 text-gray-600 font-medium"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Features
-                </Link>
-                <Link
-                  href="/pricing"
-                  className="block py-2 text-gray-600 font-medium"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Pricing
-                </Link>
-                <Link
-                  href="/blog"
-                  className="block py-2 text-gray-600 font-medium"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Blog
-                </Link>
-                <Link
-                  href="/about"
-                  className="block py-2 text-gray-900 font-semibold"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  About
-                </Link>
-                <div className="pt-3 border-t border-gray-100">
-                  <button
-                    onClick={handleGoogleLogin}
-                    className="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl text-sm font-medium text-white"
-                    style={{
-                      background: "linear-gradient(#5a5a5a, #1c1c1c)",
-                      fontFamily: '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
-                    }}
-                  >
-                    Get Started Free
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </nav>
+        {/* Navigation */}
+        <LandingNavbar />
 
         {/* Hero Section */}
         <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
