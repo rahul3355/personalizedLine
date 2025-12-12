@@ -8,6 +8,7 @@ const BLOG_POSTS_PATH = path.join(process.cwd(), 'content/blog');
 
 /**
  * Get all blog post slugs from the content directory
+ * Excludes documentation files (files starting with uppercase or containing certain keywords)
  */
 export function getAllPostSlugs(): string[] {
   if (!fs.existsSync(BLOG_POSTS_PATH)) {
@@ -16,7 +17,22 @@ export function getAllPostSlugs(): string[] {
 
   const files = fs.readdirSync(BLOG_POSTS_PATH);
   return files
-    .filter((file) => file.endsWith('.mdx') || file.endsWith('.md'))
+    .filter((file) => {
+      // Only include .md and .mdx files
+      if (!file.endsWith('.mdx') && !file.endsWith('.md')) {
+        return false;
+      }
+
+      // Exclude documentation files (uppercase start or contains GUIDE/IDEAS/README)
+      const slug = file.replace(/\.mdx?$/, '');
+      const isDocumentation =
+        /^[A-Z]/.test(slug) || // Starts with uppercase
+        slug.includes('GUIDE') ||
+        slug.includes('IDEAS') ||
+        slug.includes('README');
+
+      return !isDocumentation;
+    })
     .map((file) => file.replace(/\.mdx?$/, ''));
 }
 
