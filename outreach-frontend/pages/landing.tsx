@@ -671,49 +671,60 @@ export default function LandingPage() {
               </motion.div>
 
               {/* Headline with animated gradient */}
-              <motion.h1
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 }}
-                className="text-4xl sm:text-5xl lg:text-6xl font-medium tracking-tight leading-[1.1] mb-6 font-serif"
-              >
-                <span className="animated-gradient-text">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-medium tracking-tight leading-[1.1] mb-6 font-serif">
+                <span className="animated-text-reveal">
                   Personalize Cold Emails
                 </span>
                 <br />
 
-              </motion.h1>
+              </h1>
 
               <style jsx>{`
-                @keyframes gradient-sweep {
+                @keyframes text-reveal {
                   0% {
-                    background-position: 0% 50%;
-                  }
-                  50% {
-                    background-position: 100% 50%;
+                    clip-path: inset(0 100% 0 0);
                   }
                   100% {
-                    background-position: 0% 50%;
+                    clip-path: inset(0 0 0 0);
                   }
                 }
 
-                .animated-gradient-text {
+                @keyframes blue-sweep {
+                  0% {
+                    background-position: -100% 0;
+                  }
+                  100% {
+                    background-position: 200% 0;
+                  }
+                }
+
+                .animated-text-reveal {
+                  position: relative;
+                  display: inline-block;
+                  color: #111827;
+                  animation: text-reveal 1.2s ease-out forwards;
+                }
+
+                .animated-text-reveal::before {
+                  content: '';
+                  position: absolute;
+                  top: 0;
+                  left: 0;
+                  right: 0;
+                  bottom: 0;
                   background: linear-gradient(
                     90deg,
-                    #1f2937 0%,
-                    #1f2937 25%,
-                    #60a5fa 40%,
+                    transparent 0%,
+                    transparent 40%,
                     #3b82f6 50%,
-                    #60a5fa 60%,
-                    #1f2937 75%,
-                    #1f2937 100%
+                    transparent 60%,
+                    transparent 100%
                   );
-                  background-size: 300% 100%;
-                  -webkit-background-clip: text;
-                  -webkit-text-fill-color: transparent;
-                  background-clip: text;
-                  animation: gradient-sweep 4s linear infinite;
-                  display: inline-block;
+                  background-size: 200% 100%;
+                  animation: blue-sweep 1.2s ease-out forwards;
+                  pointer-events: none;
+                  mix-blend-mode: color;
+                  opacity: 0.6;
                 }
               `}</style>
               <br></br>
