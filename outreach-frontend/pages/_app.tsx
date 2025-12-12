@@ -28,6 +28,7 @@ const PUBLIC_ROUTES = [
   "/landing",
   "/features",
   "/pricing",
+  "/blog",
   "/about",
   "/terms",
   "/privacy",
@@ -42,7 +43,7 @@ function Layout({ Component, pageProps }: LayoutProps) {
   const [pageLoading, setPageLoading] = useState(false);
 
   // Check if current route is public
-  const isPublicRoute = PUBLIC_ROUTES.includes(router.pathname);
+  const isPublicRoute = PUBLIC_ROUTES.includes(router.pathname) || router.pathname.startsWith('/blog/');
 
   useEffect(() => {
     const handleStart = (_url: string, { shallow } = { shallow: false }) => {

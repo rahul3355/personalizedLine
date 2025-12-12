@@ -127,6 +127,12 @@ export default function AboutPage() {
                   Pricing
                 </Link>
                 <Link
+                  href="/blog"
+                  className="text-gray-600 hover:text-gray-900 text-sm font-medium transition-colors"
+                >
+                  Blog
+                </Link>
+                <Link
                   href="/about"
                   className="text-gray-900 font-semibold text-sm"
                 >
@@ -184,6 +190,13 @@ export default function AboutPage() {
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Pricing
+                </Link>
+                <Link
+                  href="/blog"
+                  className="block py-2 text-gray-600 font-medium"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Blog
                 </Link>
                 <Link
                   href="/about"

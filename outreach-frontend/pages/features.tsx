@@ -310,6 +310,12 @@ export default function FeaturesPage() {
                   Pricing
                 </Link>
                 <Link
+                  href="/blog"
+                  className="text-gray-600 hover:text-gray-900 text-sm font-medium transition-colors"
+                >
+                  Blog
+                </Link>
+                <Link
                   href="/about"
                   className="text-gray-600 hover:text-gray-900 text-sm font-medium transition-colors"
                 >
@@ -367,6 +373,13 @@ export default function FeaturesPage() {
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Pricing
+                </Link>
+                <Link
+                  href="/blog"
+                  className="block py-2 text-gray-600 font-medium"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Blog
                 </Link>
                 <Link
                   href="/about"
