@@ -240,7 +240,7 @@ export default function BlogLayout({ post, children, relatedPosts = [] }: BlogLa
             </div>
 
             {/* Sidebar */}
-            <aside className="lg:col-span-4">
+            <aside className="lg:col-span-4 space-y-8">
               {/* Table of Contents */}
               {post.tableOfContents && post.tableOfContents.length > 0 && (
                 <TableOfContents items={post.tableOfContents} />

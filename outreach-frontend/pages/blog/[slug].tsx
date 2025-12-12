@@ -9,6 +9,7 @@ import remarkGfm from 'remark-gfm';
 import rehypeSlug from 'rehype-slug';
 import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import rehypeHighlight from 'rehype-highlight';
+import { ArrowRight, Check } from 'lucide-react';
 
 interface BlogPostPageProps {
   post: BlogPost;
@@ -135,26 +136,46 @@ export default function BlogPostPage({ post, mdxSource, relatedPosts }: BlogPost
         </div>
       </div>
 
-      {/* CTA Section */}
-      <div className="mt-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-center text-white">
-        <h2 className="text-3xl font-bold mb-4">Ready to Scale Your Cold Email Outreach?</h2>
-        <p className="text-xl text-blue-100 mb-6 max-w-2xl mx-auto">
-          SendItFast uses AI to personalize cold emails at scale, helping you get 3x more replies
-          without hiring VAs or spending hours on research.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <a
-            href="/pricing"
-            className="px-8 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-colors"
-          >
-            Start Free Trial
-          </a>
-          <a
-            href="/features"
-            className="px-8 py-3 border-2 border-white text-white font-semibold rounded-lg hover:bg-white/10 transition-colors"
-          >
-            See How It Works
-          </a>
+      {/* CTA Section - Matching theme */}
+      <div className="mt-16 pt-8 border-t border-gray-200">
+        <div className="bg-gray-50 rounded-2xl p-8 sm:p-12 text-center">
+          <h2 className="text-3xl sm:text-4xl font-medium text-gray-900 tracking-tight mb-4 font-serif">
+            Ready to Scale Your Cold Email Outreach?
+          </h2>
+          <p className="text-lg text-gray-600 mb-10 leading-relaxed max-w-2xl mx-auto">
+            SendItFast uses AI to personalize cold emails at scale, helping you get 3x more replies
+            without hiring VAs or spending hours on research.
+          </p>
+
+          <div className="relative group inline-block">
+            <a
+              href="/pricing"
+              className="inline-flex items-center justify-center px-12 py-4 rounded-xl text-base font-medium text-white tracking-tight shadow-sm transition-all duration-300"
+              style={{
+                background: "linear-gradient(#5a5a5a, #1c1c1c)",
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
+              }}
+            >
+              Start Free Trial
+              <ArrowRight className="ml-3 h-5 w-5" />
+            </a>
+            <div className="absolute -inset-1 rounded-xl border-2 border-dashed border-black opacity-0 transition-opacity duration-300 pointer-events-none group-hover:opacity-100"></div>
+          </div>
+
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm text-gray-400">
+            <div className="flex items-center">
+              <Check className="h-4 w-4 mr-2 text-gray-500" />
+              No credit card required
+            </div>
+            <div className="flex items-center">
+              <Check className="h-4 w-4 mr-2 text-gray-500" />
+              Free 500 credits
+            </div>
+            <div className="flex items-center">
+              <Check className="h-4 w-4 mr-2 text-gray-500" />
+              Cancel anytime
+            </div>
+          </div>
         </div>
       </div>
     </BlogLayout>
