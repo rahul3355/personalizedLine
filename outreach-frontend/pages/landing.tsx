@@ -821,8 +821,8 @@ export default function LandingPage() {
                   key={index}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  viewport={{ once: true }}
+                  transition={{ duration: 0.15, delay: index * 0.08 }}
+                  viewport={{ once: true, margin: "-100px" }}
                   className="text-center"
                 >
                   <div className="text-4xl sm:text-5xl font-medium text-gray-900 smb-2 font-mono">
@@ -970,8 +970,8 @@ export default function LandingPage() {
                   key={index}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  viewport={{ once: true }}
+                  transition={{ duration: 0.15, delay: index * 0.08 }}
+                  viewport={{ once: true, margin: "-50px" }}
                   className="relative group"
                 >
                   <div className="text-6xl font-bold text-gray-900/10 mb-4 transition-colors duration-200 group-hover:text-gray-900">
@@ -1013,8 +1013,8 @@ export default function LandingPage() {
                     key={index}
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: index * 0.1 }}
-                    viewport={{ once: true }}
+                    transition={{ duration: 0.15, delay: index * 0.08 }}
+                    viewport={{ once: true, margin: "-50px" }}
                     className="group overflow-hidden bg-white rounded-2xl transition-all duration-300"
                   >
                     {/* Image Area - fixed height, not absolute positioned */}

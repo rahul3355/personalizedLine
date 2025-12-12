@@ -254,7 +254,7 @@ export default function AboutPage() {
         </section>
 
         {/* Mission Section */}
-        <section className="py-24 bg-gray-50 px-4 sm:px-6 lg:px-8">
+        <section className="py-24 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
             <div className="grid lg:grid-cols-2 gap-16 items-center">
               <div>
