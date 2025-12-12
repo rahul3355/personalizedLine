@@ -94,6 +94,74 @@ function parsePost(filePath: string, slug: string): BlogPost {
 }
 
 /**
+ * Parse only the metadata from a blog post (without content/TOC for performance)
+ */
+function parsePostMetadata(filePath: string, slug: string): BlogPostMetadata {
+  const fileContents = fs.readFileSync(filePath, 'utf8');
+  const { data, content } = matter(fileContents);
+
+  const readingTimeResult = readingTime(content);
+  const excerpt = data.description || content.slice(0, 160).trim() + '...';
+
+  return {
+    slug,
+    title: data.title || '',
+    description: data.description || '',
+    date: data.date || new Date().toISOString(),
+    author: data.author || 'SendItFast Team',
+    authorRole: data.authorRole,
+    authorImage: data.authorImage,
+    image: data.image || '/assets/blog/default-cover.jpg',
+    imageAlt: data.imageAlt || data.title || '',
+    category: data.category || 'Uncategorized',
+    tags: data.tags || [],
+    readingTime: readingTimeResult.text,
+    featured: data.featured || false,
+    seoKeywords: data.seoKeywords || [],
+    metaDescription: data.metaDescription || data.description || excerpt,
+    canonicalUrl: data.canonicalUrl,
+    relatedPosts: data.relatedPosts,
+  };
+}
+
+/**
+ * Get metadata for a single blog post (without content)
+ */
+export function getPostMetadataBySlug(slug: string): BlogPostMetadata | null {
+  try {
+    const fullPath = path.join(BLOG_POSTS_PATH, `${slug}.mdx`);
+
+    if (!fs.existsSync(fullPath)) {
+      const mdPath = path.join(BLOG_POSTS_PATH, `${slug}.md`);
+      if (!fs.existsSync(mdPath)) {
+        return null;
+      }
+      return parsePostMetadata(mdPath, slug);
+    }
+
+    return parsePostMetadata(fullPath, slug);
+  } catch (error) {
+    console.error(`Error reading post metadata ${slug}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Get all blog posts metadata (optimized for index pages - excludes content)
+ */
+export function getAllPostsMetadata(): BlogPostMetadata[] {
+  const slugs = getAllPostSlugs();
+  const posts = slugs
+    .map((slug) => getPostMetadataBySlug(slug))
+    .filter((post): post is BlogPostMetadata => post !== null)
+    .sort((a, b) => {
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    });
+
+  return posts;
+}
+
+/**
  * Get all blog posts sorted by date (newest first)
  */
 export function getAllPosts(): BlogPost[] {
@@ -109,39 +177,39 @@ export function getAllPosts(): BlogPost[] {
 }
 
 /**
- * Get posts by category
+ * Get posts metadata by category (optimized - no content)
  */
-export function getPostsByCategory(category: string): BlogPost[] {
-  const allPosts = getAllPosts();
+export function getPostsByCategory(category: string): BlogPostMetadata[] {
+  const allPosts = getAllPostsMetadata();
   return allPosts.filter(
     (post) => post.category.toLowerCase() === category.toLowerCase()
   );
 }
 
 /**
- * Get posts by tag
+ * Get posts metadata by tag (optimized - no content)
  */
-export function getPostsByTag(tag: string): BlogPost[] {
-  const allPosts = getAllPosts();
+export function getPostsByTag(tag: string): BlogPostMetadata[] {
+  const allPosts = getAllPostsMetadata();
   return allPosts.filter((post) =>
     post.tags.some((t) => t.toLowerCase() === tag.toLowerCase())
   );
 }
 
 /**
- * Get featured posts
+ * Get featured posts metadata (optimized - no content)
  */
-export function getFeaturedPosts(limit?: number): BlogPost[] {
-  const allPosts = getAllPosts();
+export function getFeaturedPosts(limit?: number): BlogPostMetadata[] {
+  const allPosts = getAllPostsMetadata();
   const featured = allPosts.filter((post) => post.featured);
   return limit ? featured.slice(0, limit) : featured;
 }
 
 /**
- * Get recent posts
+ * Get recent posts metadata (optimized - no content)
  */
-export function getRecentPosts(limit: number = 5): BlogPost[] {
-  const allPosts = getAllPosts();
+export function getRecentPosts(limit: number = 5): BlogPostMetadata[] {
+  const allPosts = getAllPostsMetadata();
   return allPosts.slice(0, limit);
 }
 
@@ -195,10 +263,10 @@ function extractTableOfContents(content: string): TOCItem[] {
 }
 
 /**
- * Get all unique categories with post counts
+ * Get all unique categories with post counts (optimized - no content)
  */
 export function getAllCategories() {
-  const allPosts = getAllPosts();
+  const allPosts = getAllPostsMetadata();
   const categoryMap = new Map<string, number>();
 
   allPosts.forEach((post) => {
@@ -214,10 +282,10 @@ export function getAllCategories() {
 }
 
 /**
- * Get all unique tags with post counts
+ * Get all unique tags with post counts (optimized - no content)
  */
 export function getAllTags() {
-  const allPosts = getAllPosts();
+  const allPosts = getAllPostsMetadata();
   const tagMap = new Map<string, number>();
 
   allPosts.forEach((post) => {
@@ -237,9 +305,9 @@ export function getAllTags() {
 }
 
 /**
- * Paginate posts
+ * Paginate posts (works with both BlogPost and BlogPostMetadata)
  */
-export function paginatePosts(posts: BlogPost[], page: number, perPage: number = 12) {
+export function paginatePosts<T extends BlogPostMetadata>(posts: T[], page: number, perPage: number = 12) {
   const start = (page - 1) * perPage;
   const end = start + perPage;
 
