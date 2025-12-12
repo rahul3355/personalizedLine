@@ -689,12 +689,14 @@ export default function LandingPage() {
                   }
                 }
 
-                @keyframes blue-sweep {
+                @keyframes blue-lightning {
                   0% {
-                    background-position: -100% 0;
+                    left: 0%;
+                    opacity: 1;
                   }
                   100% {
-                    background-position: 200% 0;
+                    left: 100%;
+                    opacity: 0;
                   }
                 }
 
@@ -702,7 +704,7 @@ export default function LandingPage() {
                   position: relative;
                   display: inline-block;
                   color: #111827;
-                  animation: text-reveal 1.2s ease-out forwards;
+                  animation: text-reveal 0.23s cubic-bezier(0.4, 0, 0.2, 1) forwards;
                 }
 
                 .animated-text-reveal::before {
@@ -710,21 +712,17 @@ export default function LandingPage() {
                   position: absolute;
                   top: 0;
                   left: 0;
-                  right: 0;
-                  bottom: 0;
+                  width: 40px;
+                  height: 100%;
                   background: linear-gradient(
                     90deg,
                     transparent 0%,
-                    transparent 40%,
-                    #3b82f6 50%,
-                    transparent 60%,
-                    transparent 100%
+                    #60a5fa 50%,
+                    #3b82f6 100%
                   );
-                  background-size: 200% 100%;
-                  animation: blue-sweep 1.2s ease-out forwards;
+                  animation: blue-lightning 0.23s cubic-bezier(0.4, 0, 0.2, 1) forwards;
                   pointer-events: none;
-                  mix-blend-mode: color;
-                  opacity: 0.6;
+                  filter: blur(8px);
                 }
               `}</style>
               <br></br>
