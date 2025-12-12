@@ -9,6 +9,7 @@ import remarkGfm from 'remark-gfm';
 import rehypeSlug from 'rehype-slug';
 import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import rehypeHighlight from 'rehype-highlight';
+import { ArrowRight, Check } from 'lucide-react';
 
 interface BlogPostPageProps {
   post: BlogPost;
