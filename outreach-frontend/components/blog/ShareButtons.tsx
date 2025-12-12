@@ -25,11 +25,11 @@ export default function ShareButtons({ url, title, description }: ShareButtonsPr
   };
 
   const buttonClass =
-    'p-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors';
+    'p-2 rounded-xl border border-gray-200 bg-white hover:bg-[#FFFFF0] transition-all duration-300';
 
   return (
     <div className="flex items-center gap-3">
-      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Share:</span>
+      <span className="text-sm font-medium text-gray-900">Share:</span>
 
       <a
         href={shareLinks.twitter}
@@ -38,7 +38,7 @@ export default function ShareButtons({ url, title, description }: ShareButtonsPr
         className={buttonClass}
         aria-label="Share on Twitter"
       >
-        <Twitter className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+        <Twitter className="w-5 h-5 text-gray-600" />
       </a>
 
       <a
@@ -48,7 +48,7 @@ export default function ShareButtons({ url, title, description }: ShareButtonsPr
         className={buttonClass}
         aria-label="Share on LinkedIn"
       >
-        <Linkedin className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+        <Linkedin className="w-5 h-5 text-gray-600" />
       </a>
 
       <a
@@ -58,7 +58,7 @@ export default function ShareButtons({ url, title, description }: ShareButtonsPr
         className={buttonClass}
         aria-label="Share on Facebook"
       >
-        <Facebook className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+        <Facebook className="w-5 h-5 text-gray-600" />
       </a>
 
       <a
@@ -66,7 +66,7 @@ export default function ShareButtons({ url, title, description }: ShareButtonsPr
         className={buttonClass}
         aria-label="Share via Email"
       >
-        <Mail className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+        <Mail className="w-5 h-5 text-gray-600" />
       </a>
 
       <button
@@ -74,7 +74,7 @@ export default function ShareButtons({ url, title, description }: ShareButtonsPr
         className={buttonClass}
         aria-label="Copy link"
       >
-        <Link2 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+        <Link2 className="w-5 h-5 text-gray-600" />
       </button>
     </div>
   );
