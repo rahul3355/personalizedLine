@@ -700,6 +700,27 @@ export default function LandingPage() {
                   }
                 }
 
+                @keyframes fire-move {
+                  0% {
+                    right: 0%;
+                    opacity: 1;
+                  }
+                  100% {
+                    right: 100%;
+                    opacity: 0;
+                  }
+                }
+
+                @keyframes flicker {
+                  0%, 100% { opacity: 1; transform: scale(1); }
+                  50% { opacity: 0.8; transform: scale(1.1); }
+                }
+
+                @keyframes spark-rise {
+                  0% { transform: translateY(0) scale(1); opacity: 1; }
+                  100% { transform: translateY(-30px) scale(0); opacity: 0; }
+                }
+
                 .animated-text-reveal {
                   position: relative;
                   display: inline-block;
@@ -723,6 +744,34 @@ export default function LandingPage() {
                   animation: blue-lightning 0.23s cubic-bezier(0.4, 0, 0.2, 1) forwards;
                   pointer-events: none;
                   filter: blur(8px);
+                }
+
+                .animated-text-reveal::after {
+                  content: '';
+                  position: absolute;
+                  top: 50%;
+                  right: 0;
+                  transform: translateY(-50%);
+                  width: 30px;
+                  height: 60px;
+                  background: radial-gradient(
+                    ellipse at center,
+                    #ff6b00 0%,
+                    #ff8c00 30%,
+                    #ffa500 50%,
+                    transparent 70%
+                  );
+                  animation: fire-move 0.23s cubic-bezier(0.4, 0, 0.2, 1) forwards,
+                             flicker 0.1s ease-in-out infinite;
+                  pointer-events: none;
+                  filter: blur(4px);
+                  box-shadow:
+                    0 -10px 10px rgba(255, 107, 0, 0.5),
+                    0 -20px 5px rgba(255, 140, 0, 0.3),
+                    5px -15px 3px rgba(255, 165, 0, 0.6),
+                    -5px -15px 3px rgba(255, 165, 0, 0.6),
+                    10px -25px 2px rgba(255, 69, 0, 0.4),
+                    -10px -25px 2px rgba(255, 69, 0, 0.4);
                 }
               `}</style>
               <br></br>
