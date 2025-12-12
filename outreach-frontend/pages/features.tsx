@@ -98,7 +98,15 @@ const features = [
 ];
 
 // Feature Dropdown Component
-const FeatureDropdown = ({ feature, index }) => {
+interface FeatureProps {
+  feature: {
+    title: string;
+    example: string;
+  };
+  index: number;
+}
+
+const FeatureDropdown = ({ feature, index }: FeatureProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -150,7 +158,14 @@ const FeatureDropdown = ({ feature, index }) => {
 };
 
 // Detail Dropdown Component for How It Works
-const DetailDropdown = ({ detail }) => {
+interface DetailProps {
+  detail: {
+    title: string;
+    example: string;
+  };
+}
+
+const DetailDropdown = ({ detail }: DetailProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
