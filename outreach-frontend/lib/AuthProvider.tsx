@@ -107,11 +107,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .single();
 
         if (insertError) {
-          logger.error("Profile insert error:", insertError);
-          // Throw error to trigger the catch block and alert the user
+          // Check for duplicate key (race condition with DB trigger)
+          if (insertError.code === '23505') {
+            // Profile was just created by trigger, so fetch it
+            const { data: refetched, error: refetchError } = await supabase
+              .from("profiles")
+              .select("*")
+              .eq("id", userId)
+              .single();
+
+            if (refetchError || !refetched) {
+              logger.error("Profile refetch error:", refetchError);
+              throw new Error("Failed to retrieve user profile after creation.");
+            }
+            profile = refetched;
+          } else {
+            logger.error("Profile insert error:", insertError);
+            throw new Error(
+              `Failed to create user profile: ${insertError.message || "Unknown database error"}. Please try signing out and signing in again, or contact support if the issue persists.`
+            );
+          }
+        } else if (!inserted) {
           throw new Error(
-            `Failed to create user profile: ${insertError.message || "Unknown database error"}. Please try signing out and signing in again, or contact support if the issue persists.`
+            "Failed to create user profile: No data returned from database. Please try signing out and signing in again."
           );
+        } else {
+          profile = inserted;
         }
 
         if (!inserted) {
