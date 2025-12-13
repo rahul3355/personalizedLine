@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { PiCoinsDuotone, PiGift, PiCheckCircle, PiXCircle } from "react-icons/pi";
+import { Gift, Check, X, Coins, Loader2 } from "lucide-react";
 import { useAuth } from "../lib/AuthProvider";
 
 interface SignupReward {
@@ -90,7 +90,6 @@ export default function SignupRewardDropdown({ onClose }: SignupRewardDropdownPr
         throw new Error(errorData.detail || "Failed to claim reward");
       }
 
-      // Refresh reward status and user info (to update credits)
       await fetchReward();
       await refreshUserInfo();
     } catch (err) {
@@ -104,15 +103,13 @@ export default function SignupRewardDropdown({ onClose }: SignupRewardDropdownPr
     if (!deadlineAt) return "";
     try {
       const date = new Date(deadlineAt);
-      const options: Intl.DateTimeFormatOptions = {
+      return date.toLocaleDateString(undefined, {
         month: "short",
         day: "numeric",
         year: "numeric",
         hour: "numeric",
         minute: "2-digit",
-        timeZoneName: "short",
-      };
-      return date.toLocaleString(undefined, options);
+      });
     } catch {
       return deadlineAt;
     }
@@ -125,27 +122,25 @@ export default function SignupRewardDropdown({ onClose }: SignupRewardDropdownPr
     const hours = Math.floor((seconds % 86400) / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
 
-    if (days > 0) {
-      return `${days}d ${hours}h remaining`;
-    } else if (hours > 0) {
-      return `${hours}h ${minutes}m remaining`;
-    } else {
-      return `${minutes}m remaining`;
-    }
+    if (days > 0) return `${days}d ${hours}h left`;
+    if (hours > 0) return `${hours}h ${minutes}m left`;
+    return `${minutes}m left`;
   };
+
+  const dropdownClasses = "absolute right-0 mt-2 w-[300px] rounded-2xl bg-white border border-neutral-200 shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-5";
 
   // Loading state
   if (loading) {
     return (
       <motion.div
-        initial={{ opacity: 0, y: -6 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -6 }}
-        transition={{ duration: 0.16 }}
-        className="absolute right-0 mt-2 w-[320px] rounded-2xl bg-white ring-1 ring-[#EEF0F4] shadow-[0_20px_60px_rgba(16,24,40,0.08),0_2px_8px_rgba(16,24,40,0.06)] p-4"
+        initial={{ opacity: 0, y: -8, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -8, scale: 0.96 }}
+        transition={{ duration: 0.15 }}
+        className={dropdownClasses}
       >
         <div className="flex items-center justify-center py-8">
-          <div className="w-6 h-6 border-2 border-[#4F55F1] border-t-transparent rounded-full animate-spin" />
+          <Loader2 className="w-5 h-5 text-neutral-400 animate-spin" />
         </div>
       </motion.div>
     );
@@ -155,131 +150,129 @@ export default function SignupRewardDropdown({ onClose }: SignupRewardDropdownPr
   if (error || !reward || !reward.has_reward) {
     return (
       <motion.div
-        initial={{ opacity: 0, y: -6 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -6 }}
-        transition={{ duration: 0.16 }}
-        className="absolute right-0 mt-2 w-[320px] rounded-2xl bg-white ring-1 ring-[#EEF0F4] shadow-[0_20px_60px_rgba(16,24,40,0.08),0_2px_8px_rgba(16,24,40,0.06)] p-4"
+        initial={{ opacity: 0, y: -8, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -8, scale: 0.96 }}
+        transition={{ duration: 0.15 }}
+        className={dropdownClasses}
       >
         <div className="text-center py-4">
           {error ? (
-            <p className="text-[#EF4444] text-sm mb-2">{error}</p>
+            <p className="text-red-500 text-sm mb-3">{error}</p>
           ) : (
-            <p className="text-[#717173] text-sm">No active reward offer</p>
+            <p className="text-neutral-500 text-sm">No active reward</p>
           )}
           <button
             onClick={() => (window.location.href = "/billing")}
-            className="mt-3 text-[#4F55F1] text-sm font-medium hover:underline"
+            className="text-neutral-900 text-xs font-medium hover:underline"
           >
-            View billing & plans
+            View billing & plans →
           </button>
         </div>
       </motion.div>
     );
   }
 
-  // Main render based on status
   return (
     <motion.div
-      initial={{ opacity: 0, y: -6 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -6 }}
-      transition={{ duration: 0.16 }}
-      className="absolute right-0 mt-2 w-[320px] rounded-2xl bg-white ring-1 ring-[#EEF0F4] shadow-[0_20px_60px_rgba(16,24,40,0.08),0_2px_8px_rgba(16,24,40,0.06)] p-4"
-      style={{
-        fontFamily:
-          '"Aeonik Pro","Aeonik",-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif',
-      }}
+      initial={{ opacity: 0, y: -8, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -8, scale: 0.96 }}
+      transition={{ duration: 0.15 }}
+      className={dropdownClasses}
     >
       {/* Header */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FFD700] to-[#FFA500] flex items-center justify-center shadow-sm">
-          <PiGift className="w-5 h-5 text-white" />
+      <div className="flex items-start gap-3 mb-4">
+        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+          reward.status === "claimed" ? "bg-green-50" :
+          reward.status === "unlocked" ? "bg-amber-50" :
+          reward.status === "expired" ? "bg-red-50" :
+          "bg-neutral-100"
+        }`}>
+          {reward.status === "claimed" ? (
+            <Check className="w-4 h-4 text-green-600" />
+          ) : reward.status === "expired" ? (
+            <X className="w-4 h-4 text-red-500" />
+          ) : (
+            <Gift className="w-4 h-4 text-neutral-700" />
+          )}
         </div>
-        <div className="flex-1">
-          <h3 className="text-[16px] font-semibold text-[#111827]">
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm font-semibold text-neutral-900">
             {reward.status === "claimed"
               ? "Reward Claimed!"
               : reward.status === "unlocked"
-              ? "Reward Unlocked!"
+              ? "Reward Ready!"
               : reward.status === "expired"
               ? "Offer Expired"
               : "Welcome Bonus"}
           </h3>
-          <p className="text-[13px] text-[#717173]">
+          <p className="text-xs text-neutral-500 mt-0.5">
             {reward.status === "claimed"
               ? `You earned ${reward.reward_credits} bonus credits`
               : reward.status === "unlocked"
-              ? "Claim your free credits now!"
+              ? `Claim your ${reward.reward_credits} free credits`
               : reward.status === "expired"
               ? "This offer has ended"
-              : `Use ${reward.credits_goal} credits to unlock ${reward.reward_credits} free`}
+              : `Use ${reward.credits_goal} credits to unlock ${reward.reward_credits}`}
           </p>
         </div>
       </div>
 
-      {/* Progress bar - show for active and unlocked */}
+      {/* Progress bar - for active and unlocked */}
       {(reward.status === "active" || reward.status === "unlocked") && (
         <div className="mb-4">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-[13px] font-medium text-[#111827]">
-              {reward.credits_used} / {reward.credits_goal}
+          <div className="flex justify-between items-center mb-1.5">
+            <span className="text-xs font-medium text-neutral-700">
+              {reward.credits_used.toLocaleString()} / {reward.credits_goal.toLocaleString()}
             </span>
-            <span className="text-[13px] text-[#717173]">{reward.progress_percent}%</span>
+            <span className="text-xs text-neutral-400">{reward.progress_percent}%</span>
           </div>
-          <div className="h-2.5 bg-[#E9ECF2] rounded-full overflow-hidden">
+          <div className="h-1.5 bg-neutral-100 rounded-full overflow-hidden">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${Math.min(100, reward.progress_percent)}%` }}
               transition={{ duration: 0.5, ease: "easeOut" }}
               className={`h-full rounded-full ${
-                reward.status === "unlocked"
-                  ? "bg-gradient-to-r from-[#10B981] to-[#059669]"
-                  : "bg-gradient-to-r from-[#4F55F1] to-[#7C3AED]"
+                reward.status === "unlocked" ? "bg-green-500" : "bg-neutral-900"
               }`}
             />
           </div>
         </div>
       )}
 
-      {/* Credits remaining info - only for active */}
+      {/* Credits remaining - active only */}
       {reward.status === "active" && (
-        <div className="bg-[#F7F7F7] rounded-xl p-3 mb-4">
+        <div className="bg-neutral-50 rounded-xl p-3 mb-4">
           <div className="flex items-center justify-between">
-            <span className="text-[13px] text-[#717173]">Credits to go</span>
-            <span className="text-[16px] font-bold text-[#111827]">
-              {reward.credits_remaining_to_goal}
+            <span className="text-xs text-neutral-500">Credits to go</span>
+            <span className="text-sm font-semibold text-neutral-900">
+              {reward.credits_remaining_to_goal.toLocaleString()}
             </span>
           </div>
+          {reward.time_remaining_seconds && (
+            <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-neutral-100">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-[10px] text-neutral-400">
+                {formatTimeRemaining(reward.time_remaining_seconds)}
+              </span>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Deadline info - for active status */}
-      {reward.status === "active" && reward.deadline_at && (
-        <>
-          <div className="flex items-center justify-between text-[12px] mb-2 px-1">
-            <span className="text-[#717173]">Expires on</span>
-            <span className="text-[#111827] font-medium">{formatDeadline(reward.deadline_at)}</span>
-          </div>
-          <div className="flex items-center justify-center gap-1.5 text-[12px] text-[#717173] mb-4">
-            <span className="inline-block w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            {formatTimeRemaining(reward.time_remaining_seconds)}
-          </div>
-        </>
-      )}
-
-      {/* Unlocked success message */}
+      {/* Unlocked message */}
       {reward.status === "unlocked" && (
-        <div className="bg-gradient-to-br from-[#FFF9E6] to-[#FFF3CD] rounded-xl p-3 mb-4 border border-[#FFE082]">
-          <div className="flex items-center gap-2">
-            <PiCheckCircle className="w-5 h-5 text-[#F59E0B] flex-shrink-0" />
+        <div className="bg-amber-50 rounded-xl p-3 mb-4 border border-amber-100">
+          <div className="flex items-start gap-2">
+            <Coins className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-[13px] font-medium text-[#92400E]">
-                Goal reached! You used {reward.credits_used} credits
+              <p className="text-xs font-medium text-amber-800">
+                Goal reached! You used {reward.credits_used.toLocaleString()} credits
               </p>
               {reward.unlocked_at && (
-                <p className="text-[11px] text-[#B45309]">
-                  Unlocked on {formatDeadline(reward.unlocked_at)}
+                <p className="text-[10px] text-amber-600 mt-0.5">
+                  {formatDeadline(reward.unlocked_at)}
                 </p>
               )}
             </div>
@@ -287,18 +280,18 @@ export default function SignupRewardDropdown({ onClose }: SignupRewardDropdownPr
         </div>
       )}
 
-      {/* Claimed success message */}
+      {/* Claimed message */}
       {reward.status === "claimed" && (
-        <div className="bg-gradient-to-br from-[#ECFDF5] to-[#D1FAE5] rounded-xl p-3 mb-4 border border-[#6EE7B7]">
-          <div className="flex items-center gap-2">
-            <PiCheckCircle className="w-5 h-5 text-[#10B981] flex-shrink-0" />
+        <div className="bg-green-50 rounded-xl p-3 mb-4 border border-green-100">
+          <div className="flex items-start gap-2">
+            <Check className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-[13px] font-medium text-[#065F46]">
-                +{reward.reward_credits} credits added to your account
+              <p className="text-xs font-medium text-green-800">
+                +{reward.reward_credits.toLocaleString()} credits added
               </p>
               {reward.claimed_at && (
-                <p className="text-[11px] text-[#047857]">
-                  Claimed on {formatDeadline(reward.claimed_at)}
+                <p className="text-[10px] text-green-600 mt-0.5">
+                  {formatDeadline(reward.claimed_at)}
                 </p>
               )}
             </div>
@@ -308,11 +301,11 @@ export default function SignupRewardDropdown({ onClose }: SignupRewardDropdownPr
 
       {/* Expired message */}
       {reward.status === "expired" && (
-        <div className="bg-[#FEF2F2] rounded-xl p-3 mb-4 border border-[#FECACA]">
-          <div className="flex items-center gap-2">
-            <PiXCircle className="w-5 h-5 text-[#EF4444] flex-shrink-0" />
-            <p className="text-[13px] text-[#991B1B]">
-              You used {reward.credits_used}/{reward.credits_goal} credits before the deadline
+        <div className="bg-red-50 rounded-xl p-3 mb-4 border border-red-100">
+          <div className="flex items-start gap-2">
+            <X className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-red-700">
+              Used {reward.credits_used}/{reward.credits_goal} credits before deadline
             </p>
           </div>
         </div>
@@ -322,10 +315,9 @@ export default function SignupRewardDropdown({ onClose }: SignupRewardDropdownPr
       {reward.status === "active" && (
         <button
           disabled
-          className="w-full h-12 rounded-full bg-[#E9ECF2] text-[#9CA3AF] font-medium text-[14px] flex items-center justify-center gap-2 cursor-not-allowed"
+          className="w-full py-2.5 rounded-full bg-neutral-100 text-neutral-400 text-xs font-medium cursor-not-allowed"
         >
-          <PiCoinsDuotone className="w-5 h-5" />
-          Claim {reward.reward_credits} Credits
+          Use {reward.credits_remaining_to_goal.toLocaleString()} more to unlock
         </button>
       )}
 
@@ -333,17 +325,17 @@ export default function SignupRewardDropdown({ onClose }: SignupRewardDropdownPr
         <button
           onClick={handleClaim}
           disabled={claiming}
-          className="w-full h-12 rounded-full bg-gradient-to-r from-[#D4AF37] to-[#B8960C] hover:from-[#C9A227] hover:to-[#A68508] text-white font-semibold text-[14px] flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+          className="w-full py-2.5 rounded-full bg-neutral-900 text-white text-xs font-semibold hover:bg-neutral-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {claiming ? (
             <>
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
               Claiming...
             </>
           ) : (
             <>
-              <PiCoinsDuotone className="w-5 h-5 text-white" />
-              Claim {reward.reward_credits} Credits
+              <Coins className="w-3.5 h-3.5" />
+              Claim {reward.reward_credits.toLocaleString()} Credits
             </>
           )}
         </button>
@@ -352,9 +344,9 @@ export default function SignupRewardDropdown({ onClose }: SignupRewardDropdownPr
       {reward.status === "claimed" && (
         <button
           disabled
-          className="w-full h-12 rounded-full bg-[#ECFDF5] text-[#10B981] font-semibold text-[14px] flex items-center justify-center gap-2 cursor-default border border-[#6EE7B7]"
+          className="w-full py-2.5 rounded-full bg-green-50 text-green-600 text-xs font-medium border border-green-100 flex items-center justify-center gap-1.5"
         >
-          <PiCheckCircle className="w-5 h-5" />
+          <Check className="w-3.5 h-3.5" />
           Claimed
         </button>
       )}
@@ -362,9 +354,9 @@ export default function SignupRewardDropdown({ onClose }: SignupRewardDropdownPr
       {reward.status === "expired" && (
         <button
           disabled
-          className="w-full h-12 rounded-full bg-[#FEF2F2] text-[#EF4444] font-medium text-[14px] flex items-center justify-center gap-2 cursor-default border border-[#FECACA]"
+          className="w-full py-2.5 rounded-full bg-red-50 text-red-500 text-xs font-medium border border-red-100 flex items-center justify-center gap-1.5"
         >
-          <PiXCircle className="w-5 h-5" />
+          <X className="w-3.5 h-3.5" />
           Expired
         </button>
       )}
@@ -372,9 +364,9 @@ export default function SignupRewardDropdown({ onClose }: SignupRewardDropdownPr
       {/* Link to billing */}
       <button
         onClick={() => (window.location.href = "/billing")}
-        className="w-full mt-3 text-[#4F55F1] text-[12px] font-medium hover:underline text-center"
+        className="w-full mt-3 text-neutral-500 text-[11px] font-medium hover:text-neutral-900 transition-colors text-center"
       >
-        View billing & plans
+        View billing & plans →
       </button>
     </motion.div>
   );
