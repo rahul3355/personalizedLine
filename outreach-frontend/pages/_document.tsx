@@ -34,11 +34,8 @@ export default function Document() {
         <meta name="twitter:site" content="@senditfast" />
         <meta name="twitter:creator" content="@senditfast" />
 
-        {/* Favicon and Icons */}
+        {/* Favicon */}
         <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" type="image/svg+xml" href="/icon.svg" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link rel="manifest" href="/site.webmanifest" />
 
         {/* Preconnect to external domains for performance */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
