@@ -1,7 +1,7 @@
 import { Fragment, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, CreditCard, Sparkles, ArrowRight, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { X, CreditCard, ArrowRight, CheckCircle2, AlertCircle, Loader2, ArrowUpCircle } from "lucide-react";
 
 // ============================================================================
 // UPGRADE CONFIRMATION MODAL - Perplexity-style clean design
@@ -77,8 +77,8 @@ export function UpgradeConfirmModal({
                                 </button>
 
                                 <div className="flex items-center gap-3 mb-2">
-                                    <div className="p-2 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl">
-                                        <Sparkles className="w-5 h-5 text-white" />
+                                    <div className="p-2 bg-neutral-900 rounded-xl">
+                                        <ArrowUpCircle className="w-5 h-5 text-white" />
                                     </div>
                                     <h2 className="text-xl font-semibold text-neutral-900">
                                         Upgrade to {newPlan}

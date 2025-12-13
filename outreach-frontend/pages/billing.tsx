@@ -1153,6 +1153,13 @@ export default function BillingPage() {
               const currentPlanPricing = PRICING[normalizedPlan as keyof typeof PRICING];
               const currentAddonPrice = currentPlanPricing?.addonPricePer1000 || 20;
               const currentPerCredit = (currentAddonPrice / 1000).toFixed(4);
+
+              // Slider step values (in units of 1000 credits)
+              const sliderSteps = [5, 10, 25, 50, 100, 200, 500, 1000];
+              const sliderIndex = sliderSteps.findIndex(v => v >= addonQuantity) !== -1
+                ? sliderSteps.findIndex(v => v >= addonQuantity)
+                : sliderSteps.length - 1;
+
               const totalCredits = addonQuantity * 1000;
               const totalPrice = addonQuantity * currentAddonPrice;
 
@@ -1163,107 +1170,89 @@ export default function BillingPage() {
               const nextPlanPricing = nextPlan ? PRICING[nextPlan as keyof typeof PRICING] : null;
               const nextAddonPrice = nextPlanPricing?.addonPricePer1000;
 
-              // Quick select options
-              const quickOptions = [
-                { label: "+10k", value: 10 },
-                { label: "+50k", value: 50 },
-                { label: "+100k", value: 100 },
-                { label: "+200k", value: 200 },
-              ];
-
               return (
                 <section className="mt-10 w-full text-left">
                   <article className="flex flex-col rounded-3xl border border-neutral-200/60 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
                     <header className="flex items-center gap-3 mb-6">
-                      <PiCoinsDuotone className="h-5 w-5 text-neutral-900" />
+                      <Plus className="h-5 w-5 text-neutral-900" />
                       <p className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
                         Buy Additional Credits
                       </p>
                     </header>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_auto] gap-8 items-center">
-                      {/* Left: Pricing Info */}
-                      <div className="space-y-2">
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-3xl font-semibold text-neutral-900">${currentAddonPrice}</span>
-                          <span className="text-sm text-neutral-500">per 1,000 credits</span>
+                    <div className="space-y-6">
+                      {/* Slider Section */}
+                      <div className="space-y-4">
+                        {/* Slider Track */}
+                        <div className="relative px-2">
+                          <input
+                            type="range"
+                            min={0}
+                            max={sliderSteps.length - 1}
+                            value={sliderIndex}
+                            onChange={(e) => setAddonQuantity(sliderSteps[parseInt(e.target.value)])}
+                            className="w-full h-2 bg-neutral-200 rounded-full appearance-none cursor-pointer slider-thumb"
+                            style={{
+                              background: `linear-gradient(to right, #000 0%, #000 ${(sliderIndex / (sliderSteps.length - 1)) * 100}%, #e5e5e5 ${(sliderIndex / (sliderSteps.length - 1)) * 100}%, #e5e5e5 100%)`
+                            }}
+                          />
                         </div>
-                        <p className="text-xs text-neutral-400">
-                          ${currentPerCredit} per credit • Credits never expire
-                        </p>
-                        {nextPlan && nextAddonPrice && (
-                          <p className="text-xs text-[#ff7a00] font-medium">
-                            Upgrade to {nextPlan.charAt(0).toUpperCase() + nextPlan.slice(1)} for ${nextAddonPrice}/1000
-                          </p>
-                        )}
-                      </div>
 
-                      {/* Center: Credit Selector */}
-                      <div className="flex flex-col items-center gap-4">
-                        {/* Counter */}
-                        <div className="flex items-center gap-4">
-                          <button
-                            onClick={() => setAddonQuantity(Math.max(1, addonQuantity - 1))}
-                            className="h-9 w-9 flex items-center justify-center rounded-full border border-neutral-200 text-neutral-600 hover:border-neutral-300 hover:bg-neutral-50 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                            disabled={addonQuantity <= 1}
-                          >
-                            <Minus className="h-4 w-4" />
-                          </button>
-                          <div className="flex flex-col items-center min-w-[100px]">
-                            <span className="text-2xl font-semibold text-neutral-900 tabular-nums">
-                              {totalCredits.toLocaleString()}
-                            </span>
-                            <span className="text-xs text-neutral-400">credits</span>
-                          </div>
-                          <button
-                            onClick={() => setAddonQuantity(Math.min(1000, addonQuantity + 1))}
-                            className="h-9 w-9 flex items-center justify-center rounded-full border border-neutral-200 text-neutral-600 hover:border-neutral-300 hover:bg-neutral-50 transition-all active:scale-95"
-                          >
-                            <Plus className="h-4 w-4" />
-                          </button>
-                        </div>
-                        {/* Quick Select */}
-                        <div className="flex gap-2 flex-wrap justify-center">
-                          {quickOptions.map((opt) => (
+                        {/* Step Labels */}
+                        <div className="flex justify-between px-1">
+                          {sliderSteps.map((step, idx) => (
                             <button
-                              key={opt.value}
-                              onClick={() => setAddonQuantity(opt.value)}
-                              className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
-                                addonQuantity === opt.value
-                                  ? "bg-black text-white"
-                                  : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                              key={step}
+                              onClick={() => setAddonQuantity(step)}
+                              className={`text-xs font-medium transition-colors ${
+                                addonQuantity === step
+                                  ? "text-neutral-900"
+                                  : "text-neutral-400 hover:text-neutral-600"
                               }`}
                             >
-                              {opt.label}
+                              {step >= 1000 ? `${step / 1000}M` : `${step}k`}
                             </button>
                           ))}
                         </div>
                       </div>
 
-                      {/* Right: Total & Buy */}
-                      <div className="flex flex-col items-center lg:items-end gap-3 lg:min-w-[180px]">
-                        <div className="text-center lg:text-right">
-                          <p className="text-xs text-neutral-400">Total</p>
-                          <p className="text-2xl font-semibold text-neutral-900">${totalPrice.toLocaleString()}</p>
-                        </div>
-                        <button
-                          onClick={handleAddonPurchase}
-                          disabled={loadingAddon}
-                          className="w-full lg:w-auto px-8 py-3 rounded-full bg-neutral-900 text-white text-sm font-semibold transition hover:bg-neutral-800 hover:scale-[1.02] active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                        >
-                          {loadingAddon ? (
-                            <>
-                              <SendItFastSpinner size={16} />
-                              <span>Processing...</span>
-                            </>
-                          ) : (
-                            <span>Buy Credits</span>
+                      {/* Price Row */}
+                      <div className="flex items-center justify-between pt-4 border-t border-neutral-100">
+                        <div className="space-y-1">
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-sm text-neutral-500">
+                              {totalCredits.toLocaleString()} credits
+                            </span>
+                            <span className="text-xs text-neutral-400">
+                              @ ${currentAddonPrice}/1k
+                            </span>
+                          </div>
+                          {nextPlan && nextAddonPrice && (
+                            <p className="text-xs text-[#ff7a00] font-medium">
+                              Upgrade to {nextPlan.charAt(0).toUpperCase() + nextPlan.slice(1)} for ${nextAddonPrice}/1k
+                            </p>
                           )}
-                        </button>
-                        <p className="text-[10px] text-neutral-400 flex items-center gap-1">
-                          <Check className="h-3 w-3" />
-                          Secure payment via Stripe
-                        </p>
+                        </div>
+
+                        <div className="flex items-center gap-4">
+                          <span className="text-2xl font-bold text-neutral-900">
+                            ${totalPrice.toLocaleString()}
+                          </span>
+                          <button
+                            onClick={handleAddonPurchase}
+                            disabled={loadingAddon}
+                            className="px-6 py-2.5 rounded-full bg-neutral-900 text-white text-sm font-semibold transition hover:bg-neutral-800 hover:scale-[1.02] active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2"
+                          >
+                            {loadingAddon ? (
+                              <>
+                                <SendItFastSpinner size={14} />
+                                <span>Processing...</span>
+                              </>
+                            ) : (
+                              <span>Buy Credits</span>
+                            )}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </article>
@@ -1295,7 +1284,7 @@ export default function BillingPage() {
                       ))}
                     </ul>
                     <a
-                      href="mailto:founders@personalizedline.com"
+                      href="mailto:rahul@senditfast.ai"
                       className="inline-flex w-full items-center justify-center rounded-xl bg-neutral-900 px-8 py-3 text-sm font-semibold text-white transition hover:scale-[1.02] hover:bg-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
                     >
                       Talk to us
