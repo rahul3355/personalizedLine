@@ -20,6 +20,7 @@ async def stream_input_to_tempfile(
     *,
     expires_in: int = 60,
     chunk_size: int = 1024 * 1024,
+    max_size_bytes: int = 100 * 1024 * 1024,  # 100MB limit
 ) -> str:
     """Download a Supabase input file to a temporary location via streaming.
 
@@ -33,6 +34,8 @@ async def stream_input_to_tempfile(
         Seconds the signed URL remains valid.
     chunk_size:
         Number of bytes pulled per streaming iteration.
+    max_size_bytes:
+        Maximum file size allowed (default 100MB).
 
     Returns
     -------
@@ -61,8 +64,21 @@ async def stream_input_to_tempfile(
                     raise FileStreamingError(
                         f"Download failed with status {response.status_code}"
                     )
+                # Check Content-Length header if available
+                content_length = response.headers.get("content-length")
+                if content_length and int(content_length) > max_size_bytes:
+                    raise FileStreamingError(
+                        f"File too large: {int(content_length) // (1024*1024)}MB exceeds 100MB limit"
+                    )
+                # Track bytes while streaming as fallback
+                bytes_downloaded = 0
                 async for chunk in response.aiter_bytes(chunk_size):
                     if chunk:
+                        bytes_downloaded += len(chunk)
+                        if bytes_downloaded > max_size_bytes:
+                            raise FileStreamingError(
+                                f"File too large: exceeds 100MB limit"
+                            )
                         tmp_file.write(chunk)
         tmp_file.flush()
         tmp_file.close()
