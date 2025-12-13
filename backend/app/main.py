@@ -2407,8 +2407,10 @@ async def get_preview_emails(
 
                 email_col_idx = headers.index(email_col)
 
-                # Extract emails for preview
+                # Extract emails for preview (limit to first 10)
                 for i, row in enumerate(rows_iter):
+                    if len(emails) >= 10:
+                        break
                     if row and len(row) > email_col_idx:
                         email_value = row[email_col_idx]
                         if email_value:
@@ -2424,6 +2426,8 @@ async def get_preview_emails(
                         raise HTTPException(status_code=400, detail=f"Column '{email_col}' not found")
 
                     for i, row in enumerate(reader):
+                        if len(emails) >= 10:
+                            break
                         email_value = row.get(email_col, "")
                         if email_value:
                             emails.append(email_value)
