@@ -2957,6 +2957,7 @@ async def create_checkout_session(
             payment_method_types=["card"],
             mode=mode,
             line_items=line_items,
+            invoice_creation={"enabled": True} if mode == "payment" else None,
             success_url=SUCCESS_URL,
             cancel_url=CANCEL_URL,
             metadata={
