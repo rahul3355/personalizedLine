@@ -206,13 +206,11 @@ STRIPE_SYNC_EVENTS = {
     "customer.subscription.updated",
     "invoice.paid",
     "customer.subscription.deleted",
-    "customer.subscription.deleted",
     "customer.subscription.paused",
     "customer.subscription.resumed",
     "customer.subscription.pending_update_applied",
     "customer.subscription.pending_update_expired",
     "customer.subscription.trial_will_end",
-    "invoice.paid",
     "invoice.payment_failed",
     "invoice.payment_action_required",
     "invoice.upcoming",
@@ -221,6 +219,12 @@ STRIPE_SYNC_EVENTS = {
     "payment_intent.succeeded",
     "payment_intent.payment_failed",
     "payment_intent.canceled",
+    # Fraud protection events - trigger immediate credit revocation
+    "charge.refunded",
+    "charge.dispute.created",
+    "charge.dispute.closed",
+    "charge.dispute.updated",
+    "radar.early_fraud_warning.created",
 }
 
 
@@ -3060,6 +3064,131 @@ def _verify_payment_status(obj) -> bool:
 
     return False
 
+
+def _revoke_all_credits_for_fraud(
+    user_id: str,
+    reason: str,
+    event_type: str,
+    event_id: str,
+    amount: float = 0.0,
+    cancel_subscription: bool = True,
+) -> dict:
+    """
+    Revoke ALL credits (monthly + addon) for a user due to fraud/refund/dispute.
+
+    This is the nuclear option - used when a user bypasses the app and goes directly
+    to Stripe for refunds or files disputes. Unlike normal cancellation (where users
+    keep credits until cycle end), this immediately revokes everything.
+
+    Args:
+        user_id: The user to revoke credits from
+        reason: Human-readable reason for the revocation
+        event_type: Stripe event type that triggered this
+        event_id: Stripe event ID for audit trail
+        amount: Dollar amount involved (for logging)
+        cancel_subscription: Whether to also cancel their Stripe subscription
+
+    Returns:
+        dict with revocation details
+    """
+    try:
+        # Get current credits before revocation
+        profile_res = (
+            supabase.table("profiles")
+            .select("credits_remaining, addon_credits, plan_type, stripe_subscription_id, stripe_customer_id")
+            .eq("id", user_id)
+            .single()
+            .execute()
+        )
+
+        if not profile_res.data:
+            print(f"[FRAUD_REVOKE] Profile not found for user {user_id}")
+            return {"status": "error", "message": "profile_not_found"}
+
+        profile = profile_res.data
+        old_monthly = profile.get("credits_remaining", 0)
+        old_addon = profile.get("addon_credits", 0)
+        old_plan = profile.get("plan_type", "free")
+        stripe_sub_id = profile.get("stripe_subscription_id")
+        total_revoked = old_monthly + old_addon
+
+        # Revoke ALL credits and mark account
+        update_payload = {
+            "credits_remaining": 0,
+            "addon_credits": 0,
+            "subscription_status": "revoked",
+            "plan_type": "free",
+            "pending_downgrade": None,
+            "pending_downgrade_effective_date": None,
+            "fraud_flag": event_type,  # Mark what triggered the revocation
+            "fraud_flag_date": datetime.utcnow().isoformat(),
+        }
+
+        res_update = (
+            supabase.table("profiles")
+            .update(update_payload)
+            .eq("id", user_id)
+            .execute()
+        )
+
+        # Log to ledger with full details
+        ledger_entry = {
+            "user_id": user_id,
+            "change": -total_revoked,
+            "amount": -abs(amount) if amount else 0,
+            "reason": f"FRAUD_REVOKE: {reason} | event={event_type} | monthly=-{old_monthly}, addon=-{old_addon}, plan={old_plan}",
+            "ts": datetime.utcnow().isoformat(),
+        }
+        supabase.table("ledger").insert(ledger_entry).execute()
+
+        # Also invalidate any addon_credit_purchases
+        try:
+            supabase.table("addon_credit_purchases").update({
+                "credits_remaining": 0,
+                "revoked_at": datetime.utcnow().isoformat(),
+                "revoked_reason": f"{event_type}: {reason}",
+            }).eq("user_id", user_id).gt("credits_remaining", 0).execute()
+        except Exception as e:
+            print(f"[FRAUD_REVOKE] Warning: Could not invalidate addon purchases: {e}")
+
+        # Cancel Stripe subscription if requested and exists
+        subscription_canceled = False
+        if cancel_subscription and stripe_sub_id:
+            try:
+                stripe.Subscription.cancel(stripe_sub_id)
+                subscription_canceled = True
+                print(f"[FRAUD_REVOKE] Canceled Stripe subscription {stripe_sub_id}")
+            except stripe.error.InvalidRequestError as e:
+                # Subscription might already be canceled
+                print(f"[FRAUD_REVOKE] Subscription already canceled or invalid: {e}")
+                subscription_canceled = True  # Consider it done
+            except Exception as e:
+                print(f"[FRAUD_REVOKE] Warning: Could not cancel subscription: {e}")
+
+        result = {
+            "status": "revoked",
+            "user_id": user_id,
+            "monthly_revoked": old_monthly,
+            "addon_revoked": old_addon,
+            "total_revoked": total_revoked,
+            "old_plan": old_plan,
+            "subscription_canceled": subscription_canceled,
+            "event_type": event_type,
+            "event_id": event_id,
+        }
+
+        print(
+            f"[FRAUD_REVOKE] ⚠️  REVOKED ALL CREDITS for user {user_id}: "
+            f"monthly={old_monthly}, addon={old_addon}, total={total_revoked}, "
+            f"plan={old_plan}→free, reason={reason}"
+        )
+
+        return result
+
+    except Exception as e:
+        print(f"[FRAUD_REVOKE] ERROR revoking credits for user {user_id}: {e}")
+        return {"status": "error", "message": str(e)}
+
 @app.post("/stripe-webhook")
 async def stripe_webhook(request: Request, stripe_signature: str = Header(None)):
     payload = await request.body()
@@ -3133,39 +3262,167 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
         _mark_event_processed(event_id, event_type)
         return {"status": "payment_failure_handled", "event_id": event_id}
 
-    # Handle refunds and disputes (Revoke credits)
-    if event_type in ["charge.refunded", "charge.dispute.created"]:
-        # Logic: Find the user, deduct credits equivalent to the refunded amount
-        # This is tricky because we need to know WHICH credits to deduct.
-        # For now, we will log it and attempt to deduct if we can link it to a user.
-        print(f"[REFUND/DISPUTE] Event {event_type} received. Implementing credit revocation.")
-        
+    # ============================================================
+    # FRAUD PROTECTION: Handle refunds, disputes, and chargebacks
+    # Policy: Direct Stripe actions (bypassing app) = IMMEDIATE revocation of ALL credits
+    # This is different from in-app cancellation where users keep credits until cycle end
+    # ============================================================
+
+    # Handle charge refunds (user requested refund directly from Stripe/bank)
+    if event_type == "charge.refunded":
+        print(f"[REFUND] ⚠️  charge.refunded detected - REVOKING ALL CREDITS")
+
         try:
-            # Charge object has customer info
             if customer_id:
-                 user_id = _find_user_by_customer(customer_id)
-                 if user_id:
-                     # For simplicity in this critical fix phase, we will log a warning to the ledger
-                     # Implementing exact credit reversal requires tracking which specific purchase was refunded
-                     # But we can at least flag the account or deduct a "safe" amount if it was a recent addon.
-                     
-                     # Better approach for now: Just log it. 
-                     # Real implementation requires linking charge -> invoice -> subscription/addon -> credits
-                     
-                     amount_refunded = obj.get("amount_refunded", 0) / 100.0
-                     reason = f"Refund/Dispute detected: {event_type}"
-                     
-                     supabase.table("ledger").insert({
-                        "user_id": user_id,
-                        "change": 0, # We don't auto-deduct yet to avoid false positives without deep linking
-                        "amount": -amount_refunded,
-                        "reason": reason,
-                        "ts": datetime.utcnow().isoformat(),
-                    }).execute()
-                     
-                     print(f"[REFUND] Logged refund for user {user_id}")
+                user_id = _find_user_by_customer(customer_id)
+                if user_id:
+                    linked_user_id = user_id
+                    amount_refunded = obj.get("amount_refunded", 0) / 100.0
+                    charge_id = obj.get("id", "unknown")
+
+                    revoke_result = _revoke_all_credits_for_fraud(
+                        user_id=user_id,
+                        reason=f"Charge refunded (${amount_refunded:.2f}) - charge_id={charge_id}",
+                        event_type=event_type,
+                        event_id=event_id,
+                        amount=amount_refunded,
+                        cancel_subscription=True,
+                    )
+
+                    _mark_event_processed(event_id, event_type)
+                    return {"status": "credits_revoked", "event_id": event_id, "details": revoke_result}
+                else:
+                    print(f"[REFUND] Could not find user for customer {customer_id}")
+            else:
+                print(f"[REFUND] No customer_id in refund event")
         except Exception as e:
             print(f"[REFUND] Error handling refund: {e}")
+
+        _mark_event_processed(event_id, event_type)
+        return {"status": "refund_handled", "event_id": event_id}
+
+    # Handle disputes/chargebacks (user disputed with their bank)
+    if event_type == "charge.dispute.created":
+        print(f"[DISPUTE] ⚠️  charge.dispute.created detected - REVOKING ALL CREDITS")
+
+        try:
+            if customer_id:
+                user_id = _find_user_by_customer(customer_id)
+                if user_id:
+                    linked_user_id = user_id
+                    dispute_amount = obj.get("amount", 0) / 100.0
+                    dispute_reason = obj.get("reason", "unknown")
+                    dispute_id = obj.get("id", "unknown")
+
+                    revoke_result = _revoke_all_credits_for_fraud(
+                        user_id=user_id,
+                        reason=f"Dispute/Chargeback filed (${dispute_amount:.2f}) - reason={dispute_reason}, dispute_id={dispute_id}",
+                        event_type=event_type,
+                        event_id=event_id,
+                        amount=dispute_amount,
+                        cancel_subscription=True,
+                    )
+
+                    _mark_event_processed(event_id, event_type)
+                    return {"status": "credits_revoked_dispute", "event_id": event_id, "details": revoke_result}
+                else:
+                    print(f"[DISPUTE] Could not find user for customer {customer_id}")
+            else:
+                print(f"[DISPUTE] No customer_id in dispute event")
+        except Exception as e:
+            print(f"[DISPUTE] Error handling dispute: {e}")
+
+        _mark_event_processed(event_id, event_type)
+        return {"status": "dispute_handled", "event_id": event_id}
+
+    # Handle dispute resolution (if we lose, ensure credits stay revoked)
+    if event_type == "charge.dispute.closed":
+        print(f"[DISPUTE_CLOSED] charge.dispute.closed detected")
+
+        try:
+            dispute_status = obj.get("status", "unknown")  # won, lost, needs_response, etc.
+
+            if customer_id:
+                user_id = _find_user_by_customer(customer_id)
+                if user_id:
+                    linked_user_id = user_id
+                    dispute_amount = obj.get("amount", 0) / 100.0
+                    dispute_id = obj.get("id", "unknown")
+
+                    if dispute_status == "lost":
+                        # Ensure credits are revoked (they should already be from dispute.created)
+                        print(f"[DISPUTE_CLOSED] Dispute LOST - ensuring credits revoked for user {user_id}")
+                        revoke_result = _revoke_all_credits_for_fraud(
+                            user_id=user_id,
+                            reason=f"Dispute LOST (${dispute_amount:.2f}) - dispute_id={dispute_id}",
+                            event_type=event_type,
+                            event_id=event_id,
+                            amount=dispute_amount,
+                            cancel_subscription=True,
+                        )
+                    elif dispute_status == "won":
+                        # We won the dispute - log it but don't restore credits automatically
+                        # Manual review should be required to restore access
+                        print(f"[DISPUTE_CLOSED] Dispute WON for user {user_id} - manual review required to restore")
+                        supabase.table("ledger").insert({
+                            "user_id": user_id,
+                            "change": 0,
+                            "amount": dispute_amount,
+                            "reason": f"Dispute WON - dispute_id={dispute_id} - MANUAL REVIEW REQUIRED to restore credits",
+                            "ts": datetime.utcnow().isoformat(),
+                        }).execute()
+                    else:
+                        print(f"[DISPUTE_CLOSED] Dispute status={dispute_status} for user {user_id}")
+                        supabase.table("ledger").insert({
+                            "user_id": user_id,
+                            "change": 0,
+                            "amount": 0,
+                            "reason": f"Dispute closed with status={dispute_status} - dispute_id={dispute_id}",
+                            "ts": datetime.utcnow().isoformat(),
+                        }).execute()
+        except Exception as e:
+            print(f"[DISPUTE_CLOSED] Error handling dispute closure: {e}")
+
+        _mark_event_processed(event_id, event_type)
+        return {"status": "dispute_closed_handled", "event_id": event_id}
+
+    # Handle early fraud warnings (Stripe Radar detected potential fraud)
+    if event_type == "radar.early_fraud_warning.created":
+        print(f"[FRAUD_WARNING] ⚠️  Early fraud warning detected - REVOKING ALL CREDITS")
+
+        try:
+            charge_id = obj.get("charge")
+            if charge_id:
+                # Get the charge to find the customer
+                try:
+                    charge = stripe.Charge.retrieve(charge_id)
+                    customer_id = charge.get("customer")
+                except Exception as e:
+                    print(f"[FRAUD_WARNING] Could not retrieve charge {charge_id}: {e}")
+                    customer_id = None
+
+            if customer_id:
+                user_id = _find_user_by_customer(customer_id)
+                if user_id:
+                    linked_user_id = user_id
+                    fraud_type = obj.get("fraud_type", "unknown")
+
+                    revoke_result = _revoke_all_credits_for_fraud(
+                        user_id=user_id,
+                        reason=f"Early fraud warning - type={fraud_type}, charge={charge_id}",
+                        event_type=event_type,
+                        event_id=event_id,
+                        amount=0,
+                        cancel_subscription=True,
+                    )
+
+                    _mark_event_processed(event_id, event_type)
+                    return {"status": "credits_revoked_fraud_warning", "event_id": event_id, "details": revoke_result}
+        except Exception as e:
+            print(f"[FRAUD_WARNING] Error handling fraud warning: {e}")
+
+        _mark_event_processed(event_id, event_type)
+        return {"status": "fraud_warning_handled", "event_id": event_id}
 
     if event_type == "checkout.session.completed":
         user_id = metadata.get("user_id")
@@ -3615,7 +3872,7 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
         else:
             print(f"[SUBSCRIPTION_UPDATED] Could not find user_id for subscription {subscription_id}")
 
-    # Handle subscription cancellation
+    # Handle subscription cancellation/deletion
     elif event_type == "customer.subscription.deleted":
         subscription_id = obj.get("id")
         sub_metadata = obj.get("metadata", {})
@@ -3627,20 +3884,62 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
         if user_id:
             linked_user_id = user_id
             try:
-                # First, get current credits to preserve them
+                # Check why the subscription was deleted
+                # cancellation_details.reason can be: cancellation_requested, payment_disputed, payment_failed
+                cancellation_details = obj.get("cancellation_details", {}) or {}
+                cancellation_reason = cancellation_details.get("reason", "unknown")
+                canceled_at = obj.get("canceled_at")
+
+                print(f"[SUBSCRIPTION_DELETED] user={user_id}, reason={cancellation_reason}")
+
+                # Get current profile to check if already flagged for fraud
                 profile_res = (
                     supabase.table("profiles")
-                    .select("credits_remaining, addon_credits")
+                    .select("credits_remaining, addon_credits, fraud_flag, subscription_status")
                     .eq("id", user_id)
                     .single()
                     .execute()
                 )
-                
-                current_credits = profile_res.data.get("credits_remaining", 0) if profile_res.data else 0
-                current_addon = profile_res.data.get("addon_credits", 0) if profile_res.data else 0
-                
-                # Reset monthly credits to 0 (subscription ended)
-                # Addon credits preserved (user paid separately for these)
+
+                if not profile_res.data:
+                    print(f"[CANCEL] Profile not found for user {user_id}")
+                    _mark_event_processed(event_id, event_type)
+                    return {"status": "profile_not_found", "event_id": event_id}
+
+                profile = profile_res.data
+                current_credits = profile.get("credits_remaining", 0)
+                current_addon = profile.get("addon_credits", 0)
+                fraud_flag = profile.get("fraud_flag")
+                current_status = profile.get("subscription_status")
+
+                # If already revoked due to fraud, skip (credits already taken)
+                if current_status == "revoked" or fraud_flag:
+                    print(f"[CANCEL] User {user_id} already revoked (fraud_flag={fraud_flag}), skipping")
+                    _mark_event_processed(event_id, event_type)
+                    return {"status": "already_revoked", "event_id": event_id}
+
+                # Check if this was a Stripe-initiated deletion due to payment issues
+                # These reasons indicate the user didn't properly cancel via the app
+                stripe_initiated_reasons = {"payment_disputed", "payment_failed"}
+
+                if cancellation_reason in stripe_initiated_reasons:
+                    # Stripe force-canceled due to payment issues - revoke ALL credits
+                    print(f"[CANCEL] ⚠️  Stripe-initiated cancellation ({cancellation_reason}) - REVOKING ALL CREDITS")
+
+                    revoke_result = _revoke_all_credits_for_fraud(
+                        user_id=user_id,
+                        reason=f"Subscription deleted by Stripe - reason={cancellation_reason}",
+                        event_type=event_type,
+                        event_id=event_id,
+                        amount=0,
+                        cancel_subscription=False,  # Already deleted
+                    )
+
+                    _mark_event_processed(event_id, event_type)
+                    return {"status": "credits_revoked_stripe_cancel", "event_id": event_id, "details": revoke_result}
+
+                # Normal cancellation (user canceled via app or period ended naturally)
+                # Reset monthly credits to 0, preserve addon credits
                 res_update = (
                     supabase.table("profiles")
                     .update({
@@ -3648,14 +3947,24 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                         "plan_type": "free",
                         "credits_remaining": 0,  # Reset monthly credits - subscription ended
                         "pending_downgrade": None,  # Clear any pending downgrade
-                        # addon_credits preserved - user paid separately
+                        # addon_credits preserved - user paid separately for these
                     })
                     .eq("id", user_id)
                     .execute()
                 )
                 log_db("cancel_subscription", res_update)
 
-                print(f"[CANCELED] user={user_id}, subscription={subscription_id}, reset monthly credits: {current_credits}→0, kept addon: {current_addon}")
+                # Log to ledger
+                supabase.table("ledger").insert({
+                    "user_id": user_id,
+                    "change": -current_credits if current_credits > 0 else 0,
+                    "amount": 0,
+                    "reason": f"Subscription ended (reason={cancellation_reason}) - monthly credits reset, addon preserved",
+                    "ts": datetime.utcnow().isoformat(),
+                }).execute()
+
+                print(f"[CANCELED] user={user_id}, subscription={subscription_id}, reason={cancellation_reason}, reset monthly: {current_credits}→0, kept addon: {current_addon}")
+
             except Exception as exc:
                 print(f"[CANCEL] Error updating canceled subscription: {exc}")
         else:
