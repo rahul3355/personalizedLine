@@ -24,9 +24,9 @@ const stripePromise = STRIPE_KEY ? loadStripe(STRIPE_KEY) : null;
 
 // Pricing configuration
 const PRICING = {
-  starter: { addonPricePer1000: 15 },
-  growth: { addonPricePer1000: 13 },
-  pro: { addonPricePer1000: 11 },
+  starter: { addonPricePer1000: 20 },
+  growth: { addonPricePer1000: 18 },
+  pro: { addonPricePer1000: 16 },
 } as const;
 
 export default function AddOnCreditsPage() {
