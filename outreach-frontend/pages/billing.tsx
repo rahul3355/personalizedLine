@@ -72,17 +72,17 @@ const PRICING = {
   starter: {
     monthlyPrice: 49,
     credits: 2000,
-    addonPricePer1000: 15,
+    addonPricePer1000: 20,
   },
   growth: {
     monthlyPrice: 149,
     credits: 10000,
-    addonPricePer1000: 13,
+    addonPricePer1000: 18,
   },
   pro: {
     monthlyPrice: 499,
     credits: 40000,
-    addonPricePer1000: 11,
+    addonPricePer1000: 16,
   },
 } as const;
 
@@ -858,11 +858,6 @@ export default function BillingPage() {
                           transition={{ type: "spring", stiffness: 320, damping: 28 }}
                         />
                       )}
-                      {isCurrentPlan && (
-                        <div className="absolute top-4 right-4 px-2.5 py-1 bg-black text-white text-xs font-semibold uppercase tracking-wide">
-                          Current
-                        </div>
-                      )}
                       {/* Show canceled badge if user was on this plan but subscription ended */}
                       {isCanceledPlan && (
                         <div className="absolute top-4 right-4 px-2.5 py-1 bg-red-500 text-white text-xs font-semibold uppercase tracking-wide">
@@ -892,7 +887,7 @@ export default function BillingPage() {
                       </header>
 
                       <div className="mt-6">
-                        <div className="flex items-end justify-between gap-4 flex-wrap">
+                        <div className="flex flex-col gap-1">
                           <div className="flex items-end gap-1">
                             <AnimatePresence mode="wait" initial={false}>
                               <motion.span
@@ -917,8 +912,13 @@ export default function BillingPage() {
                               className="text-sm font-medium text-neutral-400"
                               style={{ fontFamily: AEONIK_FONT_FAMILY }}
                             />
+                            {isYearly && (
+                              <span className="ml-2 text-base text-neutral-400 line-through">
+                                ${plan.monthlyPrice * 12}
+                              </span>
+                            )}
                           </div>
-                          <div className="flex min-h-[20px] flex-shrink-0 items-center justify-end text-right">
+                          <div className="h-5">
                             <AnimatePresence mode="wait" initial={false}>
                               {isYearly && plan.yearlySavings && (
                                 <motion.span
@@ -948,10 +948,10 @@ export default function BillingPage() {
                           >
                             <span
                               aria-hidden="true"
-                              className="pointer-events-none absolute inset-0 rounded-full bg-green-600 transition-all duration-200 ease-out group-hover:-inset-1 group-hover:bg-green-500 group-active:-inset-0.5"
+                              className="pointer-events-none absolute inset-0 rounded-full bg-neutral-900 transition-all duration-200 ease-out group-hover:-inset-1 group-hover:bg-neutral-800 group-active:-inset-0.5"
                             />
                             <span className="relative">
-                              {loadingAction === `switch-annual-${plan.id}` ? "Processing..." : "Switch to Annual - Save 20%"}
+                              {loadingAction === `switch-annual-${plan.id}` ? "Processing..." : "Switch to Annual"}
                             </span>
                           </button>
                         ) : (
@@ -1035,9 +1035,9 @@ export default function BillingPage() {
                               <button
                                 type="button"
                                 disabled
-                                className="group relative mt-auto w-full overflow-visible rounded-full border border-neutral-200 bg-neutral-100 px-6 py-3 text-sm font-semibold text-neutral-400 cursor-not-allowed"
+                                className="group relative mt-auto w-full overflow-visible rounded-full border border-neutral-100 bg-neutral-50 px-6 py-3 text-sm font-semibold text-neutral-300 cursor-not-allowed opacity-60"
                               >
-                                Downgrade to {plan.name}
+                                Get
                               </button>
                             );
                           }
@@ -1102,6 +1102,60 @@ export default function BillingPage() {
                 })}
               </div>
             </LayoutGroup>
+
+            {/* Addon Credits Section */}
+            {hasActiveSub && (() => {
+              const normalizedPlan = currentPlan.toLowerCase().replace(/(_annual|_monthly)$/, "");
+              const currentPlanPricing = PRICING[normalizedPlan as keyof typeof PRICING];
+              const currentAddonPrice = currentPlanPricing?.addonPricePer1000 || 20;
+              const currentPerCredit = (currentAddonPrice / 1000).toFixed(4);
+
+              // Determine next plan
+              const planOrder = ["starter", "growth", "pro"];
+              const currentIndex = planOrder.indexOf(normalizedPlan);
+              const nextPlan = currentIndex < planOrder.length - 1 ? planOrder[currentIndex + 1] : null;
+              const nextPlanPricing = nextPlan ? PRICING[nextPlan as keyof typeof PRICING] : null;
+              const nextAddonPrice = nextPlanPricing?.addonPricePer1000;
+
+              return (
+                <section className="mt-10 w-full text-left">
+                  <article className="flex flex-col rounded-3xl border border-neutral-200/60 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
+                    <header className="flex items-center gap-3">
+                      <Plus className="h-5 w-5 text-neutral-900" />
+                      <p className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+                        Buy Additional Credits
+                      </p>
+                    </header>
+
+                    <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_auto] items-center">
+                      <div className="space-y-3">
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-4xl font-semibold text-neutral-900">${currentAddonPrice}</span>
+                          <span className="text-base text-neutral-500">per 1,000 credits</span>
+                        </div>
+                        <p className="text-sm text-neutral-400">
+                          ${currentPerCredit} per credit • Credits never expire
+                        </p>
+                        {nextPlan && nextAddonPrice && (
+                          <p className="text-sm text-[#ff7a00] font-medium">
+                            Upgrade to {nextPlan.charAt(0).toUpperCase() + nextPlan.slice(1)} to get add-ons for ${nextAddonPrice}/1000
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col gap-3 lg:w-64">
+                        <a
+                          href="/addon"
+                          className="inline-flex w-full items-center justify-center rounded-full bg-neutral-900 px-8 py-3 text-sm font-semibold text-white transition hover:scale-[1.02] hover:bg-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                        >
+                          Buy Credits
+                        </a>
+                      </div>
+                    </div>
+                  </article>
+                </section>
+              );
+            })()}
 
             <section className="mt-10 w-full text-left">
               <article className="flex min-h-[220px] flex-col rounded-3xl border border-neutral-200/60 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
