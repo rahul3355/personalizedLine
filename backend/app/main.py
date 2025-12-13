@@ -2915,10 +2915,7 @@ async def create_checkout_session(
             if not addon_price_id:
                 print(f"[ERROR] Invalid addon plan: {data.plan}")
                 return {"error": "Invalid addon plan"}
-            
-            # Cap quantity to prevent abuse (e.g. buying 1M credits)
-            if data.quantity > 100:
-                 raise HTTPException(status_code=400, detail="Maximum addon quantity is 100 per transaction")
+
             if data.quantity < 1:
                  raise HTTPException(status_code=400, detail="Minimum addon quantity is 1")
 
